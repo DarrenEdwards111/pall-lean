@@ -981,6 +981,15 @@ def RetryCover.work {n : ℕ} : RetryCover n → ℕ
       (bucket \ bad).card * goodCost +
         ∑ ρ : {ρ : Restriction n // ρ ∈ bad}, (retries ρ).work
 
+def RetryCover.root {n : ℕ} : RetryCover n → Restriction n
+  | .leaf τ _ => τ
+  | .node τ _ _ _ _ _ _ => τ
+
+def RetryCover.height {n : ℕ} : RetryCover n → ℕ
+  | .leaf _ _ => 0
+  | .node _ _ bad _ _ _ retries =>
+      1 + (bad.attach.sup fun ρ => (retries ρ).height)
+
 /-- Assemble a retry node from the same genuine selected bucket/bad set used by the deterministic
 certificate. -/
 noncomputable def selectedRetryNode {n G K threshold : ℕ} (τ : Restriction n)
@@ -1706,6 +1715,82 @@ theorem concreteRetryCertificate_subcube {n r : ℕ} [NeZero r]
   · exact hterms
   · simpa [hstars] using concreteRetry_shellBudget r (NeZero.pos r)
 
+/-- Closed worst-case work recurrence for `j` retry levels.  The zero case brute-forces the final
+live frontier.  At a retry node all good children pay `goodCost`, while the exact half-bad bound
+controls the recursively unresolved children. -/
+def concreteRetryWorstWork : ℕ → ℕ → (ℕ → ℕ) → ℕ
+  | 0, r, _ => 2 ^ (concreteScale * r)
+  | j + 1, r, goodCost =>
+      let s := r * concreteCoverB ^ (j + 1)
+      let q := concreteScale * s - 20 * s
+      retrySpliceWork (2 ^ q) (2 ^ (q - 1)) (goodCost s)
+        (concreteRetryWorstWork j r goodCost)
+
+/-- A genuine finite retry tree of any prescribed height.  At every internal node the same
+constant-depth certificate is selected on the current live cube; good children stop and every bad
+child is recursively retried.  At height zero the remaining frontier is explicitly brute-forced.
+The scale `concreteCoverB` makes the child dimension exactly the next recursive input. -/
+theorem exists_concreteRetryCover {n : ℕ} (j r : ℕ) [NeZero r]
+    (τ : Restriction n)
+    (hstars : stars τ = concreteScale * (r * concreteCoverB ^ j))
+    (gates : Fin concreteG → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms)
+    (goodCost : ℕ → ℕ) :
+    ∃ cover : RetryCover n,
+      cover.root = τ ∧ cover.height ≤ j ∧
+      cover.work ≤ concreteRetryWorstWork j r goodCost ∧
+      (j = 0 → cover.work = 2 ^ stars τ) := by
+  classical
+  induction j generalizing τ with
+  | zero =>
+      refine ⟨.leaf τ (2 ^ stars τ), rfl, by simp [RetryCover.height], ?_, ?_⟩
+      · simp [RetryCover.work, concreteRetryWorstWork, hstars]
+      · simp [RetryCover.work]
+  | succ j ih =>
+      let s : ℕ := r * concreteCoverB ^ (j + 1)
+      have hspos : 0 < s := by
+        exact Nat.mul_pos (NeZero.pos r) (pow_pos (by
+          exact lt_trans (by omega) concreteCoverB_gt_three) _)
+      letI : NeZero s := ⟨Nat.ne_of_gt hspos⟩
+      have hstars' : stars τ = concreteScale * s := by
+        simpa [s] using hstars
+      obtain ⟨i, hi⟩ := concreteRetryCertificate_subcube τ hstars' gates hwidth hterms
+      let bad := selectedBadChildren (threshold := concreteT) τ gates i
+      have hchildStars : ∀ ρ : {ρ : Restriction n // ρ ∈ bad},
+          stars ρ.1 = concreteScale * (r * concreteCoverB ^ j) := by
+        intro ρ
+        have hbuck : ρ.1 ∈ liftedSelectedBucket τ (20 * s) i :=
+          selectedBadChildren_subset (threshold := concreteT) τ gates i ρ.2
+        rw [liftedSelectedBucket_stars τ i hbuck]
+        rw [show s = concreteCoverB * (r * concreteCoverB ^ j) by
+          simp [s, pow_succ]; ac_rfl]
+        exact concreteCover_live_exact (r * concreteCoverB ^ j)
+      choose retries hroot hheight hwork hleaf using
+        fun ρ : {ρ : Restriction n // ρ ∈ bad} =>
+        ih ρ.1 (hchildStars ρ)
+      let cover := selectedRetryNode τ gates i (goodCost s) retries
+      refine ⟨cover, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · simp only [cover, selectedRetryNode, RetryCover.height]
+        have hsup :
+            ((selectedBadChildren (threshold := concreteT) τ gates i).attach.sup
+              fun ρ => (retries ρ).height) ≤ j := by
+          apply Finset.sup_le
+          intro ρ hρ
+          exact hheight ρ
+        omega
+      · apply le_trans (selectedRetryNode_work_le_splice τ gates i (goodCost s)
+          (concreteRetryWorstWork j r goodCost) retries hwork)
+        rw [concreteRetryWorstWork]
+        apply Nat.add_le_add
+        · apply Nat.mul_le_mul_right
+          simpa [hstars'] using card_selectedGoodChildren_le τ gates i
+        · apply Nat.mul_le_mul_right
+          rw [card_selectedBadChildren]
+          simpa [hstars'] using hi
+      · omega
+
 /-- The stronger concrete certificate keeps the exceptional-count half-budget and the full work
 bound attached to the same selected bucket. -/
 theorem concreteDeterministicRoundCertificate_atSize (N r : ℕ) [NeZero r]
@@ -1954,6 +2039,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate_subcube
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube
