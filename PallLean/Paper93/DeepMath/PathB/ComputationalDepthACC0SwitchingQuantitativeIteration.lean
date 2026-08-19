@@ -830,6 +830,91 @@ theorem selectedLocalBucket_bad_iff {n G K threshold : ℕ} (τ : Restriction n)
       σ ∈ circuitBad (localizeLiveGates τ gates) K threshold :=
   mem_circuitBad_localize_iff τ gates K threshold σ
 
+/-- A finite deterministic cover tree.  Bad children stop at their node and pay `badCost`; only
+good children carry recursive subtrees.  Every stored child is certified to extend its parent. -/
+inductive ChargedCover (n : ℕ) where
+  | leaf (τ : Restriction n) (leafWork : ℕ)
+  | node (τ : Restriction n) (bucket bad : Finset (Restriction n)) (badCost : ℕ)
+      (bad_subset : bad ⊆ bucket)
+      (extends_parent : ∀ ρ ∈ bucket, Extends τ ρ)
+      (children : (ρ : {ρ : Restriction n // ρ ∈ bucket \ bad}) → ChargedCover n)
+
+/-- Exact recursive work of a charged cover: stopped bad arms plus every recursively expanded good
+arm.  No exceptional or good child is omitted. -/
+def ChargedCover.work {n : ℕ} : ChargedCover n → ℕ
+  | .leaf _ leafWork => leafWork
+  | .node _ bucket bad badCost _ _ children =>
+      bad.card * badCost +
+        ∑ ρ : {ρ : Restriction n // ρ ∈ bucket \ bad}, (children ρ).work
+
+def ChargedCover.root {n : ℕ} : ChargedCover n → Restriction n
+  | .leaf τ _ => τ
+  | .node τ _ _ _ _ _ _ => τ
+
+/-- Genuine ambient bad children inside one complete lifted selected bucket. -/
+noncomputable def selectedBadChildren {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K)) :
+    Finset (Restriction n) :=
+  liftedSelectedBucket τ K i ∩ circuitBad gates K threshold
+
+theorem selectedBadChildren_subset {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K)) :
+    selectedBadChildren (threshold := threshold) τ gates i ⊆ liftedSelectedBucket τ K i := by
+  exact Finset.inter_subset_left
+
+theorem selectedBadChildren_eq_image_badBucket {n G K threshold : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K)) :
+    selectedBadChildren (threshold := threshold) τ gates i =
+      (badBucket (circuitBad (localizeLiveGates τ gates) K threshold)
+        ((freeSetBucketEquivFin (stars τ) K).symm i)).image (liftLiveRestriction τ) := by
+  classical
+  ext ρ
+  constructor
+  · intro hρ
+    obtain ⟨hlift, hamb⟩ := Finset.mem_inter.mp hρ
+    rw [liftedSelectedBucket, Finset.mem_image] at hlift
+    obtain ⟨σ, hσ, rfl⟩ := hlift
+    apply Finset.mem_image.mpr
+    refine ⟨σ, ?_, rfl⟩
+    rw [badBucket, Finset.mem_filter]
+    refine ⟨(mem_circuitBad_localize_iff τ gates K threshold σ).mp hamb, ?_⟩
+    exact mem_restrictionBucket.mp hσ
+  · intro hρ
+    rw [Finset.mem_image] at hρ
+    obtain ⟨σ, hσ, rfl⟩ := hρ
+    rw [badBucket, Finset.mem_filter] at hσ
+    apply Finset.mem_inter.mpr
+    constructor
+    · rw [liftedSelectedBucket, Finset.mem_image]
+      exact ⟨σ, mem_restrictionBucket.mpr hσ.2, rfl⟩
+    · exact (mem_circuitBad_localize_iff τ gates K threshold σ).mpr hσ.1
+
+/-- The number stored in the selected-bucket certificate is exactly the number of genuine ambient
+bad children stopped by the charged cover node. -/
+theorem card_selectedBadChildren {n G K threshold : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K)) :
+    (selectedBadChildren (threshold := threshold) τ gates i).card =
+      concreteBadCount (K := K)
+        (circuitBad (localizeLiveGates τ gates) K threshold) i := by
+  rw [selectedBadChildren_eq_image_badBucket]
+  exact Finset.card_image_of_injective _ (liftLiveRestriction_injective τ)
+
+/-- Assemble one real charged node from a selected bucket; recursive data are requested exactly for
+the children outside the genuine ambient bad set. -/
+noncomputable def selectedChargedNode {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K))
+    (badCost : ℕ)
+    (children : (ρ : {ρ : Restriction n //
+      ρ ∈ liftedSelectedBucket τ K i \
+        selectedBadChildren (threshold := threshold) τ gates i}) → ChargedCover n) :
+    ChargedCover n :=
+  .node τ (liftedSelectedBucket τ K i)
+    (selectedBadChildren (threshold := threshold) τ gates i) badCost
+    (selectedBadChildren_subset (threshold := threshold) τ gates i)
+    (fun ρ hρ => liftedSelectedBucket_extends τ i hρ) children
+
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
     ℕ → Layered n
@@ -1373,3 +1458,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_circuitBad_localize_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_extends
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_coverSched_stars
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_selectedBadChildren
