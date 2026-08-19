@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingCircuitLinearGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -45,6 +46,31 @@ theorem GoodRound.equivOn {n K threshold : ℕ} {C : Layered n} {ρ : Restrictio
     (h : GoodRound K threshold C ρ) : EquivOn ρ C (collapseRound K ρ C) :=
   collapseRound_EquivOn K (by rw [h.stars_eq]) C
 
+/-- A survivor-style round separates the collapse fuel from the number of surviving variables. -/
+structure AnalyticRound {n : ℕ} (F threshold : ℕ) (C : Layered n) (ρ : Restriction n) where
+  stars_le : stars ρ ≤ F
+  shallow : Shallows F ρ threshold C
+
+theorem AnalyticRound.equivOn {n F threshold : ℕ} {C : Layered n} {ρ : Restriction n}
+    (h : AnalyticRound F threshold C ρ) : EquivOn ρ C (collapseRound F ρ C) :=
+  collapseRound_EquivOn F h.stars_le C
+
+/-- The relative two-threshold switching theorem produces an actual analytic round extending the
+current subcube.  The survivor target `s` and the constant collapse depth `t` are independent. -/
+theorem exists_analyticRound_REL2 {n : ℕ} {p : ℚ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (hp3 : 3 * p ≤ 1) {w F s t m : ℕ} [NeZero w] [NeZero m]
+    (hs : 2 ≤ s) (hF : n ≤ F) (C : Layered n) (τ : Restriction n)
+    (hbw : BottomWidth w C) (hmc : BottomCount m C)
+    (hr1 : (2 * p / (1 - p)) * (2 * (w : ℚ) * (m : ℚ)) < 1)
+    (hgap : 7 * (s : ℚ) < (stars τ : ℚ) * p)
+    (hh2 : ((bottomGatesG C).card : ℚ)
+      * (((2 * p / (1 - p)) * (2 * (w : ℚ) * (m : ℚ))) ^ t
+        / (1 - (2 * p / (1 - p)) * (2 * (w : ℚ) * (m : ℚ)))) < 1 / 2) :
+    ∃ ρ : Restriction n, Extends τ ρ ∧ s ≤ stars ρ ∧ AnalyticRound F t C ρ := by
+  obtain ⟨ρ, hext, hstars, hle, hsh⟩ :=
+    hsurv_REL2_round hp0 hp1 hp3 hs hF C τ hbw hmc hr1 hgap hh2
+  exact ⟨ρ, hext, hstars, ⟨hle, hsh⟩⟩
+
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
@@ -78,6 +104,16 @@ theorem collapseSeq_round_equiv {n d : ℕ} (K threshold : ℕ → ℕ)
   rw [collapseSeq_succ]
   exact (hround i hi).equivOn
 
+/-- Analytic survivor rounds drive the same real collapse sequence without requiring an exact-star
+bucket certificate. -/
+theorem collapseSeq_round_equiv_analytic {n d : ℕ} (F threshold : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n)
+    (hround : ∀ i < d, AnalyticRound (F i) (threshold i) (collapseSeq F ρ C₀ i) (ρ i)) :
+    ∀ i < d, EquivOn (ρ i) (collapseSeq F ρ C₀ i) (collapseSeq F ρ C₀ (i + 1)) := by
+  intro i hi
+  rw [collapseSeq_succ]
+  exact (hround i hi).equivOn
+
 /-- Every consumed round has the width promised by its own varying threshold. -/
 theorem collapseSeq_round_width {n d : ℕ} (K threshold : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n)
@@ -86,6 +122,14 @@ theorem collapseSeq_round_width {n d : ℕ} (K threshold : ℕ → ℕ)
   intro i hi
   rw [collapseSeq_succ]
   exact collapseRound_BottomWidth (K i) (ρ i) (hround i hi).shallows
+
+theorem collapseSeq_round_width_analytic {n d : ℕ} (F threshold : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n)
+    (hround : ∀ i < d, AnalyticRound (F i) (threshold i) (collapseSeq F ρ C₀ i) (ρ i)) :
+    ∀ i < d, BottomWidth (threshold i) (collapseSeq F ρ C₀ (i + 1)) := by
+  intro i hi
+  rw [collapseSeq_succ]
+  exact collapseRound_BottomWidth (F i) (ρ i) (hround i hi).shallow
 
 /-- The real collapse sequence never increases its number of bottom gates. -/
 theorem collapseSeq_gateCount_le {n d : ℕ} (K : ℕ → ℕ)
@@ -125,6 +169,26 @@ theorem collapseSeq_round_structuralBounds {n d M : ℕ} (K threshold : ℕ → 
       (hround i hi).shallows hcnt, ?_⟩
   exact le_trans (collapseRound_count_le (K i) (ρ i) (AltO_NonEmptyGates hshape)) hcnt
 
+theorem collapseSeq_round_structuralBounds_analytic {n d M : ℕ} (F threshold : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀)
+    (hround : ∀ i < d, AnalyticRound (F i) (threshold i) (collapseSeq F ρ C₀ i) (ρ i))
+    (hM : (bottomGates C₀).length ≤ M) :
+    ∀ i < d,
+      BottomWidth (threshold i) (collapseSeq F ρ C₀ (i + 1)) ∧
+      BottomCount (M * 2 ^ threshold i) (collapseSeq F ρ C₀ (i + 1)) ∧
+      (bottomGates (collapseSeq F ρ C₀ (i + 1))).length ≤ M := by
+  intro i hi
+  have hshape : AltO ((d - i) + 2) (collapseSeq F ρ C₀ i) :=
+    collapseSeq_AltO F ρ C₀ hAlt i (d - i) (by omega)
+  have hcnt : (bottomGates (collapseSeq F ρ C₀ i)).length ≤ M :=
+    le_trans (collapseSeq_gateCount_le F ρ C₀ hAlt i (by omega)) hM
+  have hM1 : 1 ≤ M := le_trans (bottomGates_length_pos_AltO hshape) hcnt
+  rw [collapseSeq_succ]
+  refine ⟨collapseRound_BottomWidth (F i) (ρ i) (hround i hi).shallow,
+    collapseRound_BottomCount (F i) (ρ i) hM1 (AltO_NonEmptyGates hshape)
+      (hround i hi).shallow hcnt, ?_⟩
+  exact le_trans (collapseRound_count_le (F i) (ρ i) (AltO_NonEmptyGates hshape)) hcnt
+
 /-- **Multi-round semantic composition.**  On the final nested subcube, the original circuit reduces
 to the actual `d`-round collapsed circuit, hence their evaluations agree everywhere on that subcube. -/
 theorem collapseSeq_reduces_final {n d : ℕ} (K threshold : ℕ → ℕ)
@@ -144,9 +208,29 @@ theorem collapseSeq_reduces_final {n d : ℕ} (K threshold : ℕ → ℕ)
       have heq := collapseSeq_round_equiv K threshold ρ C₀ hround d (by omega)
       exact hprev.trans (Reduces.head heq hxprev)
 
+/-- Nested analytic survivor rounds compose semantically through the full collapse sequence. -/
+theorem collapseSeq_reduces_final_analytic {n d : ℕ} (F threshold : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n)
+    (hround : ∀ i < d, AnalyticRound (F i) (threshold i) (collapseSeq F ρ C₀ i) (ρ i))
+    (hnest : ∀ i < d, Extends (ρ i) (ρ (i + 1))) :
+    ∀ x, DTree.agreeRestriction (ρ d) x → Reduces x C₀ (collapseSeq F ρ C₀ d) := by
+  intro x hx
+  induction d with
+  | zero => exact Reduces.refl _
+  | succ d ih =>
+      have hxprev : DTree.agreeRestriction (ρ d) x :=
+        agreeRestriction_of_extends (hnest d (by omega)) hx
+      have hprev : Reduces x C₀ (collapseSeq F ρ C₀ d) :=
+        ih (fun i hi => hround i (by omega)) (fun i hi => hnest i (by omega)) hxprev
+      have heq := collapseSeq_round_equiv_analytic F threshold ρ C₀ hround d (by omega)
+      exact hprev.trans (Reduces.head heq hxprev)
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_terminal_dnf
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_reduces_final
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_gateCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_analyticRound_REL2
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_reduces_final_analytic
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds_analytic
