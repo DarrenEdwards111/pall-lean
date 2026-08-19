@@ -1448,6 +1448,58 @@ theorem concreteDeterministicRoundGap (r : ℕ) [NeZero r]
   simpa [concreteScale, concreteG] using
     wideCircuitLinearGap_selectedBucket_activeGap concreteG concreteT concreteTerms r gates hwidth hterms
 
+/-- **Constant-threshold retry certificate from one natural shell inequality.**  Unlike the earlier
+linear-threshold certificate, `threshold` and `K` are independent.  A shell budget of one half
+selects a complete deterministic bucket with at most half of its `2^(N-K)` children genuinely bad.
+This is exactly the local input consumed by `selectedRetryNode_work_le`. -/
+theorem deterministicRetryCertificate_atSize
+    (N G w m K threshold : ℕ) [NeZero w] [NeZero m]
+    (hK : K ≤ N) (hq : 1 ≤ N - K)
+    (gates : Fin G → List (Clause N))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m)
+    (hbudget :
+      (G * (∑ t ∈ Finset.Icc threshold K,
+        N.choose (K - t) * 2 ^ (N - (K - t)) * (2 * w * m) ^ t)) * 2
+        ≤ N.choose K * 2 ^ (N - K)) :
+    ∃ i : Fin (N.choose K),
+      concreteBadCount (K := K) (circuitBad gates K threshold) i ≤
+        2 ^ ((N - K) - 1) := by
+  have hstars : ∀ ρ ∈ circuitBad gates K threshold, stars ρ = K :=
+    fun ρ hρ => circuitBad_stars gates K threshold ρ hρ
+  have hcard := circuitBad_card_le_shellSum gates K threshold hwidth hterms
+  have htail : (circuitBad gates K threshold).card * 2 ≤
+      N.choose K * 2 ^ (N - K) :=
+    le_trans (Nat.mul_le_mul_right 2 hcard) hbudget
+  have hsum := sum_concreteBadCount (Bad := circuitBad gates K threshold) hstars
+  apply exists_bucket_badCount_le (N.choose K) (N - K) 0
+  · exact Nat.choose_pos hK
+  · omega
+  · rw [hsum]
+    simpa using htail
+
+/-- The same half-bad retry certificate on an arbitrary current subcube, after exact localization
+of its genuine ambient gate family. -/
+theorem deterministicRetryCertificate_subcube
+    {n G w m K threshold : ℕ} [NeZero w] [NeZero m]
+    (τ : Restriction n) (hK : K ≤ stars τ) (hq : 1 ≤ stars τ - K)
+    (gates : Fin G → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m)
+    (hbudget :
+      (G * (∑ t ∈ Finset.Icc threshold K,
+        (stars τ).choose (K - t) * 2 ^ (stars τ - (K - t)) * (2 * w * m) ^ t)) * 2
+        ≤ (stars τ).choose K * 2 ^ (stars τ - K)) :
+    ∃ i : Fin ((stars τ).choose K),
+      concreteBadCount (K := K)
+        (circuitBad (localizeLiveGates τ gates) K threshold) i ≤
+          2 ^ ((stars τ - K) - 1) := by
+  apply deterministicRetryCertificate_atSize (stars τ) G w m K threshold hK hq
+    (localizeLiveGates τ gates)
+  · exact localizeLiveGates_width_le τ gates hwidth
+  · exact localizeLiveGates_count_le τ gates hterms
+  · exact hbudget
+
 /-- The stronger concrete certificate keeps the exceptional-count half-budget and the full work
 bound attached to the same selected bucket. -/
 theorem concreteDeterministicRoundCertificate_atSize (N r : ℕ) [NeZero r]
@@ -1690,6 +1742,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteGeometricDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_atSize
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube
