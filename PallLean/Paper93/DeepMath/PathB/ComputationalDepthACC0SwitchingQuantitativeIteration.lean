@@ -71,6 +71,50 @@ theorem exists_analyticRound_REL2 {n : ℕ} {p : ℚ} (hp0 : 0 ≤ p) (hp1 : p �
     hsurv_REL2_round hp0 hp1 hp3 hs hF C τ hbw hmc hr1 hgap hh2
   exact ⟨ρ, hext, hstars, ⟨hle, hsh⟩⟩
 
+def concreteM : ℕ := 1000000
+def concreteT : ℕ := 30
+def concreteTerms : ℕ := concreteM * 2 ^ concreteT
+def concreteQ : ℕ := 16 * concreteT * concreteTerms
+
+/-- A fully numerical later-round certificate.  These constants are closed under collapse:
+width `30`, at most `10^6` bottom gates, and at most `10^6·2^30` clauses per gate. -/
+theorem exists_concreteAnalyticRound {n F s : ℕ} (hs : 2 ≤ s) (hF : n ≤ F)
+    (C : Layered n) (τ : Restriction n)
+    (hbw : BottomWidth concreteT C) (hmc : BottomCount concreteTerms C)
+    (hcnt : (bottomGates C).length ≤ concreteM)
+    (hgap : 7 * (s : ℚ) < (stars τ : ℚ) * (1 / concreteQ)) :
+    ∃ ρ : Restriction n, Extends τ ρ ∧ s ≤ stars ρ ∧
+      AnalyticRound F concreteT C ρ := by
+  haveI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  haveI : NeZero concreteTerms := ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  apply exists_analyticRound_REL2 (p := 1 / concreteQ) (by positivity) (by norm_num [concreteQ,
+    concreteT, concreteTerms, concreteM]) (by norm_num [concreteQ, concreteT, concreteTerms, concreteM])
+    hs hF C τ hbw hmc
+  · norm_num [concreteQ, concreteT, concreteTerms, concreteM]
+  · exact hgap
+  · have hcard : ((bottomGatesG C).card : ℚ) ≤ 2 * concreteM := by
+      exact_mod_cast le_trans (bottomGatesG_card_le C) (by omega : 2 * (bottomGates C).length ≤ 2 * concreteM)
+    have hcap0 : (0 : ℚ) ≤
+        (((2 * (1 / concreteQ) / (1 - 1 / concreteQ)) *
+          (2 * (concreteT : ℚ) * (concreteTerms : ℚ))) ^ concreteT /
+          (1 - (2 * (1 / concreteQ) / (1 - 1 / concreteQ)) *
+            (2 * (concreteT : ℚ) * (concreteTerms : ℚ)))) := by
+      norm_num [concreteQ, concreteT, concreteTerms, concreteM]
+    refine lt_of_le_of_lt (mul_le_mul_of_nonneg_right hcard hcap0) ?_
+    norm_num [concreteQ, concreteT, concreteTerms, concreteM]
+
+/-- The concrete invariant is closed under the real collapse transformation. -/
+theorem concreteAnalyticRound_closed {n F : ℕ} {C : Layered n} {ρ : Restriction n}
+    (hround : AnalyticRound F concreteT C ρ) (hne : NonEmptyGates C)
+    (hcnt : (bottomGates C).length ≤ concreteM) :
+    BottomWidth concreteT (collapseRound F ρ C) ∧
+      BottomCount concreteTerms (collapseRound F ρ C) ∧
+      (bottomGates (collapseRound F ρ C)).length ≤ concreteM := by
+  refine ⟨collapseRound_BottomWidth F ρ hround.shallow, ?_,
+    le_trans (collapseRound_count_le F ρ hne) hcnt⟩
+  simpa [concreteTerms] using
+    collapseRound_BottomCount F ρ (by norm_num [concreteM]) hne hround.shallow hcnt
+
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
@@ -234,3 +278,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_analyticRound_REL2
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_reduces_final_analytic
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds_analytic
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteAnalyticRound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteAnalyticRound_closed
