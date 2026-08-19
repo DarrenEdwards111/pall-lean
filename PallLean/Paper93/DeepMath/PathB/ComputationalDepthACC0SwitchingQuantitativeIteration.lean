@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRestrictionCardinality
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipCollision
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -26,6 +27,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingTailIntegerBridge
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingFixedTermLinearGap
 
 /-- Canonical coordinates for the live variables of a current restriction. -/
 noncomputable def liveCoordEquiv {n : ℕ} (τ : Restriction n) :
@@ -1452,6 +1454,159 @@ theorem concreteDeterministicRoundGap (r : ℕ) [NeZero r]
 linear-threshold certificate, `threshold` and `K` are independent.  A shell budget of one half
 selects a complete deterministic bucket with at most half of its `2^(N-K)` children genuinely bad.
 This is exactly the local input consumed by `selectedRetryNode_work_le`. -/
+theorem concreteRetry_geometric_budget (r : ℕ) :
+    (2 : ℚ) * concreteG *
+        (∑ t ∈ Finset.Icc concreteT (20 * r),
+          ((4 : ℚ) / (49 * concreteG)) ^ t) ≤ 1 := by
+  have ha0 : (0 : ℚ) ≤ (4 : ℚ) / (49 * concreteG) := by positivity
+  have ha1 : (4 : ℚ) / (49 * concreteG) < 1 := by
+    norm_num [concreteG, concreteM]
+  have htail := geom_shell_tail_le ha0 ha1 concreteT (20 * r)
+  calc
+    (2 : ℚ) * concreteG *
+        (∑ t ∈ Finset.Icc concreteT (20 * r),
+          ((4 : ℚ) / (49 * concreteG)) ^ t)
+      ≤ 2 * concreteG *
+          (((4 : ℚ) / (49 * concreteG)) ^ concreteT /
+            (1 - (4 : ℚ) / (49 * concreteG))) := by gcongr
+    _ ≤ 1 := by norm_num [concreteG, concreteM, concreteT]
+
+/-- The reusable fixed-width retry round has at most half of its complete bucket bad.  The
+ambient density is the same `20/(1000·G·w·m)` density as the linear-gap theorem, but the canonical
+depth threshold is the independent constant `30`. -/
+theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
+    (concreteG * (∑ t ∈ Finset.Icc concreteT (20 * r),
+      (concreteScale * r).choose (20 * r - t) *
+        2 ^ (concreteScale * r - (20 * r - t)) *
+          (2 * concreteT * concreteTerms) ^ t)) * 2 ≤
+      (concreteScale * r).choose (20 * r) *
+        2 ^ (concreteScale * r - 20 * r) := by
+  let E : ℕ := concreteG * (concreteT * concreteTerms)
+  have hE : 0 < E := by
+    norm_num [E, concreteG, concreteM, concreteT, concreteTerms]
+  have hK : 20 * r ≤ concreteScale * r := by
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  have hfull : (0 : ℚ) < (concreteScale * r).choose (20 * r) := by
+    exact_mod_cast Nat.choose_pos hK
+  have hterm : ∀ t ∈ Finset.Icc concreteT (20 * r),
+      (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
+          (4 * concreteT * concreteTerms : ℕ) ^ t ≤
+        ((concreteScale * r).choose (20 * r) : ℕ) *
+          ((4 : ℚ) / (49 * concreteG)) ^ t := by
+    intro t ht
+    have htK : t ≤ 20 * r := (Finset.mem_Icc.mp ht).2
+    have hratio := fixedTerm_choose_shell_ratio E r t hE hr htK
+    have hscale : 1000 * E * r = concreteScale * r := by
+      simp [E, concreteScale]
+    rw [hscale] at hratio
+    have hratio' :
+        (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) /
+            (concreteScale * r).choose (20 * r) ≤
+          ((1 : ℚ) / (49 * E)) ^ t := by
+      simpa only [Nat.cast_mul, Nat.cast_ofNat] using hratio
+    calc
+      (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
+          (4 * concreteT * concreteTerms : ℕ) ^ t
+        = ((((concreteScale * r).choose (20 * r - t) : ℚ) /
+              (concreteScale * r).choose (20 * r)) *
+                (concreteScale * r).choose (20 * r)) *
+                  (4 * concreteT * concreteTerms : ℕ) ^ t := by
+                    field_simp [ne_of_gt hfull]
+      _ ≤ (((1 : ℚ) / (49 * E)) ^ t *
+              (concreteScale * r).choose (20 * r)) *
+                (4 * concreteT * concreteTerms : ℕ) ^ t := by
+                  gcongr
+      _ = ((concreteScale * r).choose (20 * r) : ℕ) *
+          ((4 : ℚ) / (49 * concreteG)) ^ t := by
+            have hcancel :
+                ((1 : ℚ) / (49 * E)) ^ t *
+                    ((4 * concreteT * concreteTerms : ℕ) : ℚ) ^ t =
+                  ((4 : ℚ) / (49 * concreteG)) ^ t := by
+              rw [← mul_pow]
+              norm_num [E, concreteG, concreteM, concreteT, concreteTerms]
+            rw [← hcancel]
+            ring
+  have hsum := Finset.sum_le_sum hterm
+  have hgeom := concreteRetry_geometric_budget r
+  have hnormalized :
+      (2 : ℚ) * concreteG *
+          (∑ t ∈ Finset.Icc concreteT (20 * r),
+            (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
+              (4 * concreteT * concreteTerms : ℕ) ^ t) ≤
+        ((concreteScale * r).choose (20 * r) : ℕ) := by
+    calc
+      (2 : ℚ) * concreteG *
+          (∑ t ∈ Finset.Icc concreteT (20 * r),
+            (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
+              (4 * concreteT * concreteTerms : ℕ) ^ t)
+        ≤ 2 * concreteG *
+            ((concreteScale * r).choose (20 * r) *
+              ∑ t ∈ Finset.Icc concreteT (20 * r),
+                ((4 : ℚ) / (49 * concreteG)) ^ t) := by
+                  gcongr
+                  simpa [Finset.mul_sum] using hsum
+      _ = ((concreteScale * r).choose (20 * r) : ℕ) *
+          (2 * concreteG *
+            ∑ t ∈ Finset.Icc concreteT (20 * r),
+              ((4 : ℚ) / (49 * concreteG)) ^ t) := by ring
+      _ ≤ ((concreteScale * r).choose (20 * r) : ℕ) := by
+        nlinarith
+  have hnormalizedNat :
+      (2 * concreteG) *
+          (∑ t ∈ Finset.Icc concreteT (20 * r),
+            (concreteScale * r).choose (20 * r - t) *
+              (4 * concreteT * concreteTerms) ^ t) ≤
+        (concreteScale * r).choose (20 * r) := by
+    exact_mod_cast hnormalized
+  have hfactor :
+      (∑ t ∈ Finset.Icc concreteT (20 * r),
+        (concreteScale * r).choose (20 * r - t) *
+          2 ^ (concreteScale * r - (20 * r - t)) *
+            (2 * concreteT * concreteTerms) ^ t) =
+        2 ^ (concreteScale * r - 20 * r) *
+          (∑ t ∈ Finset.Icc concreteT (20 * r),
+            (concreteScale * r).choose (20 * r - t) *
+              (4 * concreteT * concreteTerms) ^ t) := by
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro t ht
+    have htK : t ≤ 20 * r := (Finset.mem_Icc.mp ht).2
+    have hpow :
+        2 ^ t * (2 * concreteT * concreteTerms) ^ t =
+          (4 * concreteT * concreteTerms) ^ t := by
+      rw [← mul_pow]
+      congr 1
+    rw [show concreteScale * r - (20 * r - t) =
+        (concreteScale * r - 20 * r) + t by omega, pow_add]
+    calc
+      (concreteScale * r).choose (20 * r - t) *
+          (2 ^ (concreteScale * r - 20 * r) * 2 ^ t) *
+            (2 * concreteT * concreteTerms) ^ t
+        = 2 ^ (concreteScale * r - 20 * r) *
+            ((concreteScale * r).choose (20 * r - t) *
+              (2 ^ t * (2 * concreteT * concreteTerms) ^ t)) := by ring
+      _ = 2 ^ (concreteScale * r - 20 * r) *
+          ((concreteScale * r).choose (20 * r - t) *
+            (4 * concreteT * concreteTerms) ^ t) := by rw [hpow]
+  rw [hfactor]
+  calc
+    (concreteG *
+        (2 ^ (concreteScale * r - 20 * r) *
+          ∑ t ∈ Finset.Icc concreteT (20 * r),
+            (concreteScale * r).choose (20 * r - t) *
+              (4 * concreteT * concreteTerms) ^ t)) * 2
+      = 2 ^ (concreteScale * r - 20 * r) *
+          ((2 * concreteG) *
+            ∑ t ∈ Finset.Icc concreteT (20 * r),
+              (concreteScale * r).choose (20 * r - t) *
+                (4 * concreteT * concreteTerms) ^ t) := by ring
+    _ ≤ 2 ^ (concreteScale * r - 20 * r) *
+        (concreteScale * r).choose (20 * r) :=
+      Nat.mul_le_mul_left _ hnormalizedNat
+    _ = (concreteScale * r).choose (20 * r) *
+        2 ^ (concreteScale * r - 20 * r) := by ring
+
 theorem deterministicRetryCertificate_atSize
     (N G w m K threshold : ℕ) [NeZero w] [NeZero m]
     (hK : K ≤ N) (hq : 1 ≤ N - K)
@@ -1499,6 +1654,57 @@ theorem deterministicRetryCertificate_subcube
   · exact localizeLiveGates_width_le τ gates hwidth
   · exact localizeLiveGates_count_le τ gates hterms
   · exact hbudget
+
+/-- The numerical constant-threshold retry selector.  For every positive scale, one complete
+`20r`-star bucket has at most half genuinely bad children at canonical depth `30`. -/
+theorem concreteRetryCertificate (r : ℕ) [NeZero r]
+    (gates : Fin concreteG → List (Clause (concreteScale * r)))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((concreteScale * r).choose (20 * r)),
+      concreteBadCount (K := 20 * r)
+        (circuitBad gates (20 * r) concreteT) i ≤
+          2 ^ (((concreteScale * r - 20 * r) - 1)) := by
+  letI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  letI : NeZero concreteTerms :=
+    ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  apply deterministicRetryCertificate_atSize
+    (concreteScale * r) concreteG concreteT concreteTerms (20 * r) concreteT
+  · norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · have hr := NeZero.pos r
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · exact hwidth
+  · exact hterms
+  · exact concreteRetry_shellBudget r (NeZero.pos r)
+
+/-- The same numerical selector at an arbitrary current subcube of the matching live size. -/
+theorem concreteRetryCertificate_subcube {n r : ℕ} [NeZero r]
+    (τ : Restriction n) (hstars : stars τ = concreteScale * r)
+    (gates : Fin concreteG → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((stars τ).choose (20 * r)),
+      concreteBadCount (K := 20 * r)
+        (circuitBad (localizeLiveGates τ gates) (20 * r) concreteT) i ≤
+          2 ^ (((stars τ - 20 * r) - 1)) := by
+  letI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  letI : NeZero concreteTerms :=
+    ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  apply deterministicRetryCertificate_subcube
+    (G := concreteG) (w := concreteT) (m := concreteTerms)
+    (K := 20 * r) (threshold := concreteT) τ
+  · rw [hstars]
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · rw [hstars]
+    have hr := NeZero.pos r
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · exact hwidth
+  · exact hterms
+  · simpa [hstars] using concreteRetry_shellBudget r (NeZero.pos r)
 
 /-- The stronger concrete certificate keeps the exceptional-count half-budget and the full work
 bound attached to the same selected bucket. -/
@@ -1744,6 +1950,10 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_subcube
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_geometric_budget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_shellBudget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube
