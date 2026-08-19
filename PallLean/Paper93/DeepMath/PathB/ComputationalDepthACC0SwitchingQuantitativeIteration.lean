@@ -115,6 +115,42 @@ theorem concreteAnalyticRound_closed {n F : ℕ} {C : Layered n} {ρ : Restricti
   simpa [concreteTerms] using
     collapseRound_BottomCount F ρ (by norm_num [concreteM]) hne hround.shallow hcnt
 
+/-- Two genuinely nested concrete rounds, including the actual depth-four-to-DNF collapse and
+semantic composition on the final subcube. -/
+theorem concreteTwoRoundChain {n F s₁ s₂ : ℕ} (hs₁ : 2 ≤ s₁) (hs₂ : 2 ≤ s₂)
+    (hF : n ≤ F) (C₀ : Layered n) (τ₀ : Restriction n) (hAlt : AltO 4 C₀)
+    (hbw : BottomWidth concreteT C₀) (hmc : BottomCount concreteTerms C₀)
+    (hcnt : (bottomGates C₀).length ≤ concreteM)
+    (hgap₁ : 7 * (s₁ : ℚ) < (stars τ₀ : ℚ) * (1 / concreteQ))
+    (hgap₂ : 7 * (s₂ : ℚ) < (s₁ : ℚ) * (1 / concreteQ)) :
+    ∃ ρ₁ ρ₂ : Restriction n, ∃ C₁ C₂ : Layered n,
+      Extends τ₀ ρ₁ ∧ Extends ρ₁ ρ₂ ∧ s₂ ≤ stars ρ₂ ∧
+      AnalyticRound F concreteT C₀ ρ₁ ∧ AnalyticRound F concreteT C₁ ρ₂ ∧
+      C₁ = collapseRound F ρ₁ C₀ ∧ C₂ = collapseRound F ρ₂ C₁ ∧
+      (∃ D : List (Clause n), C₂ = Layered.dnf D) ∧
+      ∀ x, DTree.agreeRestriction ρ₂ x → Reduces x C₀ C₂ := by
+  obtain ⟨ρ₁, hext₁, hstars₁, hr₁⟩ :=
+    exists_concreteAnalyticRound hs₁ hF C₀ τ₀ hbw hmc hcnt hgap₁
+  let C₁ := collapseRound F ρ₁ C₀
+  have hb₁ := concreteAnalyticRound_closed hr₁ (AltO_NonEmptyGates hAlt) hcnt
+  have hgap₂' : 7 * (s₂ : ℚ) < (stars ρ₁ : ℚ) * (1 / concreteQ) := by
+    have hp : (0 : ℚ) ≤ 1 / concreteQ := by positivity
+    have hs : (s₁ : ℚ) ≤ stars ρ₁ := by exact_mod_cast hstars₁
+    exact lt_of_lt_of_le hgap₂ (mul_le_mul_of_nonneg_right hs hp)
+  obtain ⟨ρ₂, hext₂, hstars₂, hr₂⟩ :=
+    exists_concreteAnalyticRound hs₂ hF C₁ ρ₁ hb₁.1 hb₁.2.1 hb₁.2.2 hgap₂'
+  let C₂ := collapseRound F ρ₂ C₁
+  have hAlt₁ : AltO 3 C₁ := by
+    simpa [C₁] using collapseRound_AltO F ρ₁ hAlt
+  have hAlt₂ : AltO 2 C₂ := by
+    simpa [C₂] using collapseRound_AltO F ρ₂ hAlt₁
+  obtain ⟨D, hD⟩ := AltO_two_dnf hAlt₂
+  refine ⟨ρ₁, ρ₂, C₁, C₂, hext₁, hext₂, hstars₂, hr₁, hr₂, rfl, rfl,
+    ⟨D, hD⟩, ?_⟩
+  intro x hx
+  have hx₁ := agreeRestriction_of_extends hext₂ hx
+  exact (Reduces.head hr₁.equivOn hx₁).trans (Reduces.head hr₂.equivOn hx)
+
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
@@ -280,3 +316,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds_analytic
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteAnalyticRound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteAnalyticRound_closed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteTwoRoundChain
