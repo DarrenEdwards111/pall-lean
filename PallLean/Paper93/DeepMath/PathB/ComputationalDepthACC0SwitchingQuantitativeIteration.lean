@@ -22,6 +22,7 @@ open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
 
 /-- Canonical coordinates for the live variables of a current restriction. -/
 noncomputable def liveCoordEquiv {n : ℕ} (τ : Restriction n) :
@@ -623,6 +624,92 @@ theorem liftLiveRestriction_fixVar {n : ℕ} (τ : Restriction n)
     · rw [liftLiveRestriction, dif_neg hv, fixVar,
         Function.update_of_ne hvi, liftLiveRestriction, dif_neg hv]
 
+theorem localizeLiveLiteral_litVar {n : ℕ} (τ : Restriction n)
+    (l : Rung4Literal n) (l' : Rung4Literal (stars τ))
+    (h : localizeLiveLiteral τ l = some l') :
+    (liveCoordEquiv τ (litVar l')).1 = litVar l := by
+  cases l with
+  | pos v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · cases h; simp [litVar]
+      · simp at h
+  | neg v =>
+      simp only [localizeLiveLiteral] at h
+      split at h
+      · cases h; simp [litVar]
+      · simp at h
+
+theorem localizeLiveClause_freeLits_head {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (T : Clause n) (l : Rung4Literal n)
+    (hhead : (freeLits (liftLiveRestriction τ σ) T).head? = some l) :
+    ∃ l', localizeLiveLiteral τ l = some l' ∧
+      (freeLits σ (localizeLiveClause τ T)).head? = some l' := by
+  obtain ⟨ys, hys⟩ := List.head?_eq_some_iff.mp hhead
+  have hl : l ∈ freeLits (liftLiveRestriction τ σ) T := by
+    rw [hys]
+    simp
+  obtain ⟨l', hloc⟩ := exists_localizeLiveLiteral_of_free τ σ l
+    (List.mem_filter.mp hl).2
+  refine ⟨l', hloc, ?_⟩
+  rw [localizeLiveClause_freeLits]
+  cases hs : freeLits (liftLiveRestriction τ σ) T with
+  | nil => simp [hs] at hhead
+  | cons a as =>
+      simp [hs] at hhead
+      subst a
+      simp [hs, hloc]
+
+/-- The canonical switching tree has exactly the same depth after relabelling to
+the current live-coordinate cube. -/
+theorem canonicalDT_depth_localize {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) : ∀ (fuel : ℕ) (σ : Restriction (stars τ)),
+    (canonicalDT (localizeLiveDnf τ cs) fuel σ).depth =
+      (canonicalDT cs fuel (liftLiveRestriction τ σ)).depth := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro σ
+      rw [canonicalDT, canonicalDT, localizeLiveDnf_anyTermSat]
+      cases h : anyTermSat cs (liftLiveRestriction τ σ) <;> rfl
+  | succ fuel ih =>
+      intro σ
+      rw [canonicalDT, canonicalDT, localizeLiveDnf_anyTermSat]
+      cases hsat : anyTermSat cs (liftLiveRestriction τ σ)
+      · simp only [Bool.false_eq_true, if_false]
+        rw [localizeLiveDnf_activeTerm]
+        cases hact : activeTerm cs (liftLiveRestriction τ σ) with
+        | none => simp [hact, BoolDecisionTree.depth]
+        | some T =>
+            simp only [hact, Option.map_some]
+            cases hfree : (freeLits (liftLiveRestriction τ σ) T).head? with
+            | none =>
+                have hempty : freeLits (liftLiveRestriction τ σ) T = [] := by
+                  cases hls : freeLits (liftLiveRestriction τ σ) T with
+                  | nil => rfl
+                  | cons l ls => simp [hls] at hfree
+                have hlocal : (freeLits σ (localizeLiveClause τ T)).head? = none := by
+                  rw [localizeLiveClause_freeLits, hempty]
+                  rfl
+                simp [hfree, hlocal, BoolDecisionTree.depth]
+            | some l =>
+                obtain ⟨l', hloc, hlocal⟩ :=
+                  localizeLiveClause_freeLits_head τ σ T l hfree
+                have hvar := localizeLiveLiteral_litVar τ l l' hloc
+                simp only [hfree, hlocal, BoolDecisionTree.depth]
+                rw [ih (fixVar σ (litVar l') false),
+                  ih (fixVar σ (litVar l') true),
+                  liftLiveRestriction_fixVar, liftLiveRestriction_fixVar]
+                rw [show (liveCoordEquiv τ (litVar l')).1 = litVar l from hvar]
+      · rfl
+
+theorem mem_boundedTermBad_localize_iff {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) (K threshold : ℕ) (σ : Restriction (stars τ)) :
+    liftLiveRestriction τ σ ∈ boundedTermBad cs K threshold ↔
+      σ ∈ boundedTermBad (localizeLiveDnf τ cs) K threshold := by
+  rw [mem_boundedTermBad_iff, mem_boundedTermBad_iff,
+    stars_liftLiveRestriction, canonicalDT_depth_localize]
+
 /-- The localized DNF computes exactly the original ambient DNF throughout the
 current subcube. -/
 theorem localizeLiveDnf_eval {n : ℕ} (τ : Restriction n)
@@ -690,6 +777,18 @@ theorem localizeLiveGates_eval {n G : ℕ} (τ : Restriction n)
       DTree.dnfValue (gates g) (liftLiveAssignment τ x) := by
   intro g
   exact localizeLiveDnf_eval τ x (gates g)
+
+theorem mem_circuitBad_localize_iff {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ)
+    (σ : Restriction (stars τ)) :
+    liftLiveRestriction τ σ ∈ circuitBad gates K threshold ↔
+      σ ∈ circuitBad (localizeLiveGates τ gates) K threshold := by
+  rw [mem_circuitBad_iff, mem_circuitBad_iff]
+  constructor
+  · rintro ⟨g, hg⟩
+    exact ⟨g, (mem_boundedTermBad_localize_iff τ (gates g) K threshold σ).mp hg⟩
+  · rintro ⟨g, hg⟩
+    exact ⟨g, (mem_boundedTermBad_localize_iff τ (gates g) K threshold σ).mpr hg⟩
 
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
@@ -1118,3 +1217,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_activeTerm
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftLiveRestriction_fixVar
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.canonicalDT_depth_localize
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_boundedTermBad_localize_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_circuitBad_localize_iff
