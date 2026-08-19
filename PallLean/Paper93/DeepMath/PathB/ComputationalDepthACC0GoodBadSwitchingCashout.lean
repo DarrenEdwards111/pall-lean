@@ -32,6 +32,46 @@ stops immediately and is brute-forced over the `K` remaining variables. -/
 def recursiveSpliceWork (K goodCount badCount childWork : ℕ) : ℕ :=
   goodCount * childWork + badCount * 2 ^ K
 
+/-- Work of a **retry** node: good children terminate with a collapsed-layer solver, while bad
+children are not brute-forced but receive another restriction round for the same unchanged circuit.
+This orientation is useful with a constant switching threshold: the bad mass need only contract by
+a constant factor at each retry. -/
+def retrySpliceWork (goodCount badCount goodWork retryWork : ℕ) : ℕ :=
+  goodCount * goodWork + badCount * retryWork
+
+/-- **Geometric retry recurrence.**  If a complete bucket has at most `2^q` good children, at most
+half as many bad children, good children save `saving+1` bits on their `K`-variable subcubes, and a
+bad-child retry saves `saving` bits, then the whole parent saves `saving` bits.  No bad branch is
+discarded or brute-forced at this node. -/
+theorem retrySpliceWork_le (N q K goodCount badCount goodWork retryWork saving : ℕ)
+    (hN : q + K = N) (hq : 1 ≤ q) (hsK : saving + 1 ≤ K)
+    (hgood : goodCount ≤ 2 ^ q)
+    (hgoodWork : goodWork ≤ 2 ^ (K - saving - 1))
+    (hbad : badCount ≤ 2 ^ (q - 1))
+    (hretry : retryWork ≤ 2 ^ (K - saving)) :
+    retrySpliceWork goodCount badCount goodWork retryWork ≤ 2 ^ (N - saving) := by
+  unfold retrySpliceWork
+  have hg : goodCount * goodWork ≤ 2 ^ (N - saving - 1) := by
+    calc
+      goodCount * goodWork ≤ 2 ^ q * 2 ^ (K - saving - 1) :=
+        Nat.mul_le_mul hgood hgoodWork
+      _ = 2 ^ (q + (K - saving - 1)) := by rw [Nat.pow_add]
+      _ = 2 ^ (N - saving - 1) := by congr 1 <;> omega
+  have hb : badCount * retryWork ≤ 2 ^ (N - saving - 1) := by
+    calc
+      badCount * retryWork ≤ 2 ^ (q - 1) * 2 ^ (K - saving) :=
+        Nat.mul_le_mul hbad hretry
+      _ = 2 ^ ((q - 1) + (K - saving)) := by rw [Nat.pow_add]
+      _ = 2 ^ (N - saving - 1) := by congr 1 <;> omega
+  calc
+    goodCount * goodWork + badCount * retryWork
+        ≤ 2 ^ (N - saving - 1) + 2 ^ (N - saving - 1) := Nat.add_le_add hg hb
+    _ = 2 ^ (N - saving) := by
+      have hpos : 0 < N - saving := by omega
+      conv_rhs => rw [show N - saving = (N - saving - 1) + 1 by omega]
+      rw [pow_succ]
+      ring
+
 /-- **Recursive splice recurrence.**  The good arm and exceptional arm each consume one half of
 the target budget.  Thus a child saving `saving+1` bits and a current bad-count saving
 `saving+1` bits combine into a parent saving of `saving` bits, with no discarded branch. -/
@@ -133,5 +173,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.bad_work_le_half_target
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_le_active_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.recursiveSpliceWork_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.retrySpliceWork_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_lt_bruteforce
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.all_bad_zero_surplus

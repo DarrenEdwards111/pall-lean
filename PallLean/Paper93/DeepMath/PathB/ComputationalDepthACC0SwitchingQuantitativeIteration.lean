@@ -961,6 +961,87 @@ theorem card_selectedGoodChildren_le {n G K threshold : ℕ}
   exact le_trans (Finset.card_le_card (Finset.sdiff_subset))
     (card_liftedSelectedBucket_le τ i)
 
+/-- A retry cover has the opposite branching orientation from `ChargedCover`: good children stop
+after paying the collapsed-layer cost, while genuine bad children receive another restriction round
+for the same circuit.  This permits constant-threshold failure probabilities to be amplified
+geometrically without increasing the circuit's width on retry branches. -/
+inductive RetryCover (n : ℕ) where
+  | leaf (τ : Restriction n) (leafWork : ℕ)
+  | node (τ : Restriction n) (bucket bad : Finset (Restriction n)) (goodCost : ℕ)
+      (bad_subset : bad ⊆ bucket)
+      (extends_parent : ∀ ρ ∈ bucket, Extends τ ρ)
+      (retries : (ρ : {ρ : Restriction n // ρ ∈ bad}) → RetryCover n)
+
+/-- Exact retry work: solve every good child now and recurse on every bad child. -/
+def RetryCover.work {n : ℕ} : RetryCover n → ℕ
+  | .leaf _ leafWork => leafWork
+  | .node _ bucket bad goodCost _ _ retries =>
+      (bucket \ bad).card * goodCost +
+        ∑ ρ : {ρ : Restriction n // ρ ∈ bad}, (retries ρ).work
+
+/-- Assemble a retry node from the same genuine selected bucket/bad set used by the deterministic
+certificate. -/
+noncomputable def selectedRetryNode {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K))
+    (goodCost : ℕ)
+    (retries : (ρ : {ρ : Restriction n //
+      ρ ∈ selectedBadChildren (threshold := threshold) τ gates i}) → RetryCover n) :
+    RetryCover n :=
+  .node τ (liftedSelectedBucket τ K i)
+    (selectedBadChildren (threshold := threshold) τ gates i) goodCost
+    (selectedBadChildren_subset (threshold := threshold) τ gates i)
+    (fun ρ hρ => liftedSelectedBucket_extends τ i hρ) retries
+
+/-- Exact work of a real retry node is bounded by `retrySpliceWork`. -/
+theorem selectedRetryNode_work_le_splice {n G K threshold : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K))
+    (goodCost retryWork : ℕ)
+    (retries : (ρ : {ρ : Restriction n //
+      ρ ∈ selectedBadChildren (threshold := threshold) τ gates i}) → RetryCover n)
+    (hretry : ∀ ρ, (retries ρ).work ≤ retryWork) :
+    (selectedRetryNode τ gates i goodCost retries).work ≤
+      retrySpliceWork
+        (liftedSelectedBucket τ K i \
+          selectedBadChildren (threshold := threshold) τ gates i).card
+        (selectedBadChildren (threshold := threshold) τ gates i).card
+        goodCost retryWork := by
+  classical
+  simp only [selectedRetryNode, RetryCover.work, retrySpliceWork]
+  have hsum : ∑ ρ, (retries ρ).work ≤ ∑ _ρ, retryWork :=
+    Finset.sum_le_sum fun ρ _ => hretry ρ
+  have hconst : (∑ _ρ : {ρ : Restriction n //
+      ρ ∈ selectedBadChildren (threshold := threshold) τ gates i}, retryWork) =
+      (selectedBadChildren (threshold := threshold) τ gates i).card * retryWork := by
+    simp [Nat.mul_comm]
+  rw [hconst] at hsum
+  omega
+
+/-- One actual selected retry node inherits the geometric half-bad recurrence. -/
+theorem selectedRetryNode_work_le {n G K threshold saving : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K)) (hK : K ≤ stars τ)
+    (hq : 1 ≤ stars τ - K) (hsK : saving + 1 ≤ K)
+    (goodCost : ℕ) (hgoodCost : goodCost ≤ 2 ^ (K - saving - 1))
+    (retries : (ρ : {ρ : Restriction n //
+      ρ ∈ selectedBadChildren (threshold := threshold) τ gates i}) → RetryCover n)
+    (hretry : ∀ ρ, (retries ρ).work ≤ 2 ^ (K - saving))
+    (hbad : concreteBadCount (K := K)
+      (circuitBad (localizeLiveGates τ gates) K threshold) i ≤
+        2 ^ ((stars τ - K) - 1)) :
+    (selectedRetryNode τ gates i goodCost retries).work ≤ 2 ^ (stars τ - saving) := by
+  apply le_trans (selectedRetryNode_work_le_splice τ gates i goodCost
+    (2 ^ (K - saving)) retries hretry)
+  apply retrySpliceWork_le (stars τ) (stars τ - K) K
+  · omega
+  · exact hq
+  · exact hsK
+  · exact card_selectedGoodChildren_le τ gates i
+  · exact hgoodCost
+  · rw [card_selectedBadChildren]
+    exact hbad
+  · exact le_rfl
+
 /-- End-to-end work bound for one actual charged tree node.  The hypotheses are precisely the
 selected bad-count certificate and a uniform recursive bound for every genuine good child. -/
 theorem selectedChargedNode_work_le {n G K threshold saving : ℕ}
@@ -1630,5 +1711,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_coverSched_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_selectedBadChildren
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedChargedNode_work_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedRetryNode_work_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.padded_good_collapseRound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministic_parent_threshold_exceeds_closed
