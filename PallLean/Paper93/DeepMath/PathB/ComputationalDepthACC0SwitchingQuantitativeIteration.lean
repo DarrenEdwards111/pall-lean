@@ -1037,6 +1037,39 @@ theorem concreteDeterministicRoundGap (r : ℕ) [NeZero r]
   simpa [concreteScale, concreteG] using
     wideCircuitLinearGap_selectedBucket_activeGap concreteG concreteT concreteTerms r gates hwidth hterms
 
+/-- The concrete selected-bucket theorem with its ambient dimension exposed as
+an equality, so it can be instantiated at `stars τ` without hiding a cast. -/
+theorem concreteDeterministicRoundGap_atSize (N r : ℕ) [NeZero r]
+    (hN : N = concreteScale * r)
+    (gates : Fin concreteG → List (Clause N))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin (N.choose (20 * r)),
+      goodBadWork N (N - 20 * r) (2 ^ (N - 20 * r))
+        (concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (N - 9 * r) := by
+  subst N
+  exact concreteDeterministicRoundGap r gates hwidth hterms
+
+/-- A deterministic, exhaustive, fully charged bucket on an arbitrary current
+subcube of the required live size.  Its bad restrictions are exactly the local
+representatives of genuine ambient bad extensions. -/
+theorem concreteDeterministicRoundGap_subcube {n : ℕ} (r : ℕ) [NeZero r]
+    (τ : Restriction n) (hstars : stars τ = concreteScale * r)
+    (gates : Fin concreteG → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((stars τ).choose (20 * r)),
+      goodBadWork (stars τ) (stars τ - 20 * r)
+        (2 ^ (stars τ - 20 * r))
+        (concreteBadCount (K := 20 * r)
+          (circuitBad (localizeLiveGates τ gates) (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (stars τ - 9 * r) := by
+  apply concreteDeterministicRoundGap_atSize (stars τ) r hstars
+    (localizeLiveGates τ gates)
+  · exact localizeLiveGates_width_le τ gates hwidth
+  · exact localizeLiveGates_count_le τ gates hterms
+
 /-- A chain of genuine good rounds drops an alternating tower by one level per round. -/
 theorem collapseSeq_AltO {n d : ℕ} (K : ℕ → ℕ)
     (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
@@ -1206,6 +1239,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteGeometricDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_liftLiveRestriction
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liveRestrictionEquiv
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLiteral_eval
