@@ -196,16 +196,95 @@ theorem localizeLiveLiteral_eval {n : ℕ} (τ : Restriction n)
         cases h
         simp [Rung4Literal.eval, liftLiveAssignment, hv]
       · simp at h
+
+theorem localizeLiveLits_all_eval {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) : ∀ (ls : List (Rung4Literal n)),
+    (∀ l ∈ ls, DTree.litKilled τ l = false) →
+    (ls.filterMap (localizeLiveLiteral τ)).all
+        (fun l => Rung4Literal.eval l x) =
+      ls.all (fun l => Rung4Literal.eval l (liftLiveAssignment τ x)) := by
+  intro ls
+  induction ls with
+  | nil => simp
+  | cons l ls ih =>
+      intro hkill
+      have hhead := hkill l (by simp)
+      have htail : ∀ q ∈ ls, DTree.litKilled τ q = false :=
+        fun q hq => hkill q (by simp [hq])
+      cases l with
+      | pos v =>
+          by_cases hv : v ∈ freeVars τ
+          · simp only [List.filterMap_cons, localizeLiveLiteral, dif_pos hv,
+              List.all_cons]
+            rw [ih htail]
+            simp [Rung4Literal.eval, liftLiveAssignment, hv]
+          · have hfree : DTree.freeLit τ (Rung4Literal.pos v) = false := by
+              simp [DTree.freeLit, mem_freeVars] at hv ⊢
+              exact hv
+            have htrue := DTree.fixed_lit_true τ (liftLiveAssignment τ x)
+              (Rung4Literal.pos v) (liftLiveAssignment_agrees τ x) hfree hhead
+            simp only [List.filterMap_cons, localizeLiveLiteral, dif_neg hv]
+            rw [ih htail]
+            simp [htrue]
+      | neg v =>
+          by_cases hv : v ∈ freeVars τ
+          · simp only [List.filterMap_cons, localizeLiveLiteral, dif_pos hv,
+              List.all_cons]
+            rw [ih htail]
+            simp [Rung4Literal.eval, liftLiveAssignment, hv]
+          · have hfree : DTree.freeLit τ (Rung4Literal.neg v) = false := by
+              simp [DTree.freeLit, mem_freeVars] at hv ⊢
+              exact hv
+            have htrue := DTree.fixed_lit_true τ (liftLiveAssignment τ x)
+              (Rung4Literal.neg v) (liftLiveAssignment_agrees τ x) hfree hhead
+            simp only [List.filterMap_cons, localizeLiveLiteral, dif_neg hv]
+            rw [ih htail]
+            simp [htrue]
 /-- A clause transported to the live-coordinate cube. -/
 noncomputable def localizeLiveClause {n : ℕ} (τ : Restriction n) (T : Clause n) :
     Clause (stars τ) :=
   ⟨T.lits.filterMap (localizeLiveLiteral τ)⟩
+
+theorem localizeLiveClause_eval {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) (T : Clause n)
+    (hlive : DTree.clauseLive τ T = true) :
+    (localizeLiveClause τ T).lits.all (fun l => Rung4Literal.eval l x) =
+      T.lits.all (fun l => Rung4Literal.eval l (liftLiveAssignment τ x)) := by
+  apply localizeLiveLits_all_eval
+  intro l hl
+  by_contra hk
+  rw [Bool.not_eq_false] at hk
+  have hany : T.lits.any (DTree.litKilled τ) = true :=
+    List.any_eq_true.mpr ⟨l, hl, hk⟩
+  simp [DTree.clauseLive, hany] at hlive
 
 /-- Restrict a DNF to the current subcube, discard killed terms, and relabel all
 remaining free literals by the canonical live coordinates. -/
 noncomputable def localizeLiveDnf {n : ℕ} (τ : Restriction n)
     (cs : List (Clause n)) : List (Clause (stars τ)) :=
   (cs.filter (DTree.clauseLive τ)).map (localizeLiveClause τ)
+
+/-- The localized DNF computes exactly the original ambient DNF throughout the
+current subcube. -/
+theorem localizeLiveDnf_eval {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) (cs : List (Clause n)) :
+    DTree.dnfValue (localizeLiveDnf τ cs) x =
+      DTree.dnfValue cs (liftLiveAssignment τ x) := by
+  apply DTree.bool_eq_of_iff
+  simp only [DTree.dnfValue, localizeLiveDnf, List.any_eq_true,
+    List.mem_map, List.mem_filter]
+  constructor
+  · rintro ⟨S, ⟨T, ⟨hT, hlive⟩, rfl⟩, hsat⟩
+    exact ⟨T, hT, by rw [← localizeLiveClause_eval τ x T hlive]; exact hsat⟩
+  · rintro ⟨T, hT, hsat⟩
+    by_cases hlive : DTree.clauseLive τ T = true
+    · exact ⟨localizeLiveClause τ T, ⟨T, ⟨hT, hlive⟩, rfl⟩,
+        by rw [localizeLiveClause_eval τ x T hlive]; exact hsat⟩
+    · simp only [Bool.not_eq_true] at hlive
+      exact absurd hsat (by
+        rw [DTree.dead_clause_false τ (liftLiveAssignment τ x) T
+          (liftLiveAssignment_agrees τ x) hlive]
+        simp)
 
 theorem localizeLiveClause_width_le {n : ℕ} (τ : Restriction n) (T : Clause n) :
     (localizeLiveClause τ T).lits.length ≤ T.lits.length := by
@@ -245,6 +324,13 @@ theorem localizeLiveGates_count_le {n G m : ℕ} (τ : Restriction n)
     ∀ g, (localizeLiveGates τ gates g).length ≤ m := by
   intro g
   exact le_trans (localizeLiveDnf_length_le τ (gates g)) (hm g)
+
+theorem localizeLiveGates_eval {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (x : Fin (stars τ) → Bool) :
+    ∀ g, DTree.dnfValue (localizeLiveGates τ gates g) x =
+      DTree.dnfValue (gates g) (liftLiveAssignment τ x) := by
+  intro g
+  exact localizeLiveDnf_eval τ x (gates g)
 
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
@@ -666,3 +752,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liveRestrictionEquiv
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLiteral_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
