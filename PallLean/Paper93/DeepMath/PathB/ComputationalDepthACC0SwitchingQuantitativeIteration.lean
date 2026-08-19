@@ -1007,7 +1007,8 @@ structure GoodRound {n : ℕ} (K threshold : ℕ) (C : Layered n) (ρ : Restrict
 
 theorem GoodRound.shallows {n K threshold : ℕ} {C : Layered n} {ρ : Restriction n}
     (h : GoodRound K threshold C ρ) : Shallows K ρ threshold C :=
-  good_implies_layered_shallows C h.gates K threshold h.enumerates ρ h.stars_eq h.good
+  good_implies_layered_shallows C h.gates K threshold
+    (fun cs hcs => (h.enumerates cs).mp hcs) ρ h.stars_eq h.good
 
 theorem GoodRound.equivOn {n K threshold : ℕ} {C : Layered n} {ρ : Restriction n}
     (h : GoodRound K threshold C ρ) : EquivOn ρ C (collapseRound K ρ C) :=
@@ -1047,12 +1048,109 @@ def concreteSched (d r i : ℕ) : ℕ := r * concreteB ^ (d - i)
 def concreteG : ℕ := 2 * concreteM
 def concreteScale : ℕ := 1000 * (concreteG * (concreteT * concreteTerms))
 
+/-- Fixed-size enumeration of the real dual bottom gates, padded by empty DNFs. -/
+def paddedDualBottomGates {n : ℕ} (C : Layered n) :
+    Fin concreteG → List (Clause n) :=
+  fun i => (dualBottomGates C).getD i.1 []
+
+theorem dualBottomGates_length_le_concreteG {n : ℕ} (C : Layered n)
+    (hcnt : (bottomGates C).length ≤ concreteM) :
+    (dualBottomGates C).length ≤ concreteG := by
+  simp [dualBottomGates, concreteG]
+  omega
+
+theorem paddedDualBottomGates_covers {n : ℕ} (C : Layered n)
+    (hcnt : (bottomGates C).length ≤ concreteM) :
+    ∀ cs, cs ∈ dualBottomGates C → ∃ g, paddedDualBottomGates C g = cs := by
+  intro cs hcs
+  obtain ⟨j, hj⟩ := List.mem_iff_get.mp hcs
+  have hjG : j.1 < concreteG := lt_of_lt_of_le j.2
+    (dualBottomGates_length_le_concreteG C hcnt)
+  refine ⟨⟨j.1, hjG⟩, ?_⟩
+  rw [paddedDualBottomGates, List.getD_eq_get]
+  exact hj
+
+theorem dualBottomGates_width {n : ℕ} (C : Layered n)
+    (hbw : BottomWidth concreteT C) :
+    ∀ cs ∈ dualBottomGates C, ∀ T ∈ cs, T.lits.length ≤ concreteT := by
+  intro cs hcs T hT
+  rw [dualBottomGates, List.mem_append] at hcs
+  rcases hcs with hcs | hcs
+  · exact hbw cs hcs T hT
+  · rw [List.mem_map] at hcs
+    obtain ⟨ds, hds, rfl⟩ := hcs
+    rw [negDNF, List.mem_map] at hT
+    obtain ⟨U, hU, rfl⟩ := hT
+    simpa using hbw ds hds U hU
+
+theorem dualBottomGates_count {n : ℕ} (C : Layered n)
+    (hmc : BottomCount concreteTerms C) :
+    ∀ cs ∈ dualBottomGates C, cs.length ≤ concreteTerms := by
+  intro cs hcs
+  rw [dualBottomGates, List.mem_append] at hcs
+  rcases hcs with hcs | hcs
+  · exact hmc cs hcs
+  · rw [List.mem_map] at hcs
+    obtain ⟨ds, hds, rfl⟩ := hcs
+    simpa [negDNF] using hmc ds hds
+
+theorem paddedDualBottomGates_width {n : ℕ} (C : Layered n)
+    (hbw : BottomWidth concreteT C) :
+    ∀ g, ∀ T ∈ paddedDualBottomGates C g, T.lits.length ≤ concreteT := by
+  intro g T hT
+  by_cases hg : g.1 < (dualBottomGates C).length
+  · rw [paddedDualBottomGates,
+      List.getD_eq_getElem (l := dualBottomGates C) (d := []) hg] at hT
+    exact dualBottomGates_width C hbw _ (List.get_mem _ _) T hT
+  · rw [paddedDualBottomGates, List.getD_eq_default _ _ (by omega)] at hT
+    simp at hT
+
+theorem paddedDualBottomGates_count {n : ℕ} (C : Layered n)
+    (hmc : BottomCount concreteTerms C) :
+    ∀ g, (paddedDualBottomGates C g).length ≤ concreteTerms := by
+  intro g
+  by_cases hg : g.1 < (dualBottomGates C).length
+  · rw [paddedDualBottomGates,
+      List.getD_eq_getElem (l := dualBottomGates C) (d := []) hg]
+    exact dualBottomGates_count C hmc _ (List.get_mem _ _)
+  · rw [paddedDualBottomGates, List.getD_eq_default _ _ (by omega)]
+    simp
+
+/-- Every good child of the padded real gate family performs a genuine semantic collapse and drops
+one alternation level. -/
+theorem padded_good_collapseRound {n k K threshold : ℕ} (C : Layered n)
+    (hAlt : AltO (k + 3) C) (hcnt : (bottomGates C).length ≤ concreteM)
+    (ρ : Restriction n) (hstars : stars ρ = K)
+    (hgood : ρ ∉ circuitBad (paddedDualBottomGates C) K threshold) :
+    EquivOn ρ C (collapseRound K ρ C) ∧
+      AltO (k + 2) (collapseRound K ρ C) ∧
+      BottomWidth threshold (collapseRound K ρ C) := by
+  have hsh := good_implies_layered_shallows C (paddedDualBottomGates C) K threshold
+    (paddedDualBottomGates_covers C hcnt) ρ hstars hgood
+  exact ⟨collapseRound_EquivOn K (by omega) C,
+    collapseRound_AltO K ρ hAlt, collapseRound_BottomWidth K ρ hsh⟩
+
 /-- Exact contraction factor for recursively reusing a deterministic bucket: a parent at
 scale `concreteScale * (concreteCoverB * r)` leaves exactly `concreteScale * r` live variables. -/
 def concreteCoverB : ℕ := concreteScale / 20
 
 theorem concreteScale_eq_twenty_mul_coverB : concreteScale = 20 * concreteCoverB := by
   norm_num [concreteScale, concreteCoverB, concreteG, concreteM, concreteT, concreteTerms]
+
+theorem concreteCoverB_gt_three : 3 < concreteCoverB := by
+  norm_num [concreteCoverB, concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+
+/-- The present deterministic schedule cannot reuse the constant-width `30` invariant after a
+nontrivial parent contraction: its proved collapse width is `10*(concreteCoverB*r)`, already above
+`30`.  A full recursive theorem therefore needs a constant-threshold deterministic tail or a
+stronger multi-switching count; the current certificates alone do not close the induction. -/
+theorem deterministic_parent_threshold_exceeds_closed (r : ℕ) (hr : 0 < r) :
+    concreteT < 10 * (concreteCoverB * r) := by
+  have hfour : 4 ≤ concreteCoverB := Nat.succ_le_iff.mpr concreteCoverB_gt_three
+  have hrone : 1 ≤ r := hr
+  have : 4 ≤ concreteCoverB * r := by nlinarith
+  norm_num [concreteT]
+  omega
 
 theorem concreteCover_live_exact (r : ℕ) :
     20 * (concreteCoverB * r) = concreteScale * r := by
@@ -1531,3 +1629,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_coverSched_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_selectedBadChildren
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedChargedNode_work_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.padded_good_collapseRound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministic_parent_threshold_exceeds_closed

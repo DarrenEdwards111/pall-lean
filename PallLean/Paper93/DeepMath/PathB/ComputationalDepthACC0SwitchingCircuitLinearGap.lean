@@ -178,14 +178,14 @@ def dualBottomGates {n : ℕ} (C : Layered n) : List (List (Clause n)) :=
 /-- A good restriction for an enumeration of `dualBottomGates C` shallows the actual layered tower. -/
 theorem good_implies_layered_shallows {n G : ℕ} (C : Layered n)
     (gates : Fin G → List (Clause n)) (K threshold : ℕ)
-    (henum : ∀ cs, cs ∈ dualBottomGates C ↔ ∃ g, gates g = cs)
+    (henum : ∀ cs, cs ∈ dualBottomGates C → ∃ g, gates g = cs)
     (ρ : Restriction n) (hstars : stars ρ = K)
     (hgood : ρ ∉ circuitBad gates K threshold) :
     Shallows K ρ threshold C := by
   intro cs hcs
   have shallow_of_mem (ds : List (Clause n)) (hds : ds ∈ dualBottomGates C) :
       (canonicalDT ds K ρ).depth < threshold := by
-    obtain ⟨g, hg⟩ := (henum ds).mp hds
+    obtain ⟨g, hg⟩ := henum ds hds
     have hnot : ρ ∉ boundedTermBad (gates g) K threshold := by
       intro hbad
       exact hgood ((mem_circuitBad_iff gates K threshold ρ).mpr ⟨g, hbad⟩)
@@ -208,7 +208,8 @@ theorem layered_good_collapseRound {n G k : ℕ} (C : Layered n) (hAlt : AltO (k
     EquivOn ρ C (collapseRound K ρ C) ∧
       AltO (k + 2) (collapseRound K ρ C) ∧
       BottomWidth threshold (collapseRound K ρ C) := by
-  have hsh := good_implies_layered_shallows C gates K threshold henum ρ hstars hgood
+  have hsh := good_implies_layered_shallows C gates K threshold
+    (fun cs hcs => (henum cs).mp hcs) ρ hstars hgood
   exact ⟨collapseRound_EquivOn K (by omega) C,
     collapseRound_AltO K ρ hAlt, collapseRound_BottomWidth K ρ hsh⟩
 
