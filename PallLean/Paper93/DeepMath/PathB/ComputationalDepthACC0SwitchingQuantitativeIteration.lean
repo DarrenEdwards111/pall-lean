@@ -915,6 +915,77 @@ noncomputable def selectedChargedNode {n G K threshold : ℕ} (τ : Restriction 
     (selectedBadChildren_subset (threshold := threshold) τ gates i)
     (fun ρ hρ => liftedSelectedBucket_extends τ i hρ) children
 
+theorem card_liftedSelectedBucket_le {n K : ℕ} (τ : Restriction n)
+    (i : Fin ((stars τ).choose K)) :
+    (liftedSelectedBucket τ K i).card ≤ 2 ^ (stars τ - K) := by
+  classical
+  rw [liftedSelectedBucket,
+    Finset.card_image_of_injective _ (liftLiveRestriction_injective τ)]
+  exact card_restrictionBucket_le ((freeSetBucketEquivFin (stars τ) K).symm i)
+
+/-- Replacing every good child by a subtree of work at most `childWork` bounds the exact tree node
+by the arithmetic splice expression. -/
+theorem selectedChargedNode_work_le_splice {n G K threshold : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K))
+    (children : (ρ : {ρ : Restriction n //
+      ρ ∈ liftedSelectedBucket τ K i \
+        selectedBadChildren (threshold := threshold) τ gates i}) → ChargedCover n)
+    (childWork : ℕ) (hchild : ∀ ρ, (children ρ).work ≤ childWork) :
+    (selectedChargedNode τ gates i (2 ^ K) children).work ≤
+      recursiveSpliceWork K
+        (liftedSelectedBucket τ K i \
+          selectedBadChildren (threshold := threshold) τ gates i).card
+        (selectedBadChildren (threshold := threshold) τ gates i).card childWork := by
+  classical
+  simp only [selectedChargedNode, ChargedCover.work, recursiveSpliceWork]
+  have hsum :
+    ∑ ρ, (children ρ).work ≤ ∑ _ρ, childWork :=
+      Finset.sum_le_sum fun ρ _ => hchild ρ
+  have hconst : (∑ _ρ : {ρ : Restriction n //
+      ρ ∈ liftedSelectedBucket τ K i \
+        selectedBadChildren (threshold := threshold) τ gates i}, childWork) =
+      (liftedSelectedBucket τ K i \
+        selectedBadChildren (threshold := threshold) τ gates i).card * childWork := by
+    simp [Nat.mul_comm]
+  rw [hconst] at hsum
+  omega
+
+theorem card_selectedGoodChildren_le {n G K threshold : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K)) :
+    (liftedSelectedBucket τ K i \
+      selectedBadChildren (threshold := threshold) τ gates i).card ≤
+        2 ^ (stars τ - K) := by
+  exact le_trans (Finset.card_le_card (Finset.sdiff_subset))
+    (card_liftedSelectedBucket_le τ i)
+
+/-- End-to-end work bound for one actual charged tree node.  The hypotheses are precisely the
+selected bad-count certificate and a uniform recursive bound for every genuine good child. -/
+theorem selectedChargedNode_work_le {n G K threshold saving : ℕ}
+    (τ : Restriction n) (gates : Fin G → List (Clause n))
+    (i : Fin ((stars τ).choose K)) (hK : K ≤ stars τ)
+    (hsq : saving + 1 ≤ stars τ - K) (hsK : saving + 1 ≤ K)
+    (children : (ρ : {ρ : Restriction n //
+      ρ ∈ liftedSelectedBucket τ K i \
+        selectedBadChildren (threshold := threshold) τ gates i}) → ChargedCover n)
+    (hchild : ∀ ρ, (children ρ).work ≤ 2 ^ (K - saving - 1))
+    (hbad : concreteBadCount (K := K)
+      (circuitBad (localizeLiveGates τ gates) K threshold) i ≤
+        2 ^ ((stars τ - K) - saving - 1)) :
+    (selectedChargedNode τ gates i (2 ^ K) children).work ≤
+      2 ^ (stars τ - saving) := by
+  apply le_trans (selectedChargedNode_work_le_splice τ gates i children
+    (2 ^ (K - saving - 1)) hchild)
+  apply recursiveSpliceWork_le (stars τ) (stars τ - K) K
+  · omega
+  · exact hsq
+  · exact hsK
+  · exact card_selectedGoodChildren_le τ gates i
+  · exact le_rfl
+  · rw [card_selectedBadChildren]
+    exact hbad
+
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
     ℕ → Layered n
@@ -1459,3 +1530,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_extends
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_coverSched_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_selectedBadChildren
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedChargedNode_work_le

@@ -55,6 +55,52 @@ theorem badBucket_subset_restrictionBucket {n K : ℕ}
   intro ρ hρ
   exact mem_restrictionBucket.mpr (Finset.mem_filter.mp hρ).2
 
+/-- Read the Boolean values on the coordinates fixed by a complete bucket. -/
+def bucketBits {n K : ℕ} (S : FreeSetBucket n K) (ρ : Restriction n) :
+    ({v : Fin n // v ∉ S.1} → Bool) :=
+  fun v => (ρ v.1).getD false
+
+theorem bucketBits_injective {n K : ℕ} (S : FreeSetBucket n K) :
+    Function.Injective (fun ρ : ↑(restrictionBucket S) => bucketBits S ρ.1) := by
+  intro ρ σ h
+  apply Subtype.ext
+  funext v
+  by_cases hv : v ∈ S.1
+  · have hρfree : freeSet ρ.1 = S.1 := mem_restrictionBucket.mp ρ.2
+    have hσfree : freeSet σ.1 = S.1 := mem_restrictionBucket.mp σ.2
+    have hρnone : ρ.1 v = none := by
+      have : v ∈ freeSet ρ.1 := by rw [hρfree]; exact hv
+      simpa [freeSet] using this
+    have hσnone : σ.1 v = none := by
+      have : v ∈ freeSet σ.1 := by rw [hσfree]; exact hv
+      simpa [freeSet] using this
+    rw [hρnone, hσnone]
+  · have hρsome : ρ.1 v ≠ none := by
+      intro hnone
+      have : v ∈ freeSet ρ.1 := by simp [freeSet, hnone]
+      exact hv (by simpa [mem_restrictionBucket.mp ρ.2] using this)
+    have hσsome : σ.1 v ≠ none := by
+      intro hnone
+      have : v ∈ freeSet σ.1 := by simp [freeSet, hnone]
+      exact hv (by simpa [mem_restrictionBucket.mp σ.2] using this)
+    cases hρ : ρ.1 v with
+    | none => exact (hρsome hρ).elim
+    | some a =>
+      cases hσ : σ.1 v with
+      | none => exact (hσsome hσ).elim
+      | some b =>
+        have hab := congrFun h ⟨v, hv⟩
+        simpa [bucketBits, hρ, hσ] using hab
+
+/-- A complete bucket has at most one restriction per Boolean assignment to its `n-K` fixed
+coordinates. -/
+theorem card_restrictionBucket_le {n K : ℕ} (S : FreeSetBucket n K) :
+    (restrictionBucket S).card ≤ 2 ^ (n - K) := by
+  rw [← Fintype.card_coe]
+  apply le_trans (Fintype.card_le_of_injective _ (bucketBits_injective S))
+  rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_subtype_compl]
+  simp [S.2]
+
 theorem badBucket_pairwiseDisjoint {n K : ℕ} (Bad : Finset (Restriction n)) :
     (↑(Finset.univ : Finset (FreeSetBucket n K)) : Set (FreeSetBucket n K)).PairwiseDisjoint
       (badBucket Bad) := by
@@ -131,3 +177,4 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets.sum_badBucket_card
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets.block_switching_to_concreteBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets.card_restrictionBucket_le
