@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRestrictionCardinality
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -21,6 +22,123 @@ open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
+
+/-- Canonical coordinates for the live variables of a current restriction. -/
+noncomputable def liveCoordEquiv {n : ℕ} (τ : Restriction n) :
+    Fin (stars τ) ≃ ↑(freeVars τ) :=
+  (Finset.equivFin (freeVars τ)).symm
+
+/-- Lift a restriction on the canonically relabelled live coordinates back to the
+ambient cube, retaining every fixing already made by `τ`. -/
+noncomputable def liftLiveRestriction {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) :
+    Restriction n :=
+  fun v => if h : v ∈ freeVars τ
+    then σ ((liveCoordEquiv τ).symm ⟨v, h⟩)
+    else τ v
+
+@[simp] theorem liftLiveRestriction_apply_live {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (i : Fin (stars τ)) :
+    liftLiveRestriction τ σ (liveCoordEquiv τ i) = σ i := by
+  rw [liftLiveRestriction, dif_pos (liveCoordEquiv τ i).property]
+  simp
+
+theorem liftLiveRestriction_apply_fixed {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) {v : Fin n} (hv : v ∉ freeVars τ) :
+    liftLiveRestriction τ σ v = τ v := by
+  rw [liftLiveRestriction, dif_neg hv]
+
+/-- Every lifted local restriction is a genuine extension of the current subcube. -/
+theorem liftLiveRestriction_extends {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) : Extends τ (liftLiveRestriction τ σ) := by
+  intro v b hv
+  have hfixed : v ∉ freeVars τ := by
+    rw [mem_freeVars, hv]
+    simp
+  rw [liftLiveRestriction_apply_fixed τ σ hfixed, hv]
+
+/-- Relabelling loses no local restriction: distinct restrictions give distinct
+extensions of the current subcube. -/
+theorem liftLiveRestriction_injective {n : ℕ} (τ : Restriction n) :
+    Function.Injective (liftLiveRestriction τ) := by
+  intro σ₁ σ₂ h
+  funext i
+  have hi := congrFun h (liveCoordEquiv τ i)
+  simpa using hi
+
+/-- A lifted coordinate is free exactly when its relabelled local coordinate is free. -/
+theorem liftLiveRestriction_apply_eq_none_iff {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) (i : Fin (stars τ)) :
+    liftLiveRestriction τ σ (liveCoordEquiv τ i) = none ↔ σ i = none := by
+  simp
+
+theorem freeVars_liftLiveRestriction {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) :
+    freeVars (liftLiveRestriction τ σ) =
+      (freeVars σ).image (fun i => (liveCoordEquiv τ i).1) := by
+  ext v
+  rw [mem_freeVars, Finset.mem_image]
+  constructor
+  · intro hv
+    have hvτ : v ∈ freeVars τ := by
+      by_contra hnot
+      have hfixed := liftLiveRestriction_apply_fixed τ σ hnot
+      have hτne : τ v ≠ none := by
+        simpa [mem_freeVars] using hnot
+      exact hτne (hfixed ▸ hv)
+    let i : Fin (stars τ) := (liveCoordEquiv τ).symm ⟨v, hvτ⟩
+    refine ⟨i, ?_, ?_⟩
+    · rw [mem_freeVars]
+      rw [liftLiveRestriction, dif_pos hvτ] at hv
+      simpa [i] using hv
+    · simp [i]
+  · rintro ⟨i, hi, rfl⟩
+    rw [mem_freeVars] at hi
+    simpa using hi
+
+/-- The subcube lift preserves the number of live variables exactly. -/
+@[simp] theorem stars_liftLiveRestriction {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) :
+    stars (liftLiveRestriction τ σ) = stars σ := by
+  unfold stars
+  rw [freeVars_liftLiveRestriction, Finset.card_image_of_injective _]
+  intro i j hij
+  exact (liveCoordEquiv τ).injective (Subtype.ext hij)
+
+/-- Project an ambient restriction onto the canonical coordinates of the current live set. -/
+noncomputable def projectLiveRestriction {n : ℕ} (τ ρ : Restriction n) :
+    Restriction (stars τ) :=
+  fun i => ρ (liveCoordEquiv τ i)
+
+@[simp] theorem projectLiveRestriction_lift {n : ℕ} (τ : Restriction n)
+    (σ : Restriction (stars τ)) :
+    projectLiveRestriction τ (liftLiveRestriction τ σ) = σ := by
+  funext i
+  simp [projectLiveRestriction]
+
+theorem liftLiveRestriction_project_of_extends {n : ℕ} {τ ρ : Restriction n}
+    (hρ : Extends τ ρ) :
+    liftLiveRestriction τ (projectLiveRestriction τ ρ) = ρ := by
+  funext v
+  by_cases hv : v ∈ freeVars τ
+  · rw [liftLiveRestriction, dif_pos hv, projectLiveRestriction]
+    simp
+  · rw [liftLiveRestriction_apply_fixed τ _ hv]
+    have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+    obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp hne
+    rw [hb, hρ v b hb]
+
+/-- Restrictions on the relabelled live coordinates are in bijection with all
+ambient restrictions extending the current restriction. -/
+noncomputable def liveRestrictionEquiv {n : ℕ} (τ : Restriction n) :
+    Restriction (stars τ) ≃ {ρ : Restriction n // Extends τ ρ} where
+  toFun σ := ⟨liftLiveRestriction τ σ, liftLiveRestriction_extends τ σ⟩
+  invFun ρ := projectLiveRestriction τ ρ.1
+  left_inv := projectLiveRestriction_lift τ
+  right_inv := by
+    intro ρ
+    apply Subtype.ext
+    exact liftLiveRestriction_project_of_extends ρ.2
 
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
@@ -438,3 +556,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteGeometricDepthChain
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_liftLiveRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liveRestrictionEquiv
