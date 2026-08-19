@@ -23,6 +23,8 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingTailIntegerBridge
 
 /-- Canonical coordinates for the live variables of a current restriction. -/
 noncomputable def liveCoordEquiv {n : ℕ} (τ : Restriction n) :
@@ -850,6 +852,30 @@ def concreteB : ℕ := 8 * concreteQ
 def concreteSched (d r i : ℕ) : ℕ := r * concreteB ^ (d - i)
 def concreteG : ℕ := 2 * concreteM
 def concreteScale : ℕ := 1000 * (concreteG * (concreteT * concreteTerms))
+
+/-- Exact contraction factor for recursively reusing a deterministic bucket: a parent at
+scale `concreteScale * (concreteCoverB * r)` leaves exactly `concreteScale * r` live variables. -/
+def concreteCoverB : ℕ := concreteScale / 20
+
+theorem concreteScale_eq_twenty_mul_coverB : concreteScale = 20 * concreteCoverB := by
+  norm_num [concreteScale, concreteCoverB, concreteG, concreteM, concreteT, concreteTerms]
+
+theorem concreteCover_live_exact (r : ℕ) :
+    20 * (concreteCoverB * r) = concreteScale * r := by
+  rw [concreteScale_eq_twenty_mul_coverB]
+  ac_rfl
+
+/-- The deterministic depth schedule whose selected `20r`-star children have exactly the
+ambient size required by the next recursive round. -/
+def concreteCoverSched (d r i : ℕ) : ℕ := r * concreteCoverB ^ (d - i)
+
+theorem concreteCoverSched_step {d r i : ℕ} (hi : i < d) :
+    20 * concreteCoverSched d r i = concreteScale * concreteCoverSched d r (i + 1) := by
+  rw [concreteCoverSched, concreteCoverSched]
+  have hsub : d - i = (d - (i + 1)) + 1 := by omega
+  rw [hsub, pow_succ]
+  rw [concreteScale_eq_twenty_mul_coverB]
+  ac_rfl
 
 /-- A fully numerical later-round certificate.  These constants are closed under collapse:
 width `30`, at most `10^6` bottom gates, and at most `10^6·2^30` clauses per gate. -/

@@ -72,9 +72,27 @@ theorem aggregateTail_to_selectedBucket_activeGap
   refine ⟨i, switchingTail_to_activeGap N q (2 ^ q) (badCount i) residualDepth saving
     hq hsN hsq (le_rfl) hdepth hi⟩
 
+/-- The recursive form of selected-bucket averaging.  One and the same bucket carries both the
+explicit exceptional-assignment bound and the complete good/bad work bound.  Keeping the witness
+shared is essential when good children are recursively spliced while bad children stop here. -/
+theorem aggregateTail_to_selectedBucket_certificate
+    (N B q saving residualDepth : ℕ) (hB : 0 < B)
+    (hsq : saving + 1 ≤ q) (hq : q ≤ N) (hsN : saving + 1 ≤ N)
+    (badCount : Fin B → ℕ)
+    (haggregate : (∑ i, badCount i) * 2 ^ (saving + 1) ≤ B * 2 ^ q)
+    (hdepth : q + residualDepth ≤ N - saving - 1) :
+    ∃ i, badCount i ≤ 2 ^ (q - saving - 1) ∧
+      PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork
+        N q (2 ^ q) (badCount i) residualDepth ≤ 2 ^ (N - saving) := by
+  obtain ⟨i, hi⟩ := exists_bucket_dyadic_tail B q saving hB badCount haggregate
+  refine ⟨i, badCount_le_of_dyadic_tail q saving (badCount i) hsq hi, ?_⟩
+  exact switchingTail_to_activeGap N q (2 ^ q) (badCount i) residualDepth saving
+    hq hsN hsq (le_rfl) hdepth hi
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging.exists_bucket_le_average
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging.exists_bucket_dyadic_tail
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging.exists_bucket_badCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging.aggregateTail_to_selectedBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging.aggregateTail_to_selectedBucket_certificate
