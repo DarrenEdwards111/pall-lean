@@ -1,4 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingFixedTermLinearGap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3AltReduce
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundBounded
 
 /-!
 # Simultaneous fixed-size circuit switching gap
@@ -18,6 +20,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging
 open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
+open PallLean.Paper93.DeepMath.PathB.Depth3.Layered
 
 /-- The genuine circuit bad set: at least one bottom DNF has canonical depth at least `threshold`. -/
 def circuitBad {n G : ℕ} (gates : Fin G → List (Clause n)) (K threshold : ℕ) :
@@ -166,8 +169,76 @@ theorem circuitLinearGap_selectedBucket_activeGap
         (N - 20 * R) + (10 * R - 1) ≤ N - 9 * R - 1 := by omega
     exact hwork hr hKn
 
+/-! ## Connection to the actual layered circuit model -/
+
+/-- Both polarities of every actual bottom gate, exactly the family needed by `Shallows`. -/
+def dualBottomGates {n : ℕ} (C : Layered n) : List (List (Clause n)) :=
+  bottomGates C ++ (bottomGates C).map negDNF
+
+/-- A good restriction for an enumeration of `dualBottomGates C` shallows the actual layered tower. -/
+theorem good_implies_layered_shallows {n G : ℕ} (C : Layered n)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ)
+    (henum : ∀ cs, cs ∈ dualBottomGates C ↔ ∃ g, gates g = cs)
+    (ρ : Restriction n) (hstars : stars ρ = K)
+    (hgood : ρ ∉ circuitBad gates K threshold) :
+    Shallows K ρ threshold C := by
+  intro cs hcs
+  have shallow_of_mem (ds : List (Clause n)) (hds : ds ∈ dualBottomGates C) :
+      (canonicalDT ds K ρ).depth < threshold := by
+    obtain ⟨g, hg⟩ := (henum ds).mp hds
+    have hnot : ρ ∉ boundedTermBad (gates g) K threshold := by
+      intro hbad
+      exact hgood ((mem_circuitBad_iff gates K threshold ρ).mpr ⟨g, hbad⟩)
+    rw [mem_boundedTermBad_iff] at hnot
+    rw [hg] at hnot
+    simpa [hstars] using hnot
+  constructor
+  · exact shallow_of_mem cs (by simp [dualBottomGates, hcs])
+  · apply shallow_of_mem (negDNF cs)
+    rw [dualBottomGates, List.mem_append]
+    exact Or.inr (by rw [List.mem_map]; exact ⟨cs, hcs, rfl⟩)
+
+/-- On every good restriction, the real layered circuit makes one semantic-preserving depth-reduction
+round and its new bottom width is below the canonical threshold. -/
+theorem layered_good_collapseRound {n G k : ℕ} (C : Layered n) (hAlt : AltO (k + 3) C)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ)
+    (henum : ∀ cs, cs ∈ dualBottomGates C ↔ ∃ g, gates g = cs)
+    (ρ : Restriction n) (hstars : stars ρ = K)
+    (hgood : ρ ∉ circuitBad gates K threshold) :
+    EquivOn ρ C (collapseRound K ρ C) ∧
+      AltO (k + 2) (collapseRound K ρ C) ∧
+      BottomWidth threshold (collapseRound K ρ C) := by
+  have hsh := good_implies_layered_shallows C gates K threshold henum ρ hstars hgood
+  exact ⟨collapseRound_EquivOn K (by omega) C,
+    collapseRound_AltO K ρ hAlt, collapseRound_BottomWidth K ρ hsh⟩
+
+/-- **End-to-end real-layered one-round theorem.**  The quantitative deterministic bucket bound is
+bundled with the semantic, alternation, and bottom-width facts for every good restriction. -/
+theorem layeredCircuitLinearGap_oneRound
+    {n G m r k : ℕ} [NeZero G] [NeZero m] [NeZero r]
+    (hn : n = 1000 * (G * m) * r) (C : Layered n) (hAlt : AltO (k + 3) C)
+    (gates : Fin G → List (Clause n))
+    (henum : ∀ cs, cs ∈ dualBottomGates C ↔ ∃ g, gates g = cs)
+    (hw : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ 2)
+    (hm : ∀ g, (gates g).length ≤ m) :
+    (∃ i : Fin (n.choose (20 * r)),
+      goodBadWork n (n - 20 * r) (2 ^ (n - 20 * r))
+        (concreteBadCount (K := 20 * r) (circuitBad gates (20 * r) (10 * r)) i)
+        (10 * r - 1) ≤ 2 ^ (n - 9 * r)) ∧
+    (∀ ρ : Restriction n, stars ρ = 20 * r →
+      ρ ∉ circuitBad gates (20 * r) (10 * r) →
+      EquivOn ρ C (collapseRound (20 * r) ρ C) ∧
+        AltO (k + 2) (collapseRound (20 * r) ρ C) ∧
+        BottomWidth (10 * r) (collapseRound (20 * r) ρ C)) := by
+  subst n
+  constructor
+  · exact circuitLinearGap_selectedBucket_activeGap G m r gates hw hm
+  · intro ρ hstars hgood
+    exact layered_good_collapseRound C hAlt gates (20 * r) (10 * r) henum ρ hstars hgood
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_good_semanticCollapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuitLinearGap_selectedBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.layeredCircuitLinearGap_oneRound
