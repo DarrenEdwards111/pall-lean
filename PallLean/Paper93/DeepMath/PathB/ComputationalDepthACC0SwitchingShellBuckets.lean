@@ -36,6 +36,25 @@ def badBucket {n K : ℕ} (Bad : Finset (Restriction n)) (S : FreeSetBucket n K)
     Finset (Restriction n) :=
   Bad.filter (fun ρ => freeSet ρ = S.1)
 
+/-- The complete deterministic bucket: all restrictions having exactly the selected free set. -/
+def restrictionBucket {n K : ℕ} (S : FreeSetBucket n K) : Finset (Restriction n) :=
+  Finset.univ.filter (fun ρ => freeSet ρ = S.1)
+
+@[simp] theorem mem_restrictionBucket {n K : ℕ} {S : FreeSetBucket n K}
+    {ρ : Restriction n} :
+    ρ ∈ restrictionBucket S ↔ freeSet ρ = S.1 := by
+  simp [restrictionBucket]
+
+theorem stars_eq_of_mem_restrictionBucket {n K : ℕ} {S : FreeSetBucket n K}
+    {ρ : Restriction n} (hρ : ρ ∈ restrictionBucket S) : stars ρ = K := by
+  rw [← freeSet_card, (mem_restrictionBucket.mp hρ), S.2]
+
+theorem badBucket_subset_restrictionBucket {n K : ℕ}
+    (Bad : Finset (Restriction n)) (S : FreeSetBucket n K) :
+    badBucket Bad S ⊆ restrictionBucket S := by
+  intro ρ hρ
+  exact mem_restrictionBucket.mpr (Finset.mem_filter.mp hρ).2
+
 theorem badBucket_pairwiseDisjoint {n K : ℕ} (Bad : Finset (Restriction n)) :
     (↑(Finset.univ : Finset (FreeSetBucket n K)) : Set (FreeSetBucket n K)).PairwiseDisjoint
       (badBucket Bad) := by

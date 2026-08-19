@@ -792,6 +792,44 @@ theorem mem_circuitBad_localize_iff {n G : ℕ} (τ : Restriction n)
   · rintro ⟨g, hg⟩
     exact ⟨g, (mem_boundedTermBad_localize_iff τ (gates g) K threshold σ).mpr hg⟩
 
+/-- The complete local restriction bucket selected by its canonical finite index. -/
+noncomputable def selectedLocalBucket (N K : ℕ) (i : Fin (N.choose K)) :
+    Finset (Restriction N) :=
+  restrictionBucket ((freeSetBucketEquivFin N K).symm i)
+
+/-- Lift every child of a selected local bucket into the current ambient subcube. -/
+noncomputable def liftedSelectedBucket {n : ℕ} (τ : Restriction n) (K : ℕ)
+    (i : Fin ((stars τ).choose K)) : Finset (Restriction n) :=
+  (selectedLocalBucket (stars τ) K i).image (liftLiveRestriction τ)
+
+theorem mem_selectedLocalBucket_stars {N K : ℕ} {i : Fin (N.choose K)}
+    {σ : Restriction N} (hσ : σ ∈ selectedLocalBucket N K i) : stars σ = K := by
+  exact stars_eq_of_mem_restrictionBucket hσ
+
+theorem liftedSelectedBucket_extends {n K : ℕ} (τ : Restriction n)
+    (i : Fin ((stars τ).choose K)) {ρ : Restriction n}
+    (hρ : ρ ∈ liftedSelectedBucket τ K i) : Extends τ ρ := by
+  classical
+  rw [liftedSelectedBucket, Finset.mem_image] at hρ
+  obtain ⟨σ, _, rfl⟩ := hρ
+  exact liftLiveRestriction_extends τ σ
+
+theorem liftedSelectedBucket_stars {n K : ℕ} (τ : Restriction n)
+    (i : Fin ((stars τ).choose K)) {ρ : Restriction n}
+    (hρ : ρ ∈ liftedSelectedBucket τ K i) : stars ρ = K := by
+  classical
+  rw [liftedSelectedBucket, Finset.mem_image] at hρ
+  obtain ⟨σ, hσ, rfl⟩ := hρ
+  rw [stars_liftLiveRestriction, mem_selectedLocalBucket_stars hσ]
+
+/-- On every selected child, local badness is exactly genuine ambient badness. -/
+theorem selectedLocalBucket_bad_iff {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K))
+    {σ : Restriction (stars τ)} (_hσ : σ ∈ selectedLocalBucket (stars τ) K i) :
+    liftLiveRestriction τ σ ∈ circuitBad gates K threshold ↔
+      σ ∈ circuitBad (localizeLiveGates τ gates) K threshold :=
+  mem_circuitBad_localize_iff τ gates K threshold σ
+
 /-- The restriction-dependent circuit sequence produced by successive real `collapseRound`s. -/
 def collapseSeq {n : ℕ} (K : ℕ → ℕ) (ρ : ℕ → Restriction n) (C₀ : Layered n) :
     ℕ → Layered n
@@ -876,6 +914,17 @@ theorem concreteCoverSched_step {d r i : ℕ} (hi : i < d) :
   rw [hsub, pow_succ]
   rw [concreteScale_eq_twenty_mul_coverB]
   ac_rfl
+
+/-- Every child in the selected bucket at depth `i` has exactly the live size required by depth
+`i+1` of the deterministic cover schedule. -/
+theorem liftedSelectedBucket_coverSched_stars {n d r i : ℕ} (hi : i < d)
+    (τ : Restriction n)
+    (bucket : Fin ((stars τ).choose (20 * concreteCoverSched d r i)))
+    {ρ : Restriction n}
+    (hρ : ρ ∈ liftedSelectedBucket τ (20 * concreteCoverSched d r i) bucket) :
+    stars ρ = concreteScale * concreteCoverSched d r (i + 1) := by
+  rw [liftedSelectedBucket_stars τ bucket hρ]
+  exact concreteCoverSched_step hi
 
 /-- A fully numerical later-round certificate.  These constants are closed under collapse:
 width `30`, at most `10^6` bottom gates, and at most `10^6·2^30` clauses per gate. -/
@@ -1322,3 +1371,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.canonicalDT_depth_localize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_boundedTermBad_localize_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_circuitBad_localize_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_extends
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftedSelectedBucket_coverSched_stars
