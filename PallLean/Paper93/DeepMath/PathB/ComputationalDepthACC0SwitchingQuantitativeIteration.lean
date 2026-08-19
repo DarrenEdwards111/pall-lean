@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingCircuitLinearGap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -86,6 +87,44 @@ theorem collapseSeq_round_width {n d : ℕ} (K threshold : ℕ → ℕ)
   rw [collapseSeq_succ]
   exact collapseRound_BottomWidth (K i) (ρ i) (hround i hi).shallows
 
+/-- The real collapse sequence never increases its number of bottom gates. -/
+theorem collapseSeq_gateCount_le {n d : ℕ} (K : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀) :
+    ∀ i ≤ d, (bottomGates (collapseSeq K ρ C₀ i)).length ≤ (bottomGates C₀).length := by
+  intro i hi
+  induction i with
+  | zero => exact le_rfl
+  | succ i ih =>
+      have hid : i < d := by omega
+      have hshape : AltO ((d - i) + 2) (collapseSeq K ρ C₀ i) :=
+        collapseSeq_AltO K ρ C₀ hAlt i (d - i) (by omega)
+      rw [collapseSeq_succ]
+      exact le_trans (collapseRound_count_le (K i) (ρ i) (AltO_NonEmptyGates hshape))
+        (ih (by omega))
+
+/-- **The generated later-round parameters are structural invariants, not assumptions.**  If the
+initial tower has at most `M` bottom gates, round `i` produces width at most `threshold i`, at most
+`M·2^(threshold i)` clauses per bottom gate, and still at most `M` bottom gates. -/
+theorem collapseSeq_round_structuralBounds {n d M : ℕ} (K threshold : ℕ → ℕ)
+    (ρ : ℕ → Restriction n) (C₀ : Layered n) (hAlt : AltO (d + 2) C₀)
+    (hround : ∀ i < d, GoodRound (K i) (threshold i) (collapseSeq K ρ C₀ i) (ρ i))
+    (hM : (bottomGates C₀).length ≤ M) :
+    ∀ i < d,
+      BottomWidth (threshold i) (collapseSeq K ρ C₀ (i + 1)) ∧
+      BottomCount (M * 2 ^ threshold i) (collapseSeq K ρ C₀ (i + 1)) ∧
+      (bottomGates (collapseSeq K ρ C₀ (i + 1))).length ≤ M := by
+  intro i hi
+  have hshape : AltO ((d - i) + 2) (collapseSeq K ρ C₀ i) :=
+    collapseSeq_AltO K ρ C₀ hAlt i (d - i) (by omega)
+  have hcnt : (bottomGates (collapseSeq K ρ C₀ i)).length ≤ M :=
+    le_trans (collapseSeq_gateCount_le K ρ C₀ hAlt i (by omega)) hM
+  have hM1 : 1 ≤ M := le_trans (bottomGates_length_pos_AltO hshape) hcnt
+  rw [collapseSeq_succ]
+  refine ⟨collapseRound_BottomWidth (K i) (ρ i) (hround i hi).shallows,
+    collapseRound_BottomCount (K i) (ρ i) hM1 (AltO_NonEmptyGates hshape)
+      (hround i hi).shallows hcnt, ?_⟩
+  exact le_trans (collapseRound_count_le (K i) (ρ i) (AltO_NonEmptyGates hshape)) hcnt
+
 /-- **Multi-round semantic composition.**  On the final nested subcube, the original circuit reduces
 to the actual `d`-round collapsed circuit, hence their evaluations agree everywhere on that subcube. -/
 theorem collapseSeq_reduces_final {n d : ℕ} (K threshold : ℕ → ℕ)
@@ -109,3 +148,5 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_terminal_dnf
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_reduces_final
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_gateCount_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds
