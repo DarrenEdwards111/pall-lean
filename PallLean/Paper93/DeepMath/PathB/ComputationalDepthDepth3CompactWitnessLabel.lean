@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarShell
 
 /-!
 # Compact deepest-witness labels
@@ -89,8 +90,71 @@ theorem compactWitPack_inj {w s m : ℕ} [NeZero w]
             rw [show q = r from Prod.ext hp.1 ht.1, ih rs hp.2 ht.2]
   exact combine a b hpos hterm
 
+variable {n : ℕ}
+
+/-- **Unconditional compact deepest-branch count.**  The genuine max-depth bad event is encoded by
+its deepest end-state, `s` literal positions, and `m` term multiplicities.  Duplicate-free clause
+lists make the term stream non-backtracking, so the compact label recovers the full witness and the
+existing `witDecode` recovers the selected set. -/
+theorem deepest_count_compact {w s F m : ℕ} [NeZero w]
+    {cs : List (Clause n)} {Bad Short : Finset (Restriction n)}
+    (hnd : cs.Nodup)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (hm : cs.length ≤ m)
+    (hdepth : ∀ rho ∈ Bad, (canonicalDT cs F rho).depth = s)
+    (hmem : ∀ rho ∈ Bad, deepestEnd cs F rho ∈ Short) :
+    Bad.card ≤ Short.card * (w ^ s * (s + 1) ^ m) := by
+  let lab : Restriction n → CompactWitLabel w s m :=
+    fun rho => compactWitPack w s m (deepestWitSeq cs F rho)
+  apply card_bad_le_label_card (deepestEnd cs F) lab
+  · exact le_of_eq (card_compactWitLabel w s m)
+  · exact hmem
+  · intro rho hrho sigma hsigma hE hlabel
+    have hlen_rho : (deepestWitSeq cs F rho).length = s :=
+      (deepestWitSeq_length_eq_depth cs F rho).trans (hdepth rho hrho)
+    have hlen_sigma : (deepestWitSeq cs F sigma).length = s :=
+      (deepestWitSeq_length_eq_depth cs F sigma).trans (hdepth sigma hsigma)
+    have hseq : deepestWitSeq cs F rho = deepestWitSeq cs F sigma := by
+      apply compactWitPack_inj (w := w) (s := s) (m := m) hlen_rho hlen_sigma
+      · intro p hp
+        exact (deepestWitSeq_bounds cs hw F rho p hp).1
+      · intro p hp
+        exact (deepestWitSeq_bounds cs hw F sigma p hp).1
+      · intro p hp
+        exact lt_of_lt_of_le (deepestWitSeq_bounds cs hw F rho p hp).2 hm
+      · intro p hp
+        exact lt_of_lt_of_le (deepestWitSeq_bounds cs hw F sigma p hp).2 hm
+      · exact deepestWitSeq_termIndices_pairwise cs hnd F rho
+      · exact deepestWitSeq_termIndices_pairwise cs hnd F sigma
+      · exact hlabel
+    apply deepestEnd_inj cs F hE
+    calc
+      deepestSel cs F rho = witDecode cs (deepestWitSeq cs F rho) :=
+        (witDecode_deepestWitSeq cs F rho).symm
+      _ = witDecode cs (deepestWitSeq cs F sigma) := by rw [hseq]
+      _ = deepestSel cs F sigma := witDecode_deepestWitSeq cs F sigma
+
+/-- Fixed-star-shell form consumed by the quantitative switching tail. -/
+theorem canonicalDepth_shell_count_compact {w K s F m : ℕ} [NeZero w]
+    {cs : List (Clause n)} {Bad : Finset (Restriction n)}
+    (hnd : cs.Nodup)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (hm : cs.length ≤ m)
+    (hstars : ∀ rho ∈ Bad, stars rho = K)
+    (hdepth : ∀ rho ∈ Bad, (canonicalDT cs F rho).depth = s) :
+    Bad.card ≤ n.choose (K - s) * 2 ^ (n - (K - s)) *
+      (w ^ s * (s + 1) ^ m) := by
+  let Short : Finset (Restriction n) :=
+    Finset.univ.filter fun rho => stars rho = K - s
+  have hmem : ∀ rho ∈ Bad, deepestEnd cs F rho ∈ Short := by
+    intro rho hrho
+    simpa only [Short] using
+      (deepestEnd_mem_shell cs F rho (hstars rho hrho) (hdepth rho hrho))
+  have hcount := deepest_count_compact hnd hw hm hdepth hmem
+  simpa only [Short, card_stars_eq] using hcount
+
 end Depth3
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.card_compactWitLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.compactWitPack_inj
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepest_count_compact
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDepth_shell_count_compact
