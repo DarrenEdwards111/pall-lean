@@ -89,9 +89,33 @@ theorem deepestWitSeq_bounds (cs : List (Clause n)) {w : ℕ}
                 activeTermIdx_lt hT⟩
             · exact ih (fixVar σ (litVar ℓ) true) pc hpc
 
+/-- The genuine deepest-branch witness may repeat a term index at many query steps, but the set of
+indices it uses is bounded by the number of DNF terms.  This is the first compression invariant:
+term identity is block data, not an independent `m`-way choice at every depth position. -/
+theorem deepestWitSeq_termIndices_card_le (cs : List (Clause n)) {w : ℕ}
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (F : ℕ) (σ : Restriction n) :
+    ((deepestWitSeq cs F σ).map Prod.snd).toFinset.card ≤ cs.length := by
+  let inds := ((deepestWitSeq cs F σ).map Prod.snd).toFinset
+  have hsub : inds ⊆ Finset.range cs.length := by
+    intro i hi
+    simp only [inds, List.mem_toFinset, List.mem_map] at hi
+    obtain ⟨pc, hpc, rfl⟩ := hi
+    exact Finset.mem_range.mpr (deepestWitSeq_bounds cs hw F σ pc hpc).2
+  exact le_trans (Finset.card_le_card hsub) (by simp)
+
+/-- The same compression invariant with an external term bound `m`, matching the quantitative
+switching API. -/
+theorem deepestWitSeq_termIndices_card_le_bound (cs : List (Clause n)) {w m : ℕ}
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (hm : cs.length ≤ m)
+    (F : ℕ) (σ : Restriction n) :
+    ((deepestWitSeq cs F σ).map Prod.snd).toFinset.card ≤ m :=
+  (deepestWitSeq_termIndices_card_le cs hw F σ).trans hm
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepestWitSeq_length_eq_depth
 #print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepestWitSeq_bounds
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepestWitSeq_termIndices_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Depth3.deepestWitSeq_termIndices_card_le_bound
