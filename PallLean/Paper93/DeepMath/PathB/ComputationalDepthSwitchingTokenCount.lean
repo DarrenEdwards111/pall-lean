@@ -70,8 +70,43 @@ theorem canonFlatLabel_switching_count {w L : ℕ} [NeZero w] {cs : List (Clause
     have hvar := canonLabel_det ρ σ cs hcs hcs hwidth hE hcf
     exact termWalk_inj' (encLits_decode ρ cs hcs) (encLits_decode σ cs hcs) hE hvar
 
+/-- The empty-block-safe token label pays only one delimiter for each confirmed term.
+In particular its overhead is additive in the number of DNF terms, rather than a term-index
+choice at every queried variable.  This is the quantitative shape needed by a term-index-aware
+multi-switching encoding. -/
+theorem canonFlatLabel_length_le_path_add_terms {w : ℕ} [NeZero w]
+    (rho : Restriction n) (cs : List (Clause n)) :
+    (canonFlatLabel w rho cs).length ≤
+      (ungroupBlocks (canonPosBlocks (encLits rho cs) ∅
+        (cs.filter (termSat (complete rho (encLits rho cs)))))).length + cs.length := by
+  let bs := canonPosBlocks (encLits rho cs) ∅
+    (cs.filter (termSat (complete rho (encLits rho cs))))
+  have hblocks : bs.length ≤ cs.length := by
+    have hlen : ∀ (L : List (Clause n)) (claimed : Finset (Fin n)),
+        (canonPosBlocks (encLits rho cs) claimed L).length = L.length := by
+      intro L
+      induction L with
+      | nil => intro claimed; rfl
+      | cons C rest ih =>
+          intro claimed
+          simp only [canonPosBlocks, List.length_cons, ih]
+    dsimp [bs]
+    rw [hlen]
+    exact List.length_filter_le _ _
+  rw [canonFlatLabel, tokFlatten_length]
+  simp only [List.length_map, List.map_map]
+  have hsum :
+      (bs.map (List.length ∘ fun b => b.map (natToFin w))).sum =
+        (bs.map List.length).sum := by
+    simp [Function.comp_def]
+  rw [show canonPosBlocks (encLits rho cs) ∅
+      (cs.filter (termSat (complete rho (encLits rho cs)))) = bs from rfl,
+    hsum, ungroupBlocks_length]
+  omega
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_switching_count
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_length_le_path_add_terms
