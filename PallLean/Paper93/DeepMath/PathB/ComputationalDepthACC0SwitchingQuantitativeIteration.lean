@@ -7,7 +7,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3RecursiveTowerSeq
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthRestrictionCardinality
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipCollision
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingCommonTree
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingWitnessLabel
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
