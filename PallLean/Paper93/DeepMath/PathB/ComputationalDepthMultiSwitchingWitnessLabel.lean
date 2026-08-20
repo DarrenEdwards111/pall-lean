@@ -15,6 +15,58 @@ namespace PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 
+/-- A fresh shared query together with the first raw canonical gate segment that contains it.
+`none` is retained in the total definition until origin existence is proved. -/
+abbrev FreshQueryAnnotation (n G : ℕ) := Fin n × Option (Fin G)
+
+/-- First gate, in the canonical padded order, whose raw execution path queries `v`. -/
+def firstGateOrigin? {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
+    (x : Fin n → Bool) (v : Fin n) : Option (Fin G) :=
+  (List.finRange G).find? fun g => v ∈
+    CommonTree.queryVars (CommonTree.ofBool (trees g)) x
+
+/-- Annotate every genuinely fresh read-once query with its first raw gate of origin. -/
+def annotatedFreshQueries {n G : ℕ} (σ : Restriction n)
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool) :
+    List (FreshQueryAnnotation n G) :=
+  (CommonTree.queryVars
+    (CommonTree.readOnce σ (CommonTree.commonRefineFin trees)) x).map
+      fun v => (v, firstGateOrigin? trees x v)
+
+/-- Origin annotation does not alter, reorder, duplicate, or discard the fresh query path. -/
+theorem annotatedFreshQueries_map_fst {n G : ℕ} (σ : Restriction n)
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool) :
+    (annotatedFreshQueries σ trees x).map Prod.fst =
+      CommonTree.queryVars
+        (CommonTree.readOnce σ (CommonTree.commonRefineFin trees)) x := by
+  simp [annotatedFreshQueries, List.map_map, Function.comp_def]
+
+/-- The annotated fresh-variable stream remains duplicate-free. -/
+theorem annotatedFreshQueries_vars_nodup {n G : ℕ} (σ : Restriction n)
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    ((annotatedFreshQueries σ trees x).map Prod.fst).Nodup := by
+  rw [annotatedFreshQueries_map_fst]
+  exact CommonTree.queryVars_readOnce_nodup σ _ x hext
+
+/-- Every retained fresh query has a genuine raw gate segment of origin. -/
+theorem firstGateOrigin_isSome_of_mem_readOnce {n G : ℕ} (σ : Restriction n)
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) {v : Fin n}
+    (hv : v ∈ CommonTree.queryVars
+      (CommonTree.readOnce σ (CommonTree.commonRefineFin trees)) x) :
+    (firstGateOrigin? trees x v).isSome = true := by
+  have hraw := CommonTree.mem_queryVars_of_mem_readOnce σ
+    (CommonTree.commonRefineFin trees) x hext hv
+  rw [CommonTree.queryVars_commonRefineFin] at hraw
+  obtain ⟨segment, hsegment, hvsegment⟩ := List.mem_flatten.mp hraw
+  obtain ⟨tree, htree, rfl⟩ := List.mem_map.mp hsegment
+  obtain ⟨g, hg⟩ := List.mem_ofFn.mp htree
+  subst tree
+  apply List.find?_isSome.mpr
+  refine ⟨g, List.mem_finRange g, ?_⟩
+  simpa using hvsegment
+
 /-- Shared boundary bookkeeping: one run count per gate and one term multiplicity per gate/term. -/
 abbrev CommonBoundaryLabel (d G m : ℕ) :=
   (Fin G → Fin (d + 1)) × (Fin G → Fin m → Fin (d + 1))
@@ -107,6 +159,9 @@ theorem commonBadPath_count {d G m : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.annotatedFreshQueries_map_fst
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.annotatedFreshQueries_vars_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.firstGateOrigin_isSome_of_mem_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonBadPathPack_eq_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.gateTrace_length_le_commonDepth
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonGateRunCounts_val

@@ -135,6 +135,34 @@ theorem queryVars_readOnce_nodup {n : ℕ} {α : Type}
             exact ⟨not_mem_queryVars_readOnce_of_fixed (fixVar σ i false) lo x hext'
               (by simp [fixVar]), ihlo _ hext'⟩
 
+/-- Normalization only removes repeated/fixed queries; every retained query occurred on the
+original execution path. -/
+theorem mem_queryVars_of_mem_readOnce {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) {j : Fin n}
+    (hj : j ∈ queryVars (readOnce σ t) x) : j ∈ queryVars t x := by
+  induction t generalizing σ with
+  | leaf a => simp [readOnce, queryVars] at hj
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | some b =>
+          have hxb : x i = b := hext i b hσ
+          cases b
+          · simp only [readOnce, hσ] at hj
+            simp only [queryVars, hxb, Bool.false_eq_true, List.mem_cons]
+            exact Or.inr (ihlo σ hext hj)
+          · simp only [readOnce, hσ] at hj
+            simp only [queryVars, hxb, if_true, List.mem_cons]
+            exact Or.inr (ihhi σ hext hj)
+      | none =>
+          by_cases hx : x i
+          · simp only [readOnce, hσ, queryVars, hx, if_true, List.mem_cons] at hj ⊢
+            exact hj.imp_right (ihhi _ (extends_fixVar hext hx))
+          · simp only [readOnce, hσ, queryVars, hx, Bool.false_eq_true,
+              List.mem_cons] at hj ⊢
+            exact hj.imp_right (ihlo _
+              (extends_fixVar hext (Bool.eq_false_of_not_eq_true hx)))
+
 /-- Bit transcripts and queried-coordinate transcripts have identical lengths. -/
 theorem trace_length_eq_queryVars_length {n : ℕ} {α : Type}
     (t : CommonTree n α) (x : Fin n → Bool) :
@@ -316,6 +344,16 @@ theorem trace_bind {n : ℕ} {α β : Type} (t : CommonTree n α)
   | query i lo hi ihlo ihhi =>
       by_cases h : x i <;> simp [bind, trace, run, h, ihlo, ihhi]
 
+/-- Query-coordinate paths obey the same concatenation law as bit transcripts. -/
+theorem queryVars_bind {n : ℕ} {α β : Type} (t : CommonTree n α)
+    (f : α → CommonTree n β) (x : Fin n → Bool) :
+    queryVars (bind t f) x =
+      queryVars t x ++ queryVars (f (run t x)) x := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases h : x i <;> simp [bind, queryVars, run, h, ihlo, ihhi]
+
 /-- Regard an ordinary Boolean decision tree as a common tree with Boolean leaves. -/
 def ofBool {n : ℕ} : BoolDecisionTree n → CommonTree n Bool
   | .leaf b => .leaf b
@@ -358,6 +396,19 @@ theorem trace_commonRefine {n : ℕ} (ts : List (BoolDecisionTree n))
       rw [ih]
       simp
 
+/-- The raw family query-coordinate path is the ordered flattening of its gate segments. -/
+theorem queryVars_commonRefine {n : ℕ} (ts : List (BoolDecisionTree n))
+    (x : Fin n → Bool) :
+    queryVars (commonRefine ts) x =
+      (ts.map fun t => queryVars (ofBool t) x).flatten := by
+  induction ts with
+  | nil => rfl
+  | cons t ts ih =>
+      simp only [commonRefine, queryVars_bind, run_ofBool,
+        List.map_cons, List.flatten_cons, queryVars]
+      rw [ih]
+      simp
+
 /-- Consequently, common-path length is the sum of its real per-tree segment lengths. -/
 theorem trace_commonRefine_length {n : ℕ} (ts : List (BoolDecisionTree n))
     (x : Fin n → Bool) :
@@ -387,6 +438,14 @@ theorem trace_commonRefineFin {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
     trace (commonRefineFin trees) x = trace (commonRefine (List.ofFn trees)) x := by
   rw [commonRefineFin, trace_bind]
   simp only [trace, List.append_nil]
+
+/-- Indexed-family form of the raw gate-segment query decomposition. -/
+theorem queryVars_commonRefineFin {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
+    (x : Fin n → Bool) :
+    queryVars (commonRefineFin trees) x =
+      ((List.ofFn trees).map fun t => queryVars (ofBool t) x).flatten := by
+  rw [commonRefineFin, queryVars_bind]
+  simp only [queryVars, List.append_nil, queryVars_commonRefine]
 
 /-- Exact indexed-family segment-length formula. -/
 theorem trace_commonRefineFin_length {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
@@ -489,13 +548,16 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.mem_queryVars_of_mem_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce_eq_of_liveFinitePathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.card_liveFinitePathLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefine
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_commonRefineFin
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefineFin
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefineFin_length
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.replay_trace
