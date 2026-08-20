@@ -1463,8 +1463,8 @@ theorem concreteDeterministicRoundGap (r : ℕ) [NeZero r]
 linear-threshold certificate, `threshold` and `K` are independent.  A shell budget of one half
 selects a complete deterministic bucket with at most half of its `2^(N-K)` children genuinely bad.
 This is exactly the local input consumed by `selectedRetryNode_work_le`. -/
-theorem concreteRetry_geometric_budget (r : ℕ) :
-    (2 : ℚ) * concreteG *
+theorem concreteRetry_strong_geometric_budget (r : ℕ) :
+    ((2 : ℚ) ^ concreteT) * concreteG *
         (∑ t ∈ Finset.Icc concreteT (20 * r),
           ((4 : ℚ) / (49 * concreteG)) ^ t) ≤ 1 := by
   have ha0 : (0 : ℚ) ≤ (4 : ℚ) / (49 * concreteG) := by positivity
@@ -1472,10 +1472,10 @@ theorem concreteRetry_geometric_budget (r : ℕ) :
     norm_num [concreteG, concreteM]
   have htail := geom_shell_tail_le ha0 ha1 concreteT (20 * r)
   calc
-    (2 : ℚ) * concreteG *
+    ((2 : ℚ) ^ concreteT) * concreteG *
         (∑ t ∈ Finset.Icc concreteT (20 * r),
           ((4 : ℚ) / (49 * concreteG)) ^ t)
-      ≤ 2 * concreteG *
+      ≤ (2 ^ concreteT) * concreteG *
           (((4 : ℚ) / (49 * concreteG)) ^ concreteT /
             (1 - (4 : ℚ) / (49 * concreteG))) := by gcongr
     _ ≤ 1 := by norm_num [concreteG, concreteM, concreteT]
@@ -1483,11 +1483,11 @@ theorem concreteRetry_geometric_budget (r : ℕ) :
 /-- The reusable fixed-width retry round has at most half of its complete bucket bad.  The
 ambient density is the same `20/(1000·G·w·m)` density as the linear-gap theorem, but the canonical
 depth threshold is the independent constant `30`. -/
-theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
+theorem concreteRetry_strong_shellBudget (r : ℕ) (hr : 0 < r) :
     (concreteG * (∑ t ∈ Finset.Icc concreteT (20 * r),
       (concreteScale * r).choose (20 * r - t) *
         2 ^ (concreteScale * r - (20 * r - t)) *
-          (2 * concreteT * concreteTerms) ^ t)) * 2 ≤
+          (2 * concreteT * concreteTerms) ^ t)) * 2 ^ concreteT ≤
       (concreteScale * r).choose (20 * r) *
         2 ^ (concreteScale * r - 20 * r) := by
   let E : ℕ := concreteG * (concreteT * concreteTerms)
@@ -1537,32 +1537,32 @@ theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
             rw [← hcancel]
             ring
   have hsum := Finset.sum_le_sum hterm
-  have hgeom := concreteRetry_geometric_budget r
+  have hgeom := concreteRetry_strong_geometric_budget r
   have hnormalized :
-      (2 : ℚ) * concreteG *
+      ((2 : ℚ) ^ concreteT) * concreteG *
           (∑ t ∈ Finset.Icc concreteT (20 * r),
             (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
               (4 * concreteT * concreteTerms : ℕ) ^ t) ≤
         ((concreteScale * r).choose (20 * r) : ℕ) := by
     calc
-      (2 : ℚ) * concreteG *
+      ((2 : ℚ) ^ concreteT) * concreteG *
           (∑ t ∈ Finset.Icc concreteT (20 * r),
             (((concreteScale * r).choose (20 * r - t) : ℕ) : ℚ) *
               (4 * concreteT * concreteTerms : ℕ) ^ t)
-        ≤ 2 * concreteG *
+        ≤ (2 ^ concreteT) * concreteG *
             ((concreteScale * r).choose (20 * r) *
               ∑ t ∈ Finset.Icc concreteT (20 * r),
                 ((4 : ℚ) / (49 * concreteG)) ^ t) := by
                   gcongr
                   simpa [Finset.mul_sum] using hsum
       _ = ((concreteScale * r).choose (20 * r) : ℕ) *
-          (2 * concreteG *
+          ((2 ^ concreteT) * concreteG *
             ∑ t ∈ Finset.Icc concreteT (20 * r),
               ((4 : ℚ) / (49 * concreteG)) ^ t) := by ring
       _ ≤ ((concreteScale * r).choose (20 * r) : ℕ) := by
         nlinarith
   have hnormalizedNat :
-      (2 * concreteG) *
+      ((2 ^ concreteT) * concreteG) *
           (∑ t ∈ Finset.Icc concreteT (20 * r),
             (concreteScale * r).choose (20 * r - t) *
               (4 * concreteT * concreteTerms) ^ t) ≤
@@ -1604,9 +1604,9 @@ theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
         (2 ^ (concreteScale * r - 20 * r) *
           ∑ t ∈ Finset.Icc concreteT (20 * r),
             (concreteScale * r).choose (20 * r - t) *
-              (4 * concreteT * concreteTerms) ^ t)) * 2
+              (4 * concreteT * concreteTerms) ^ t)) * 2 ^ concreteT
       = 2 ^ (concreteScale * r - 20 * r) *
-          ((2 * concreteG) *
+          (((2 ^ concreteT) * concreteG) *
             ∑ t ∈ Finset.Icc concreteT (20 * r),
               (concreteScale * r).choose (20 * r - t) *
                 (4 * concreteT * concreteTerms) ^ t) := by ring
@@ -1615,6 +1615,18 @@ theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
       Nat.mul_le_mul_left _ hnormalizedNat
     _ = (concreteScale * r).choose (20 * r) *
         2 ^ (concreteScale * r - 20 * r) := by ring
+
+/-- The former half-budget is an immediate weakening of the 30-bit retry budget. -/
+theorem concreteRetry_shellBudget (r : ℕ) (hr : 0 < r) :
+    (concreteG * (∑ t ∈ Finset.Icc concreteT (20 * r),
+      (concreteScale * r).choose (20 * r - t) *
+        2 ^ (concreteScale * r - (20 * r - t)) *
+          (2 * concreteT * concreteTerms) ^ t)) * 2 ≤
+      (concreteScale * r).choose (20 * r) *
+        2 ^ (concreteScale * r - 20 * r) := by
+  apply le_trans (Nat.mul_le_mul_left _ (show 2 ≤ 2 ^ concreteT by
+    norm_num [concreteT]))
+  exact concreteRetry_strong_shellBudget r hr
 
 theorem deterministicRetryCertificate_atSize
     (N G w m K threshold : ℕ) [NeZero w] [NeZero m]
@@ -1642,6 +1654,33 @@ theorem deterministicRetryCertificate_atSize
   · rw [hsum]
     simpa using htail
 
+/-- Saving-parameter version of the deterministic retry selector. -/
+theorem deterministicRetryCertificateSaving_atSize
+    (N G w m K threshold saving : ℕ) [NeZero w] [NeZero m]
+    (hK : K ≤ N) (hsq : saving + 1 ≤ N - K)
+    (gates : Fin G → List (Clause N))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m)
+    (hbudget :
+      (G * (∑ t ∈ Finset.Icc threshold K,
+        N.choose (K - t) * 2 ^ (N - (K - t)) * (2 * w * m) ^ t)) *
+          2 ^ (saving + 1) ≤ N.choose K * 2 ^ (N - K)) :
+    ∃ i : Fin (N.choose K),
+      concreteBadCount (K := K) (circuitBad gates K threshold) i ≤
+        2 ^ ((N - K) - saving - 1) := by
+  have hstars : ∀ ρ ∈ circuitBad gates K threshold, stars ρ = K :=
+    fun ρ hρ => circuitBad_stars gates K threshold ρ hρ
+  have hcard := circuitBad_card_le_shellSum gates K threshold hwidth hterms
+  have htail : (circuitBad gates K threshold).card * 2 ^ (saving + 1) ≤
+      N.choose K * 2 ^ (N - K) :=
+    le_trans (Nat.mul_le_mul_right _ hcard) hbudget
+  have hsum := sum_concreteBadCount (Bad := circuitBad gates K threshold) hstars
+  apply exists_bucket_badCount_le (N.choose K) (N - K) saving
+  · exact Nat.choose_pos hK
+  · exact hsq
+  · rw [hsum]
+    exact htail
+
 /-- The same half-bad retry certificate on an arbitrary current subcube, after exact localization
 of its genuine ambient gate family. -/
 theorem deterministicRetryCertificate_subcube
@@ -1660,6 +1699,27 @@ theorem deterministicRetryCertificate_subcube
           2 ^ ((stars τ - K) - 1) := by
   apply deterministicRetryCertificate_atSize (stars τ) G w m K threshold hK hq
     (localizeLiveGates τ gates)
+  · exact localizeLiveGates_width_le τ gates hwidth
+  · exact localizeLiveGates_count_le τ gates hterms
+  · exact hbudget
+
+theorem deterministicRetryCertificateSaving_subcube
+    {n G w m K threshold saving : ℕ} [NeZero w] [NeZero m]
+    (τ : Restriction n) (hK : K ≤ stars τ)
+    (hsq : saving + 1 ≤ stars τ - K)
+    (gates : Fin G → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hterms : ∀ g, (gates g).length ≤ m)
+    (hbudget :
+      (G * (∑ t ∈ Finset.Icc threshold K,
+        (stars τ).choose (K - t) * 2 ^ (stars τ - (K - t)) * (2 * w * m) ^ t)) *
+          2 ^ (saving + 1) ≤ (stars τ).choose K * 2 ^ (stars τ - K)) :
+    ∃ i : Fin ((stars τ).choose K),
+      concreteBadCount (K := K)
+        (circuitBad (localizeLiveGates τ gates) K threshold) i ≤
+          2 ^ ((stars τ - K) - saving - 1) := by
+  apply deterministicRetryCertificateSaving_atSize (stars τ) G w m K threshold saving
+    hK hsq (localizeLiveGates τ gates)
   · exact localizeLiveGates_width_le τ gates hwidth
   · exact localizeLiveGates_count_le τ gates hterms
   · exact hbudget
@@ -1688,6 +1748,31 @@ theorem concreteRetryCertificate (r : ℕ) [NeZero r]
   · exact hterms
   · exact concreteRetry_shellBudget r (NeZero.pos r)
 
+/-- The actual depth-30 tail gives a 30-bit contraction, not merely a half-bad contraction. -/
+theorem concreteRetryStrongCertificate (r : ℕ) [NeZero r]
+    (gates : Fin concreteG → List (Clause (concreteScale * r)))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((concreteScale * r).choose (20 * r)),
+      concreteBadCount (K := 20 * r)
+        (circuitBad gates (20 * r) concreteT) i ≤
+          2 ^ ((concreteScale * r - 20 * r) - concreteT) := by
+  letI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  letI : NeZero concreteTerms :=
+    ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  simpa [show concreteT - 1 + 1 = concreteT by norm_num [concreteT]] using
+    (deterministicRetryCertificateSaving_atSize
+      (concreteScale * r) concreteG concreteT concreteTerms (20 * r) concreteT
+        (concreteT - 1)
+      (by
+        norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+        omega)
+      (by
+        have hr := NeZero.pos r
+        norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+        omega)
+      gates hwidth hterms (concreteRetry_strong_shellBudget r (NeZero.pos r)))
+
 /-- The same numerical selector at an arbitrary current subcube of the matching live size. -/
 theorem concreteRetryCertificate_subcube {n r : ℕ} [NeZero r]
     (τ : Restriction n) (hstars : stars τ = concreteScale * r)
@@ -1715,6 +1800,33 @@ theorem concreteRetryCertificate_subcube {n r : ℕ} [NeZero r]
   · exact hterms
   · simpa [hstars] using concreteRetry_shellBudget r (NeZero.pos r)
 
+theorem concreteRetryStrongCertificate_subcube {n r : ℕ} [NeZero r]
+    (τ : Restriction n) (hstars : stars τ = concreteScale * r)
+    (gates : Fin concreteG → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((stars τ).choose (20 * r)),
+      concreteBadCount (K := 20 * r)
+        (circuitBad (localizeLiveGates τ gates) (20 * r) concreteT) i ≤
+          2 ^ ((stars τ - 20 * r) - concreteT) := by
+  letI : NeZero concreteT := ⟨by norm_num [concreteT]⟩
+  letI : NeZero concreteTerms :=
+    ⟨by norm_num [concreteTerms, concreteM, concreteT]⟩
+  apply deterministicRetryCertificateSaving_subcube
+    (G := concreteG) (w := concreteT) (m := concreteTerms)
+    (K := 20 * r) (threshold := concreteT) (saving := concreteT - 1) τ
+  · rw [hstars]
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · rw [hstars]
+    have hr := NeZero.pos r
+    norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+    omega
+  · exact hwidth
+  · exact hterms
+  · simpa [hstars, show concreteT - 1 + 1 = concreteT by norm_num [concreteT]] using
+      concreteRetry_strong_shellBudget r (NeZero.pos r)
+
 /-- Closed worst-case work recurrence for `j` retry levels.  The zero case brute-forces the final
 live frontier.  At a retry node all good children pay `goodCost`, while the exact half-bad bound
 controls the recursively unresolved children. -/
@@ -1723,8 +1835,88 @@ def concreteRetryWorstWork : ℕ → ℕ → (ℕ → ℕ) → ℕ
   | j + 1, r, goodCost =>
       let s := r * concreteCoverB ^ (j + 1)
       let q := concreteScale * s - 20 * s
-      retrySpliceWork (2 ^ q) (2 ^ (q - 1)) (goodCost s)
+      retrySpliceWork (2 ^ q) (2 ^ (q - concreteT)) (goodCost s)
         (concreteRetryWorstWork j r goodCost)
+
+private theorem two_mul_succ_le_two_pow_succ (j : ℕ) :
+    2 * (j + 1) ≤ 2 ^ (j + 1) := by
+  induction j with
+  | zero => norm_num
+  | succ j ih =>
+      rw [pow_succ]
+      omega
+
+/-- Each retry level converts the 30-bit bad-set contraction into 29 new exponent-saving bits;
+the remaining bit pays for adding the terminating-good and continuing-bad contributions. -/
+theorem concreteRetryWorstWork_le (j r : ℕ) [NeZero r] (goodCost : ℕ → ℕ)
+    (hgood : ∀ k < j,
+      goodCost (r * concreteCoverB ^ (k + 1)) ≤
+        2 ^ (20 * (r * concreteCoverB ^ (k + 1)) -
+          ((k + 1) * (concreteT - 1)) - 1)) :
+    concreteRetryWorstWork j r goodCost ≤
+      2 ^ (concreteScale * (r * concreteCoverB ^ j) -
+        j * (concreteT - 1)) := by
+  induction j with
+  | zero => simp [concreteRetryWorstWork]
+  | succ j ih =>
+      let s := r * concreteCoverB ^ (j + 1)
+      let q := concreteScale * s - 20 * s
+      have hspos : 0 < s := by
+        exact Nat.mul_pos (NeZero.pos r) (pow_pos (by
+          exact lt_trans (by omega) concreteCoverB_gt_three) _)
+      have hKs : 20 * s ≤ concreteScale * s := by
+        have hscale : 20 ≤ concreteScale := by
+          rw [concreteScale_eq_twenty_mul_coverB]
+          have := concreteCoverB_gt_three
+          omega
+        exact Nat.mul_le_mul_right s hscale
+      have hchild :
+          concreteRetryWorstWork j r goodCost ≤
+            2 ^ (20 * s - j * (concreteT - 1)) := by
+        have hi := ih (fun k hk => hgood k (by omega))
+        rw [show 20 * s = concreteScale * (r * concreteCoverB ^ j) by
+          simp [s, pow_succ]; rw [concreteScale_eq_twenty_mul_coverB]; ac_rfl]
+        exact hi
+      rw [concreteRetryWorstWork]
+      change retrySpliceWork (2 ^ q) (2 ^ (q - concreteT)) (goodCost s)
+          (concreteRetryWorstWork j r goodCost) ≤
+        2 ^ (concreteScale * s - (j + 1) * (concreteT - 1))
+      rw [show (j + 1) * (concreteT - 1) =
+        j * (concreteT - 1) + concreteT - 1 by
+          norm_num [concreteT]
+          ring]
+      apply retrySpliceWork_gain_le
+        (concreteScale * s) q (20 * s) (2 ^ q) (2 ^ (q - concreteT))
+        (goodCost s) (concreteRetryWorstWork j r goodCost)
+        (j * (concreteT - 1)) concreteT
+      · simp [q]
+        omega
+      · norm_num [concreteT]
+      · simp [q]
+        norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms]
+        omega
+      · have hj : j * (concreteT - 1) + concreteT ≤ 20 * s := by
+          have htwo := two_mul_succ_le_two_pow_succ j
+          have hslarge : 2 * (j + 1) ≤ s := by
+            dsimp [s]
+            have hB : 2 ≤ concreteCoverB := by
+              have := concreteCoverB_gt_three
+              omega
+            have hp : 2 ^ (j + 1) ≤ concreteCoverB ^ (j + 1) :=
+              Nat.pow_le_pow_left hB _
+            exact le_trans (le_trans htwo hp)
+              (Nat.le_mul_of_pos_left _ (NeZero.pos r))
+          norm_num [concreteT] at *
+          nlinarith
+        exact hj
+      · exact le_rfl
+      · rw [show j * (concreteT - 1) + concreteT - 1 =
+          (j + 1) * (concreteT - 1) by
+            norm_num [concreteT]
+            ring]
+        exact hgood j (by omega)
+      · exact le_rfl
+      · exact hchild
 
 /-- A genuine finite retry tree of any prescribed height.  At every internal node the same
 constant-depth certificate is selected on the current live cube; good children stop and every bad
@@ -1755,7 +1947,7 @@ theorem exists_concreteRetryCover {n : ℕ} (j r : ℕ) [NeZero r]
       letI : NeZero s := ⟨Nat.ne_of_gt hspos⟩
       have hstars' : stars τ = concreteScale * s := by
         simpa [s] using hstars
-      obtain ⟨i, hi⟩ := concreteRetryCertificate_subcube τ hstars' gates hwidth hterms
+      obtain ⟨i, hi⟩ := concreteRetryStrongCertificate_subcube τ hstars' gates hwidth hterms
       let bad := selectedBadChildren (threshold := concreteT) τ gates i
       have hchildStars : ∀ ρ : {ρ : Restriction n // ρ ∈ bad},
           stars ρ.1 = concreteScale * (r * concreteCoverB ^ j) := by
@@ -1790,6 +1982,27 @@ theorem exists_concreteRetryCover {n : ℕ} (j r : ℕ) [NeZero r]
           rw [card_selectedBadChildren]
           simpa [hstars'] using hi
       · omega
+
+/-- End-to-end quantitative retry cash-out.  Under the displayed bound for each good child's
+collapsed-layer solver, the actual exhaustive retry tree saves `29j` exponent bits. -/
+theorem exists_concreteRetryCover_linearGap {n : ℕ} (j r : ℕ) [NeZero r]
+    (τ : Restriction n)
+    (hstars : stars τ = concreteScale * (r * concreteCoverB ^ j))
+    (gates : Fin concreteG → List (Clause n))
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms)
+    (goodCost : ℕ → ℕ)
+    (hgood : ∀ k < j,
+      goodCost (r * concreteCoverB ^ (k + 1)) ≤
+        2 ^ (20 * (r * concreteCoverB ^ (k + 1)) -
+          ((k + 1) * (concreteT - 1)) - 1)) :
+    ∃ cover : RetryCover n,
+      cover.root = τ ∧ cover.height ≤ j ∧
+      cover.work ≤ 2 ^ (stars τ - j * (concreteT - 1)) := by
+  obtain ⟨cover, hroot, hheight, hwork, _⟩ :=
+    exists_concreteRetryCover j r τ hstars gates hwidth hterms goodCost
+  refine ⟨cover, hroot, hheight, hwork.trans ?_⟩
+  simpa [hstars] using concreteRetryWorstWork_le j r goodCost hgood
 
 /-- The stronger concrete certificate keeps the exceptional-count half-budget and the full work
 bound attached to the same selected bucket. -/
@@ -2035,11 +2248,14 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministicRetryCertificate_subcube
-#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_geometric_budget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_strong_geometric_budget
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_strong_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetry_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryWorstWork_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover_linearGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube

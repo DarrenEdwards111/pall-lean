@@ -72,6 +72,48 @@ theorem retrySpliceWork_le (N q K goodCount badCount goodWork retryWork saving :
       rw [pow_succ]
       ring
 
+/-- A `contraction`-bit exceptional-set bound gains `contraction-1` saving bits per retry level:
+one bit is reserved to add the terminating-good and continuing-bad budgets. -/
+theorem retrySpliceWork_gain_le
+    (N q K goodCount badCount goodWork retryWork childSaving contraction : ℕ)
+    (hN : q + K = N) (hc : 1 ≤ contraction) (hqc : contraction ≤ q)
+    (hparent : childSaving + contraction ≤ K)
+    (hgood : goodCount ≤ 2 ^ q)
+    (hgoodWork : goodWork ≤ 2 ^ (K - (childSaving + contraction - 1) - 1))
+    (hbad : badCount ≤ 2 ^ (q - contraction))
+    (hretry : retryWork ≤ 2 ^ (K - childSaving)) :
+    retrySpliceWork goodCount badCount goodWork retryWork ≤
+      2 ^ (N - (childSaving + contraction - 1)) := by
+  unfold retrySpliceWork
+  have hg : goodCount * goodWork ≤
+      2 ^ (N - (childSaving + contraction - 1) - 1) := by
+    calc
+      goodCount * goodWork ≤
+          2 ^ q * 2 ^ (K - (childSaving + contraction - 1) - 1) :=
+        Nat.mul_le_mul hgood hgoodWork
+      _ = 2 ^ (q + (K - (childSaving + contraction - 1) - 1)) := by
+        rw [Nat.pow_add]
+      _ = 2 ^ (N - (childSaving + contraction - 1) - 1) := by
+        congr 1 <;> omega
+  have hb : badCount * retryWork ≤
+      2 ^ (N - (childSaving + contraction - 1) - 1) := by
+    calc
+      badCount * retryWork ≤ 2 ^ (q - contraction) * 2 ^ (K - childSaving) :=
+        Nat.mul_le_mul hbad hretry
+      _ = 2 ^ ((q - contraction) + (K - childSaving)) := by rw [Nat.pow_add]
+      _ = 2 ^ (N - (childSaving + contraction - 1) - 1) := by
+        congr 1 <;> omega
+  calc
+    goodCount * goodWork + badCount * retryWork ≤
+        2 ^ (N - (childSaving + contraction - 1) - 1) +
+          2 ^ (N - (childSaving + contraction - 1) - 1) := Nat.add_le_add hg hb
+    _ = 2 ^ (N - (childSaving + contraction - 1)) := by
+      have hp : 0 < N - (childSaving + contraction - 1) := by omega
+      conv_rhs => rw [show N - (childSaving + contraction - 1) =
+        (N - (childSaving + contraction - 1) - 1) + 1 by omega]
+      rw [pow_succ]
+      ring
+
 /-- **Recursive splice recurrence.**  The good arm and exceptional arm each consume one half of
 the target budget.  Thus a child saving `saving+1` bits and a current bad-count saving
 `saving+1` bits combine into a parent saving of `saving` bits, with no discarded branch. -/
@@ -174,5 +216,6 @@ end PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_le_active_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.recursiveSpliceWork_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.retrySpliceWork_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.retrySpliceWork_gain_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.goodBadWork_lt_bruteforce
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout.all_bad_zero_surplus
