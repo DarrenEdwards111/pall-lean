@@ -946,11 +946,36 @@ theorem canonicalDT_localizeLiveGatesNodup {n G : ℕ} (τ : Restriction n)
       canonicalDT (localizeLiveGates τ gates g) F σ := by
   exact canonicalDT_eraseDups _ F σ
 
+/-- The fixed-star canonical-depth bad event is unchanged by order-preserving normalization. -/
+theorem boundedTermBad_eraseDups {n : ℕ} (cs : List (Clause n)) (K threshold : ℕ) :
+    boundedTermBad cs.eraseDups K threshold = boundedTermBad cs K threshold := by
+  ext ρ
+  rw [mem_boundedTermBad_iff, mem_boundedTermBad_iff, canonicalDT_eraseDups]
+
+/-- Hence simultaneous circuit badness is unchanged when every gate is normalized. -/
+theorem circuitBad_eraseDups {n G : ℕ} (gates : Fin G → List (Clause n))
+    (K threshold : ℕ) :
+    circuitBad (fun g => (gates g).eraseDups) K threshold =
+      circuitBad gates K threshold := by
+  ext ρ
+  rw [mem_circuitBad_iff, mem_circuitBad_iff]
+  constructor <;> rintro ⟨g, hg⟩
+  · exact ⟨g, by simpa [boundedTermBad_eraseDups] using hg⟩
+  · exact ⟨g, by simpa [boundedTermBad_eraseDups] using hg⟩
+
 /-- The canonical compact bad event on the current live-coordinate cube. -/
 noncomputable def normalizedLocalCircuitBad {n G : ℕ} (τ : Restriction n)
     (gates : Fin G → List (Clause n)) (K threshold : ℕ) :
     Finset (Restriction (stars τ)) :=
   circuitBad (localizeLiveGatesNodup τ gates) K threshold
+
+/-- The normalized event counted by the compact theorem is exactly the raw localized event whose
+lift is the genuine ambient bad event. -/
+theorem normalizedLocalCircuitBad_eq {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ) :
+    normalizedLocalCircuitBad τ gates K threshold =
+      circuitBad (localizeLiveGates τ gates) K threshold := by
+  exact circuitBad_eraseDups (localizeLiveGates τ gates) K threshold
 
 /-- Outside the normalized local bad event, every produced shallow CNF computes the corresponding
 original ambient gate throughout the selected local subcube. -/
@@ -986,6 +1011,16 @@ theorem mem_circuitBad_localize_iff {n G : ℕ} (τ : Restriction n)
     exact ⟨g, (mem_boundedTermBad_localize_iff τ (gates g) K threshold σ).mp hg⟩
   · rintro ⟨g, hg⟩
     exact ⟨g, (mem_boundedTermBad_localize_iff τ (gates g) K threshold σ).mpr hg⟩
+
+/-- A child good for the normalized local event lifts to a genuinely good ambient restriction. -/
+theorem normalizedLocal_good_lift_not_bad {n G K threshold : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (σ : Restriction (stars τ))
+    (hgood : σ ∉ normalizedLocalCircuitBad τ gates K threshold) :
+    liftLiveRestriction τ σ ∉ circuitBad gates K threshold := by
+  intro hbad
+  apply hgood
+  rw [normalizedLocalCircuitBad_eq]
+  exact (mem_circuitBad_localize_iff τ gates K threshold σ).mp hbad
 
 /-- The complete local restriction bucket selected by its canonical finite index. -/
 noncomputable def selectedLocalBucket (N K : ℕ) (i : Fin (N.choose K)) :
@@ -1360,6 +1395,25 @@ theorem concreteCompact_selectedBucket_activeGap (q : ℕ) (hq : 0 < q)
   · simpa [concreteT] using hwidth
   · exact hterms
 
+/-- The compact certificate with its ambient dimension exposed as an equality, for use on a
+localized live-coordinate cube. -/
+theorem concreteCompact_selectedBucket_activeGap_atSize (N q : ℕ) (hq : 0 < q)
+    (hN : N = 4000 * concreteCompactScale q)
+    (gates : Fin concreteG → List (Clause N))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin (N.choose (20 * concreteCompactScale q)),
+      goodBadWork N (N - 20 * concreteCompactScale q)
+        (2 ^ (N - 20 * concreteCompactScale q))
+        (concreteBadCount (K := 20 * concreteCompactScale q)
+          (circuitBad gates (20 * concreteCompactScale q)
+            (10 * concreteCompactScale q)) i)
+        (10 * concreteCompactScale q - 1) ≤
+          2 ^ (N - 8 * concreteCompactScale q) := by
+  subst N
+  exact concreteCompact_selectedBucket_activeGap q hq gates hnd hwidth hterms
+
 /-- Fixed-size enumeration of the real dual bottom gates, padded by empty DNFs. -/
 def paddedDualBottomGates {n : ℕ} (C : Layered n) :
     Fin concreteG → List (Clause n) :=
@@ -1441,6 +1495,58 @@ theorem padded_good_collapseRound {n k K threshold : ℕ} (C : Layered n)
     (paddedDualBottomGates_covers C hcnt) ρ hstars hgood
   exact ⟨collapseRound_EquivOn K (by omega) C,
     collapseRound_AltO K ρ hAlt, collapseRound_BottomWidth K ρ hsh⟩
+
+set_option maxRecDepth 10000 in
+/-- **Proportional compact round on a real layered circuit.**  The selected bucket's charged work
+has an `8r` exponent gap, and every child outside its exact genuine ambient bad set performs the
+existing semantic `collapseRound`, drops one alternation, and has the promised bottom width. -/
+theorem concreteCompact_padded_selectedBucket_round {n k : ℕ} (q : ℕ) (hq : 0 < q)
+    (C : Layered n) (hAlt : AltO (k + 3) C)
+    (hcnt : (bottomGates C).length ≤ concreteM)
+    (hbw : BottomWidth concreteT C) (hbc : BottomCount concreteTerms C)
+    (τ : Restriction n) (hstars : stars τ = 4000 * concreteCompactScale q) :
+    ∃ i : Fin ((stars τ).choose (20 * concreteCompactScale q)),
+      goodBadWork (stars τ) (stars τ - 20 * concreteCompactScale q)
+        (2 ^ (stars τ - 20 * concreteCompactScale q))
+        (concreteBadCount (K := 20 * concreteCompactScale q)
+          (circuitBad (localizeLiveGates τ (paddedDualBottomGates C))
+            (20 * concreteCompactScale q) (10 * concreteCompactScale q)) i)
+        (10 * concreteCompactScale q - 1) ≤
+          2 ^ (stars τ - 8 * concreteCompactScale q) ∧
+      ∀ σ ∈ selectedLocalBucket (stars τ) (20 * concreteCompactScale q) i,
+        σ ∉ normalizedLocalCircuitBad τ (paddedDualBottomGates C)
+          (20 * concreteCompactScale q) (10 * concreteCompactScale q) →
+        let ρ := liftLiveRestriction τ σ
+        EquivOn ρ C (collapseRound (20 * concreteCompactScale q) ρ C) ∧
+          AltO (k + 2) (collapseRound (20 * concreteCompactScale q) ρ C) ∧
+          BottomWidth (10 * concreteCompactScale q)
+            (collapseRound (20 * concreteCompactScale q) ρ C) := by
+  let gates := localizeLiveGatesNodup τ (paddedDualBottomGates C)
+  obtain ⟨i, hwork⟩ := concreteCompact_selectedBucket_activeGap_atSize
+    (stars τ) q hq hstars gates
+    (localizeLiveGatesNodup_nodup τ (paddedDualBottomGates C))
+    (localizeLiveGatesNodup_width_le τ (paddedDualBottomGates C)
+      (paddedDualBottomGates_width C hbw))
+    (localizeLiveGatesNodup_count_le τ (paddedDualBottomGates C)
+      (paddedDualBottomGates_count C hbc))
+  refine ⟨i, ?_, ?_⟩
+  · change goodBadWork (stars τ) (stars τ - 20 * concreteCompactScale q)
+      (2 ^ (stars τ - 20 * concreteCompactScale q))
+      (concreteBadCount (K := 20 * concreteCompactScale q)
+        (normalizedLocalCircuitBad τ (paddedDualBottomGates C)
+          (20 * concreteCompactScale q) (10 * concreteCompactScale q)) i)
+      (10 * concreteCompactScale q - 1) ≤
+        2 ^ (stars τ - 8 * concreteCompactScale q) at hwork
+    rw [normalizedLocalCircuitBad_eq] at hwork
+    exact hwork
+  · intro σ hσ hgood
+    dsimp
+    have hσstars : stars σ = 20 * concreteCompactScale q :=
+      mem_selectedLocalBucket_stars hσ
+    have hamb := normalizedLocal_good_lift_not_bad τ (paddedDualBottomGates C) σ hgood
+    apply padded_good_collapseRound C hAlt hcnt
+    · simpa [stars_liftLiveRestriction] using hσstars
+    · exact hamb
 
 /-- Exact contraction factor for recursively reusing a deterministic bucket: a parent at
 scale `concreteScale * (concreteCoverB * r)` leaves exactly `concreteScale * r` live variables. -/
@@ -2532,7 +2638,11 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedLocal_good_semanticCollapse
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.canonicalDT_eraseDups
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedLocalCircuitBad_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedLocal_good_lift_not_bad
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_selectedBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_padded_selectedBucket_round
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
