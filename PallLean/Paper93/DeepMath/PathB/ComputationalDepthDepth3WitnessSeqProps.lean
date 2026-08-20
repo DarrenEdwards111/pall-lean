@@ -223,6 +223,27 @@ theorem deepestWitSeq_termIndices_pairwise (cs : List (Clause n)) (hnd : cs.Nodu
               simp only [hsat, Bool.false_eq_true, if_false, hT, hh, if_neg hcmp]
               exact finish true
 
+/-- A nondecreasing natural-number stream is uniquely determined by its multiplicity table. -/
+theorem pairwise_le_eq_of_count_eq {a b : List ℕ}
+    (ha : List.Pairwise (· ≤ ·) a) (hb : List.Pairwise (· ≤ ·) b)
+    (hc : ∀ i, a.count i = b.count i) : a = b := by
+  have hp : a.Perm b := List.perm_iff_count.mpr hc
+  exact hp.eq_of_pairwise' ha hb
+
+/-- Consequently, two genuine deepest witnesses for the same duplicate-free DNF have identical
+term-index streams as soon as their per-term run counts agree.  This is the decoder uniqueness
+fact used by the compact multiplicity label. -/
+theorem deepestWitSeq_termIndices_eq_of_count_eq (cs : List (Clause n)) (hnd : cs.Nodup)
+    (F : ℕ) (ρ σ : Restriction n)
+    (hc : ∀ i,
+      ((deepestWitSeq cs F ρ).map Prod.snd).count i =
+        ((deepestWitSeq cs F σ).map Prod.snd).count i) :
+    (deepestWitSeq cs F ρ).map Prod.snd =
+      (deepestWitSeq cs F σ).map Prod.snd :=
+  pairwise_le_eq_of_count_eq
+    (deepestWitSeq_termIndices_pairwise cs hnd F ρ)
+    (deepestWitSeq_termIndices_pairwise cs hnd F σ) hc
+
 end Depth3
 
 end PallLean.Paper93.DeepMath.PathB
