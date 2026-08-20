@@ -1145,6 +1145,35 @@ noncomputable def selectedChargedNode {n G K threshold : ℕ} (τ : Restriction 
     (selectedBadChildren_subset (threshold := threshold) τ gates i)
     (fun ρ hρ => liftedSelectedBucket_extends τ i hρ) children
 
+/-- The concrete one-round cover obtained by terminating every good child with the displayed
+shallow-solver cost and brute-forcing every genuine bad child. -/
+noncomputable def selectedChargedLeafNode {n G K : ℕ} (threshold : ℕ) (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K))
+    (residualDepth : ℕ) : ChargedCover n :=
+  selectedChargedNode (threshold := threshold) τ gates i (2 ^ K)
+    (fun ρ => ChargedCover.leaf ρ.1 (2 ^ residualDepth))
+
+/-- Its recursive tree work is exactly the numerical `goodBadWork` charged by the switching
+certificate. -/
+theorem selectedChargedLeafNode_work_eq {n G K : ℕ} (threshold : ℕ) (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (i : Fin ((stars τ).choose K))
+    (residualDepth : ℕ) (hK : K ≤ stars τ) :
+    (selectedChargedLeafNode threshold τ gates i residualDepth).work =
+      goodBadWork (stars τ) (stars τ - K)
+        (liftedSelectedBucket τ K i \
+          selectedBadChildren (threshold := threshold) τ gates i).card
+        (concreteBadCount (K := K)
+          (circuitBad (localizeLiveGates τ gates) K threshold) i)
+        residualDepth := by
+  classical
+  simp only [selectedChargedLeafNode, selectedChargedNode, ChargedCover.work,
+    ChargedCover.root, goodBadWork]
+  rw [card_selectedBadChildren]
+  have hexp : stars τ - (stars τ - K) = K := by omega
+  rw [hexp]
+  simp [Nat.mul_comm]
+  omega
+
 theorem card_liftedSelectedBucket_le {n K : ℕ} (τ : Restriction n)
     (i : Fin ((stars τ).choose K)) :
     (liftedSelectedBucket τ K i).card ≤ 2 ^ (stars τ - K) := by
@@ -1547,6 +1576,66 @@ theorem concreteCompact_padded_selectedBucket_round {n k : ℕ} (q : ℕ) (hq : 
     apply padded_good_collapseRound C hAlt hcnt
     · simpa [stars_liftLiveRestriction] using hσstars
     · exact hamb
+
+set_option maxRecDepth 10000 in
+/-- The proportional round is realized by an actual exhaustive `ChargedCover` node.  Its good
+children are explicit shallow-cost leaves and its bad children are exactly the ambient canonical
+bad frontier; the real tree work inherits the compact `8r` gap. -/
+theorem exists_concreteCompact_padded_chargedNode {n k : ℕ} (q : ℕ) (hq : 0 < q)
+    (C : Layered n) (hAlt : AltO (k + 3) C)
+    (hcnt : (bottomGates C).length ≤ concreteM)
+    (hbw : BottomWidth concreteT C) (hbc : BottomCount concreteTerms C)
+    (τ : Restriction n) (hstars : stars τ = 4000 * concreteCompactScale q) :
+    ∃ (i : Fin ((stars τ).choose (20 * concreteCompactScale q)))
+        (cover : ChargedCover n),
+      cover.root = τ ∧
+      cover.work ≤ 2 ^ (stars τ - 8 * concreteCompactScale q) ∧
+      (∀ σ ∈ selectedLocalBucket (stars τ) (20 * concreteCompactScale q) i,
+        σ ∉ normalizedLocalCircuitBad τ (paddedDualBottomGates C)
+          (20 * concreteCompactScale q) (10 * concreteCompactScale q) →
+        let ρ := liftLiveRestriction τ σ
+        EquivOn ρ C (collapseRound (20 * concreteCompactScale q) ρ C) ∧
+          AltO (k + 2) (collapseRound (20 * concreteCompactScale q) ρ C) ∧
+          BottomWidth (10 * concreteCompactScale q)
+            (collapseRound (20 * concreteCompactScale q) ρ C)) := by
+  obtain ⟨i, hwork, hgood⟩ := concreteCompact_padded_selectedBucket_round
+    q hq C hAlt hcnt hbw hbc τ hstars
+  let cover := selectedChargedLeafNode (10 * concreteCompactScale q)
+    τ (paddedDualBottomGates C) i
+    (10 * concreteCompactScale q - 1)
+  refine ⟨i, cover, rfl, ?_, hgood⟩
+  rw [show cover.work = goodBadWork (stars τ)
+      (stars τ - 20 * concreteCompactScale q)
+      (liftedSelectedBucket τ (20 * concreteCompactScale q) i \
+        selectedBadChildren (threshold := 10 * concreteCompactScale q)
+          τ (paddedDualBottomGates C) i).card
+      (concreteBadCount (K := 20 * concreteCompactScale q)
+        (circuitBad (localizeLiveGates τ (paddedDualBottomGates C))
+          (20 * concreteCompactScale q) (10 * concreteCompactScale q)) i)
+      (10 * concreteCompactScale q - 1) by
+    apply selectedChargedLeafNode_work_eq
+    rw [hstars]
+    omega]
+  apply le_trans ?_ hwork
+  unfold goodBadWork
+  apply Nat.add_le_add
+  · exact Nat.mul_le_mul_right _
+      (card_selectedGoodChildren_le τ (paddedDualBottomGates C) i)
+  · exact le_rfl
+
+/-- The currently certified child-width bound is not itself reusable by the width-30 compact
+theorem.  This records the remaining depth-composition gap explicitly: another normalization or a
+width-parameterized compact budget is required before the proportional round can be iterated. -/
+theorem concreteCompact_childThreshold_exceeds_width30 (q : ℕ) (hq : 0 < q) :
+    concreteT < 10 * concreteCompactScale q := by
+  have hG : 4 ≤ concreteG := by norm_num [concreteG, concreteM]
+  have hGq : 4 ≤ concreteG * q := hG.trans (Nat.le_mul_of_pos_right _ hq)
+  have hp : 0 < 2 ^ (2 * concreteTerms + 6) := pow_pos (by omega) _
+  have hscale : concreteG * q ≤ concreteCompactScale q := by
+    simpa [concreteCompactScale, compactCircuitScale] using
+      Nat.le_mul_of_pos_left (concreteG * q) hp
+  norm_num [concreteT]
+  omega
 
 /-- Exact contraction factor for recursively reusing a deterministic bucket: a parent at
 scale `concreteScale * (concreteCoverB * r)` leaves exactly `concreteScale * r` live variables. -/
@@ -2643,6 +2732,9 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedLocal_good_lift_not_bad
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_padded_selectedBucket_round
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedChargedLeafNode_work_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteCompact_padded_chargedNode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_childThreshold_exceeds_width30
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
