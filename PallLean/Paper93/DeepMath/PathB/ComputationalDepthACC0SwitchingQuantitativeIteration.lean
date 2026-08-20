@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingCircuitLinearGap
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingCompactPolynomialBudget
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3IteratedReduction
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3HsurvRoundREL2
@@ -22,6 +23,7 @@ open PallLean.Paper93.DeepMath.PathB.Depth3
 open PallLean.Paper93.DeepMath.PathB.Depth3.Layered
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
+open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCompactPolynomialBudget
 open PallLean.Paper93.DeepMath.PathB.ACC0GoodBadSwitchingCashout
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellBuckets
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
@@ -783,6 +785,43 @@ theorem localizeLiveGates_eval {n G : ℕ} (τ : Restriction n)
   intro g
   exact localizeLiveDnf_eval τ x (gates g)
 
+/-- Canonical duplicate-free localization.  Distinct ambient clauses can become equal after fixed
+literals are removed, so normalization must occur after localization. -/
+noncomputable def localizeLiveGatesNodup {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) : Fin G → List (Clause (stars τ)) :=
+  fun g => (localizeLiveGates τ gates g).dedup
+
+theorem localizeLiveGatesNodup_nodup {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) :
+    ∀ g, (localizeLiveGatesNodup τ gates g).Nodup := by
+  intro g
+  exact List.nodup_dedup _
+
+theorem localizeLiveGatesNodup_width_le {n G w : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w) :
+    ∀ g, ∀ T ∈ localizeLiveGatesNodup τ gates g, T.lits.length ≤ w := by
+  intro g T hT
+  apply localizeLiveGates_width_le τ gates hw g T
+  exact List.mem_dedup.mp (by simpa [localizeLiveGatesNodup] using hT)
+
+theorem localizeLiveGatesNodup_count_le {n G m : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n))
+    (hm : ∀ g, (gates g).length ≤ m) :
+    ∀ g, (localizeLiveGatesNodup τ gates g).length ≤ m := by
+  intro g
+  exact le_trans (List.Sublist.length_le (List.dedup_sublist (localizeLiveGates τ gates g)))
+    (localizeLiveGates_count_le τ gates hm g)
+
+theorem localizeLiveGatesNodup_eval {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (x : Fin (stars τ) → Bool) :
+    ∀ g, DTree.dnfValue (localizeLiveGatesNodup τ gates g) x =
+      DTree.dnfValue (gates g) (liftLiveAssignment τ x) := by
+  intro g
+  rw [← localizeLiveGates_eval τ gates x g]
+  apply Bool.eq_iff_iff.mpr
+  simp only [DTree.dnfValue, localizeLiveGatesNodup, List.any_eq_true, List.mem_dedup]
+
 theorem mem_circuitBad_localize_iff {n G : ℕ} (τ : Restriction n)
     (gates : Fin G → List (Clause n)) (K threshold : ℕ)
     (σ : Restriction (stars τ)) :
@@ -1140,6 +1179,33 @@ def concreteB : ℕ := 8 * concreteQ
 def concreteSched (d r i : ℕ) : ℕ := r * concreteB ^ (d - i)
 def concreteG : ℕ := 2 * concreteM
 def concreteScale : ℕ := 1000 * (concreteG * (concreteT * concreteTerms))
+
+/-- The explicit live scale used by the proportional compact switching certificate. -/
+def concreteCompactScale (q : ℕ) : ℕ :=
+  compactCircuitScale concreteTerms concreteG q
+
+/-- Width-30 proportional certificate specialized to the actual concrete gate and term bounds. -/
+theorem concreteCompact_selectedBucket_activeGap (q : ℕ) (hq : 0 < q)
+    (gates : Fin concreteG → List (Clause (4000 * concreteCompactScale q)))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hwidth : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ concreteT)
+    (hterms : ∀ g, (gates g).length ≤ concreteTerms) :
+    ∃ i : Fin ((4000 * concreteCompactScale q).choose (20 * concreteCompactScale q)),
+      goodBadWork (4000 * concreteCompactScale q)
+        (4000 * concreteCompactScale q - 20 * concreteCompactScale q)
+        (2 ^ (4000 * concreteCompactScale q - 20 * concreteCompactScale q))
+        (concreteBadCount (K := 20 * concreteCompactScale q)
+          (circuitBad gates (20 * concreteCompactScale q) (10 * concreteCompactScale q)) i)
+        (10 * concreteCompactScale q - 1) ≤
+          2 ^ (4000 * concreteCompactScale q - 8 * concreteCompactScale q) := by
+  apply width30_compact_selectedBucket_activeGap concreteTerms concreteG q
+    (concreteCompactScale q)
+  · norm_num [concreteG, concreteM]
+  · exact hq
+  · rfl
+  · exact hnd
+  · simpa [concreteT] using hwidth
+  · exact hterms
 
 /-- Fixed-size enumeration of the real dual bottom gates, padded by empty DNFs. -/
 def paddedDualBottomGates {n : ℕ} (C : Layered n) :
@@ -2310,6 +2376,9 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
