@@ -822,6 +822,35 @@ theorem localizeLiveGatesNodup_eval {n G : ℕ} (τ : Restriction n)
   apply Bool.eq_iff_iff.mpr
   simp only [DTree.dnfValue, localizeLiveGatesNodup, List.any_eq_true, List.mem_dedup]
 
+/-- The canonical compact bad event on the current live-coordinate cube. -/
+noncomputable def normalizedLocalCircuitBad {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ) :
+    Finset (Restriction (stars τ)) :=
+  circuitBad (localizeLiveGatesNodup τ gates) K threshold
+
+/-- Outside the normalized local bad event, every produced shallow CNF computes the corresponding
+original ambient gate throughout the selected local subcube. -/
+theorem normalizedLocal_good_semanticCollapse {n G : ℕ} (τ : Restriction n)
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ)
+    (σ : Restriction (stars τ)) (hstars : stars σ = K)
+    (hgood : σ ∉ normalizedLocalCircuitBad τ gates K threshold) :
+    ∀ g,
+      (∀ x, DTree.agreeRestriction σ x →
+        cnfValue (dtreeToCNF
+          (toDTree (canonicalDT (localizeLiveGatesNodup τ gates g) K σ))) x =
+          DTree.dnfValue (gates g) (liftLiveAssignment τ x)) ∧
+      (∀ C ∈ dtreeToCNF
+          (toDTree (canonicalDT (localizeLiveGatesNodup τ gates g) K σ)),
+        C.lits.length < threshold) := by
+  intro g
+  have hcollapse := circuit_good_semanticCollapse
+    (localizeLiveGatesNodup τ gates) K threshold σ hstars hgood g
+  constructor
+  · intro x hx
+    rw [← localizeLiveGatesNodup_eval τ gates x g]
+    exact hcollapse.1 x hx
+  · exact hcollapse.2
+
 theorem mem_circuitBad_localize_iff {n G : ℕ} (τ : Restriction n)
     (gates : Fin G → List (Clause n)) (K threshold : ℕ)
     (σ : Restriction (stars τ)) :
@@ -2378,6 +2407,7 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedLocal_good_semanticCollapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
