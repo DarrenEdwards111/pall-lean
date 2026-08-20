@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingCommonTree
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingDnfCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
 
 /-!
 # Finite labels for common multi-switching witnesses
@@ -14,6 +15,98 @@ bad-path packing is the next combinatorial obligation.
 namespace PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
+open PallLean.Paper93.DeepMath.PathB.Depth3
+
+/-- Assignment-followed canonical witness: literal position and active-term index at every query.
+Unlike `deepestWitSeq`, this follows the exact branch selected by `x`. -/
+def runWitSeq {n : ℕ} (cs : List (Clause n)) :
+    ℕ → Restriction n → (Fin n → Bool) → List (ℕ × ℕ)
+  | 0, _, _ => []
+  | fuel + 1, σ, x =>
+      if anyTermSat cs σ then []
+      else match activeTerm cs σ with
+        | none => []
+        | some T => match (freeLits σ T).head? with
+          | none => []
+          | some ℓ => (freeLitPos σ T, activeTermIdx cs σ) ::
+              if x (litVar ℓ)
+              then runWitSeq cs fuel (fixVar σ (litVar ℓ) true) x
+              else runWitSeq cs fuel (fixVar σ (litVar ℓ) false) x
+
+/-- The assignment-followed witness has exactly one entry per raw canonical query. -/
+theorem runWitSeq_length_eq_queryVars {n : ℕ} (cs : List (Clause n)) :
+    ∀ (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool),
+    (runWitSeq cs fuel σ x).length =
+      (CommonTree.queryVars (CommonTree.ofBool (canonicalDT cs fuel σ)) x).length := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro σ x
+      by_cases hsat : anyTermSat cs σ = true <;>
+        simp [runWitSeq, canonicalDT, hsat, CommonTree.ofBool, CommonTree.queryVars]
+  | succ fuel ih =>
+      intro σ x
+      by_cases hsat : anyTermSat cs σ = true
+      · simp [runWitSeq, canonicalDT, hsat, CommonTree.ofBool, CommonTree.queryVars]
+      · cases hT : activeTerm cs σ with
+        | none => simp [runWitSeq, canonicalDT, hsat, hT, CommonTree.ofBool,
+            CommonTree.queryVars]
+        | some T =>
+          cases hh : (freeLits σ T).head? with
+          | none => simp [runWitSeq, canonicalDT, hsat, hT, hh, CommonTree.ofBool,
+              CommonTree.queryVars]
+          | some ℓ =>
+            by_cases hx : x (litVar ℓ)
+            · simp [runWitSeq, canonicalDT, hsat, hT, hh, hx, CommonTree.ofBool,
+                CommonTree.queryVars, ih]
+            · simp [runWitSeq, canonicalDT, hsat, hT, hh, hx, CommonTree.ofBool,
+                CommonTree.queryVars, ih]
+
+/-- Decoding the assignment-followed term/position annotations recovers the exact queried-variable
+set of the corresponding canonical gate path. -/
+theorem witDecode_runWitSeq {n : ℕ} (cs : List (Clause n)) :
+    ∀ (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool),
+    witDecode cs (runWitSeq cs fuel σ x) =
+      (CommonTree.queryVars (CommonTree.ofBool (canonicalDT cs fuel σ)) x).toFinset := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro σ x
+      by_cases hsat : anyTermSat cs σ = true <;>
+        simp [runWitSeq, canonicalDT, hsat, witDecode, CommonTree.ofBool,
+          CommonTree.queryVars]
+  | succ fuel ih =>
+      intro σ x
+      by_cases hsat : anyTermSat cs σ = true
+      · simp [runWitSeq, canonicalDT, hsat, witDecode, CommonTree.ofBool,
+          CommonTree.queryVars]
+      · cases hT : activeTerm cs σ with
+        | none => simp [runWitSeq, canonicalDT, hsat, hT, witDecode, CommonTree.ofBool,
+            CommonTree.queryVars]
+        | some T =>
+          cases hh : (freeLits σ T).head? with
+          | none => simp [runWitSeq, canonicalDT, hsat, hT, hh, witDecode,
+              CommonTree.ofBool, CommonTree.queryVars]
+          | some ℓ =>
+            have hc : cs[activeTermIdx cs σ]? = some T := by
+              rw [List.getElem?_eq_getElem (activeTermIdx_lt hT), getElem_activeTermIdx hT]
+            have hp : T.lits[freeLitPos σ T]? = some ℓ := by
+              rw [List.getElem?_eq_getElem (freeLitPos_lt hh), getElem_freeLitPos hh]
+            by_cases hx : x (litVar ℓ)
+            · simp [runWitSeq, canonicalDT, hsat, hT, hh, hx, witDecode, hc, hp,
+                CommonTree.ofBool, CommonTree.queryVars, ih]
+            · simp [runWitSeq, canonicalDT, hsat, hT, hh, hx, witDecode, hc, hp,
+                CommonTree.ofBool, CommonTree.queryVars, ih]
+
+/-- Any coordinate on a raw canonical gate path is represented by a genuine active-term/literal
+position entry in that gate's assignment-followed witness. -/
+theorem mem_witDecode_runWitSeq_of_mem_queryVars {n : ℕ}
+    (cs : List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) {v : Fin n}
+    (hv : v ∈ CommonTree.queryVars (CommonTree.ofBool (canonicalDT cs fuel σ)) x) :
+    v ∈ witDecode cs (runWitSeq cs fuel σ x) := by
+  rw [witDecode_runWitSeq]
+  exact List.mem_toFinset.mpr hv
 
 /-- A fresh shared query together with the first raw canonical gate segment that contains it.
 `none` is retained in the total definition until origin existence is proved. -/
@@ -159,6 +252,9 @@ theorem commonBadPath_count {d G m : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.runWitSeq_length_eq_queryVars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.witDecode_runWitSeq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_witDecode_runWitSeq_of_mem_queryVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.annotatedFreshQueries_map_fst
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.annotatedFreshQueries_vars_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.firstGateOrigin_isSome_of_mem_readOnce
