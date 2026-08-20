@@ -62,6 +62,26 @@ theorem boundedTermBad_card_le_shellSum
   · intro ρ hρ
     exact (Finset.mem_filter.mp hρ).2
 
+/-- The compact witnessed tail.  Monotonicity of the genuine deepest term-index stream lets the
+term identities be stored by their multiplicities, replacing the depth-repeated factor
+`(2 * w * m) ^ t` by `w ^ t * (t + 1) ^ m`. -/
+theorem boundedTermBad_card_le_compactShellSum
+    {n w m : ℕ} [NeZero w]
+    (cs : List (Clause n)) (K threshold : ℕ) (hnd : cs.Nodup)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (hm : cs.length ≤ m) :
+    (boundedTermBad cs K threshold).card ≤
+      ∑ t ∈ Finset.Icc threshold K,
+        n.choose (K - t) * 2 ^ (n - (K - t)) * (w ^ t * (t + 1) ^ m) := by
+  rw [boundedTermBad_card_eq_shell_sum]
+  apply Finset.sum_le_sum
+  intro t ht
+  apply PallLean.Paper93.DeepMath.PathB.Depth3.canonicalDepth_shell_count_compact hnd hw hm
+  · intro ρ hρ
+    have hbad : ρ ∈ boundedTermBad cs K threshold := (Finset.mem_filter.mp hρ).1
+    exact (mem_boundedTermBad_iff cs K threshold ρ).mp hbad |>.1
+  · intro ρ hρ
+    exact (Finset.mem_filter.mp hρ).2
+
 /-- Outside the parameterized bad set, the canonical tree is genuinely shallower than `threshold`
 and its CNF conversion computes the same residual DNF on the whole restricted subcube. -/
 theorem boundedTerm_good_semanticCollapse
@@ -111,8 +131,39 @@ theorem boundedTerm_selectedBucket_activeGap
     (concreteBadCount (K := K) (boundedTermBad cs K threshold)) ?_ hwork
   simpa [hsum] using htail
 
+/-- Selected-bucket cash-out driven by the compact genuine max-depth shell bound. -/
+theorem boundedTerm_selectedBucket_compactGap
+    {n w m K threshold saving : ℕ} [NeZero w]
+    (cs : List (Clause n)) (hnd : cs.Nodup)
+    (hw : ∀ T ∈ cs, T.lits.length ≤ w) (hm : cs.length ≤ m)
+    (hKn : K ≤ n) (hsq : saving + 1 ≤ n - K) (hsN : saving + 1 ≤ n)
+    (hwork : (n - K) + (threshold - 1) ≤ n - saving - 1)
+    (hshellBudget :
+      (∑ t ∈ Finset.Icc threshold K,
+          n.choose (K - t) * 2 ^ (n - (K - t)) * (w ^ t * (t + 1) ^ m))
+          * 2 ^ (saving + 1)
+        ≤ n.choose K * 2 ^ (n - K)) :
+    ∃ i : Fin (n.choose K),
+      goodBadWork n (n - K) (2 ^ (n - K))
+        (concreteBadCount (K := K) (boundedTermBad cs K threshold) i) (threshold - 1)
+        ≤ 2 ^ (n - saving) := by
+  have hstars : ∀ ρ ∈ boundedTermBad cs K threshold, stars ρ = K := by
+    intro ρ hρ
+    exact (mem_boundedTermBad_iff cs K threshold ρ).mp hρ |>.1
+  have hsum := sum_concreteBadCount (Bad := boundedTermBad cs K threshold) hstars
+  have hcard := boundedTermBad_card_le_compactShellSum cs K threshold hnd hw hm
+  have htail : (boundedTermBad cs K threshold).card * 2 ^ (saving + 1)
+      ≤ n.choose K * 2 ^ (n - K) :=
+    le_trans (Nat.mul_le_mul_right _ hcard) hshellBudget
+  refine aggregateTail_to_selectedBucket_activeGap n (n.choose K) (n - K) saving
+    (threshold - 1) (Nat.choose_pos hKn) hsq (Nat.sub_le n K) hsN
+    (concreteBadCount (K := K) (boundedTermBad cs K threshold)) ?_ hwork
+  simpa [hsum] using htail
+
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily.boundedTermBad_card_le_shellSum
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily.boundedTermBad_card_le_compactShellSum
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily.boundedTerm_good_semanticCollapse
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily.boundedTerm_selectedBucket_activeGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily.boundedTerm_selectedBucket_compactGap

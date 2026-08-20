@@ -72,6 +72,27 @@ theorem circuitBad_card_le_shellSum {n G w m : ℕ} [NeZero w] [NeZero m]
     _ = G * (∑ t ∈ Finset.Icc threshold K,
           n.choose (K - t) * 2 ^ (n - (K - t)) * (2 * w * m) ^ t) := by simp
 
+/-- Union bound for the simultaneous bad event using compact monotone term-index labels. -/
+theorem circuitBad_card_le_compactShellSum {n G w m : ℕ} [NeZero w]
+    (gates : Fin G → List (Clause n)) (K threshold : ℕ)
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g, ∀ T ∈ gates g, T.lits.length ≤ w)
+    (hm : ∀ g, (gates g).length ≤ m) :
+    (circuitBad gates K threshold).card ≤
+      G * (∑ t ∈ Finset.Icc threshold K,
+        n.choose (K - t) * 2 ^ (n - (K - t)) * (w ^ t * (t + 1) ^ m)) := by
+  classical
+  calc
+    (circuitBad gates K threshold).card
+        ≤ ∑ g : Fin G, (boundedTermBad (gates g) K threshold).card :=
+          Finset.card_biUnion_le
+    _ ≤ ∑ _g : Fin G, (∑ t ∈ Finset.Icc threshold K,
+          n.choose (K - t) * 2 ^ (n - (K - t)) * (w ^ t * (t + 1) ^ m)) :=
+      Finset.sum_le_sum fun g _ =>
+        boundedTermBad_card_le_compactShellSum (gates g) K threshold (hnd g) (hw g) (hm g)
+    _ = G * (∑ t ∈ Finset.Icc threshold K,
+          n.choose (K - t) * 2 ^ (n - (K - t)) * (w ^ t * (t + 1) ^ m)) := by simp
+
 /-- The gate union factor is absorbed by scaling the ambient density by `G`. -/
 theorem circuit_shellBudget (G m r : ℕ) (hG : 0 < G) (hm : 0 < m) (hr : 0 < r) :
     G * (∑ t ∈ Finset.Icc (10 * r) (20 * r),
@@ -345,6 +366,7 @@ theorem wideCircuitLinearGap_selectedBucket_activeGap
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_good_semanticCollapse
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuitBad_card_le_compactShellSum
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuit_shellBudget
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.circuitLinearGap_selectedBucket_activeGap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingCircuitLinearGap.layeredCircuitLinearGap_oneRound

@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingDepthCorrectedBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessDischarge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3StarShell
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CompactWitnessLabel
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthACC0SwitchingShellBuckets
 
 /-!
