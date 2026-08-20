@@ -1985,7 +1985,7 @@ theorem exists_concreteRetryCover {n : ℕ} (j r : ℕ) [NeZero r]
 
 /-- End-to-end quantitative retry cash-out.  Under the displayed bound for each good child's
 collapsed-layer solver, the actual exhaustive retry tree saves `29j` exponent bits. -/
-theorem exists_concreteRetryCover_linearGap {n : ℕ} (j r : ℕ) [NeZero r]
+theorem exists_concreteRetryCover_retryHeightGap {n : ℕ} (j r : ℕ) [NeZero r]
     (τ : Restriction n)
     (hstars : stars τ = concreteScale * (r * concreteCoverB ^ j))
     (gates : Fin concreteG → List (Clause n))
@@ -2003,6 +2003,50 @@ theorem exists_concreteRetryCover_linearGap {n : ℕ} (j r : ℕ) [NeZero r]
     exists_concreteRetryCover j r τ hstars gates hwidth hterms goodCost
   refine ⟨cover, hroot, hheight, hwork.trans ?_⟩
   simpa [hstars] using concreteRetryWorstWork_le j r goodCost hgood
+
+private theorem succ_sq_le_four_pow (k : ℕ) : (k + 1) ^ 2 ≤ 4 ^ k := by
+  induction k with
+  | zero => norm_num
+  | succ k ih =>
+      calc
+        (k + 1 + 1) ^ 2 ≤ 4 * (k + 1) ^ 2 := by
+          simp only [pow_two]
+          nlinarith [Nat.zero_le k]
+        _ ≤ 4 * 4 ^ k := Nat.mul_le_mul_left 4 ih
+        _ = 4 ^ (k + 1) := by rw [pow_succ]; ring
+
+/-- **Asymptotic limitation of the retry route.**  Its certified saving `29j` is at most the square
+root of the starting live dimension.  Thus increasing retry height through the geometric survivor
+schedule cannot provide an `Ω(N)` exponent gap; the preceding theorem is linear in retry height,
+not in ambient dimension. -/
+theorem concreteRetrySaving_sq_le_ambient (j r : ℕ) [NeZero r] :
+    (j * (concreteT - 1)) ^ 2 ≤
+      concreteScale * (r * concreteCoverB ^ j) := by
+  cases j with
+  | zero => simp
+  | succ k =>
+      have hsq := succ_sq_le_four_pow k
+      have hB4 : 4 ≤ concreteCoverB := by
+        exact Nat.succ_le_iff.mpr concreteCoverB_gt_three
+      have hpow : 4 ^ k ≤ concreteCoverB ^ k := Nat.pow_le_pow_left hB4 k
+      have hBlarge : 29 ^ 2 ≤ concreteCoverB := by
+        norm_num [concreteCoverB, concreteScale, concreteG, concreteM, concreteT,
+          concreteTerms]
+      have hcore : ((k + 1) * 29) ^ 2 ≤ concreteCoverB ^ (k + 1) := by
+        rw [pow_succ]
+        calc
+          ((k + 1) * 29) ^ 2 = (k + 1) ^ 2 * 29 ^ 2 := by ring
+          _ ≤ 4 ^ k * 29 ^ 2 := Nat.mul_le_mul_right _ hsq
+          _ ≤ concreteCoverB ^ k * concreteCoverB :=
+            Nat.mul_le_mul hpow hBlarge
+      norm_num [concreteT]
+      exact le_trans hcore (by
+        have hsr : 1 ≤ concreteScale * r :=
+          Nat.one_le_iff_ne_zero.mpr (mul_ne_zero
+            (by norm_num [concreteScale, concreteG, concreteM, concreteT, concreteTerms])
+            (NeZero.ne r))
+        simpa [Nat.mul_assoc] using Nat.le_mul_of_pos_left
+          (concreteCoverB ^ (k + 1)) hsr)
 
 /-- The stronger concrete certificate keeps the exceptional-count half-budget and the full work
 bound attached to the same selected bucket. -/
@@ -2255,7 +2299,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryCertificate_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetryWorstWork_le
-#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover_linearGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteRetryCover_retryHeightGap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteRetrySaving_sq_le_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_atSize
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundGap_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube
