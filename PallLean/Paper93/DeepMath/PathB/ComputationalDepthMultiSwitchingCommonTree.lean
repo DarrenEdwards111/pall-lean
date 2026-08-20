@@ -15,6 +15,9 @@ Boolean decision trees into one tree whose reached leaf is exactly the list of a
 
 namespace PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
+open PallLean.Paper93.DeepMath.PathB.Depth3
+open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
+
 /-- A query tree with data of type `α` at each leaf. -/
 inductive CommonTree (n : ℕ) (α : Type) where
   | leaf : α → CommonTree n α
@@ -37,6 +40,117 @@ def trace {n : ℕ} {α : Type} : CommonTree n α → (Fin n → Bool) → List 
   | .leaf _, _ => []
   | .query i lo hi, x =>
       if x i then true :: trace hi x else false :: trace lo x
+
+/-- Queried coordinates on the branch followed by an assignment. -/
+def queryVars {n : ℕ} {α : Type} : CommonTree n α → (Fin n → Bool) → List (Fin n)
+  | .leaf _, _ => []
+  | .query i lo hi, x =>
+      i :: if x i then queryVars hi x else queryVars lo x
+
+/-- Pathwise read-once normalization.  A repeated query already fixed by the current branch is
+resolved immediately; a fresh query is retained and recorded in both recursive branch states. -/
+def readOnce {n : ℕ} {α : Type} :
+    Restriction n → CommonTree n α → CommonTree n α
+  | _, .leaf a => .leaf a
+  | σ, .query i lo hi =>
+      match σ i with
+      | some true => readOnce σ hi
+      | some false => readOnce σ lo
+      | none => .query i (readOnce (fixVar σ i false) lo)
+          (readOnce (fixVar σ i true) hi)
+
+/-- Read-once normalization preserves execution on every assignment extending the accumulated
+branch restriction. -/
+theorem run_readOnce {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
+    (x : Fin n → Bool) (hext : Rung4Restriction.Extends σ x) :
+    run (readOnce σ t) x = run t x := by
+  induction t generalizing σ with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | none =>
+          by_cases hx : x i
+          · simp only [readOnce, hσ, run, hx, if_true]
+            exact ihhi _ (extends_fixVar hext hx)
+          · simp only [readOnce, hσ, run, hx]
+            exact ihlo _ (extends_fixVar hext (Bool.eq_false_of_not_eq_true hx))
+      | some b =>
+          have hxb : x i = b := hext i b hσ
+          cases b <;> simp [readOnce, hσ, run, hxb, ihlo, ihhi, hext]
+
+/-- A coordinate already fixed in the accumulated branch state never appears later on the
+normalized execution path. -/
+theorem not_mem_queryVars_readOnce_of_fixed {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) {j : Fin n} (hj : σ j ≠ none) :
+    j ∉ queryVars (readOnce σ t) x := by
+  induction t generalizing σ with
+  | leaf a => simp [readOnce, queryVars]
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | some b =>
+          cases b <;> simp only [readOnce, hσ]
+          · exact ihlo σ hext hj
+          · exact ihhi σ hext hj
+      | none =>
+          have hji : j ≠ i := by
+            intro h; subst h; exact hj hσ
+          by_cases hx : x i
+          · simp only [readOnce, hσ, queryVars, hx, if_true, List.mem_cons]
+            refine fun h => h.elim hji ?_
+            have hjfix : fixVar σ i true j ≠ none := by
+              rw [fixVar, Function.update_of_ne hji]
+              exact hj
+            exact ihhi (fixVar σ i true) (extends_fixVar hext hx) hjfix
+          · simp only [readOnce, hσ, queryVars, hx, Bool.false_eq_true,
+              List.mem_cons]
+            refine fun h => h.elim hji ?_
+            have hjfix : fixVar σ i false j ≠ none := by
+              rw [fixVar, Function.update_of_ne hji]
+              exact hj
+            exact ihlo (fixVar σ i false)
+              (extends_fixVar hext (Bool.eq_false_of_not_eq_true hx)) hjfix
+
+/-- Every normalized execution path queries each coordinate at most once. -/
+theorem queryVars_readOnce_nodup {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    (queryVars (readOnce σ t) x).Nodup := by
+  induction t generalizing σ with
+  | leaf a => simp [readOnce, queryVars]
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | some b =>
+          cases b <;> simp only [readOnce, hσ]
+          · exact ihlo σ hext
+          · exact ihhi σ hext
+      | none =>
+          by_cases hx : x i
+          · simp only [readOnce, hσ, queryVars, hx, if_true, List.nodup_cons]
+            exact ⟨not_mem_queryVars_readOnce_of_fixed (fixVar σ i true) hi x
+              (extends_fixVar hext hx) (by simp [fixVar]),
+              ihhi _ (extends_fixVar hext hx)⟩
+          · simp only [readOnce, hσ, queryVars, hx, List.nodup_cons]
+            have hext' := extends_fixVar hext (Bool.eq_false_of_not_eq_true hx)
+            exact ⟨not_mem_queryVars_readOnce_of_fixed (fixVar σ i false) lo x hext'
+              (by simp [fixVar]), ihlo _ hext'⟩
+
+/-- Bit transcripts and queried-coordinate transcripts have identical lengths. -/
+theorem trace_length_eq_queryVars_length {n : ℕ} {α : Type}
+    (t : CommonTree n α) (x : Fin n → Bool) :
+    (trace t x).length = (queryVars t x).length := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases hx : x i <;> simp [trace, queryVars, hx, ihlo, ihhi]
+
+/-- A normalized common path has at most one query per ambient coordinate. -/
+theorem trace_readOnce_length_le_ambient {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    (trace (readOnce σ t) x).length ≤ n := by
+  rw [trace_length_eq_queryVars_length]
+  simpa using (queryVars_readOnce_nodup σ t x hext).length_le_card
 
 /-- Replay a complete branch transcript, rejecting truncated or overlong transcripts. -/
 def replay {n : ℕ} {α : Type} : CommonTree n α → List Bool → Option α
@@ -247,6 +361,12 @@ def canonicalFamilyTree {n G : ℕ} (gates : Fin G → List (Clause n))
     (fuel : ℕ) (σ : Restriction n) : CommonTree n (Fin G → Bool) :=
   CommonTree.commonRefineFin fun g => canonicalDT (gates g) fuel σ
 
+/-- Read-once normalization of the genuine canonical family tree, initialized with its base
+restriction. -/
+def readOnceCanonicalFamilyTree {n G : ℕ} (gates : Fin G → List (Clause n))
+    (fuel : ℕ) (σ : Restriction n) : CommonTree n (Fin G → Bool) :=
+  CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)
+
 /-- One common-tree execution simultaneously returns every canonical gate value. -/
 theorem run_canonicalFamilyTree {n G : ℕ} (gates : Fin G → List (Clause n))
     (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) (g : Fin G) :
@@ -263,6 +383,23 @@ theorem run_canonicalFamilyTree_eq_dnf {n G : ℕ}
     CommonTree.run (canonicalFamilyTree gates fuel σ) x g = dnfEval (gates g) x := by
   rw [run_canonicalFamilyTree]
   exact canonicalDT_eval fuel σ x hstars hext
+
+/-- The normalized family tree still returns every genuine DNF value. -/
+theorem run_readOnceCanonicalFamilyTree_eq_dnf {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (hstars : stars σ ≤ fuel) (hext : Rung4Restriction.Extends σ x)
+    (g : Fin G) :
+    CommonTree.run (readOnceCanonicalFamilyTree gates fuel σ) x g =
+      dnfEval (gates g) x := by
+  rw [readOnceCanonicalFamilyTree, CommonTree.run_readOnce σ _ x hext]
+  exact run_canonicalFamilyTree_eq_dnf gates fuel σ x hstars hext g
+
+/-- Every genuine normalized family path is read-once. -/
+theorem queryVars_readOnceCanonicalFamilyTree_nodup {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (hext : Rung4Restriction.Extends σ x) :
+    (CommonTree.queryVars (readOnceCanonicalFamilyTree gates fuel σ) x).Nodup := by
+  exact CommonTree.queryVars_readOnce_nodup σ _ x hext
 
 /-- A single common-path label determines all canonical outputs in the family simultaneously. -/
 theorem canonicalFamily_values_eq_of_pathLabel_eq {n G : ℕ}
@@ -293,6 +430,9 @@ theorem canonicalFamily_values_eq_of_finitePathLabel_eq {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_bind
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefine
@@ -304,5 +444,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_eq_of_pathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_eq_of_finitePathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.run_canonicalFamilyTree_eq_dnf
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.run_readOnceCanonicalFamilyTree_eq_dnf
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.queryVars_readOnceCanonicalFamilyTree_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_values_eq_of_pathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_values_eq_of_finitePathLabel_eq
