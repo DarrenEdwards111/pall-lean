@@ -148,6 +148,16 @@ theorem run_bind {n : ℕ} {α β : Type} (t : CommonTree n α)
       simp only [bind, run]
       by_cases h : x i <;> simp [h, ihlo, ihhi]
 
+/-- Refinement concatenates the transcript of the outer tree with that of the reached
+replacement tree.  This is the canonical source of common-family segment boundaries. -/
+theorem trace_bind {n : ℕ} {α β : Type} (t : CommonTree n α)
+    (f : α → CommonTree n β) (x : Fin n → Bool) :
+    trace (bind t f) x = trace t x ++ trace (f (run t x)) x := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases h : x i <;> simp [bind, trace, run, h, ihlo, ihhi]
+
 /-- Regard an ordinary Boolean decision tree as a common tree with Boolean leaves. -/
 def ofBool {n : ℕ} : BoolDecisionTree n → CommonTree n Bool
   | .leaf b => .leaf b
@@ -176,6 +186,29 @@ theorem run_commonRefine {n : ℕ} (ts : List (BoolDecisionTree n)) (x : Fin n �
       simp only [commonRefine, run_bind, run_ofBool, run_leaf, List.map_cons]
       rw [ih]
 
+/-- The common refinement transcript is canonically partitioned into the ordered transcript
+segments of its member trees. -/
+theorem trace_commonRefine {n : ℕ} (ts : List (BoolDecisionTree n))
+    (x : Fin n → Bool) :
+    trace (commonRefine ts) x =
+      (ts.map fun t => trace (ofBool t) x).flatten := by
+  induction ts with
+  | nil => rfl
+  | cons t ts ih =>
+      simp only [commonRefine, trace_bind, run_ofBool,
+        List.map_cons, List.flatten_cons, trace]
+      rw [ih]
+      simp
+
+/-- Consequently, common-path length is the sum of its real per-tree segment lengths. -/
+theorem trace_commonRefine_length {n : ℕ} (ts : List (BoolDecisionTree n))
+    (x : Fin n → Bool) :
+    (trace (commonRefine ts) x).length =
+      (ts.map fun t => (trace (ofBool t) x).length).sum := by
+  rw [trace_commonRefine, List.length_flatten]
+  rw [List.map_map]
+  simp only [Function.comp_def]
+
 /-- Indexed-family form used by padded bottom-gate enumerations. -/
 def commonRefineFin {n G : ℕ} (trees : Fin G → BoolDecisionTree n) :
     CommonTree n (Fin G → Bool) :=
@@ -188,6 +221,21 @@ theorem run_commonRefineFin {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
   simp only [commonRefineFin, run_bind, run_leaf, run_commonRefine]
   rw [List.getD_eq_getElem _ _ (by simp)]
   simp
+
+/-- The indexed common refinement has the same path as its underlying ordered list refinement;
+the final payload-conversion leaf introduces no queries. -/
+theorem trace_commonRefineFin {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
+    (x : Fin n → Bool) :
+    trace (commonRefineFin trees) x = trace (commonRefine (List.ofFn trees)) x := by
+  rw [commonRefineFin, trace_bind]
+  simp only [trace, List.append_nil]
+
+/-- Exact indexed-family segment-length formula. -/
+theorem trace_commonRefineFin_length {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
+    (x : Fin n → Bool) :
+    (trace (commonRefineFin trees) x).length =
+      ((List.ofFn trees).map fun t => (trace (ofBool t) x).length).sum := by
+  rw [trace_commonRefineFin, trace_commonRefine_length]
 
 end CommonTree
 
@@ -245,8 +293,11 @@ theorem canonicalFamily_values_eq_of_finitePathLabel_eq {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_bind
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefineFin
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefineFin_length
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.replay_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.card_finitePathLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.PathLabel.toFinite_injective

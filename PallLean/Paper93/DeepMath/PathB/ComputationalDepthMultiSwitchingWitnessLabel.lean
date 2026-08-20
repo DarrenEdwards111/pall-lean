@@ -57,6 +57,35 @@ theorem commonBadPathPack_eq_iff {d G m : ℕ}
   · rintro ⟨rfl, rfl, rfl⟩
     rfl
 
+/-- Every real gate segment fits inside the total common-path depth. -/
+theorem gateTrace_length_le_commonDepth {n G : ℕ}
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool) (g : Fin G) :
+    (CommonTree.trace (CommonTree.ofBool (trees g)) x).length ≤
+      CommonTree.depth (CommonTree.commonRefineFin trees) := by
+  calc
+    (CommonTree.trace (CommonTree.ofBool (trees g)) x).length
+        ≤ ((List.ofFn trees).map fun t =>
+            (CommonTree.trace (CommonTree.ofBool t) x).length).sum := by
+          apply List.le_sum_of_mem
+          simp
+    _ = (CommonTree.trace (CommonTree.commonRefineFin trees) x).length :=
+      (CommonTree.trace_commonRefineFin_length trees x).symm
+    _ ≤ CommonTree.depth (CommonTree.commonRefineFin trees) :=
+      CommonTree.trace_length_le_depth _ _
+
+/-- The actual ordered common-refinement execution supplies the gate-run component of the label:
+the `g`th entry is precisely the length of the `g`th canonical tree segment. -/
+def commonGateRunCounts {n G : ℕ} (trees : Fin G → BoolDecisionTree n)
+    (x : Fin n → Bool) :
+    Fin G → Fin (CommonTree.depth (CommonTree.commonRefineFin trees) + 1) :=
+  fun g => ⟨(CommonTree.trace (CommonTree.ofBool (trees g)) x).length,
+    Nat.lt_succ_of_le (gateTrace_length_le_commonDepth trees x g)⟩
+
+@[simp] theorem commonGateRunCounts_val {n G : ℕ}
+    (trees : Fin G → BoolDecisionTree n) (x : Fin n → Bool) (g : Fin G) :
+    (commonGateRunCounts trees x g).1 =
+      (CommonTree.trace (CommonTree.ofBool (trees g)) x).length := rfl
+
 variable {n : ℕ}
 
 /-- The finite-label count consumed by a genuine common bad-path encoder.  The sole remaining
@@ -79,4 +108,6 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonBadPathPack_eq_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.gateTrace_length_le_commonDepth
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonGateRunCounts_val
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonBadPath_count
