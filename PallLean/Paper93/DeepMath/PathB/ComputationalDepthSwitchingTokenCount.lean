@@ -104,9 +104,79 @@ theorem canonFlatLabel_length_le_path_add_terms {w : ℕ} [NeZero w]
     hsum, ungroupBlocks_length]
   omega
 
+/-- Fiber the tokenized encoding by its actual label length and sum the exact finite-label
+counts.  Unlike a fixed-length wrapper, this theorem permits every bad restriction to have a
+different number of empty/confirmed blocks. -/
+theorem canonFlatLabel_boundedLength_switching_count {w L : ℕ} [NeZero w]
+    {cs : List (Clause n)} {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hlen : ∀ rho ∈ Bad, (canonFlatLabel w rho cs).length ≤ L)
+    (hmem : ∀ rho ∈ Bad, complete rho (encLits rho cs) ∈ Short) :
+    Bad.card ≤ ∑ l ∈ Finset.range (L + 1), Short.card * (w + 1) ^ l := by
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun rho : Restriction n => (canonFlatLabel w rho cs).length)
+    (t := Finset.range (L + 1))]
+  · apply Finset.sum_le_sum
+    intro l hl
+    apply canonFlatLabel_switching_count hcs hwidth
+    · intro rho hrho
+      exact (Finset.mem_filter.mp hrho).2
+    · intro rho hrho
+      exact hmem rho ((Finset.mem_filter.mp hrho).1)
+  · intro rho hrho
+    exact Finset.mem_range.mpr (Nat.lt_succ_of_le (hlen rho hrho))
+
+/-- **Additive term-overhead switching count.**  If the canonical path part has length at most
+`s` and the DNF has at most `m` terms, the unconditional empty-block-safe encoding uses only
+token lengths `0,...,s+m`.  Thus the old per-query term factor is replaced by a finite sum whose
+largest exponent is `s+m`. -/
+theorem canonFlatLabel_pathBound_switching_count {w s m : ℕ} [NeZero w]
+    {cs : List (Clause n)} {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hm : cs.length ≤ m)
+    (hpath : ∀ rho ∈ Bad,
+      (ungroupBlocks (canonPosBlocks (encLits rho cs) ∅
+        (cs.filter (termSat (complete rho (encLits rho cs)))))).length ≤ s)
+    (hmem : ∀ rho ∈ Bad, complete rho (encLits rho cs) ∈ Short) :
+    Bad.card ≤ ∑ l ∈ Finset.range (s + m + 1), Short.card * (w + 1) ^ l := by
+  apply canonFlatLabel_boundedLength_switching_count hcs hwidth
+  · intro rho hrho
+    exact le_trans (canonFlatLabel_length_le_path_add_terms rho cs)
+      (Nat.add_le_add (hpath rho hrho) hm)
+  · exact hmem
+
+/-- Closed-form cash-out of the bounded-length fiber sum. -/
+theorem canonFlatLabel_pathBound_switching_count_closed {w s m : ℕ} [NeZero w]
+    {cs : List (Clause n)} {Bad Short : Finset (Restriction n)}
+    (hcs : ∀ T ∈ cs, (T.lits.map litVar).Nodup)
+    (hwidth : ∀ T ∈ cs, T.lits.length ≤ w)
+    (hm : cs.length ≤ m)
+    (hpath : ∀ rho ∈ Bad,
+      (ungroupBlocks (canonPosBlocks (encLits rho cs) ∅
+        (cs.filter (termSat (complete rho (encLits rho cs)))))).length ≤ s)
+    (hmem : ∀ rho ∈ Bad, complete rho (encLits rho cs) ∈ Short) :
+    Bad.card ≤ (s + m + 1) * (Short.card * (w + 1) ^ (s + m)) := by
+  apply le_trans
+    (canonFlatLabel_pathBound_switching_count hcs hwidth hm hpath hmem)
+  calc
+    (∑ l ∈ Finset.range (s + m + 1), Short.card * (w + 1) ^ l)
+        ≤ ∑ _l ∈ Finset.range (s + m + 1),
+            Short.card * (w + 1) ^ (s + m) := by
+          apply Finset.sum_le_sum
+          intro l hl
+          apply Nat.mul_le_mul_left
+          exact Nat.pow_le_pow_right (by omega)
+            (Nat.le_of_lt_succ (Finset.mem_range.mp hl))
+    _ = (s + m + 1) * (Short.card * (w + 1) ^ (s + m)) := by simp
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_switching_count
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_length_le_path_add_terms
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_boundedLength_switching_count
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_pathBound_switching_count
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.canonFlatLabel_pathBound_switching_count_closed
