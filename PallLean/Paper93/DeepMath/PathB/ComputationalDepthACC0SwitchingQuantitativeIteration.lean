@@ -1637,6 +1637,34 @@ theorem concreteCompact_childThreshold_exceeds_width30 (q : ℕ) (hq : 0 < q) :
   norm_num [concreteT]
   omega
 
+/-- **Width-parameterized single-gate reuse is still sublinear.**  If the next survivor count `K`
+is no larger than the current width `w`, and the elementary shell ratio is small enough to absorb
+the per-query factor `2w`, then `K²` is at most half the ambient dimension (up to the endpoint
+one).  Thus allowing the compact theorem's width parameter to grow with its previous output cannot
+restore a constant survivor density. -/
+theorem singleGate_widthDensity_forces_squareRoot
+    (N K w : ℕ) (hKw : K ≤ w) (hratio : 2 * w * K ≤ N - K + 1) :
+    2 * K ^ 2 ≤ N + 1 := by
+  have hleft : 2 * K ^ 2 ≤ 2 * w * K := by
+    nlinarith
+  have hright : N - K + 1 ≤ N + 1 := by omega
+  exact hleft.trans (hratio.trans hright)
+
+/-- In particular, any attempted next round that keeps a fixed positive fraction `a/b` of the
+ambient variables must satisfy a quadratic ambient upper bound.  This is incompatible with an
+unbounded linear-density iteration at fixed `a,b`. -/
+theorem singleGate_linearDensity_ambient_bound
+    (N K w a b : ℕ) (ha : 0 < a) (hKw : K ≤ w)
+    (hratio : 2 * w * K ≤ N - K + 1) (hdensity : a * N ≤ b * K) :
+    2 * a ^ 2 * N ^ 2 ≤ b ^ 2 * (N + 1) := by
+  have hsqrt := singleGate_widthDensity_forces_squareRoot N K w hKw hratio
+  have hsq : a ^ 2 * N ^ 2 ≤ b ^ 2 * K ^ 2 := by
+    simpa [mul_pow] using Nat.pow_le_pow_left hdensity 2
+  calc
+    2 * a ^ 2 * N ^ 2 ≤ 2 * (b ^ 2 * K ^ 2) := by nlinarith
+    _ = b ^ 2 * (2 * K ^ 2) := by ring
+    _ ≤ b ^ 2 * (N + 1) := Nat.mul_le_mul_left _ hsqrt
+
 /-- Exact contraction factor for recursively reusing a deterministic bucket: a parent at
 scale `concreteScale * (concreteCoverB * r)` leaves exactly `concreteScale * r` live variables. -/
 def concreteCoverB : ℕ := concreteScale / 20
@@ -2735,6 +2763,8 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedChargedLeafNode_work_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_concreteCompact_padded_chargedNode
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteCompact_childThreshold_exceeds_width30
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.singleGate_widthDensity_forces_squareRoot
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.singleGate_linearDensity_ambient_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_freeLits
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveClause_termFalsified
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_anyTermSat
