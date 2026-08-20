@@ -152,6 +152,28 @@ theorem trace_readOnce_length_le_ambient {n : ℕ} {α : Type}
   rw [trace_length_eq_queryVars_length]
   simpa using (queryVars_readOnce_nodup σ t x hext).length_le_card
 
+/-- Every coordinate retained on a normalized path was free in the starting restriction. -/
+theorem mem_queryVars_readOnce_freeVars {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) {j : Fin n}
+    (hj : j ∈ queryVars (readOnce σ t) x) : j ∈ freeVars σ := by
+  rw [mem_freeVars]
+  by_contra hnone
+  exact not_mem_queryVars_readOnce_of_fixed σ t x hext hnone hj
+
+/-- The normalized shared transcript is bounded by the current live dimension, not the ambient
+dimension and not the sum of the independent gate depths. -/
+theorem trace_readOnce_length_le_stars {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    (trace (readOnce σ t) x).length ≤ stars σ := by
+  rw [trace_length_eq_queryVars_length]
+  have hnd := queryVars_readOnce_nodup σ t x hext
+  rw [← List.toFinset_card_of_nodup hnd]
+  apply Finset.card_le_card
+  intro j hj
+  exact mem_queryVars_readOnce_freeVars σ t x hext (List.mem_toFinset.mp hj)
+
 /-- Replay a complete branch transcript, rejecting truncated or overlong transcripts. -/
 def replay {n : ℕ} {α : Type} : CommonTree n α → List Bool → Option α
   | .leaf a, [] => some a
@@ -216,6 +238,28 @@ theorem PathLabel.toFinite_injective {d : ℕ} :
   have hbit := congrFun hfun ⟨i, hi⟩
   rw [List.getD_eq_getElem p.1 false hip, List.getD_eq_getElem q.1 false hiq] at hbit
   exact hbit
+
+/-- A finite shared transcript label parameterized by the actual live dimension. -/
+def liveFinitePathLabel {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) : FinitePathLabel (stars σ) :=
+  PathLabel.toFinite ⟨trace (readOnce σ t) x,
+    trace_readOnce_length_le_stars σ t x hext⟩
+
+/-- Exact size of the live-dimension shared transcript space. -/
+theorem card_liveFinitePathLabel {n : ℕ} (σ : Restriction n) :
+    Fintype.card (FinitePathLabel (stars σ)) =
+      (stars σ + 1) * 2 ^ stars σ :=
+  card_finitePathLabel _
+
+/-- Equal live-dimension labels recover the complete normalized leaf payload. -/
+theorem run_readOnce_eq_of_liveFinitePathLabel_eq {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) {x y : Fin n → Bool}
+    (hx : Rung4Restriction.Extends σ x) (hy : Rung4Restriction.Extends σ y)
+    (hlabel : liveFinitePathLabel σ t x hx = liveFinitePathLabel σ t y hy) :
+    run (readOnce σ t) x = run (readOnce σ t) y := by
+  apply run_eq_of_trace_eq
+  exact congrArg Subtype.val (PathLabel.toFinite_injective hlabel)
 
 /-- Package an assignment's actual branch transcript as a bounded common-path label. -/
 def pathLabel {n : ℕ} {α : Type} (t : CommonTree n α) (x : Fin n → Bool) :
@@ -401,6 +445,19 @@ theorem queryVars_readOnceCanonicalFamilyTree_nodup {n G : ℕ}
     (CommonTree.queryVars (readOnceCanonicalFamilyTree gates fuel σ) x).Nodup := by
   exact CommonTree.queryVars_readOnce_nodup σ _ x hext
 
+/-- One live-dimension finite label determines all genuine gate values simultaneously. -/
+theorem canonicalFamily_values_eq_of_liveFinitePathLabel_eq {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    {x y : Fin n → Bool} (hx : Rung4Restriction.Extends σ x)
+    (hy : Rung4Restriction.Extends σ y)
+    (hlabel : CommonTree.liveFinitePathLabel σ (canonicalFamilyTree gates fuel σ) x hx =
+      CommonTree.liveFinitePathLabel σ (canonicalFamilyTree gates fuel σ) y hy) :
+    ∀ g, CommonTree.run (readOnceCanonicalFamilyTree gates fuel σ) x g =
+      CommonTree.run (readOnceCanonicalFamilyTree gates fuel σ) y g := by
+  intro g
+  exact congrFun (CommonTree.run_readOnce_eq_of_liveFinitePathLabel_eq
+    σ (canonicalFamilyTree gates fuel σ) hx hy hlabel) g
+
 /-- A single common-path label determines all canonical outputs in the family simultaneously. -/
 theorem canonicalFamily_values_eq_of_pathLabel_eq {n G : ℕ}
     (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
@@ -433,6 +490,9 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_ambient
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_stars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce_eq_of_liveFinitePathLabel_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.card_liveFinitePathLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefine
@@ -446,5 +506,6 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.run_canonicalFamilyTree_eq_dnf
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.run_readOnceCanonicalFamilyTree_eq_dnf
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.queryVars_readOnceCanonicalFamilyTree_nodup
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_values_eq_of_liveFinitePathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_values_eq_of_pathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_values_eq_of_finitePathLabel_eq
