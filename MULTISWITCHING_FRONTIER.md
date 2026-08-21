@@ -97,14 +97,20 @@ fuel reaches zero, but rebuilding the residual with the original fuel asks `x₁
 depth.  Thus the current same-fuel residual semantics can stop early for fuel exhaustion, not only
 because the gate is semantically resolved.
 
-The ample-fuel repair is now verified for one gate in
+The ample-fuel repair is now verified for the full sequential family in
 `ComputationalDepthMultiSwitchingFuelSafeTerminal.lean`.  `canonicalEnd` follows the exact canonical
 binary execution and equals its normalized `CommonTree.pathEndpoint`.  If `stars σ ≤ fuel`, Lean
 proves that the reached state is semantically terminal, so rebuilding the gate with *any* fuel has
-depth zero.  The capstone `canonicalGate_deep_prefix_implies_long_trace` therefore proves that a
-positive-depth rebuilt residual after a budget-`d` prefix forces a normalized trace of length at
-least `d`.  The retained counterexample violates precisely the new hypothesis (`stars root = 2` but
-`fuel = 1`).
+depth zero.  Lean also proves that every member gate's normalized path-variable set is contained in
+the full family set, hence the family endpoint extends every member endpoint, and that semantic
+terminality is monotone under restriction extension.  The capstone
+`canonicalFamily_deep_prefix_implies_long_trace` therefore proves that a positive-depth member
+residual after a budget-`d` family prefix forces a normalized common trace of length at least `d`.
+On the exact `K` shell, `commonShallowBadAssignment_long_of_le_fuel` discharges the former semantic
+long-path premise from `K ≤ fuel`; consequently
+`commonShallowBad_card_le_of_ample_fuel_sparse_prefix` gives the concrete sparse bad-event count
+without an assumed encoder-side long-path hypothesis.  The retained counterexample violates
+precisely the new hypothesis (`stars root = 2` but `fuel = 1`).
 
 ## Exact remaining frontier
 
@@ -114,15 +120,10 @@ multi-switching lemma:
 1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
-2. Lift the proved ample-fuel terminal theorem from one gate to the sequential canonical family.
-   The required bridge is that the full family endpoint extends each member gate's terminal endpoint,
-   together with monotonicity of semantic terminality under restriction extension.  On the exact
-   `K` shell, `K ≤ fuel` then supplies the local ample-fuel premise and should turn the chosen deep
-   family residual into the long common trace consumed by the encoder.
-3. Convert the resulting shorter-shell count into a positive proportional shell contraction with
+2. Convert the resulting shorter-shell count into a positive proportional shell contraction with
    parameters strong enough for iteration.  `commonShallowShellContraction_zero` still records that
    zero saving gives no iteration credit.
-4. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
+3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
 The next defensible route is therefore a block/run sparse encoder with a proved decoding theorem,
