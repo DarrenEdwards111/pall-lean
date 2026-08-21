@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingCommonTre
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingDnfCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessReconstruct
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3WitnessSeqProps
+import Mathlib.Data.Sym.Card
 
 /-!
 # Finite labels for common multi-switching witnesses
@@ -1807,6 +1808,176 @@ theorem prefixCountCanonicalCommonLongPath_count {w d G m : ℕ}
       ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
       (hlong ρ hρ) (hlong σ hσ) hE hlabel
 
+/-! ### Realized-prefix multiset compression
+
+The multiplicity table above still allocates one counter for every declared gate/term pair.  Since
+the ordered prefix is recovered from its multiset, `Sym` gives the exact stars-and-bars label space
+for only the `d` keys that actually occur.  `Option` makes the code total on roots whose fresh path
+is shorter than `d`; bad roots use the `some` branch. -/
+
+/-- Finite `(gate,term)` keys occurring in the first `d` fresh witnesses. -/
+def freshPrefixFinKeys {n G m d : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup) (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) : List (Fin G × Fin m) :=
+  ((freshTaggedWitSeq gates fuel σ x).take d).attach.map fun e =>
+    (e.1.1, ⟨e.1.2.2, freshTaggedWitSeq_termIdx_lt gates hnd hgate fuel σ x
+      ((List.take_sublist d _).subset e.2)⟩)
+
+/-- Forgetting the finite term bound recovers the original tagged-key prefix. -/
+theorem freshPrefixFinKeys_map_val {n G m d : ℕ}
+    (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup) (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    (freshPrefixFinKeys (d := d) gates hnd hgate fuel σ x).map
+        (fun q => (q.1, q.2.1)) =
+      ((freshTaggedWitSeq gates fuel σ x).take d).map taggedWitKey := by
+  rw [freshPrefixFinKeys, List.map_map]
+  change ((freshTaggedWitSeq gates fuel σ x).take d).attach.map
+      (fun e => taggedWitKey e.1) =
+    ((freshTaggedWitSeq gates fuel σ x).take d).map taggedWitKey
+  simpa using congrArg (List.map taggedWitKey)
+    (List.attach_map_subtype_val ((freshTaggedWitSeq gates fuel σ x).take d))
+
+/-- Optional fixed-cardinality multiset of the realized first `d` keys. -/
+def freshPrefixKeySymCode {n G m d : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup) (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    Option (Sym (Fin G × Fin m) d) :=
+  if hlong : d ≤ (freshTaggedWitSeq gates fuel σ x).length then
+    some (Sym.mk (freshPrefixFinKeys (d := d) gates hnd hgate fuel σ x :
+      Multiset (Fin G × Fin m)) (by
+        simp [freshPrefixFinKeys, List.length_take, Nat.min_eq_left hlong]))
+  else none
+
+/-- Equality of realized-prefix multisets recovers the ordered prefix because both key lists are
+block-monotone. -/
+theorem freshPrefixKeys_eq_of_symCode_eq {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshPrefixKeySymCode (m := m) (d := d) gates hnd hgate fuel ρ x =
+      freshPrefixKeySymCode (m := m) (d := d) gates hnd hgate fuel σ y) :
+    ((freshTaggedWitSeq gates fuel ρ x).take d).map taggedWitKey =
+      ((freshTaggedWitSeq gates fuel σ y).take d).map taggedWitKey := by
+  simp only [freshPrefixKeySymCode, dif_pos hlongρ, dif_pos hlongσ,
+    Option.some.injEq] at hcode
+  have hm := congrArg (fun s : Sym (Fin G × Fin m) d =>
+    (s : Multiset (Fin G × Fin m))) hcode
+  have hpermFin : List.Perm
+      (freshPrefixFinKeys (d := d) gates hnd hgate fuel ρ x)
+      (freshPrefixFinKeys (d := d) gates hnd hgate fuel σ y) :=
+    Multiset.coe_eq_coe.mp hm
+  have hpermMapped := hpermFin.map (fun q : Fin G × Fin m => (q.1, q.2.1))
+  have hperm : List.Perm
+      (((freshTaggedWitSeq gates fuel ρ x).take d).map taggedWitKey)
+      (((freshTaggedWitSeq gates fuel σ y).take d).map taggedWitKey) := by
+    rw [← freshPrefixFinKeys_map_val gates hnd hgate fuel ρ x,
+      ← freshPrefixFinKeys_map_val gates hnd hgate fuel σ y]
+    exact hpermMapped
+  apply taggedKeySeq_eq_of_count_eq
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel ρ x).take
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel σ y).take
+  · exact fun k => hperm.count_eq k
+
+/-- A position word plus the exact multiset of realized prefix keys. -/
+abbrev PrefixSymLabel (w d G m : ℕ) :=
+  (Fin d → Option (Fin w)) × Option (Sym (Fin G × Fin m) d)
+
+/-- Exact realized-prefix label size. -/
+theorem card_prefixSymLabel (w d G m : ℕ) :
+    Fintype.card (PrefixSymLabel w d G m) =
+      (w + 1) ^ d * ((G * m + d - 1).choose d + 1) := by
+  simp [PrefixSymLabel, Fintype.card_prod, Sym.card_sym_eq_choose]
+
+/-- Concrete realized-prefix label. -/
+def canonicalPrefixSymLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    PrefixSymLabel w d G m :=
+  (freshPositionOptionCode (d := d) gates hw fuel σ x,
+    freshPrefixKeySymCode (m := m) (d := d) gates hnd hgate fuel σ x)
+
+/-- Realized-prefix labels reconstruct the first `d` selected variables on long paths. -/
+theorem freshTaggedPrefixVars_eq_of_prefixSymLabel_eq {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hlabel : canonicalPrefixSymLabel (m := m) (d := d) gates hnd hw hgate fuel ρ x =
+      canonicalPrefixSymLabel (m := m) (d := d) gates hnd hw hgate fuel σ y) :
+    freshTaggedPrefixVars gates fuel ρ x d =
+      freshTaggedPrefixVars gates fuel σ y d := by
+  have hlongρ' : d ≤ (freshTaggedWitSeq gates fuel ρ x).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx]
+  have hlongσ' : d ≤ (freshTaggedWitSeq gates fuel σ y).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy]
+  have htake : (freshTaggedWitSeq gates fuel ρ x).take d =
+      (freshTaggedWitSeq gates fuel σ y).take d := by
+    apply taggedWitEntry_list_eq_of_key_pos
+    · exact freshPrefixKeys_eq_of_symCode_eq gates hnd hgate fuel ρ σ x y
+        hlongρ' hlongσ' (congrArg Prod.snd hlabel)
+    · exact freshPrefixPositions_eq_of_optionCode_eq gates hw fuel ρ σ x y
+        hlongρ' hlongσ' (congrArg Prod.fst hlabel)
+  simp only [freshTaggedPrefixVars]
+  rw [htake]
+
+/-- The selected-prefix endpoint and realized-prefix label injectively encode the root. -/
+theorem canonicalFamily_prefixEndpoint_inj_of_prefixSymLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hE : freshTaggedPrefixEndpoint gates fuel ρ x d =
+      freshTaggedPrefixEndpoint gates fuel σ y d)
+    (hlabel : canonicalPrefixSymLabel (m := m) (d := d) gates hnd hw hgate fuel ρ x =
+      canonicalPrefixSymLabel (m := m) (d := d) gates hnd hw hgate fuel σ y) : ρ = σ := by
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel hx hy hE
+  exact freshTaggedPrefixVars_eq_of_prefixSymLabel_eq gates hnd hw hgate fuel
+    ρ σ x y hx hy hlongρ hlongσ hlabel
+
+/-- Long-path count with an exact stars-and-bars key factor. -/
+theorem prefixSymCanonicalCommonLongPath_count {w d G m : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    {Bad Short : Finset (Restriction n)}
+    (hext : ∀ ρ ∈ Bad, Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ Bad, d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length)
+    (hmem : ∀ ρ ∈ Bad,
+      freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d ∈ Short) :
+    Bad.card ≤ Short.card *
+      ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d)
+    (fun ρ => canonicalPrefixSymLabel (m := m) (d := d) gates hnd hw hgate fuel ρ
+      (assignment ρ))
+  · exact le_of_eq (card_prefixSymLabel w d G m)
+  · exact hmem
+  · intro ρ hρ σ hσ hE hlabel
+    exact canonicalFamily_prefixEndpoint_inj_of_prefixSymLabel gates hnd hw hgate fuel
+      ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
+      (hlong ρ hρ) (hlong σ hσ) hE hlabel
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
@@ -1846,3 +2017,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_take_eq_of_prefixCounts
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_prefixCountLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixCountCanonicalCommonLongPath_count
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_prefixSymLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshPrefixKeys_eq_of_symCode_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_prefixSymLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixSymCanonicalCommonLongPath_count

@@ -87,6 +87,20 @@ label: it removes the per-query key alphabet and transcript, but retains a dense
 `commonShallowBad_card_le_of_ample_fuel_hybrid_prefix` takes the minimum of the old and new exact
 factors, so the exposed capstone is uniformly no weaker than either encoder separately.
 
+The dense count table has now also been replaced by an exact realized-prefix multiset.  The first
+`d` finite keys form `Sym (Fin G × Fin m) d`; equality of these multisets gives a permutation, and
+block monotonicity upgrades that permutation to equality of the ordered key prefixes.  The optional
+`Sym` code is total even on short non-bad paths and has exact stars-and-bars factor
+
+```text
+choose(G*m + d - 1, d) + 1.
+```
+
+Thus `commonShallowBad_card_le_of_ample_fuel_prefix_sym` proves the label bound
+`(w+1)^d * (choose(G*m+d-1,d)+1)`, while
+`commonShallowBad_card_le_of_ample_fuel_realized_hybrid` exposes the minimum of all three verified
+encoders.
+
 The semantic failure event now has a concrete witness extraction.  The canonical
 `prefixEndpoints` tree preserves the root restriction and is a valid `CommonShallowAt` certificate
 whenever all reached residual gates are shallow (`commonShallowAt_of_prefix_residual`).  Therefore a
@@ -134,11 +148,11 @@ precisely the new hypothesis (`stars root = 2` but `fuel = 1`).
 The current sparse count is an honest finite counting theorem, but it is not yet the quantitative
 multi-switching lemma:
 
-1. The per-query `(G*m+1)^d` key factor has been eliminated using block monotonicity.  The replacement
-   `((d+1)^m)^G = (d+1)^(G*m)` table is sharper when the realized prefix is long relative to the
-   declared family table, but can be worse when `G*m` is large.  A sharp multi-switching encoder must
-   next encode only the realized key support/run boundaries, rather than every declared gate/term
-   counter.
+1. Both the per-query `(G*m+1)^d` word and dense `(d+1)^(G*m)` count table now have a
+   realized-prefix alternative with exact factor `choose(G*m+d-1,d)+1`.  This removes unused table
+   counters, but the alphabet size `G*m` still enters the binomial coefficient.  The next quantitative
+   obligation is to exploit canonical run/block restrictions beyond mere sortedness, or prove that
+   this stars-and-bars factor already fits a useful shell balance in the intended parameter regime.
 2. The shorter-shell count now yields a positive proportional shell contraction, but not yet with
    trunk parameters strong enough for iteration.  The exact shell identity
    `card_stars_eq`, namely `C(n,K) * 2^(n-K)`, is now proved, and
@@ -155,8 +169,8 @@ multi-switching lemma:
 3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
-The next defensible route is therefore a realized-support/run encoder with a proved decoding
-theorem, aimed at replacing the dense `G*m` multiplicity table by data proportional to the keys
-actually appearing in the prefix and ultimately replacing the adaptive full-depth branch by a
-uniformly shallow trunk.  If the proposed support data collide, the collision must be retained as
-another concrete counterexample rather than hidden behind an injectivity premise.
+The next defensible route is therefore an arithmetic audit of the exact stars-and-bars factor,
+followed—only if that balance remains too weak—by a stricter canonical run-bound encoder.  The aim
+remains replacing the adaptive full-depth branch by a uniformly shallow trunk.  Any proposed run
+data collision must be retained as another concrete counterexample rather than hidden behind an
+injectivity premise.

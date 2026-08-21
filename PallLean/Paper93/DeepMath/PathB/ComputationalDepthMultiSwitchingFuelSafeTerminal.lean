@@ -412,6 +412,20 @@ theorem commonShallowBad_card_le_of_ample_fuel_prefix_counts
   intro ρ hρ
   exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
 
+/-- Ample-fuel shell count with the exact stars-and-bars multiset of realized prefix keys. -/
+theorem commonShallowBad_card_le_of_ample_fuel_prefix_sym
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) := by
+  apply commonShallowBad_card_le_of_semantic_prefix_sym hnd hw hgate
+  intro ρ hρ
+  exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
+
 /-- Hybrid ample-fuel count: use whichever of the per-query sparse code and dense multiplicity
 table is smaller for the concrete parameters.  Thus prefix-count compression never weakens the
 previous verified shell bound. -/
@@ -429,6 +443,27 @@ theorem commonShallowBad_card_le_of_ample_fuel_hybrid_prefix
   apply le_min
   · exact commonShallowBad_card_le_of_ample_fuel_sparse_prefix hnd hw hgate hKfuel
   · exact commonShallowBad_card_le_of_ample_fuel_prefix_counts hnd hw hgate hKfuel
+
+/-- Three-way capstone: expose the best verified factor among the per-query word, dense count
+table, and exact realized-key multiset. -/
+theorem commonShallowBad_card_le_of_ample_fuel_realized_hybrid
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        min (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d)
+          (min ((w + 1) ^ d * ((d + 1) ^ m) ^ G)
+            ((w + 1) ^ d * ((G * m + d - 1).choose d + 1))) := by
+  rw [← min_mul_mul_left]
+  apply le_min
+  · exact commonShallowBad_card_le_of_ample_fuel_sparse_prefix hnd hw hgate hKfuel
+  · rw [← min_mul_mul_left]
+    apply le_min
+    · exact commonShallowBad_card_le_of_ample_fuel_prefix_counts hnd hw hgate hKfuel
+    · exact commonShallowBad_card_le_of_ample_fuel_prefix_sym hnd hw hgate hKfuel
 
 /-- If the trunk budget covers every live variable and fuel is ample, the canonical prefix trunk
 already leaves every member residual at depth zero. -/
@@ -649,7 +684,9 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_long_of_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_sparse_prefix
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_counts
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_sym
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_hybrid_prefix
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_realized_hybrid
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_zero_of_stars_le_fuel_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_eq_zero_of_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance
