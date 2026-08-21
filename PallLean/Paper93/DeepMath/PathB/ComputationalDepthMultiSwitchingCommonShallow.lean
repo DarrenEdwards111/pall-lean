@@ -141,6 +141,45 @@ theorem commonShallowBad_card_le_of_exact_path_encoder
       (mem_commonShallowBad.mp hρ).1, hexact ρ hρ]
   · exact hvars
 
+/-- Prefix-path counting interface for genuinely long bad paths.
+
+Unlike `commonShallowBad_card_le_of_exact_path_encoder`, this theorem does not require the *entire*
+canonical-family path to have length exactly `d`.  It takes the first `d` fresh queries of any path
+of length at least `d`, lands in the exact `(K-d)` shell, and discharges root injectivity from equality
+of the prefix-variable sets.  The remaining encoder obligation is now correctly prefix-local. -/
+theorem commonShallowBad_card_le_of_prefix_encoder
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (assignment : Restriction n → (Fin n → Bool))
+    (label : Restriction n → SparseCommonBadPathLabel w d G m)
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (assignment ρ)).length)
+    (hvars : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      ∀ σ ∈ commonShallowBad gates fuel K d residualDepth, label ρ = label σ →
+        CommonTree.prefixVars ρ (canonicalFamilyTree gates fuel ρ) d (assignment ρ) =
+          CommonTree.prefixVars σ (canonicalFamilyTree gates fuel σ) d (assignment σ)) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => CommonTree.prefixEndpoint ρ
+      (canonicalFamilyTree gates fuel ρ) d (assignment ρ)) label
+  · exact le_of_eq (card_sparseCommonBadPathLabel w d G m)
+  · intro ρ hρ
+    rw [Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    rw [CommonTree.stars_prefixEndpoint ρ _ d (assignment ρ) (hext ρ hρ),
+      (mem_commonShallowBad.mp hρ).1,
+      CommonTree.prefixVars_card_eq_of_le_trace ρ _ d (assignment ρ)
+        (hext ρ hρ) (hlong ρ hρ)]
+  · intro ρ hρ σ hσ hE hlabel
+    exact CommonTree.prefixEndpoint_inj_of_prefixVars_eq
+      (hext ρ hρ) (hext σ hσ) hE (hvars ρ hρ σ hσ hlabel)
+
 /-- The target explicitly implies the corresponding unnormalized bad-shell cardinality bound. -/
 theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
     {gates : Fin G → List (Clause n)} {fuel residualDepth : ℕ}
@@ -159,4 +198,5 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_exact_path_encoder
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_prefix_encoder
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_contraction

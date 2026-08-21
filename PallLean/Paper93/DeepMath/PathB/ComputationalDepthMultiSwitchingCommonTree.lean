@@ -473,6 +473,91 @@ def pathEndpoint {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α
     (x : Fin n → Bool) : Restriction n :=
   fixOn σ (pathVars σ t x) x
 
+/-- The first `budget` genuinely fresh coordinates of a normalized common execution. -/
+def prefixVars {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
+    (budget : ℕ) (x : Fin n → Bool) : Finset (Fin n) :=
+  (queryVars (prefixEndpoints σ t budget) x).toFinset
+
+/-- The restriction reached after the first `budget` fresh common queries. -/
+def prefixEndpoint {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
+    (budget : ℕ) (x : Fin n → Bool) : Restriction n :=
+  run (prefixEndpoints σ t budget) x
+
+/-- The prefix-tree payload is exactly the root with its prefix variables fixed. -/
+theorem prefixEndpoint_eq_fixOn {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool) :
+    prefixEndpoint σ t budget x = fixOn σ (prefixVars σ t budget x) x := by
+  exact run_prefixEndpoints σ t budget x
+
+/-- Prefix variables inherit read-once uniqueness. -/
+theorem queryVars_prefixEndpoints_nodup {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    (queryVars (prefixEndpoints σ t budget) x).Nodup := by
+  rw [queryVars_prefixEndpoints]
+  exact (queryVars_readOnce_nodup σ t x hext).take
+
+/-- If the normalized path has at least `budget` queries, the prefix contains exactly `budget`
+distinct variables. -/
+theorem prefixVars_card_eq_of_le_trace {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x)
+    (hlong : budget ≤ (trace (readOnce σ t) x).length) :
+    (prefixVars σ t budget x).card = budget := by
+  rw [prefixVars, List.toFinset_card_of_nodup
+    (queryVars_prefixEndpoints_nodup σ t budget x hext), queryVars_prefixEndpoints]
+  apply List.length_take_of_le
+  simpa [trace_length_eq_queryVars_length] using hlong
+
+/-- Every prefix coordinate was live at the root. -/
+theorem prefixVars_subset_freeVars {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    prefixVars σ t budget x ⊆ freeVars σ :=
+  queryVars_prefixEndpoints_subset_free σ t budget x hext
+
+/-- Prefix fixing removes exactly the prefix variables from the live set. -/
+theorem freeVars_prefixEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool) :
+    freeVars (prefixEndpoint σ t budget x) =
+      freeVars σ \ prefixVars σ t budget x := by
+  rw [prefixEndpoint_eq_fixOn]
+  ext v
+  simp only [mem_freeVars, fixOn, Finset.mem_sdiff]
+  by_cases hv : v ∈ prefixVars σ t budget x <;> simp [hv]
+
+/-- A long-enough path from a `K`-live root lands in the exact `(K-budget)` shell after its prefix. -/
+theorem stars_prefixEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    stars (prefixEndpoint σ t budget x) =
+      stars σ - (prefixVars σ t budget x).card := by
+  rw [stars, freeVars_prefixEndpoint,
+    Finset.card_sdiff_of_subset (prefixVars_subset_freeVars σ t budget x hext), stars]
+
+/-- Re-freeing the prefix variables recovers the root restriction. -/
+theorem freeOn_prefixEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    freeOn (prefixEndpoint σ t budget x) (prefixVars σ t budget x) = σ := by
+  rw [prefixEndpoint_eq_fixOn]
+  exact freeOn_fixOn σ (prefixVars σ t budget x) x
+    (prefixVars_subset_freeVars σ t budget x hext)
+
+/-- Prefix endpoint plus its selected variables is an injective encoding of the root. -/
+theorem prefixEndpoint_inj_of_prefixVars_eq {n : ℕ} {α β : Type}
+    {ρ σ : Restriction n} {tρ : CommonTree n α} {tσ : CommonTree n β}
+    {budget : ℕ} {x y : Fin n → Bool}
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hE : prefixEndpoint ρ tρ budget x = prefixEndpoint σ tσ budget y)
+    (hV : prefixVars ρ tρ budget x = prefixVars σ tσ budget y) : ρ = σ := by
+  calc
+    ρ = freeOn (prefixEndpoint ρ tρ budget x) (prefixVars ρ tρ budget x) :=
+      (freeOn_prefixEndpoint ρ tρ budget x hx).symm
+    _ = freeOn (prefixEndpoint σ tσ budget y) (prefixVars σ tσ budget y) := by
+      rw [hE, hV]
+    _ = σ := freeOn_prefixEndpoint σ tσ budget y hy
+
 /-- Fixing the fresh common-path coordinates removes exactly those coordinates from the live set. -/
 theorem freeVars_pathEndpoint {n : ℕ} {α : Type}
     (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool) :
@@ -841,6 +926,12 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.stars_pathEndpoint
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.freeOn_pathEndpoint
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.pathEndpoint_inj_of_pathVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.prefixEndpoint_eq_fixOn
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.prefixVars_card_eq_of_le_trace
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.prefixVars_subset_freeVars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.stars_prefixEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.freeOn_prefixEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.prefixEndpoint_inj_of_prefixVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine

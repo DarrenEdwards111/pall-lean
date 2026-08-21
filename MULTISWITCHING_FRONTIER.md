@@ -40,6 +40,20 @@ The second inequality is `sparseCanonicalCommonBadPath_count`; it has no reconst
 injectivity hypothesis.  Its only combinatorial input is that every bad root's normalized endpoint
 belongs to `Short` (plus the explicit width, term-count, extension, and depth bounds).
 
+The full-path encoder is not the correct object for a bad path whose normalized trace can be longer
+than the target depth `d`.  The new prefix endpoint API treats the first `d` fresh common queries:
+
+- `prefixVars_card_eq_of_le_trace` proves that a trace of length at least `d` selects exactly `d`
+  distinct variables;
+- `prefixVars_subset_freeVars` and `stars_prefixEndpoint` prove that fixing them from a `K`-star root
+  lands in the exact `K-d` shell;
+- `freeOn_prefixEndpoint` and `prefixEndpoint_inj_of_prefixVars_eq` recover the root from the prefix
+  endpoint and its selected variable set.
+
+`commonShallowBad_card_le_of_prefix_encoder` packages these facts with the sparse label cardinality.
+Its only encoder-specific premise is equality of the first-`d` prefix-variable sets under label
+equality.  In particular, it does not assume that the entire bad path has length exactly `d`.
+
 All printed axiom sets for these capstones are subsets of
 `{propext, Classical.choice, Quot.sound}`.  There is no `sorry`, `admit`, custom axiom, or
 `native_decide` in the affected modules.
@@ -60,14 +74,18 @@ multi-switching lemma:
 1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
-2. The endpoint-membership premise must be realized by a genuine contraction: map every common-deep
-   bad root into a strictly smaller live shell and prove a positive shell saving.  The existing
-   `commonShallowShellContraction_zero` shows that zero saving is tautological and therefore gives no
-   iteration credit.
-3. Only after both steps can the restriction iteration be tested against the required `AC⁰` depth
+2. For a genuinely long path, define the concrete sparse label from its first `d` fresh tagged
+   witness entries and prove that equality of those codes determines `CommonTree.prefixVars`.  The
+   existing `freshTaggedWitSeq_vars_eq_pathVars` identifies only the full finite set, so it cannot
+   justify a prefix claim by itself; an order-preserving prefix correspondence (or a different
+   selected-set endpoint) is required.
+3. The endpoint-membership premise must be realized by a genuine contraction: map every common-deep
+   bad root into a strictly smaller live shell and prove a positive shell saving.  The exact `K-d`
+   prefix shell is now formalized, but its concrete label reconstruction remains the preceding seam.
+   `commonShallowShellContraction_zero` still records that zero saving gives no iteration credit.
+4. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
 The next defensible route is therefore a block/run sparse encoder with a proved decoding theorem,
 followed by a positive endpoint-shell contraction.  If the proposed block data collide, the collision
 must be retained as another concrete counterexample rather than hidden behind an injectivity premise.
-
