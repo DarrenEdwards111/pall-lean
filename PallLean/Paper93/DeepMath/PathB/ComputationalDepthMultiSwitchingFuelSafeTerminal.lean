@@ -396,9 +396,43 @@ theorem commonShallowBad_card_le_of_ample_fuel_sparse_prefix
   intro ρ hρ
   exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
 
+/-- If the trunk budget covers every live variable and fuel is ample, the canonical prefix trunk
+already leaves every member residual at depth zero. -/
+theorem commonShallowAt_zero_of_stars_le_fuel_le_trunk {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n) (trunkDepth : ℕ)
+    (hstarsFuel : stars σ ≤ fuel) (hstarsTrunk : stars σ ≤ trunkDepth) :
+    CommonShallowAt gates fuel σ trunkDepth 0 := by
+  apply commonShallowAt_of_prefix_residual gates fuel σ trunkDepth 0
+  intro x hext g
+  have htrace : (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length ≤ trunkDepth :=
+    (CommonTree.trace_readOnce_length_le_stars σ
+      (canonicalFamilyTree gates fuel σ) x hext).trans hstarsTrunk
+  have hend := CommonTree.prefixEndpoint_eq_pathEndpoint_of_trace_length_le
+    σ (canonicalFamilyTree gates fuel σ) trunkDepth x htrace
+  rw [CommonTree.prefixEndpoint] at hend
+  rw [hend]
+  exact Nat.le_of_eq (canonicalDT_depth_eq_zero_of_terminal (gates g)
+    (CommonTree.pathEndpoint σ (canonicalFamilyTree gates fuel σ) x)
+    (canonicalFamily_pathEndpoint_terminal gates fuel σ x hext hstarsFuel g) fuel)
+
+/-- Consequently the bad event is empty whenever its trunk budget is at least the exact shell
+size and the shell fits within the available fuel. -/
+theorem commonShallowBad_card_eq_zero_of_le_trunk {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {fuel K trunkDepth residualDepth : ℕ}
+    (hKfuel : K ≤ fuel) (hKtrunk : K ≤ trunkDepth) :
+    (commonShallowBad gates fuel K trunkDepth residualDepth).card = 0 := by
+  rw [Finset.card_eq_zero, Finset.eq_empty_iff_forall_notMem]
+  intro σ hσ
+  obtain ⟨hstars, hbad⟩ := mem_commonShallowBad.mp hσ
+  apply hbad
+  exact (commonShallowAt_zero_of_stars_le_fuel_le_trunk gates fuel σ trunkDepth
+    (hstars ▸ hKfuel) (hstars ▸ hKtrunk)).mono (Nat.le_refl _) (Nat.zero_le _)
+
 /-- Exact arithmetic gate from the verified sparse count to proportional shell contraction.  The
-only remaining premise is the displayed binomial/power balance; shells above the ambient dimension
-are empty, while `n ≤ fuel` supplies ample fuel on every nonempty shell. -/
+displayed binomial/power balance is needed only in the nontrivial regime `trunkDepth K < K`;
+full-budget trunks make the bad event empty, shells above the ambient dimension are empty, and
+`n ≤ fuel` supplies ample fuel on every nonempty shell. -/
 theorem commonShallowShellContraction_of_sparse_balance
     {n G w m fuel residualDepth savingNum savingDen : ℕ}
     {gates : Fin G → List (Clause n)} (trunkDepth : ℕ → ℕ)
@@ -406,7 +440,7 @@ theorem commonShallowShellContraction_of_sparse_balance
     (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
     (hgate : ∀ g, (gates g).length ≤ m)
     (hnfuel : n ≤ fuel)
-    (hbalance : ∀ K, K ≤ n →
+    (hbalance : ∀ K, K ≤ n → trunkDepth K < K →
       (Nat.choose n (K - trunkDepth K) * 2 ^ (n - (K - trunkDepth K)) *
           (((trunkDepth K + 1) * 2 ^ trunkDepth K) * (w + 1) ^ trunkDepth K *
             (G * m + 1) ^ trunkDepth K)) *
@@ -415,23 +449,27 @@ theorem commonShallowShellContraction_of_sparse_balance
     CommonShallowShellContraction gates fuel residualDepth trunkDepth savingNum savingDen := by
   intro K
   by_cases hKn : K ≤ n
-  · have hcount := commonShallowBad_card_le_of_ample_fuel_sparse_prefix
-      (gates := gates) (w := w) (m := m) (d := trunkDepth K)
-      (residualDepth := residualDepth)
-      hnd hw hgate (hKn.trans hnfuel)
-    have hscaled := Nat.mul_le_mul_right (2 ^ ((savingNum * K) / savingDen)) hcount
-    calc
-      (commonShallowBad gates fuel K (trunkDepth K) residualDepth).card *
-          2 ^ ((savingNum * K) / savingDen) ≤
-        ((Finset.univ.filter fun τ : Restriction n =>
-            stars τ = K - trunkDepth K).card *
-          (((trunkDepth K + 1) * 2 ^ trunkDepth K) * (w + 1) ^ trunkDepth K *
-            (G * m + 1) ^ trunkDepth K)) *
-          2 ^ ((savingNum * K) / savingDen) := hscaled
-      _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
-        rw [card_stars_eq (N := n) (K := K - trunkDepth K),
-          card_stars_eq (N := n) (K := K)]
-        exact hbalance K hKn
+  · by_cases hdK : trunkDepth K < K
+    · have hcount := commonShallowBad_card_le_of_ample_fuel_sparse_prefix
+        (gates := gates) (w := w) (m := m) (d := trunkDepth K)
+        (residualDepth := residualDepth)
+        hnd hw hgate (hKn.trans hnfuel)
+      have hscaled := Nat.mul_le_mul_right (2 ^ ((savingNum * K) / savingDen)) hcount
+      calc
+        (commonShallowBad gates fuel K (trunkDepth K) residualDepth).card *
+            2 ^ ((savingNum * K) / savingDen) ≤
+          ((Finset.univ.filter fun τ : Restriction n =>
+              stars τ = K - trunkDepth K).card *
+            (((trunkDepth K + 1) * 2 ^ trunkDepth K) * (w + 1) ^ trunkDepth K *
+              (G * m + 1) ^ trunkDepth K)) *
+            2 ^ ((savingNum * K) / savingDen) := hscaled
+        _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+          rw [card_stars_eq (N := n) (K := K - trunkDepth K),
+            card_stars_eq (N := n) (K := K)]
+          exact hbalance K hKn hdK
+    · rw [commonShallowBad_card_eq_zero_of_le_trunk
+          (hKn.trans hnfuel) (Nat.le_of_not_gt hdK)]
+      simp
   · have hshell :
         (Finset.univ.filter fun σ : Restriction n => stars σ = K).card = 0 := by
       rw [card_stars_eq (N := n) (K := K),
@@ -459,4 +497,6 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_deep_prefix_implies_long_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_long_of_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_sparse_prefix
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_zero_of_stars_le_fuel_le_trunk
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_eq_zero_of_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance

@@ -124,9 +124,11 @@ multi-switching lemma:
    parameters strong enough for iteration.  The exact shell identity
    `card_stars_eq`, namely `C(n,K) * 2^(n-K)`, is now proved, and
    `commonShallowShellContraction_of_sparse_balance` reduces positive contraction to one explicit
-   natural-number binomial/power inequality.  That inequality is not yet discharged for useful
-   parameters; `commonShallowShellContraction_zero` still records that zero saving gives no iteration
-   credit.
+   natural-number binomial/power inequality only in the genuinely nontrivial regime
+   `trunkDepth K < K`.  `commonShallowBad_card_eq_zero_of_le_trunk` proves that the bad event is empty
+   for `K ≤ trunkDepth K` under ample fuel.  The remaining inequality is not yet discharged for
+   useful sublinear-trunk parameters; `commonShallowShellContraction_zero` still records that zero
+   saving gives no iteration credit.
 3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
