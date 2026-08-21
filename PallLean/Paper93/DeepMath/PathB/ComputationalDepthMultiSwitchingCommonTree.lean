@@ -59,6 +59,113 @@ def readOnce {n : ℕ} {α : Type} :
       | none => .query i (readOnce (fixVar σ i false) lo)
           (readOnce (fixVar σ i true) hi)
 
+/-- Truncate the read-once normalization after at most `budget` fresh queries and store the
+accumulated residual restriction at every leaf.  This is the common trunk whose failure to have
+shallow residual gates must supply the exact bad path used by the switching encoder. -/
+def prefixEndpoints {n : ℕ} {α : Type} :
+    Restriction n → CommonTree n α → ℕ → CommonTree n (Restriction n)
+  | σ, .leaf _, _ => .leaf σ
+  | σ, .query _ _ _, 0 => .leaf σ
+  | σ, .query i lo hi, budget + 1 =>
+      match σ i with
+      | some true => prefixEndpoints σ hi (budget + 1)
+      | some false => prefixEndpoints σ lo (budget + 1)
+      | none => .query i
+          (prefixEndpoints (fixVar σ i false) lo budget)
+          (prefixEndpoints (fixVar σ i true) hi budget)
+
+/-- The canonical prefix trunk never exceeds its query budget. -/
+theorem depth_prefixEndpoints_le {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) :
+    depth (prefixEndpoints σ t budget) ≤ budget := by
+  induction t generalizing σ budget with
+  | leaf a => simp [prefixEndpoints, depth]
+  | query i lo hi ihlo ihhi =>
+      cases budget with
+      | zero => simp [prefixEndpoints, depth]
+      | succ budget =>
+          cases hσ : σ i with
+          | none =>
+              simp only [prefixEndpoints, hσ, depth]
+              exact Nat.succ_le_succ (max_le (ihlo _ _) (ihhi _ _))
+          | some b =>
+              cases b <;> simp only [prefixEndpoints, hσ]
+              · exact ihlo _ _
+              · exact ihhi _ _
+
+/-- The prefix trunk follows exactly the first `budget` bits of the normalized common path. -/
+theorem trace_prefixEndpoints {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool) :
+    trace (prefixEndpoints σ t budget) x = (trace (readOnce σ t) x).take budget := by
+  induction t generalizing σ budget with
+  | leaf a => simp [prefixEndpoints, readOnce, trace]
+  | query i lo hi ihlo ihhi =>
+      cases budget with
+      | zero => simp [prefixEndpoints, trace]
+      | succ budget =>
+          cases hσ : σ i with
+          | none =>
+              by_cases hx : x i
+              · simp [prefixEndpoints, readOnce, trace, hσ, hx, ihhi]
+              · simp [prefixEndpoints, readOnce, trace, hσ, hx, ihlo]
+          | some b =>
+              cases b <;> simp [prefixEndpoints, readOnce, hσ, ihlo, ihhi]
+
+/-- The prefix trunk queries exactly the first `budget` coordinates of the normalized common path. -/
+theorem queryVars_prefixEndpoints {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool) :
+    queryVars (prefixEndpoints σ t budget) x =
+      (queryVars (readOnce σ t) x).take budget := by
+  induction t generalizing σ budget with
+  | leaf a => simp [prefixEndpoints, readOnce, queryVars]
+  | query i lo hi ihlo ihhi =>
+      cases budget with
+      | zero => simp [prefixEndpoints, queryVars]
+      | succ budget =>
+          cases hσ : σ i with
+          | none =>
+              by_cases hx : x i
+              · simp [prefixEndpoints, readOnce, queryVars, hσ, hx, ihhi]
+              · simp [prefixEndpoints, readOnce, queryVars, hσ, hx, ihlo]
+          | some b =>
+              cases b <;> simp [prefixEndpoints, readOnce, hσ, ihlo, ihhi]
+
+/-- The payload stored at a prefix leaf is exactly the root with the queried prefix fixed according
+to the followed assignment. -/
+theorem run_prefixEndpoints {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool) :
+    run (prefixEndpoints σ t budget) x =
+      fixOn σ (queryVars (prefixEndpoints σ t budget) x).toFinset x := by
+  induction t generalizing σ budget with
+  | leaf a =>
+      simp only [prefixEndpoints, run, queryVars, List.toFinset_nil]
+      funext j
+      simp [fixOn]
+  | query i lo hi ihlo ihhi =>
+      cases budget with
+      | zero =>
+          simp only [prefixEndpoints, run, queryVars, List.toFinset_nil]
+          funext j
+          simp [fixOn]
+      | succ budget =>
+          cases hσ : σ i with
+          | some b =>
+              cases b <;> simp [prefixEndpoints, hσ, ihlo, ihhi]
+          | none =>
+              by_cases hx : x i
+              · simp only [prefixEndpoints, hσ, run, hx, if_true, queryVars,
+                  List.toFinset_cons, ihhi]
+                funext j
+                by_cases hji : j = i
+                · subst j; simp [fixOn, fixVar, hx]
+                · simp [fixOn, fixVar, hji]
+              · simp only [prefixEndpoints, hσ, run, hx, Bool.false_eq_true, if_false,
+                  queryVars, List.toFinset_cons, ihlo]
+                funext j
+                by_cases hji : j = i
+                · subst j; simp [fixOn, fixVar, hx]
+                · simp [fixOn, fixVar, hji]
+
 /-- Read-once normalization preserves execution on every assignment extending the accumulated
 branch restriction. -/
 theorem run_readOnce {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
@@ -247,6 +354,29 @@ theorem mem_queryVars_readOnce_freeVars {n : ℕ} {α : Type}
   rw [mem_freeVars]
   by_contra hnone
   exact not_mem_queryVars_readOnce_of_fixed σ t x hext hnone hj
+
+/-- Every coordinate queried by a prefix trunk was live at its root. -/
+theorem queryVars_prefixEndpoints_subset_free {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    (queryVars (prefixEndpoints σ t budget) x).toFinset ⊆ freeVars σ := by
+  intro v hv
+  rw [queryVars_prefixEndpoints] at hv
+  exact mem_queryVars_readOnce_freeVars σ t x hext
+    (List.mem_of_mem_take (List.mem_toFinset.mp hv))
+
+/-- The residual restriction stored at a prefix leaf is still extended by the followed full
+assignment. -/
+theorem run_prefixEndpoints_extends {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    Rung4Restriction.Extends (run (prefixEndpoints σ t budget) x) x := by
+  rw [run_prefixEndpoints]
+  intro v b hv
+  simp only [fixOn] at hv
+  split at hv
+  · exact Option.some.inj hv
+  · exact hext v b hv
 
 /-- The normalized shared transcript is bounded by the current live dimension, not the ambient
 dimension and not the sum of the independent gate depths. -/

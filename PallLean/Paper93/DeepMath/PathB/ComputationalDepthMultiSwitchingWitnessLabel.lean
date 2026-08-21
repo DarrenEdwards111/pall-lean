@@ -1188,6 +1188,192 @@ theorem canonicalCommonBadPath_count {w d G m : ℕ} [NeZero w]
     (assignment ρ) (assignment σ) (hext ρ) (hext σ) (hdepth ρ) (hdepth σ)
     hE hlabel
 
+/-- Sparse corrected label: each fresh path slot stores at most one literal position and one
+`(gate,term)` key.  `Option` supplies a canonical padding value even when `w`, `G`, or `m` is zero. -/
+abbrev SparseCommonBadPathLabel (w d G m : ℕ) :=
+  CommonTree.FinitePathLabel d ×
+    (Fin d → Option (Fin w)) × (Fin d → Option (Fin G × Fin m))
+
+/-- Exact sparse-label cardinality.  This replaces the dense boundary-table factor
+`(d+1)^(G+Gm)` by two per-fresh-query alphabets. -/
+theorem card_sparseCommonBadPathLabel (w d G m : ℕ) :
+    Fintype.card (SparseCommonBadPathLabel w d G m) =
+      ((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d := by
+  simp [SparseCommonBadPathLabel, CommonTree.card_finitePathLabel,
+    Fintype.card_prod]
+  ring
+
+/-- Padded optional literal-position stream for the globally fresh witness. -/
+def freshPositionOptionCode {n G w d : ℕ}
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    Fin d → Option (Fin w) :=
+  fun i =>
+    if hi : i.1 < (freshTaggedWitSeq gates fuel σ x).length then
+      some ⟨(freshTaggedWitSeq gates fuel σ x)[i.1].2.1,
+        freshTaggedWitSeq_pos_lt gates hw fuel σ x (List.getElem_mem hi)⟩
+    else none
+
+/-- Padded optional `(gate,term)` key stream for the globally fresh witness. -/
+def freshKeyOptionCode {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    Fin d → Option (Fin G × Fin m) :=
+  fun i =>
+    if hi : i.1 < (freshTaggedWitSeq gates fuel σ x).length then
+      let e := (freshTaggedWitSeq gates fuel σ x)[i.1]
+      some (e.1, ⟨e.2.2,
+        freshTaggedWitSeq_termIdx_lt gates hnd hgate fuel σ x (List.getElem_mem hi)⟩)
+    else none
+
+theorem freshPositions_eq_of_optionCode_eq {n G w d : ℕ}
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlenρ : (freshTaggedWitSeq gates fuel ρ x).length ≤ d)
+    (hlenσ : (freshTaggedWitSeq gates fuel σ y).length ≤ d)
+    (hsize : (freshTaggedWitSeq gates fuel ρ x).length =
+      (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshPositionOptionCode (d := d) gates hw fuel ρ x =
+      freshPositionOptionCode (d := d) gates hw fuel σ y) :
+    (freshTaggedWitSeq gates fuel ρ x).map (fun e => e.2.1) =
+      (freshTaggedWitSeq gates fuel σ y).map (fun e => e.2.1) := by
+  apply List.ext_get
+  · simpa using hsize
+  · intro i hiρ hiσ
+    have hiρ' : i < (freshTaggedWitSeq gates fuel ρ x).length := by simpa using hiρ
+    have hiσ' : i < (freshTaggedWitSeq gates fuel σ y).length := by simpa using hiσ
+    have hid : i < d := hiρ'.trans_le hlenρ
+    have hentry := congrFun hcode ⟨i, hid⟩
+    have hval := congrArg (Option.map Fin.val) hentry
+    simpa [freshPositionOptionCode, hiρ', hiσ'] using hval
+
+theorem freshKeys_eq_of_optionCode_eq {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlenρ : (freshTaggedWitSeq gates fuel ρ x).length ≤ d)
+    (hlenσ : (freshTaggedWitSeq gates fuel σ y).length ≤ d)
+    (hsize : (freshTaggedWitSeq gates fuel ρ x).length =
+      (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshKeyOptionCode (d := d) gates hnd hgate fuel ρ x =
+      freshKeyOptionCode (d := d) gates hnd hgate fuel σ y) :
+    (freshTaggedWitSeq gates fuel ρ x).map taggedWitKey =
+      (freshTaggedWitSeq gates fuel σ y).map taggedWitKey := by
+  apply List.ext_get
+  · simpa using hsize
+  · intro i hiρ hiσ
+    have hiρ' : i < (freshTaggedWitSeq gates fuel ρ x).length := by simpa using hiρ
+    have hiσ' : i < (freshTaggedWitSeq gates fuel σ y).length := by simpa using hiσ
+    have hid : i < d := hiρ'.trans_le hlenρ
+    have hentry := congrFun hcode ⟨i, hid⟩
+    have hval := congrArg
+      (Option.map fun q : Fin G × Fin m => (q.1, q.2.1)) hentry
+    simpa [freshKeyOptionCode, hiρ', hiσ', taggedWitKey] using hval
+
+/-- The two sparse optional codes and the genuine length recover the entire fresh witness. -/
+theorem freshTaggedWitSeq_eq_of_sparseCodes {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlenρ : (freshTaggedWitSeq gates fuel ρ x).length ≤ d)
+    (hlenσ : (freshTaggedWitSeq gates fuel σ y).length ≤ d)
+    (hsize : (freshTaggedWitSeq gates fuel ρ x).length =
+      (freshTaggedWitSeq gates fuel σ y).length)
+    (hpos : freshPositionOptionCode (d := d) gates hw fuel ρ x =
+      freshPositionOptionCode (d := d) gates hw fuel σ y)
+    (hkey : freshKeyOptionCode (d := d) gates hnd hgate fuel ρ x =
+      freshKeyOptionCode (d := d) gates hnd hgate fuel σ y) :
+    freshTaggedWitSeq gates fuel ρ x = freshTaggedWitSeq gates fuel σ y := by
+  apply taggedWitEntry_list_eq_of_key_pos
+  · exact freshKeys_eq_of_optionCode_eq gates hnd hgate fuel ρ σ x y
+      hlenρ hlenσ hsize hkey
+  · exact freshPositions_eq_of_optionCode_eq gates hw fuel ρ σ x y
+      hlenρ hlenσ hsize hpos
+
+/-- Concrete sparse canonical label. -/
+def sparseCanonicalCommonBadPathLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool)
+    (hdepth : (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length ≤ d) :
+    SparseCommonBadPathLabel w d G m :=
+  (CommonTree.PathLabel.toFinite ⟨CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x, hdepth⟩,
+    freshPositionOptionCode (d := d) gates hw fuel σ x,
+    freshKeyOptionCode (d := d) gates hnd hgate fuel σ x)
+
+/-- Endpoint equality plus equality of sparse canonical labels recovers the root restriction. -/
+theorem canonicalFamily_endpoint_inj_of_sparseLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hdepthρ : (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length ≤ d)
+    (hdepthσ : (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length ≤ d)
+    (hE : CommonTree.pathEndpoint ρ (canonicalFamilyTree gates fuel ρ) x =
+      CommonTree.pathEndpoint σ (canonicalFamilyTree gates fuel σ) y)
+    (hlabel : sparseCanonicalCommonBadPathLabel gates hnd hw hgate fuel ρ x hdepthρ =
+      sparseCanonicalCommonBadPathLabel gates hnd hw hgate fuel σ y hdepthσ) : ρ = σ := by
+  have hpath := congrArg Prod.fst hlabel
+  have hpos := congrArg (fun z => z.2.1) hlabel
+  have hkey := congrArg (fun z => z.2.2) hlabel
+  have htrace : CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x =
+      CommonTree.trace
+        (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y := by
+    exact congrArg Subtype.val (CommonTree.PathLabel.toFinite_injective hpath)
+  have hlenρ : (freshTaggedWitSeq gates fuel ρ x).length ≤ d :=
+    (freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx).trans_le hdepthρ
+  have hlenσ : (freshTaggedWitSeq gates fuel σ y).length ≤ d :=
+    (freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy).trans_le hdepthσ
+  have hsize : (freshTaggedWitSeq gates fuel ρ x).length =
+      (freshTaggedWitSeq gates fuel σ y).length := by
+    rw [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx,
+      freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy, htrace]
+  have hseq := freshTaggedWitSeq_eq_of_sparseCodes gates hnd hw hgate fuel ρ σ x y
+    hlenρ hlenσ hsize hpos hkey
+  apply CommonTree.pathEndpoint_inj_of_pathVars_eq hx hy hE
+  rw [← freshTaggedWitSeq_vars_eq_pathVars gates fuel ρ x hx,
+    ← freshTaggedWitSeq_vars_eq_pathVars gates fuel σ y hy, hseq]
+
+/-- Sparse common bad-path count.  Reconstruction is fully discharged; only endpoint membership in
+the chosen short set remains. -/
+theorem sparseCanonicalCommonBadPath_count {w d G m : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    (hext : ∀ ρ, Rung4Restriction.Extends ρ (assignment ρ))
+    (hdepth : ∀ ρ, (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length ≤ d)
+    {Bad Short : Finset (Restriction n)}
+    (hmem : ∀ ρ ∈ Bad,
+      CommonTree.pathEndpoint ρ (canonicalFamilyTree gates fuel ρ) (assignment ρ) ∈ Short) :
+    Bad.card ≤ Short.card *
+      (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => CommonTree.pathEndpoint ρ
+      (canonicalFamilyTree gates fuel ρ) (assignment ρ))
+    (fun ρ => sparseCanonicalCommonBadPathLabel gates hnd hw hgate fuel ρ
+      (assignment ρ) (hdepth ρ))
+  · exact le_of_eq (card_sparseCommonBadPathLabel w d G m)
+  · exact hmem
+  · intro ρ _ σ _ hE hlabel
+    exact canonicalFamily_endpoint_inj_of_sparseLabel gates hnd hw hgate fuel ρ σ
+      (assignment ρ) (assignment σ) (hext ρ) (hext σ) (hdepth ρ) (hdepth σ)
+      hE hlabel
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
@@ -1212,3 +1398,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonBadPath_count
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonBadPath_count_of_pathVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalCommonBadPath_count
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_sparseCommonBadPathLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_eq_of_sparseCodes
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_endpoint_inj_of_sparseLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparseCanonicalCommonBadPath_count
