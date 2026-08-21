@@ -443,6 +443,83 @@ theorem freshTaggedPrefixEndpoint_inj_of_vars_eq {n G : ℕ}
         (freshTaggedPrefixVars gates fuel σ y budget) := by rw [hE, hV]
     _ = σ := freeOn_freshTaggedPrefixEndpoint gates fuel σ y budget hy
 
+/-! ### Unordered selected-coordinate labels
+
+The prefix endpoint does not need the selected coordinates in query order.  Re-freeing their
+unordered set already recovers the root restriction, so the smallest direct coordinate label for
+a long prefix is a `d`-element subset of the ambient coordinates. -/
+
+/-- Unordered coordinate sets of the exact prefix size. -/
+abbrev CoordinateSetPrefixLabel (n d : ℕ) :=
+  {S : Finset (Fin n) // S.card = d}
+
+/-- Exact cardinality of the unordered coordinate-set label. -/
+theorem card_coordinateSetPrefixLabel (n d : ℕ) :
+    Fintype.card (CoordinateSetPrefixLabel n d) = n.choose d := by
+  rw [Fintype.card_finset_len]
+  simp
+
+/-- The concrete unordered selected-coordinate label on a path of length at least `d`. -/
+def canonicalCoordinateSetPrefixLabel {n G d : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (hext : Rung4Restriction.Extends σ x)
+    (hlong : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length) :
+    CoordinateSetPrefixLabel n d :=
+  ⟨freshTaggedPrefixVars gates fuel σ x d,
+    freshTaggedPrefixVars_card_eq_of_le_trace gates fuel σ x d hext hlong⟩
+
+/-- Equality of unordered coordinate labels is exactly the set equality consumed by endpoint
+injectivity; reconstructing the ordered canonical prefix is unnecessary. -/
+theorem canonicalFamily_prefixEndpoint_inj_of_coordinateSetLabel {n G d : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ)
+    (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hE : freshTaggedPrefixEndpoint gates fuel ρ x d =
+      freshTaggedPrefixEndpoint gates fuel σ y d)
+    (hlabel : canonicalCoordinateSetPrefixLabel gates fuel ρ x hx hlongρ =
+      canonicalCoordinateSetPrefixLabel gates fuel σ y hy hlongσ) : ρ = σ := by
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel hx hy hE
+  exact congrArg Subtype.val hlabel
+
+/-- Long-path counting with only the exact unordered coordinate-set label. -/
+theorem coordinateSetCanonicalCommonLongPath_count {d G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ)
+    (assignment : Restriction n → (Fin n → Bool))
+    {Bad Short : Finset (Restriction n)}
+    (hext : ∀ ρ ∈ Bad, Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ Bad, d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length)
+    (hmem : ∀ ρ ∈ Bad,
+      freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d ∈ Short) :
+    Bad.card ≤ Short.card * n.choose d := by
+  classical
+  by_cases hBad : Bad.Nonempty
+  · obtain ⟨ρ₀, hρ₀⟩ := hBad
+    let defaultLabel : CoordinateSetPrefixLabel n d :=
+      canonicalCoordinateSetPrefixLabel gates fuel ρ₀ (assignment ρ₀)
+        (hext ρ₀ hρ₀) (hlong ρ₀ hρ₀)
+    apply card_bad_le_label_card
+      (fun ρ => freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d)
+      (fun ρ => if hρ : ρ ∈ Bad then
+        canonicalCoordinateSetPrefixLabel gates fuel ρ (assignment ρ)
+          (hext ρ hρ) (hlong ρ hρ)
+      else defaultLabel)
+    · exact le_of_eq (card_coordinateSetPrefixLabel n d)
+    · exact hmem
+    · intro ρ hρ σ hσ hE hlabel
+      simp only [hρ, hσ, dite_true] at hlabel
+      exact canonicalFamily_prefixEndpoint_inj_of_coordinateSetLabel gates fuel
+        ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
+        (hlong ρ hρ) (hlong σ hσ) hE hlabel
+  · rw [Finset.not_nonempty_iff_eq_empty.mp hBad]
+    simp
+
 /-- Any coordinate on a raw canonical gate path is represented by a genuine active-term/literal
 position entry in that gate's assignment-followed witness. -/
 theorem mem_witDecode_runWitSeq_of_mem_queryVars {n : ℕ}
@@ -1978,6 +2055,170 @@ theorem prefixSymCanonicalCommonLongPath_count {w d G m : ℕ}
       ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
       (hlong ρ hρ) (hlong σ hσ) hE hlabel
 
+/-! ### Exact ragged-family alphabet
+
+The rectangular alphabet `Fin G × Fin m` charges the largest gate length once for every gate.
+The canonical witnesses only use genuine term positions, so the exact key type is the dependent
+sum below.  Its cardinality is the total number of term occurrences in the family.
+-/
+
+/-- Genuine `(gate,term)` positions in a ragged finite family. -/
+abbrev ActualFamilyKey {n G : ℕ} (gates : Fin G → List (Clause n)) :=
+  Σ g : Fin G, Fin (gates g).length
+
+/-- Every fresh witness term index is a genuine position in its gate, without a rectangular
+per-gate padding bound. -/
+theorem freshTaggedWitSeq_termIdx_lt_gateLength {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool)
+    {e : TaggedWitEntry G} (he : e ∈ freshTaggedWitSeq gates fuel σ x) :
+    e.2.2 < (gates e.1).length := by
+  have heraw : e ∈ taggedRawWitSeq gates fuel σ x :=
+    (freshTaggedWitSeq_sublist gates fuel σ x).subset he
+  rw [taggedRawWitSeq] at heraw
+  obtain ⟨block, hblock, heblock⟩ := List.mem_flatten.mp heraw
+  obtain ⟨g, rfl⟩ := List.mem_ofFn.mp hblock
+  obtain ⟨pc, hpc, rfl⟩ := List.mem_map.mp heblock
+  exact runWitSeq_termIdx_lt_length (gates g) (hnd g) fuel σ x hpc
+
+/-- The first `d` fresh keys, valued directly in the ragged family alphabet. -/
+def freshPrefixActualKeys {n G d : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) : List (ActualFamilyKey gates) :=
+  ((freshTaggedWitSeq gates fuel σ x).take d).attach.map fun e =>
+    ⟨e.1.1, ⟨e.1.2.2, freshTaggedWitSeq_termIdx_lt_gateLength gates hnd fuel σ x
+      ((List.take_sublist d _).subset e.2)⟩⟩
+
+theorem freshPrefixActualKeys_map_val {n G d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    (freshPrefixActualKeys (d := d) gates hnd fuel σ x).map
+        (fun q => (q.1, q.2.1)) =
+      ((freshTaggedWitSeq gates fuel σ x).take d).map taggedWitKey := by
+  rw [freshPrefixActualKeys, List.map_map]
+  change ((freshTaggedWitSeq gates fuel σ x).take d).attach.map
+      (fun e => taggedWitKey e.1) =
+    ((freshTaggedWitSeq gates fuel σ x).take d).map taggedWitKey
+  simpa using congrArg (List.map taggedWitKey)
+    (List.attach_map_subtype_val ((freshTaggedWitSeq gates fuel σ x).take d))
+
+/-- Optional multiset code over exactly the genuine family positions. -/
+def freshPrefixActualSymCode {n G d : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) : Option (Sym (ActualFamilyKey gates) d) :=
+  if hlong : d ≤ (freshTaggedWitSeq gates fuel σ x).length then
+    some (Sym.mk (freshPrefixActualKeys (d := d) gates hnd fuel σ x :
+      Multiset (ActualFamilyKey gates)) (by
+        simp [freshPrefixActualKeys, List.length_take, Nat.min_eq_left hlong]))
+  else none
+
+/-- Equality of ragged-alphabet multisets recovers the ordered prefix keys. -/
+theorem freshPrefixKeys_eq_of_actualSymCode_eq {n G d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshPrefixActualSymCode (d := d) gates hnd fuel ρ x =
+      freshPrefixActualSymCode (d := d) gates hnd fuel σ y) :
+    ((freshTaggedWitSeq gates fuel ρ x).take d).map taggedWitKey =
+      ((freshTaggedWitSeq gates fuel σ y).take d).map taggedWitKey := by
+  simp only [freshPrefixActualSymCode, dif_pos hlongρ, dif_pos hlongσ,
+    Option.some.injEq] at hcode
+  have hm := congrArg (fun s : Sym (ActualFamilyKey gates) d =>
+    (s : Multiset (ActualFamilyKey gates))) hcode
+  have hpermActual : List.Perm
+      (freshPrefixActualKeys (d := d) gates hnd fuel ρ x)
+      (freshPrefixActualKeys (d := d) gates hnd fuel σ y) :=
+    Multiset.coe_eq_coe.mp hm
+  have hperm := hpermActual.map (fun q => (q.1, q.2.1))
+  apply taggedKeySeq_eq_of_count_eq
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel ρ x).take
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel σ y).take
+  · intro k
+    rw [← freshPrefixActualKeys_map_val gates hnd fuel ρ x,
+      ← freshPrefixActualKeys_map_val gates hnd fuel σ y]
+    exact hperm.count_eq k
+
+/-- Position word plus the exact ragged-family key multiset. -/
+abbrev PrefixActualSymLabel {n : ℕ} (w d : ℕ) {G : ℕ}
+    (gates : Fin G → List (Clause n)) :=
+  (Fin d → Option (Fin w)) × Option (Sym (ActualFamilyKey gates) d)
+
+/-- The exact alphabet size is the sum of gate lengths, not `G * max_g length(g)`. -/
+theorem card_prefixActualSymLabel {n G : ℕ} (w d : ℕ)
+    (gates : Fin G → List (Clause n)) :
+    Fintype.card (PrefixActualSymLabel w d gates) =
+      (w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1) := by
+  simp [PrefixActualSymLabel, Fintype.card_prod, Sym.card_sym_eq_choose,
+    Fintype.card_sigma]
+
+/-- Concrete ragged-family realized-prefix label. -/
+def canonicalPrefixActualSymLabel {n G w d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    PrefixActualSymLabel w d gates :=
+  (freshPositionOptionCode (d := d) gates hw fuel σ x,
+    freshPrefixActualSymCode (d := d) gates hnd fuel σ x)
+
+/-- Ragged-family labels reconstruct the selected first-`d` variable set. -/
+theorem freshTaggedPrefixVars_eq_of_prefixActualSymLabel_eq {n G w d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hlabel : canonicalPrefixActualSymLabel (d := d) gates hnd hw fuel ρ x =
+      canonicalPrefixActualSymLabel (d := d) gates hnd hw fuel σ y) :
+    freshTaggedPrefixVars gates fuel ρ x d =
+      freshTaggedPrefixVars gates fuel σ y d := by
+  have hlongρ' : d ≤ (freshTaggedWitSeq gates fuel ρ x).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx]
+  have hlongσ' : d ≤ (freshTaggedWitSeq gates fuel σ y).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy]
+  have htake : (freshTaggedWitSeq gates fuel ρ x).take d =
+      (freshTaggedWitSeq gates fuel σ y).take d := by
+    apply taggedWitEntry_list_eq_of_key_pos
+    · exact freshPrefixKeys_eq_of_actualSymCode_eq gates hnd fuel ρ σ x y
+        hlongρ' hlongσ' (congrArg Prod.snd hlabel)
+    · exact freshPrefixPositions_eq_of_optionCode_eq gates hw fuel ρ σ x y
+        hlongρ' hlongσ' (congrArg Prod.fst hlabel)
+  simp only [freshTaggedPrefixVars]
+  rw [htake]
+
+/-- Long-path counting with the exact total-occurrence alphabet. -/
+theorem prefixActualSymCanonicalCommonLongPath_count {w d G : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    {Bad Short : Finset (Restriction n)}
+    (hext : ∀ ρ ∈ Bad, Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ Bad, d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length)
+    (hmem : ∀ ρ ∈ Bad,
+      freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d ∈ Short) :
+    Bad.card ≤ Short.card *
+      ((w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1)) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d)
+    (fun ρ => canonicalPrefixActualSymLabel (d := d) gates hnd hw fuel ρ
+      (assignment ρ))
+  · exact le_of_eq (card_prefixActualSymLabel w d gates)
+  · exact hmem
+  · intro ρ hρ σ hσ hE hlabel
+    apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel
+      (hext ρ hρ) (hext σ hσ) hE
+    exact freshTaggedPrefixVars_eq_of_prefixActualSymLabel_eq gates hnd hw fuel
+      ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
+      (hlong ρ hρ) (hlong σ hσ) hlabel
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
@@ -2007,6 +2248,9 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_take_eq_of_sparseCodes
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedPrefixVars_card_eq_of_le_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_freshTaggedPrefixEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_coordinateSetPrefixLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_coordinateSetLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.coordinateSetCanonicalCommonLongPath_count
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedPrefixVars_eq_of_sparsePrefixLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_sparseLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_endpoint_inj_of_sparseLabel
@@ -2021,3 +2265,4 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshPrefixKeys_eq_of_symCode_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_prefixSymLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixSymCanonicalCommonLongPath_count
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixActualSymCanonicalCommonLongPath_count

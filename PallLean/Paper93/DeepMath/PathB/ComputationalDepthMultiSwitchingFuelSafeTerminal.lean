@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingCommonSha
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SatRecovery
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingProcessedUnsat
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingBinomialRegime
+import Mathlib.Data.Fintype.BigOperators
 
 /-!
 # Fuel-safe terminal states for canonical DNF executions
@@ -383,6 +384,41 @@ theorem commonShallowBadAssignment_long_of_le_fuel {n G : ℕ}
     exact hKfuel
   · exact Nat.zero_lt_of_lt hdeep
 
+/-- On an ample-fuel shell, the actual canonical bad-assignment endpoints give an exact fiber
+partition of the bad event over the residual shell.  Thus subsequent estimates may sum genuine
+endpoint-local multiplicities instead of multiplying every endpoint by one global worst fiber. -/
+theorem commonShallowBadAssignment_endpointFiber_aggregate_exact
+    {n G fuel K d residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hKfuel : K ≤ fuel) :
+    (∑ τ ∈ (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d,
+        (commonShallowBadEndpointFiber gates fuel K d residualDepth
+          (commonShallowBadAssignment gates fuel K d residualDepth) τ).card) =
+      (commonShallowBad gates fuel K d residualDepth).card := by
+  apply commonShallowBadEndpointFiber_aggregate_exact
+  · intro ρ hρ
+    exact (commonShallowBadAssignment_spec hρ).1
+  · intro ρ hρ
+    exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
+
+/-- On an ample-fuel shell, the endpoint-local image of the exact ragged-prefix label is an exact
+weighted accounting of the semantic bad event.  This is the canonical specialization of
+`commonShallowBadEndpointLabelImage_aggregate_exact`; no global worst-fiber or ambient-label
+factor is introduced. -/
+theorem commonShallowBadAssignment_endpointLabelImage_aggregate_exact
+    {n G w fuel K d residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (∑ τ ∈ (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d,
+        (commonShallowBadEndpointLabelImage gates hnd hw fuel K d residualDepth
+          (commonShallowBadAssignment gates fuel K d residualDepth) τ).card) =
+      (commonShallowBad gates fuel K d residualDepth).card := by
+  apply commonShallowBadEndpointLabelImage_aggregate_exact hnd hw
+  · intro ρ hρ
+    exact (commonShallowBadAssignment_spec hρ).1
+  · intro ρ hρ
+    exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
+
 /-- The semantic sparse-prefix count now has no separate long-path premise on ample-fuel shells. -/
 theorem commonShallowBad_card_le_of_ample_fuel_sparse_prefix
     {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
@@ -426,6 +462,19 @@ theorem commonShallowBad_card_le_of_ample_fuel_prefix_sym
   intro ρ hρ
   exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
 
+/-- Ample-fuel shell count over the exact ragged family alphabet. -/
+theorem commonShallowBad_card_le_of_ample_fuel_prefix_actual_sym
+    {n G w d fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        ((w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1)) := by
+  apply commonShallowBad_card_le_of_semantic_prefix_actual_sym hnd hw
+  intro ρ hρ
+  exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
+
 /-- Hybrid ample-fuel count: use whichever of the per-query sparse code and dense multiplicity
 table is smaller for the concrete parameters.  Thus prefix-count compression never weakens the
 previous verified shell bound. -/
@@ -464,6 +513,65 @@ theorem commonShallowBad_card_le_of_ample_fuel_realized_hybrid
     apply le_min
     · exact commonShallowBad_card_le_of_ample_fuel_prefix_counts hnd hw hgate hKfuel
     · exact commonShallowBad_card_le_of_ample_fuel_prefix_sym hnd hw hgate hKfuel
+
+/-- Direct arithmetic gate from the exact realized-key multiset count to a scaled shell bound.
+Unlike `commonShallowBad_scaled_le_of_realized_density` below, this theorem does not replace the
+stars-and-bars factor by a word-space power.  It is therefore the interface for testing whether
+the factorial hidden in `choose (G*m+d-1) d` changes a concrete round recurrence. -/
+theorem commonShallowBad_scaled_le_of_realized_balance
+    {n G w d m fuel K residualDepth savingExponent : ℕ}
+    {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : K ≤ fuel)
+    (hbalance :
+      Nat.choose n (K - d) * 2 ^ (n - (K - d)) *
+            ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) *
+            2 ^ savingExponent ≤
+          Nat.choose n K * 2 ^ (n - K)) :
+    (commonShallowBad gates fuel K d residualDepth).card * 2 ^ savingExponent ≤
+      (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+  have hcount := commonShallowBad_card_le_of_ample_fuel_prefix_sym
+    (gates := gates) (w := w) (m := m) (d := d) (residualDepth := residualDepth)
+    hnd hw hgate hKfuel
+  have hscaled := Nat.mul_le_mul_right (2 ^ savingExponent) hcount
+  calc
+    (commonShallowBad gates fuel K d residualDepth).card * 2 ^ savingExponent ≤
+        (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+          ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) *
+          2 ^ savingExponent := hscaled
+    _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+      rw [card_stars_eq (N := n) (K := K - d), card_stars_eq (N := n) (K := K)]
+      exact hbalance
+
+/-- Direct scaled-shell interface for the exact ragged family alphabet.  Unlike the rectangular
+version above, the stars-and-bars factor charges only genuine clause occurrences. -/
+theorem commonShallowBad_scaled_le_of_actual_balance
+    {n G w d fuel K residualDepth savingExponent : ℕ}
+    {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel)
+    (hbalance :
+      Nat.choose n (K - d) * 2 ^ (n - (K - d)) *
+            ((w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1)) *
+            2 ^ savingExponent ≤
+          Nat.choose n K * 2 ^ (n - K)) :
+    (commonShallowBad gates fuel K d residualDepth).card * 2 ^ savingExponent ≤
+      (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+  have hcount := commonShallowBad_card_le_of_ample_fuel_prefix_actual_sym
+    (gates := gates) (w := w) (d := d) (residualDepth := residualDepth)
+    hnd hw hKfuel
+  have hscaled := Nat.mul_le_mul_right (2 ^ savingExponent) hcount
+  calc
+    (commonShallowBad gates fuel K d residualDepth).card * 2 ^ savingExponent ≤
+        (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+          ((w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1)) *
+          2 ^ savingExponent := hscaled
+    _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+      rw [card_stars_eq (N := n) (K := K - d), card_stars_eq (N := n) (K := K)]
+      exact hbalance
 
 /-- If the trunk budget covers every live variable and fuel is ample, the canonical prefix trunk
 already leaves every member residual at depth zero. -/
@@ -613,6 +721,274 @@ theorem sparsePrefix_balance_of_density
     _ ≤ 2 ^ (n - K) * n.choose K := Nat.mul_le_mul_left _ hbin'
     _ = n.choose K * 2 ^ (n - K) := by ring
 
+/-! ### Exact realized-prefix shell audit
+
+The symmetric-power label is a quotient of the corresponding word space.  This elementary
+observation retains the exact stars-and-bars count in the bad-event theorem while giving a clean
+power bound for shell arithmetic.  Compared with the sparse word label, it removes the transcript,
+the `d+1` length code, and two powers of two from the density base. -/
+
+/-- The total optional stars-and-bars code fits in a word over an alphabet enlarged by one symbol.
+The positivity hypothesis is necessary: at `d = 0` the optional code has two elements. -/
+theorem prefixSymCode_le_pow (A d : ℕ) (hd : 0 < d) :
+    (A + d - 1).choose d + 1 ≤ (A + 1) ^ d := by
+  have hcard : Fintype.card (Sym (Fin A) d) ≤
+      Fintype.card (List.Vector (Fin A) d) := by
+    apply Fintype.card_le_of_surjective Sym.ofVector
+    intro s
+    refine ⟨⟨s.1.toList, ?_⟩, ?_⟩
+    · rw [Multiset.length_toList, s.2]
+    · apply Sym.ext
+      exact Multiset.coe_toList s.1
+  rw [card_vector] at hcard
+  simp only [Fintype.card_fin] at hcard
+  have hsym := Sym.card_sym_eq_choose (α := Fin A) d
+  simp only [Fintype.card_fin] at hsym
+  rw [← hsym]
+  calc
+    Fintype.card (Sym (Fin A) d) + 1 ≤ A ^ d + 1 := Nat.add_le_add_right hcard 1
+    _ = A ^ d + 1 ^ d := by simp
+    _ ≤ (A + 1) ^ d :=
+      pow_add_pow_le (by positivity) (by positivity) (Nat.ne_of_gt hd)
+
+/-- A sharp obstruction before any quotient-to-word estimate is used.  At trunk depth one with
+one bit of requested saving, the exact stars-and-bars balance forces
+`4*(w+1)*(A+1) ≤ n`.  It is therefore false whenever the key alphabet `A` is already at least the
+ambient live dimension.  This rules out a uniform all-shell repair from the factorial alone, but
+does not decide the proportional-depth (`d ≍ K`) balance used by the scheduled half-shell round. -/
+theorem not_realizedPrefix_exact_balance_one_of_live_le_keys
+    {n A w : ℕ} (hn : 0 < n) (hle : n ≤ A) :
+    ¬(Nat.choose n (1 - 1) * 2 ^ (n - (1 - 1)) *
+          ((w + 1) ^ 1 * ((A + 1 - 1).choose 1 + 1)) * 2 ^ 1 ≤
+        Nat.choose n 1 * 2 ^ (n - 1)) := by
+  intro h
+  simp only [Nat.sub_self, Nat.choose_zero_right, Nat.sub_zero, pow_one,
+    Nat.add_sub_cancel, Nat.choose_one_right] at h
+  have hp : 0 < 2 ^ (n - 1) := by positivity
+  have hpow : 2 ^ n = 2 ^ (n - 1) * 2 := by
+    calc
+      2 ^ n = 2 ^ (n - 1 + 1) := by congr 1; omega
+      _ = 2 ^ (n - 1) * 2 := by rw [pow_succ]
+  rw [hpow] at h
+  have hc : (2 ^ (n - 1)) * (4 * (w + 1) * (A + 1)) ≤
+      (2 ^ (n - 1)) * n := by
+    convert h using 1 <;> ring
+  have hsmall : 4 * (w + 1) * (A + 1) ≤ n :=
+    Nat.le_of_mul_le_mul_left hc hp
+  nlinarith
+
+/-- The exact quotient does not repair the self-referential key regime at proportional depth
+either.  At `K = 2*r`, `d = r`, and saving exponent `r`, the unrelaxed balance is impossible as
+soon as the shell is nonempty and the ambient dimension is at most the key alphabet.  The proof
+uses the two binomial factors directly: `choose n (2*r) ≤ (choose n r)^2`, while the
+stars-and-bars factor is already at least `choose n r`. -/
+theorem not_realizedPrefix_exact_balance_half_of_live_le_keys
+    {n A w r : ℕ} (hr : 0 < r) (h2rn : 2 * r ≤ n) (hle : n ≤ A) :
+    ¬(Nat.choose n (2 * r - r) * 2 ^ (n - (2 * r - r)) *
+          ((w + 1) ^ r * ((A + r - 1).choose r + 1)) * 2 ^ r ≤
+        Nat.choose n (2 * r) * 2 ^ (n - 2 * r)) := by
+  intro h
+  have hsub : 2 * r - r = r := by omega
+  rw [hsub] at h
+  have hexp : n - r = (n - 2 * r) + r := by omega
+  rw [hexp, pow_add] at h
+  have hp : 0 < 2 ^ (n - 2 * r) := by positivity
+  have hc : n.choose r *
+        (2 ^ (2 * r) * ((w + 1) ^ r * ((A + r - 1).choose r + 1))) ≤
+      n.choose (2 * r) := by
+    apply Nat.le_of_mul_le_mul_left _ hp
+    convert h using 1 <;> ring
+  have hAr : n ≤ A + r - 1 := by omega
+  have hlabel : n.choose r ≤ (A + r - 1).choose r :=
+    Nat.choose_le_choose r hAr
+  have hchoose : n.choose (2 * r) ≤ n.choose r * n.choose r := by
+    have hmul := Nat.choose_mul (n := n) (k := 2 * r) (s := r) (by omega)
+    have hcentral : 0 < (2 * r).choose r := Nat.choose_pos (by omega)
+    have hstep : n.choose (2 * r) ≤ n.choose r * (n - r).choose r := by
+      apply Nat.le_of_mul_le_mul_left _ hcentral
+      calc
+        (2 * r).choose r * n.choose (2 * r) =
+            n.choose (2 * r) * (2 * r).choose r := by ring
+        _ = n.choose r * (n - r).choose r := by simpa [hsub] using hmul
+        _ ≤ (2 * r).choose r * (n.choose r * (n - r).choose r) := by
+          exact Nat.le_mul_of_pos_left _ hcentral
+    exact hstep.trans (Nat.mul_le_mul_left _
+      (Nat.choose_le_choose r (Nat.sub_le n r)))
+  have hnr : 0 < n.choose r := Nat.choose_pos (by omega)
+  have htwo : 2 ≤ 2 ^ (2 * r) := by
+    calc
+      2 = 2 ^ 1 := by simp
+      _ ≤ 2 ^ (2 * r) := Nat.pow_le_pow_right (by norm_num) (by omega)
+  have hstrict : n.choose r * n.choose r <
+      n.choose r *
+        (2 ^ (2 * r) * ((w + 1) ^ r * ((A + r - 1).choose r + 1))) := by
+    apply Nat.mul_lt_mul_of_pos_left _ hnr
+    have hwpos : 0 < (w + 1) ^ r := by positivity
+    have hlabelStrict : n.choose r < (A + r - 1).choose r + 1 :=
+      lt_of_le_of_lt hlabel (Nat.lt_succ_self _)
+    calc
+      n.choose r < (w + 1) ^ r * ((A + r - 1).choose r + 1) := by
+        exact lt_of_lt_of_le hlabelStrict (Nat.le_mul_of_pos_left _ hwpos)
+      _ < 2 ^ (2 * r) * ((w + 1) ^ r * ((A + r - 1).choose r + 1)) := by
+        simpa only [one_mul] using Nat.mul_lt_mul_of_pos_right
+          (lt_of_lt_of_le Nat.one_lt_two htwo)
+          (show 0 < (w + 1) ^ r * ((A + r - 1).choose r + 1) by positivity)
+  exact (Nat.not_lt_of_ge hc) (hchoose.trans_lt hstrict)
+
+/-- Necessary ambient bound for the exact proportional half-shell balance. -/
+theorem realizedPrefix_exact_balance_half_keys_lt_live
+    {n A w r : ℕ} (hr : 0 < r) (h2rn : 2 * r ≤ n)
+    (hbalance :
+      Nat.choose n (2 * r - r) * 2 ^ (n - (2 * r - r)) *
+            ((w + 1) ^ r * ((A + r - 1).choose r + 1)) * 2 ^ r ≤
+          Nat.choose n (2 * r) * 2 ^ (n - 2 * r)) :
+    A < n := by
+  apply Nat.lt_of_not_ge
+  intro hle
+  exact not_realizedPrefix_exact_balance_half_of_live_le_keys hr h2rn hle hbalance
+
+/-- Including the downward-shell factor and a saving exponent `e ≤ d`, the realized-prefix label
+has exponential base `4 (w+1)(A+1)`. -/
+theorem realizedPrefix_factor_le_pow {d e w A : ℕ} (hd : 0 < d) (he : e ≤ d) :
+    2 ^ d * ((w + 1) ^ d * ((A + d - 1).choose d + 1)) * 2 ^ e ≤
+      (4 * ((w + 1) * (A + 1))) ^ d := by
+  have hsym := prefixSymCode_le_pow A d hd
+  have hsave : 2 ^ e ≤ 2 ^ d := Nat.pow_le_pow_right (by norm_num) he
+  calc
+    2 ^ d * ((w + 1) ^ d * ((A + d - 1).choose d + 1)) * 2 ^ e ≤
+        2 ^ d * ((w + 1) ^ d * (A + 1) ^ d) * 2 ^ d := by gcongr
+    _ = (4 * ((w + 1) * (A + 1))) ^ d := by
+      rw [show 4 * ((w + 1) * (A + 1)) =
+        2 * 2 * (w + 1) * (A + 1) by ring]
+      simp only [mul_pow]
+      ring
+
+/-- Exact stars-and-bars shell balance in a concrete low-density regime, parameterized by the
+actual alphabet cardinality `A`. -/
+theorem realizedPrefix_balance_of_actual_density
+    {n w A K d savingNum savingDen : ℕ}
+    (hdpos : 0 < d) (hdK : d ≤ K) (hKn : K ≤ n)
+    (hsave : (savingNum * K) / savingDen ≤ d)
+    (hdensity : (4 * ((w + 1) * (A + 1))) * K + K ≤ n + 1) :
+    Nat.choose n (K - d) * 2 ^ (n - (K - d)) *
+          ((w + 1) ^ d * ((A + d - 1).choose d + 1)) *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        Nat.choose n K * 2 ^ (n - K) := by
+  have hfactor := realizedPrefix_factor_le_pow
+    (d := d) (e := (savingNum * K) / savingDen) (w := w) (A := A) hdpos hsave
+  have hbin := binomial_ratio_regime
+    (w := (w + 1) * (A + 1)) hdK hdensity
+  have hexp : n - (K - d) = n - K + d := by omega
+  rw [hexp, pow_add]
+  calc
+    n.choose (K - d) * (2 ^ (n - K) * 2 ^ d) *
+          ((w + 1) ^ d * ((A + d - 1).choose d + 1)) *
+          2 ^ (savingNum * K / savingDen) =
+        2 ^ (n - K) * n.choose (K - d) *
+          (2 ^ d * ((w + 1) ^ d * ((A + d - 1).choose d + 1)) *
+            2 ^ (savingNum * K / savingDen)) := by ring
+    _ ≤ 2 ^ (n - K) * n.choose (K - d) *
+          (4 * ((w + 1) * (A + 1))) ^ d := by gcongr
+    _ = 2 ^ (n - K) *
+          ((4 * ((w + 1) * (A + 1))) ^ d * n.choose (K - d)) := by ring
+    _ ≤ 2 ^ (n - K) * n.choose K := Nat.mul_le_mul_left _ hbin
+    _ = n.choose K * 2 ^ (n - K) := by ring
+
+/-- Rectangular corollary retained for callers that only know a uniform per-gate length bound. -/
+theorem realizedPrefix_balance_of_density
+    {n G w m K d savingNum savingDen : ℕ}
+    (hdpos : 0 < d) (hdK : d ≤ K) (hKn : K ≤ n)
+    (hsave : (savingNum * K) / savingDen ≤ d)
+    (hdensity : (4 * ((w + 1) * (G * m + 1))) * K + K ≤ n + 1) :
+    Nat.choose n (K - d) * 2 ^ (n - (K - d)) *
+          ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        Nat.choose n K * 2 ^ (n - K) :=
+  realizedPrefix_balance_of_actual_density hdpos hdK hKn hsave hdensity
+
+/-- One-shell contraction obtained by combining the ample-fuel realized-prefix count with the
+audited stars-and-bars balance. -/
+theorem commonShallowBad_scaled_le_of_realized_density
+    {n G w d m fuel K residualDepth savingNum savingDen : ℕ}
+    {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : K ≤ fuel) (hdpos : 0 < d) (hdK : d ≤ K) (hKn : K ≤ n)
+    (hsave : (savingNum * K) / savingDen ≤ d)
+    (hdensity : (4 * ((w + 1) * (G * m + 1))) * K + K ≤ n + 1) :
+    (commonShallowBad gates fuel K d residualDepth).card *
+        2 ^ ((savingNum * K) / savingDen) ≤
+      (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+  have hcount := commonShallowBad_card_le_of_ample_fuel_prefix_sym
+    (gates := gates) (w := w) (m := m) (d := d) (residualDepth := residualDepth)
+    hnd hw hgate hKfuel
+  have hscaled := Nat.mul_le_mul_right (2 ^ ((savingNum * K) / savingDen)) hcount
+  calc
+    (commonShallowBad gates fuel K d residualDepth).card *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+          ((w + 1) ^ d * ((G * m + d - 1).choose d + 1)) *
+          2 ^ ((savingNum * K) / savingDen) := hscaled
+    _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+      rw [card_stars_eq (N := n) (K := K - d), card_stars_eq (N := n) (K := K)]
+      exact realizedPrefix_balance_of_density hdpos hdK hKn hsave hdensity
+
+/-- One-shell contraction charging the exact total number of clause occurrences in a ragged
+family, rather than a rectangular `G*m` envelope. -/
+theorem commonShallowBad_scaled_le_of_actual_density
+    {n G w d fuel K residualDepth savingNum savingDen : ℕ}
+    {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) (hdpos : 0 < d) (hdK : d ≤ K) (hKn : K ≤ n)
+    (hsave : (savingNum * K) / savingDen ≤ d)
+    (hdensity :
+      (4 * ((w + 1) * ((∑ g, (gates g).length) + 1))) * K + K ≤ n + 1) :
+    (commonShallowBad gates fuel K d residualDepth).card *
+        2 ^ ((savingNum * K) / savingDen) ≤
+      (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+  apply commonShallowBad_scaled_le_of_actual_balance hnd hw hKfuel
+  exact realizedPrefix_balance_of_actual_density hdpos hdK hKn hsave hdensity
+
+/-- In the concrete growing-family scale `n = 1000 (G*m) r`, the realized-prefix encoder already
+supports a genuinely half-shell trunk and a `2^(10*r)` saving.  Thus growth of `G*m` is absorbed by
+the ambient dimension in this regime; no factorial refinement is needed for this one-shell bound. -/
+theorem commonShallowBad_scaled_le_linearGap_realized
+    {G m r fuel residualDepth : ℕ}
+    {gates : Fin G → List (Clause (1000 * (G * m) * r))}
+    (hG : 0 < G) (hm : 0 < m) (hr : 0 < r)
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ 2)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : 20 * r ≤ fuel) :
+    (commonShallowBad gates fuel (20 * r) (10 * r) residualDepth).card *
+        2 ^ (10 * r) ≤
+      (Finset.univ.filter fun σ : Restriction (1000 * (G * m) * r) ↦
+        stars σ = 20 * r).card := by
+  have hA : 0 < G * m := Nat.mul_pos hG hm
+  have hrA : r ≤ (G * m) * r := by
+    calc
+      r = 1 * r := by simp
+      _ ≤ (G * m) * r := Nat.mul_le_mul_right r hA
+  have hdpos : 0 < 10 * r := by omega
+  have hdK : 10 * r ≤ 20 * r := by omega
+  have hKn : 20 * r ≤ 1000 * (G * m) * r := by
+    have : 20 ≤ 1000 * (G * m) := by nlinarith
+    exact Nat.mul_le_mul_right r this
+  have hsave : (1 * (20 * r)) / 2 ≤ 10 * r := by omega
+  have hdensity :
+      (4 * ((2 + 1) * (G * m + 1))) * (20 * r) + 20 * r ≤
+        1000 * (G * m) * r + 1 := by
+    norm_num
+    nlinarith
+  have hbound := commonShallowBad_scaled_le_of_realized_density
+    (d := 10 * r) (w := 2) (residualDepth := residualDepth)
+    (savingNum := 1) (savingDen := 2)
+    hnd hw hgate hKfuel hdpos hdK hKn hsave hdensity
+  have hhalf : (20 * r) / 2 = 10 * r := by omega
+  simpa [hhalf] using hbound
+
 /-- A positive shell contraction theorem with the arithmetic balance discharged.  Its remaining
 quantitative assumptions are explicit: the saving exponent fits within the trunk, and every
 nontrivial shell lies in the sparse-density regime dictated by the current encoder base. -/
@@ -682,9 +1058,12 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_pathEndpoint_terminal
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_deep_prefix_implies_long_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_long_of_le_fuel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_endpointFiber_aggregate_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_endpointLabelImage_aggregate_exact
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_sparse_prefix
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_counts
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_sym
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_actual_sym
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_hybrid_prefix
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_realized_hybrid
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_zero_of_stars_le_fuel_le_trunk
@@ -692,5 +1071,17 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparsePrefix_factor_le_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparsePrefix_balance_of_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_realized_balance
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_actual_balance
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixSymCode_le_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_realizedPrefix_exact_balance_one_of_live_le_keys
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_realizedPrefix_exact_balance_half_of_live_le_keys
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.realizedPrefix_exact_balance_half_keys_lt_live
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.realizedPrefix_factor_le_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.realizedPrefix_balance_of_actual_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.realizedPrefix_balance_of_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_realized_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_actual_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_linearGap_realized
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_densityAdaptive

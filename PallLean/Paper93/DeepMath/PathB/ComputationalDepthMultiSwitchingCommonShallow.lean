@@ -19,6 +19,17 @@ open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 def RestrictionExtends {n : ℕ} (σ τ : Restriction n) : Prop :=
   ∀ v b, σ v = some b → τ v = some b
 
+/-- Extending a restriction can only consume live variables.  This is the fuel invariant needed
+when a common-shallow leaf is used as the root of a later switching round. -/
+theorem stars_le_of_restrictionExtends {n : ℕ} {σ τ : Restriction n}
+    (h : RestrictionExtends σ τ) : stars τ ≤ stars σ := by
+  apply Finset.card_le_card
+  intro v hv
+  rw [mem_freeVars] at hv ⊢
+  cases hσ : σ v with
+  | none => rfl
+  | some b => rw [h v b hσ] at hv; simp at hv
+
 /-- A real common switching certificate.  Its leaves are residual restrictions, not merely vectors
 of gate values.  Every reached restriction extends the root, agrees with the followed assignment,
 and makes every residual canonical gate tree shallow. -/
@@ -30,6 +41,33 @@ def CommonShallowAt {n G : ℕ} (gates : Fin G → List (Clause n))
       RestrictionExtends σ (CommonTree.run trunk x) ∧
       Rung4Restriction.Extends (CommonTree.run trunk x) x ∧
       ∀ g, (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth ≤ residualDepth
+
+/-- Every leaf restriction certified by `CommonShallowAt` has no more live variables than its
+root.  In particular, a fuel budget ample for the current shell remains ample at every leaf. -/
+theorem CommonShallowAt.leaf_stars_le {n G : ℕ} {gates : Fin G → List (Clause n)}
+    {fuel : ℕ} {σ : Restriction n} {trunkDepth residualDepth : ℕ}
+    (h : CommonShallowAt gates fuel σ trunkDepth residualDepth)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends σ x) :
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      stars (CommonTree.run trunk x) ≤ stars σ ∧
+      ∀ g, (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth ≤ residualDepth := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  obtain ⟨hext, _hagree, hshallow⟩ := hleaf x hx
+  exact ⟨trunk, hdepth, stars_le_of_restrictionExtends hext, hshallow⟩
+
+/-- Ample fuel is preserved at every common-shallow leaf. -/
+theorem CommonShallowAt.leaf_stars_le_fuel {n G : ℕ} {gates : Fin G → List (Clause n)}
+    {fuel : ℕ} {σ : Restriction n} {trunkDepth residualDepth : ℕ}
+    (h : CommonShallowAt gates fuel σ trunkDepth residualDepth)
+    (hfuel : stars σ ≤ fuel) (x : Fin n → Bool)
+    (hx : Rung4Restriction.Extends σ x) :
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      stars (CommonTree.run trunk x) ≤ fuel ∧
+      ∀ g, (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth ≤ residualDepth := by
+  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_stars_le x hx
+  exact ⟨trunk, hdepth, hstars.trans hfuel, hshallow⟩
 
 /-- `CSD_s`: the common-shallow-depth event at residual threshold `s`.
 
@@ -150,6 +188,117 @@ theorem commonShallowBad_subset_shell {n G : ℕ} {gates : Fin G → List (Claus
   intro σ hσ
   rw [mem_commonShallowBad] at hσ
   simp [hσ.1]
+
+/-- Bad roots whose chosen budget-`d` fresh-prefix endpoint is exactly `τ`.  Keeping the
+assignment explicit makes the partition usable both for the canonical semantic witness and for
+other endpoint-selection rules. -/
+noncomputable def commonShallowBadEndpointFiber {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel K d residualDepth : ℕ)
+    (assignment : Restriction n → (Fin n → Bool)) (τ : Restriction n) :
+    Finset (Restriction n) := by
+  classical
+  exact (commonShallowBad gates fuel K d residualDepth).filter fun ρ =>
+    freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d = τ
+
+/-- The endpoint fibers of any extending, genuinely length-`d` bad-root assignment partition the
+bad event exactly over the residual `(K-d)` shell.  This is the restriction-valued analogue of
+the independent-coordinate aggregate identity: no worst endpoint multiplicity is introduced. -/
+theorem commonShallowBadEndpointFiber_aggregate_exact
+    {n G fuel K d residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (assignment : Restriction n → (Fin n → Bool))
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (assignment ρ)).length) :
+    (∑ τ ∈ (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d,
+        (commonShallowBadEndpointFiber gates fuel K d residualDepth assignment τ).card) =
+      (commonShallowBad gates fuel K d residualDepth).card := by
+  classical
+  let endpoint : Restriction n → Restriction n := fun ρ =>
+    freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d
+  have hmaps :
+      ((commonShallowBad gates fuel K d residualDepth : Finset (Restriction n)) :
+          Set (Restriction n)).MapsTo endpoint
+        ((Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d) := by
+    intro ρ hρ
+    change endpoint ρ ∈
+      (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d
+    rw [Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    rw [show endpoint ρ = freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d by rfl,
+      stars_freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d (hext ρ hρ),
+      (mem_commonShallowBad.mp hρ).1,
+      freshTaggedPrefixVars_card_eq_of_le_trace gates fuel ρ (assignment ρ) d
+        (hext ρ hρ) (hlong ρ hρ)]
+  change (∑ τ ∈ (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d,
+      ((commonShallowBad gates fuel K d residualDepth).filter fun ρ =>
+        endpoint ρ = τ).card) = (commonShallowBad gates fuel K d residualDepth).card
+  exact (Finset.card_eq_sum_card_fiberwise hmaps).symm
+
+/-- The exact ragged-prefix labels that are actually realized by bad roots in one endpoint
+fiber.  Unlike the ambient `PrefixActualSymLabel` type, this image retains the correlation between
+the semantic bad event, its endpoint, and the canonical prefix selected at that root. -/
+noncomputable def commonShallowBadEndpointLabelImage {n G w : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel K d residualDepth : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    (τ : Restriction n) : Finset (PrefixActualSymLabel w d gates) := by
+  classical
+  exact (commonShallowBadEndpointFiber gates fuel K d residualDepth assignment τ).image
+    fun ρ => canonicalPrefixActualSymLabel (d := d) gates hnd hw fuel ρ (assignment ρ)
+
+/-- On genuinely length-`d` extending witnesses, the realized label image in each fixed endpoint
+fiber has exactly the fiber's cardinality.  Endpoint equality plus equality of realized labels
+reconstructs the root restriction. -/
+theorem commonShallowBadEndpointLabelImage_card {n G w fuel K d residualDepth : ℕ}
+    {gates : Fin G → List (Clause n)} (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (assignment : Restriction n → (Fin n → Bool))
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (assignment ρ)).length)
+    (τ : Restriction n) :
+    (commonShallowBadEndpointLabelImage gates hnd hw fuel K d residualDepth
+      assignment τ).card =
+      (commonShallowBadEndpointFiber gates fuel K d residualDepth assignment τ).card := by
+  classical
+  rw [commonShallowBadEndpointLabelImage, Finset.card_image_of_injOn]
+  intro ρ hρ σ hσ hlabel
+  have hρ' : ρ ∈ commonShallowBadEndpointFiber gates fuel K d residualDepth assignment τ := hρ
+  have hσ' : σ ∈ commonShallowBadEndpointFiber gates fuel K d residualDepth assignment τ := hσ
+  rw [commonShallowBadEndpointFiber, Finset.mem_filter] at hρ' hσ'
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel
+    (hext ρ hρ'.1) (hext σ hσ'.1) (hρ'.2.trans hσ'.2.symm)
+  exact freshTaggedPrefixVars_eq_of_prefixActualSymLabel_eq gates hnd hw fuel
+    ρ σ (assignment ρ) (assignment σ) (hext ρ hρ'.1) (hext σ hσ'.1)
+    (hlong ρ hρ'.1) (hlong σ hσ'.1) hlabel
+
+/-- Endpoint-local realized-label accounting is an exact weighted partition of the semantic bad
+event.  This replaces the former product of the residual-shell size with one worst-case ambient
+label cardinality by the sum of the actual label images realized at each endpoint. -/
+theorem commonShallowBadEndpointLabelImage_aggregate_exact
+    {n G w fuel K d residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (assignment : Restriction n → (Fin n → Bool))
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (assignment ρ)).length) :
+    (∑ τ ∈ (Finset.univ : Finset (Restriction n)).filter fun τ => stars τ = K - d,
+        (commonShallowBadEndpointLabelImage gates hnd hw fuel K d residualDepth
+          assignment τ).card) =
+      (commonShallowBad gates fuel K d residualDepth).card := by
+  rw [Finset.sum_congr rfl fun τ _ =>
+    commonShallowBadEndpointLabelImage_card hnd hw assignment hext hlong τ]
+  exact commonShallowBadEndpointFiber_aggregate_exact assignment hext hlong
 
 /-- Allowing a deeper trunk or deeper residual gates can only shrink the bad event. -/
 theorem commonShallowBad_mono {n G : ℕ} {gates : Fin G → List (Clause n)}
@@ -393,6 +542,37 @@ theorem commonShallowBad_card_le_of_semantic_prefix_sym
     exact (commonShallowBadAssignment_spec hρ).1
   · exact hlong
 
+/-- Realized-support count over the exact ragged family alphabet.  This replaces the rectangular
+`G*m` charge by the total number of actual term occurrences. -/
+theorem commonShallowBad_card_le_of_semantic_prefix_actual_sym
+    {n G w d fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (commonShallowBadAssignment gates fuel K d residualDepth ρ)).length) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        ((w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1)) := by
+  have hmem : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      freshTaggedPrefixEndpoint gates fuel ρ
+        (commonShallowBadAssignment gates fuel K d residualDepth ρ) d ∈
+          Finset.univ.filter fun τ : Restriction n => stars τ = K - d := by
+    intro ρ hρ
+    rw [Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    rw [stars_freshTaggedPrefixEndpoint gates fuel ρ
+      (commonShallowBadAssignment gates fuel K d residualDepth ρ) d
+      (commonShallowBadAssignment_spec hρ).1,
+      (mem_commonShallowBad.mp hρ).1,
+      freshTaggedPrefixVars_card_eq_of_le_trace gates fuel ρ
+        (commonShallowBadAssignment gates fuel K d residualDepth ρ) d
+        (commonShallowBadAssignment_spec hρ).1 (hlong ρ hρ)]
+  exact prefixActualSymCanonicalCommonLongPath_count gates hnd hw fuel
+    (commonShallowBadAssignment gates fuel K d residualDepth)
+    (fun ρ hρ => (commonShallowBadAssignment_spec hρ).1) hlong hmem
+
 /-- The target explicitly implies the corresponding unnormalized bad-shell cardinality bound. -/
 theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
     {gates : Fin G → List (Clause n)} {fuel residualDepth : ℕ}
@@ -407,10 +587,16 @@ theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_le_of_restrictionExtends
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_of_prefix_residual
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_deep_prefix_residual_of_not_commonShallowAt
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_spec
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_subset_shell
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadEndpointFiber_aggregate_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadEndpointLabelImage_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadEndpointLabelImage_aggregate_exact
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_exact_path_encoder
@@ -421,4 +607,5 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_semantic_prefix_counts
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_prefix_sym
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_semantic_prefix_sym
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_semantic_prefix_actual_sym
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_contraction
