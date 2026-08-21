@@ -11,6 +11,7 @@ Affected Lean modules:
 - `ComputationalDepthMultiSwitchingWitnessLabel.lean`
 - `ComputationalDepthMultiSwitchingCommonShallow.lean`
 - `ComputationalDepthMultiSwitchingCompactLabelCounterexample.lean`
+- `ComputationalDepthMultiSwitchingResidualFuelCounterexample.lean`
 
 The normalized common path now has an explicit endpoint
 
@@ -68,6 +69,14 @@ when the full path is longer (`freshTaggedWitSeq_take_eq_of_sparseCodes`).  Cons
 `commonShallowBad_card_le_of_sparse_prefix` are concrete injective counts: there is no residual
 label-reconstruction or prefix-variable-equality premise.
 
+The semantic failure event now has a concrete witness extraction.  The canonical
+`prefixEndpoints` tree preserves the root restriction and is a valid `CommonShallowAt` certificate
+whenever all reached residual gates are shallow (`commonShallowAt_of_prefix_residual`).  Therefore a
+failure supplies an extending assignment and a gate that is still too deep at its reached prefix
+restriction (`exists_deep_prefix_residual_of_not_commonShallowAt`).  `commonShallowBadAssignment`
+chooses these witnesses uniformly, and `commonShallowBad_card_le_of_semantic_sparse_prefix` reduces
+the count to the single question of whether this chosen execution has at least `d` fresh queries.
+
 All printed axiom sets for these capstones are subsets of
 `{propext, Classical.choice, Quot.sound}`.  There is no `sorry`, `admit`, custom axiom, or
 `native_decide` in the affected modules.
@@ -80,6 +89,13 @@ queried variable set.  The one-term DNF `¬x₀ ∧ ¬x₁` gives two distinct r
 boundary data and endpoint but different `pathVars`.  This refutes the position-free compact-label
 route; the literal-position stream is necessary for the present canonical reconstruction.
 
+`ComputationalDepthMultiSwitchingResidualFuelCounterexample.lean` falsifies the tempting next
+inference “a deep rebuilt residual after a budget-`d` prefix implies a length-`d` common trace.”  For
+the DNF `x₀ ∧ x₁` with fuel one and budget two, the family tree asks only `x₀` before its recursive
+fuel reaches zero, but rebuilding the residual with the original fuel asks `x₁` and has positive
+depth.  Thus the current same-fuel residual semantics can stop early for fuel exhaustion, not only
+because the gate is semantically resolved.
+
 ## Exact remaining frontier
 
 The current sparse count is an honest finite counting theorem, but it is not yet the quantitative
@@ -88,11 +104,11 @@ multi-switching lemma:
 1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
-2. The remaining semantic premise is to extract, from every failure of `CommonShallowAt`, an
-   extending assignment whose canonical-family trace has length at least `d`.  The exact `K-d`
-   endpoint and its concrete label reconstruction are now discharged once such an assignment is
-   supplied.  This implication must be proved from the residual-depth failure semantics; it is not
-   assumed to follow merely from the bad-event definition.
+2. Repair the fuel mismatch exposed by the retained counterexample.  Defensible options are to prove
+   a terminal-stability theorem under an ample-fuel hypothesis such as `K ≤ fuel`, or to thread the
+   remaining fuel through common-tree leaf payloads and define residual depth using that remainder.
+   Without one of these changes, deep residual witnesses do not supply the long traces consumed by
+   the encoder.
 3. Convert the resulting shorter-shell count into a positive proportional shell contraction with
    parameters strong enough for iteration.  `commonShallowShellContraction_zero` still records that
    zero saving gives no iteration credit.

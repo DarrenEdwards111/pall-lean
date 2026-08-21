@@ -40,6 +40,54 @@ abbrev CSD_s {n G : ℕ} (gates : Fin G → List (Clause n))
     (fuel : ℕ) (σ : Restriction n) (d s : ℕ) : Prop :=
   CommonShallowAt gates fuel σ d s
 
+/-- The restriction stored at a canonical prefix leaf preserves every value fixed at the root. -/
+theorem prefixEndpoint_restrictionExtends {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (budget : ℕ) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    RestrictionExtends σ (CommonTree.run (CommonTree.prefixEndpoints σ t budget) x) := by
+  rw [CommonTree.run_prefixEndpoints]
+  intro v b hv
+  simp only [fixOn]
+  split
+  · next hmem => simpa [hext v b hv]
+  · exact hv
+
+/-- The canonical prefix trunk is a `CommonShallowAt` certificate as soon as all of its reached
+restrictions have the requested residual gate-depth bound. -/
+theorem commonShallowAt_of_prefix_residual {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (trunkDepth residualDepth : ℕ)
+    (hresidual : ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x → ∀ g,
+      (canonicalDT (gates g) fuel
+        (CommonTree.run (CommonTree.prefixEndpoints σ
+          (canonicalFamilyTree gates fuel σ) trunkDepth) x)).depth ≤ residualDepth) :
+    CommonShallowAt gates fuel σ trunkDepth residualDepth := by
+  refine ⟨CommonTree.prefixEndpoints σ (canonicalFamilyTree gates fuel σ) trunkDepth,
+    CommonTree.depth_prefixEndpoints_le σ _ trunkDepth, ?_⟩
+  intro x hx
+  exact ⟨prefixEndpoint_restrictionExtends σ _ trunkDepth x hx,
+    CommonTree.run_prefixEndpoints_extends σ _ trunkDepth x hx,
+    hresidual x hx⟩
+
+/-- Failure of common shallowness is witnessed at the canonical prefix trunk by an extending
+assignment and a gate whose residual canonical tree is still too deep. -/
+theorem exists_deep_prefix_residual_of_not_commonShallowAt {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (trunkDepth residualDepth : ℕ)
+    (hbad : ¬CommonShallowAt gates fuel σ trunkDepth residualDepth) :
+    ∃ x : Fin n → Bool, Rung4Restriction.Extends σ x ∧ ∃ g,
+      residualDepth < (canonicalDT (gates g) fuel
+        (CommonTree.run (CommonTree.prefixEndpoints σ
+          (canonicalFamilyTree gates fuel σ) trunkDepth) x)).depth := by
+  classical
+  by_contra hnone
+  apply hbad
+  apply commonShallowAt_of_prefix_residual gates fuel σ trunkDepth residualDepth
+  intro x hx g
+  apply Nat.le_of_not_lt
+  intro hdeep
+  exact hnone ⟨x, hx, g, hdeep⟩
+
 /-- Increasing either allowed common-trunk depth or residual depth preserves a certificate. -/
 theorem CommonShallowAt.mono {n G : ℕ} {gates : Fin G → List (Clause n)}
     {fuel : ℕ} {σ : Restriction n} {d s d' s' : ℕ}
@@ -65,6 +113,34 @@ theorem mem_commonShallowBad {n G : ℕ} {gates : Fin G → List (Clause n)}
       stars σ = K ∧ ¬CommonShallowAt gates fuel σ d s := by
   classical
   simp [commonShallowBad]
+
+/-- Canonical choice of the extending assignment witnessing a deep residual at the prefix trunk for
+each bad root.  Outside the bad event its value is irrelevant. -/
+noncomputable def commonShallowBadAssignment {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel K trunkDepth residualDepth : ℕ)
+    (σ : Restriction n) : Fin n → Bool := by
+  classical
+  if hσ : σ ∈ commonShallowBad gates fuel K trunkDepth residualDepth then
+    exact Classical.choose (exists_deep_prefix_residual_of_not_commonShallowAt
+      gates fuel σ trunkDepth residualDepth (mem_commonShallowBad.mp hσ).2)
+  else
+    exact fun v => (σ v).getD false
+
+/-- On a bad root, the canonical chosen assignment both extends the root and leaves some gate
+deeper than the residual threshold at the canonical prefix endpoint. -/
+theorem commonShallowBadAssignment_spec {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {fuel K trunkDepth residualDepth : ℕ}
+    {σ : Restriction n} (hσ : σ ∈ commonShallowBad gates fuel K trunkDepth residualDepth) :
+    Rung4Restriction.Extends σ
+        (commonShallowBadAssignment gates fuel K trunkDepth residualDepth σ) ∧
+      ∃ g, residualDepth < (canonicalDT (gates g) fuel
+        (CommonTree.run (CommonTree.prefixEndpoints σ
+          (canonicalFamilyTree gates fuel σ) trunkDepth)
+            (commonShallowBadAssignment gates fuel K trunkDepth residualDepth σ))).depth := by
+  classical
+  rw [commonShallowBadAssignment, dif_pos hσ]
+  exact Classical.choose_spec (exists_deep_prefix_residual_of_not_commonShallowAt
+    gates fuel σ trunkDepth residualDepth (mem_commonShallowBad.mp hσ).2)
 
 /-- The exceptional event really is a subset of the fixed live-variable shell. -/
 theorem commonShallowBad_subset_shell {n G : ℕ} {gates : Fin G → List (Clause n)}
@@ -207,6 +283,27 @@ theorem commonShallowBad_card_le_of_sparse_prefix
     freshTaggedPrefixVars_card_eq_of_le_trace gates fuel ρ (assignment ρ) d
       (hext ρ hρ) (hlong ρ hρ)]
 
+/-- The concrete sparse prefix count with the semantic witness assignment chosen directly from
+failure of `CommonShallowAt`.  The sole remaining semantic premise is that this canonical witness
+actually traverses at least `d` fresh common queries. -/
+theorem commonShallowBad_card_le_of_semantic_sparse_prefix
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (commonShallowBadAssignment gates fuel K d residualDepth ρ)).length) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) := by
+  apply commonShallowBad_card_le_of_sparse_prefix hnd hw hgate
+    (commonShallowBadAssignment gates fuel K d residualDepth)
+  · intro ρ hρ
+    exact (commonShallowBadAssignment_spec hρ).1
+  · exact hlong
+
 /-- The target explicitly implies the corresponding unnormalized bad-shell cardinality bound. -/
 theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
     {gates : Fin G → List (Clause n)} {fuel residualDepth : ℕ}
@@ -221,10 +318,14 @@ theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_of_prefix_residual
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_deep_prefix_residual_of_not_commonShallowAt
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_spec
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_subset_shell
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_mono
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_exact_path_encoder
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_prefix_encoder
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_sparse_prefix
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_semantic_sparse_prefix
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_contraction
