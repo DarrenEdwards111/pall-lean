@@ -163,6 +163,65 @@ theorem mem_queryVars_of_mem_readOnce {n : ℕ} {α : Type}
             exact hj.imp_right (ihlo _
               (extends_fixVar hext (Bool.eq_false_of_not_eq_true hx)))
 
+/-- Conversely, every originally queried coordinate that was free at the root survives somewhere
+on the read-once path.  Repeated occurrences may disappear, but the queried-variable set does not. -/
+theorem mem_queryVars_readOnce_of_mem_of_free {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) {j : Fin n}
+    (hjfree : j ∈ freeVars σ) (hj : j ∈ queryVars t x) :
+    j ∈ queryVars (readOnce σ t) x := by
+  induction t generalizing σ with
+  | leaf a => simp [queryVars] at hj
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | some b =>
+          have hji : j ≠ i := by
+            intro h; subst h
+            rw [mem_freeVars, hσ] at hjfree
+            simp at hjfree
+          have hxb : x i = b := hext i b hσ
+          cases b
+          · simp only [readOnce, hσ]
+            simp only [queryVars, hxb, Bool.false_eq_true, List.mem_cons] at hj
+            exact ihlo σ hext hjfree (hj.resolve_left hji)
+          · simp only [readOnce, hσ]
+            simp only [queryVars, hxb, if_true, List.mem_cons] at hj
+            exact ihhi σ hext hjfree (hj.resolve_left hji)
+      | none =>
+          by_cases hx : x i
+          · simp only [readOnce, hσ, queryVars, hx, if_true, List.mem_cons] at hj ⊢
+            rcases hj with rfl | hj
+            · exact Or.inl rfl
+            · by_cases hji : j = i
+              · exact Or.inl hji
+              · refine Or.inr (ihhi (fixVar σ i true) (extends_fixVar hext hx) ?_ hj)
+                rw [mem_freeVars, fixVar, Function.update_of_ne hji]
+                exact mem_freeVars.mp hjfree
+          · simp only [readOnce, hσ, queryVars, hx, Bool.false_eq_true,
+              List.mem_cons] at hj ⊢
+            rcases hj with rfl | hj
+            · exact Or.inl rfl
+            · by_cases hji : j = i
+              · exact Or.inl hji
+              · refine Or.inr (ihlo (fixVar σ i false)
+                  (extends_fixVar hext (Bool.eq_false_of_not_eq_true hx)) ?_ hj)
+                rw [mem_freeVars, fixVar, Function.update_of_ne hji]
+                exact mem_freeVars.mp hjfree
+
+/-- Read-once normalization preserves the queried-variable set whenever the original execution
+queries only coordinates free at the root. -/
+theorem queryVars_readOnce_toFinset_eq {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x)
+    (hfree : ∀ j ∈ queryVars t x, j ∈ freeVars σ) :
+    (queryVars (readOnce σ t) x).toFinset = (queryVars t x).toFinset := by
+  ext j
+  simp only [List.mem_toFinset]
+  constructor
+  · exact mem_queryVars_of_mem_readOnce σ t x hext
+  · intro hj
+    exact mem_queryVars_readOnce_of_mem_of_free σ t x hext (hfree j hj) hj
+
 /-- Bit transcripts and queried-coordinate transcripts have identical lengths. -/
 theorem trace_length_eq_queryVars_length {n : ℕ} {α : Type}
     (t : CommonTree n α) (x : Fin n → Bool) :
@@ -274,6 +333,64 @@ def liveFinitePathLabel {n : ℕ} {α : Type}
   PathLabel.toFinite ⟨trace (readOnce σ t) x,
     trace_readOnce_length_le_stars σ t x hext⟩
 
+/-- The genuinely fresh coordinates queried by a common path. -/
+def pathVars {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
+    (x : Fin n → Bool) : Finset (Fin n) :=
+  (queryVars (readOnce σ t) x).toFinset
+
+/-- The residual restriction reached by fixing exactly the fresh common-path coordinates. -/
+def pathEndpoint {n : ℕ} {α : Type} (σ : Restriction n) (t : CommonTree n α)
+    (x : Fin n → Bool) : Restriction n :=
+  fixOn σ (pathVars σ t x) x
+
+/-- Fixing the fresh common-path coordinates removes exactly those coordinates from the live set. -/
+theorem freeVars_pathEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool) :
+    freeVars (pathEndpoint σ t x) = freeVars σ \ pathVars σ t x := by
+  ext v
+  simp only [pathEndpoint, mem_freeVars, fixOn, Finset.mem_sdiff]
+  by_cases hv : v ∈ pathVars σ t x
+  · simp [hv]
+  · simp [hv]
+
+/-- Every coordinate charged to the common path was live at its root. -/
+theorem pathVars_subset_freeVars {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    pathVars σ t x ⊆ freeVars σ := by
+  intro v hv
+  exact mem_queryVars_readOnce_freeVars σ t x hext (List.mem_toFinset.mp hv)
+
+/-- An exact length-`d` fresh path from a `K`-live root lands in the `(K-d)`-live shell. -/
+theorem stars_pathEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    stars (pathEndpoint σ t x) = stars σ - (pathVars σ t x).card := by
+  rw [stars, freeVars_pathEndpoint,
+    Finset.card_sdiff_of_subset (pathVars_subset_freeVars σ t x hext), stars]
+
+/-- Re-freeing the common path exactly recovers its root restriction. -/
+theorem freeOn_pathEndpoint {n : ℕ} {α : Type}
+    (σ : Restriction n) (t : CommonTree n α) (x : Fin n → Bool)
+    (hext : Rung4Restriction.Extends σ x) :
+    freeOn (pathEndpoint σ t x) (pathVars σ t x) = σ := by
+  exact freeOn_fixOn σ (pathVars σ t x) x (pathVars_subset_freeVars σ t x hext)
+
+/-- Endpoint plus the selected common-path coordinates is an injective encoding of the root.
+This removes endpoint injectivity as an independent assumption: the remaining semantic obligation
+for a compact witness is precisely to recover `pathVars` from its finite label. -/
+theorem pathEndpoint_inj_of_pathVars_eq {n : ℕ} {α β : Type}
+    {ρ σ : Restriction n} {tρ : CommonTree n α} {tσ : CommonTree n β}
+    {x y : Fin n → Bool}
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hE : pathEndpoint ρ tρ x = pathEndpoint σ tσ y)
+    (hV : pathVars ρ tρ x = pathVars σ tσ y) : ρ = σ := by
+  calc
+    ρ = freeOn (pathEndpoint ρ tρ x) (pathVars ρ tρ x) :=
+      (freeOn_pathEndpoint ρ tρ x hx).symm
+    _ = freeOn (pathEndpoint σ tσ y) (pathVars σ tσ y) := by rw [hE, hV]
+    _ = σ := freeOn_pathEndpoint σ tσ y hy
+
 /-- Exact size of the live-dimension shared transcript space. -/
 theorem card_liveFinitePathLabel {n : ℕ} (σ : Restriction n) :
     Fintype.card (FinitePathLabel (stars σ)) =
@@ -366,6 +483,25 @@ theorem run_ofBool {n : ℕ} (t : BoolDecisionTree n) (x : Fin n → Bool) :
   | query i lo hi ihlo ihhi =>
       simp only [ofBool, run, BoolDecisionTree.eval]
       by_cases h : x i <;> simp [h, ihlo, ihhi]
+
+/-- Every coordinate queried on one execution path belongs to the tree's global queried set. -/
+theorem queryVars_ofBool_toFinset_subset_queriedVars {n : ℕ}
+    (t : BoolDecisionTree n) (x : Fin n → Bool) :
+    (queryVars (ofBool t) x).toFinset ⊆ Depth3.queriedVars t := by
+  induction t with
+  | leaf b => simp [ofBool, queryVars, Depth3.queriedVars]
+  | query i lo hi ihlo ihhi =>
+      by_cases hx : x i
+      · simp only [ofBool, queryVars, hx, if_true, List.toFinset_cons,
+          Depth3.queriedVars]
+        exact Finset.insert_subset_iff.mpr
+          ⟨Finset.mem_insert_self _ _, fun _ hv =>
+            Finset.mem_insert_of_mem (Finset.mem_union_right _ (ihhi hv))⟩
+      · simp only [ofBool, queryVars, hx, Bool.false_eq_true, List.toFinset_cons,
+          Depth3.queriedVars]
+        exact Finset.insert_subset_iff.mpr
+          ⟨Finset.mem_insert_self _ _, fun _ hv =>
+            Finset.mem_insert_of_mem (Finset.mem_union_left _ (ihlo hv))⟩
 
 /-- Sequential common refinement of a finite family.  The payload order matches the input list. -/
 def commonRefine {n : ℕ} : List (BoolDecisionTree n) → CommonTree n (List Bool)
@@ -470,6 +606,23 @@ def readOnceCanonicalFamilyTree {n G : ℕ} (gates : Fin G → List (Clause n))
     (fuel : ℕ) (σ : Restriction n) : CommonTree n (Fin G → Bool) :=
   CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)
 
+/-- For canonical gate families, read-once normalization changes only multiplicity/order: its
+queried set is exactly the set of variables appearing on the concatenated raw gate paths. -/
+theorem pathVars_canonicalFamily_eq_raw {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (hext : Rung4Restriction.Extends σ x) :
+    CommonTree.pathVars σ (canonicalFamilyTree gates fuel σ) x =
+      (CommonTree.queryVars (canonicalFamilyTree gates fuel σ) x).toFinset := by
+  apply CommonTree.queryVars_readOnce_toFinset_eq σ _ x hext
+  intro j hj
+  rw [canonicalFamilyTree, CommonTree.queryVars_commonRefineFin] at hj
+  obtain ⟨segment, hsegment, hjsegment⟩ := List.mem_flatten.mp hj
+  obtain ⟨tree, htree, rfl⟩ := List.mem_map.mp hsegment
+  obtain ⟨g, rfl⟩ := List.mem_ofFn.mp htree
+  apply canonicalDT_queriedVars_subset_free (gates g) fuel σ
+  exact CommonTree.queryVars_ofBool_toFinset_subset_queriedVars
+    (canonicalDT (gates g) fuel σ) x (List.mem_toFinset.mpr hjsegment)
+
 /-- One common-tree execution simultaneously returns every canonical gate value. -/
 theorem run_canonicalFamilyTree {n G : ℕ} (gates : Fin G → List (Clause n))
     (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) (g : Fin G) :
@@ -549,15 +702,21 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.mem_queryVars_of_mem_readOnce
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_toFinset_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_readOnce_length_le_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce_eq_of_liveFinitePathLabel_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.card_liveFinitePathLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.freeVars_pathEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.stars_pathEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.freeOn_pathEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.pathEndpoint_inj_of_pathVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_bind
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefine
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_commonRefineFin
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.pathVars_canonicalFamily_eq_raw
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_commonRefineFin
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.trace_commonRefineFin_length
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.replay_trace

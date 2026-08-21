@@ -31,6 +31,15 @@ def CommonShallowAt {n G : ℕ} (gates : Fin G → List (Clause n))
       Rung4Restriction.Extends (CommonTree.run trunk x) x ∧
       ∀ g, (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth ≤ residualDepth
 
+/-- `CSD_s`: the common-shallow-depth event at residual threshold `s`.
+
+The extra argument `d` is the permitted depth of the shared trunk.  Keeping it explicit is
+essential: an iteration lemma must pay for the common trunk separately from the residual gate
+depth. -/
+abbrev CSD_s {n G : ℕ} (gates : Fin G → List (Clause n))
+    (fuel : ℕ) (σ : Restriction n) (d s : ℕ) : Prop :=
+  CommonShallowAt gates fuel σ d s
+
 /-- Increasing either allowed common-trunk depth or residual depth preserves a certificate. -/
 theorem CommonShallowAt.mono {n G : ℕ} {gates : Fin G → List (Clause n)}
     {fuel : ℕ} {σ : Restriction n} {d s d' s' : ℕ}
@@ -57,6 +66,15 @@ theorem mem_commonShallowBad {n G : ℕ} {gates : Fin G → List (Clause n)}
   classical
   simp [commonShallowBad]
 
+/-- The exceptional event really is a subset of the fixed live-variable shell. -/
+theorem commonShallowBad_subset_shell {n G : ℕ} {gates : Fin G → List (Clause n)}
+    {fuel K d s : ℕ} :
+    commonShallowBad gates fuel K d s ⊆
+      Finset.univ.filter fun σ : Restriction n => stars σ = K := by
+  intro σ hσ
+  rw [mem_commonShallowBad] at hσ
+  simp [hσ.1]
+
 /-- Allowing a deeper trunk or deeper residual gates can only shrink the bad event. -/
 theorem commonShallowBad_mono {n G : ℕ} {gates : Fin G → List (Clause n)}
     {fuel K d s d' s' : ℕ} (hd : d ≤ d') (hs : s ≤ s') :
@@ -77,6 +95,52 @@ def CommonShallowShellContraction {n G : ℕ}
         2 ^ ((savingNum * K) / savingDen) ≤
       (Finset.univ.filter fun σ : Restriction n => stars σ = K).card
 
+/-- With zero claimed saving the shell inequality is unconditional.  Thus every genuinely useful
+iteration theorem must prove a *positive* exponent saving; it cannot come merely from the event
+definition. -/
+theorem commonShallowShellContraction_zero {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel residualDepth : ℕ)
+    (trunkDepth : ℕ → ℕ) (savingDen : ℕ) :
+    CommonShallowShellContraction gates fuel residualDepth trunkDepth 0 savingDen := by
+  intro K
+  simpa using Finset.card_le_card
+    (commonShallowBad_subset_shell (gates := gates) (fuel := fuel)
+      (K := K) (d := trunkDepth K) (s := residualDepth))
+
+/-- A genuine exact-path encoder lands automatically in the shorter star shell.
+
+This is the quantitative interface between the semantic failure event and the corrected common
+bad-path reconstruction.  Unlike `commonBadPath_count`, callers do not assume that encoded
+endpoints lie in an arbitrary `Short`: exact path length proves that the endpoint has `K-d` stars.
+The remaining semantic content is therefore precisely the construction, from every failure of
+`CSD_s`, of an extending assignment with an exact `d`-coordinate common path whose finite label
+determines `pathVars`. -/
+theorem commonShallowBad_card_le_of_exact_path_encoder
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (assignment : Restriction n → (Fin n → Bool))
+    (label : Restriction n → CommonBadPathLabel w d G m)
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hexact : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      (CommonTree.pathVars ρ (canonicalFamilyTree gates fuel ρ) (assignment ρ)).card = d)
+    (hvars : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      ∀ σ ∈ commonShallowBad gates fuel K d residualDepth, label ρ = label σ →
+        CommonTree.pathVars ρ (canonicalFamilyTree gates fuel ρ) (assignment ρ) =
+          CommonTree.pathVars σ (canonicalFamilyTree gates fuel σ) (assignment σ)) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        (((d + 1) * 2 ^ d) * w ^ d * ((d + 1) ^ G * ((d + 1) ^ m) ^ G)) := by
+  apply commonBadPath_count_of_pathVars
+    (tree := fun ρ => canonicalFamilyTree gates fuel ρ)
+    (assignment := assignment) (label := label)
+  · exact hext
+  · intro ρ hρ
+    rw [Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    rw [CommonTree.stars_pathEndpoint ρ _ (assignment ρ) (hext ρ hρ),
+      (mem_commonShallowBad.mp hρ).1, hexact ρ hρ]
+  · exact hvars
+
 /-- The target explicitly implies the corresponding unnormalized bad-shell cardinality bound. -/
 theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
     {gates : Fin G → List (Clause n)} {fuel residualDepth : ℕ}
@@ -91,5 +155,8 @@ theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_subset_shell
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_exact_path_encoder
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_contraction
