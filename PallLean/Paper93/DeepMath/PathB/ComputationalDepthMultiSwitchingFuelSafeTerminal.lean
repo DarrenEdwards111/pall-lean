@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingCommonShallow
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3SatRecovery
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingProcessedUnsat
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingBinomialRegime
 
 /-!
 # Fuel-safe terminal states for canonical DNF executions
@@ -481,6 +482,123 @@ theorem commonShallowShellContraction_of_sparse_balance
       exact (Finset.card_le_card commonShallowBad_subset_shell).trans_eq hshell
     simp [hbad, hshell]
 
+/-- The polynomial-sized pieces of the current sparse label fit inside one exponential base. -/
+theorem sparsePrefix_factor_le_pow {d e w q : ℕ} (he : e ≤ d) :
+    2 ^ d * (((d + 1) * 2 ^ d) * (w + 1) ^ d * (q + 1) ^ d) * 2 ^ e ≤
+      (16 * ((w + 1) * (q + 1))) ^ d := by
+  have hsuccAll : ∀ k : ℕ, k + 1 ≤ 2 ^ k := by
+    intro k
+    induction k with
+    | zero => simp
+    | succ k ih =>
+        rw [pow_succ]
+        have hp : 1 ≤ 2 ^ k := one_le_pow₀ (by norm_num)
+        calc
+          k + 1 + 1 ≤ 2 ^ k + 1 := Nat.add_le_add_right ih 1
+          _ ≤ 2 ^ k + 2 ^ k := Nat.add_le_add_left hp (2 ^ k)
+          _ = 2 ^ k * 2 := by ring
+  have hsucc : d + 1 ≤ 2 ^ d := hsuccAll d
+  have hpow : 2 ^ e ≤ 2 ^ d := Nat.pow_le_pow_right (by norm_num) he
+  calc
+    2 ^ d * (((d + 1) * 2 ^ d) * (w + 1) ^ d * (q + 1) ^ d) * 2 ^ e ≤
+        2 ^ d * (((2 ^ d) * 2 ^ d) * (w + 1) ^ d * (q + 1) ^ d) * 2 ^ d := by
+          gcongr
+    _ = (16 * ((w + 1) * (q + 1))) ^ d := by
+      rw [show 16 * ((w + 1) * (q + 1)) =
+        2 * 2 * 2 * 2 * (w + 1) * (q + 1) by ring]
+      simp only [mul_pow]
+      ring
+
+/-- The exact sparse balance follows from a concrete low-density regime.  The factor `16` absorbs
+the shorter-shell `2^d`, the label's `2^d`, `d+1 ≤ 2^d`, and the requested saving `2^e ≤ 2^d`. -/
+theorem sparsePrefix_balance_of_density
+    {n G w m K d savingNum savingDen : ℕ}
+    (hdK : d ≤ K) (hKn : K ≤ n)
+    (hsave : (savingNum * K) / savingDen ≤ d)
+    (hdensity : (16 * ((w + 1) * (G * m + 1))) * K + K ≤ n + 1) :
+    Nat.choose n (K - d) * 2 ^ (n - (K - d)) *
+          (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        Nat.choose n K * 2 ^ (n - K) := by
+  have hfactor := sparsePrefix_factor_le_pow
+    (d := d) (e := (savingNum * K) / savingDen) (w := w) (q := G * m) hsave
+  have hreg : (4 * (4 * ((w + 1) * (G * m + 1)))) * K + K ≤ n + 1 := by
+    convert hdensity using 1 <;> ring
+  have hbin := binomial_ratio_regime
+    (w := 4 * ((w + 1) * (G * m + 1))) hdK hreg
+  have hbin' :
+      (16 * ((w + 1) * (G * m + 1))) ^ d * n.choose (K - d) ≤ n.choose K := by
+    convert hbin using 1 <;> ring
+  have hexp : n - (K - d) = n - K + d := by omega
+  rw [hexp, pow_add]
+  calc
+    n.choose (K - d) * (2 ^ (n - K) * 2 ^ d) *
+          (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) *
+          2 ^ (savingNum * K / savingDen) =
+        2 ^ (n - K) * n.choose (K - d) *
+          (2 ^ d * (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) *
+            2 ^ (savingNum * K / savingDen)) := by ring
+    _ ≤ 2 ^ (n - K) * n.choose (K - d) *
+          (16 * ((w + 1) * (G * m + 1))) ^ d := by gcongr
+    _ = 2 ^ (n - K) *
+          ((16 * ((w + 1) * (G * m + 1))) ^ d * n.choose (K - d)) := by ring
+    _ ≤ 2 ^ (n - K) * n.choose K := Nat.mul_le_mul_left _ hbin'
+    _ = n.choose K * 2 ^ (n - K) := by ring
+
+/-- A positive shell contraction theorem with the arithmetic balance discharged.  Its remaining
+quantitative assumptions are explicit: the saving exponent fits within the trunk, and every
+nontrivial shell lies in the sparse-density regime dictated by the current encoder base. -/
+theorem commonShallowShellContraction_of_sparse_density
+    {n G w m fuel residualDepth savingNum savingDen : ℕ}
+    {gates : Fin G → List (Clause n)} (trunkDepth : ℕ → ℕ)
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hnfuel : n ≤ fuel)
+    (hsave : ∀ K, K ≤ n → (savingNum * K) / savingDen ≤ trunkDepth K)
+    (hdensity : ∀ K, K ≤ n → trunkDepth K < K →
+      (16 * ((w + 1) * (G * m + 1))) * K + K ≤ n + 1) :
+    CommonShallowShellContraction gates fuel residualDepth trunkDepth savingNum savingDen := by
+  apply commonShallowShellContraction_of_sparse_balance trunkDepth hnd hw hgate hnfuel
+  intro K hKn hdK
+  exact sparsePrefix_balance_of_density (Nat.le_of_lt hdK) hKn
+    (hsave K hKn) (hdensity K hKn hdK)
+
+/-- Use a half-shell trunk in the sparse regime and the full shell budget otherwise.  The latter
+branch is quantitatively trivial but makes the positive contraction statement uniform over shells. -/
+def densityAdaptiveTrunk (n base K : ℕ) : ℕ :=
+  if base * K + K ≤ n + 1 then K / 2 else K
+
+theorem half_le_densityAdaptiveTrunk (n base K : ℕ) :
+    K / 2 ≤ densityAdaptiveTrunk n base K := by
+  by_cases h : base * K + K ≤ n + 1
+  · simp [densityAdaptiveTrunk, h]
+  · simp [densityAdaptiveTrunk, h, Nat.div_le_self]
+
+theorem density_of_densityAdaptiveTrunk_lt {n base K : ℕ}
+    (hlt : densityAdaptiveTrunk n base K < K) : base * K + K ≤ n + 1 := by
+  by_contra h
+  simp [densityAdaptiveTrunk, h] at hlt
+
+/-- Unconditional positive contraction for the adaptive trunk: sparse shells use depth `K/2`, while
+dense shells use the full `K` budget and hence have an empty bad event.  This is a real positive
+shell-mass theorem, but the dense-shell branch is not yet a useful shallow-trunk iteration bound. -/
+theorem commonShallowShellContraction_densityAdaptive
+    {n G w m fuel residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hnfuel : n ≤ fuel) :
+    CommonShallowShellContraction gates fuel residualDepth
+      (densityAdaptiveTrunk n (16 * ((w + 1) * (G * m + 1)))) 1 2 := by
+  apply commonShallowShellContraction_of_sparse_density
+    (densityAdaptiveTrunk n (16 * ((w + 1) * (G * m + 1)))) hnd hw hgate hnfuel
+  · intro K _
+    simpa using half_le_densityAdaptiveTrunk n
+      (16 * ((w + 1) * (G * m + 1))) K
+  · intro K _ hlt
+    exact density_of_densityAdaptiveTrunk_lt hlt
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_extends
@@ -500,3 +618,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_zero_of_stars_le_fuel_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_eq_zero_of_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparsePrefix_factor_le_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparsePrefix_balance_of_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_densityAdaptive

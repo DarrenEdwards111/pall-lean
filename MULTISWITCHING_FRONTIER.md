@@ -120,18 +120,23 @@ multi-switching lemma:
 1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
-2. Convert the resulting shorter-shell count into a positive proportional shell contraction with
-   parameters strong enough for iteration.  The exact shell identity
+2. The shorter-shell count now yields a positive proportional shell contraction, but not yet with
+   trunk parameters strong enough for iteration.  The exact shell identity
    `card_stars_eq`, namely `C(n,K) * 2^(n-K)`, is now proved, and
    `commonShallowShellContraction_of_sparse_balance` reduces positive contraction to one explicit
    natural-number binomial/power inequality only in the genuinely nontrivial regime
    `trunkDepth K < K`.  `commonShallowBad_card_eq_zero_of_le_trunk` proves that the bad event is empty
-   for `K ≤ trunkDepth K` under ample fuel.  The remaining inequality is not yet discharged for
-   useful sublinear-trunk parameters; `commonShallowShellContraction_zero` still records that zero
-   saving gives no iteration credit.
+   for `K ≤ trunkDepth K` under ample fuel.  The balance is now discharged by
+   `sparsePrefix_balance_of_density` whenever
+   `(16*(w+1)*(G*m+1))*K + K ≤ n+1` and the saving exponent fits inside the trunk.
+   `commonShallowShellContraction_densityAdaptive` consequently gives a verified uniform saving of
+   `2^floor(K/2)`: it uses trunk depth `K/2` in the sparse regime and the full depth `K` otherwise.
+   The dense-shell full-depth branch is deliberately recorded as quantitatively trivial, not a
+   useful shallow-trunk iteration theorem.
 3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
 The next defensible route is therefore a block/run sparse encoder with a proved decoding theorem,
-followed by a positive endpoint-shell contraction.  If the proposed block data collide, the collision
-must be retained as another concrete counterexample rather than hidden behind an injectivity premise.
+aimed at reducing the `G*m` density penalty enough to replace the adaptive full-depth branch by a
+uniformly shallow trunk.  If the proposed block data collide, the collision must be retained as
+another concrete counterexample rather than hidden behind an injectivity premise.
