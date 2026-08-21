@@ -39,6 +39,9 @@ theorem common_trace_stops_before_budget :
 theorem rebuilt_residual_is_deep :
     0 < (canonicalDT (gates (0 : Fin 1)) 1 prefixResidual).depth := by decide
 
+/-- The ample-fuel repair correctly excludes this example. -/
+theorem initial_fuel_is_not_ample : ¬stars root ≤ 1 := by decide
+
 /-- Kernel-checked falsification of the proposed residual-deep-to-long-trace implication. -/
 theorem deep_residual_does_not_force_budget_trace :
     Rung4Restriction.Extends root assignment ∧
