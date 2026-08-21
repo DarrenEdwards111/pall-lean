@@ -84,6 +84,8 @@ has exact cardinality
 and `commonShallowBad_card_le_of_ample_fuel_prefix_counts` proves the corresponding ample-fuel
 bad-shell bound.  This is a parameter trade rather than a uniform domination of the earlier sparse
 label: it removes the per-query key alphabet and transcript, but retains a dense `G*m` count table.
+`commonShallowBad_card_le_of_ample_fuel_hybrid_prefix` takes the minimum of the old and new exact
+factors, so the exposed capstone is uniformly no weaker than either encoder separately.
 
 The semantic failure event now has a concrete witness extraction.  The canonical
 `prefixEndpoints` tree preserves the root restriction and is a valid `CommonShallowAt` certificate
