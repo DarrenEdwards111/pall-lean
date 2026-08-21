@@ -121,8 +121,12 @@ multi-switching lemma:
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
 2. Convert the resulting shorter-shell count into a positive proportional shell contraction with
-   parameters strong enough for iteration.  `commonShallowShellContraction_zero` still records that
-   zero saving gives no iteration credit.
+   parameters strong enough for iteration.  The exact shell identity
+   `card_stars_eq`, namely `C(n,K) * 2^(n-K)`, is now proved, and
+   `commonShallowShellContraction_of_sparse_balance` reduces positive contraction to one explicit
+   natural-number binomial/power inequality.  That inequality is not yet discharged for useful
+   parameters; `commonShallowShellContraction_zero` still records that zero saving gives no iteration
+   credit.
 3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 

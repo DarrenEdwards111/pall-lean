@@ -396,6 +396,53 @@ theorem commonShallowBad_card_le_of_ample_fuel_sparse_prefix
   intro ρ hρ
   exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
 
+/-- Exact arithmetic gate from the verified sparse count to proportional shell contraction.  The
+only remaining premise is the displayed binomial/power balance; shells above the ambient dimension
+are empty, while `n ≤ fuel` supplies ample fuel on every nonempty shell. -/
+theorem commonShallowShellContraction_of_sparse_balance
+    {n G w m fuel residualDepth savingNum savingDen : ℕ}
+    {gates : Fin G → List (Clause n)} (trunkDepth : ℕ → ℕ)
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hnfuel : n ≤ fuel)
+    (hbalance : ∀ K, K ≤ n →
+      (Nat.choose n (K - trunkDepth K) * 2 ^ (n - (K - trunkDepth K)) *
+          (((trunkDepth K + 1) * 2 ^ trunkDepth K) * (w + 1) ^ trunkDepth K *
+            (G * m + 1) ^ trunkDepth K)) *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        Nat.choose n K * 2 ^ (n - K)) :
+    CommonShallowShellContraction gates fuel residualDepth trunkDepth savingNum savingDen := by
+  intro K
+  by_cases hKn : K ≤ n
+  · have hcount := commonShallowBad_card_le_of_ample_fuel_sparse_prefix
+      (gates := gates) (w := w) (m := m) (d := trunkDepth K)
+      (residualDepth := residualDepth)
+      hnd hw hgate (hKn.trans hnfuel)
+    have hscaled := Nat.mul_le_mul_right (2 ^ ((savingNum * K) / savingDen)) hcount
+    calc
+      (commonShallowBad gates fuel K (trunkDepth K) residualDepth).card *
+          2 ^ ((savingNum * K) / savingDen) ≤
+        ((Finset.univ.filter fun τ : Restriction n =>
+            stars τ = K - trunkDepth K).card *
+          (((trunkDepth K + 1) * 2 ^ trunkDepth K) * (w + 1) ^ trunkDepth K *
+            (G * m + 1) ^ trunkDepth K)) *
+          2 ^ ((savingNum * K) / savingDen) := hscaled
+      _ ≤ (Finset.univ.filter fun σ : Restriction n => stars σ = K).card := by
+        rw [card_stars_eq (N := n) (K := K - trunkDepth K),
+          card_stars_eq (N := n) (K := K)]
+        exact hbalance K hKn
+  · have hshell :
+        (Finset.univ.filter fun σ : Restriction n => stars σ = K).card = 0 := by
+      rw [card_stars_eq (N := n) (K := K),
+        Nat.choose_eq_zero_of_lt (Nat.lt_of_not_ge hKn)]
+      simp
+    have hbad :
+        (commonShallowBad gates fuel K (trunkDepth K) residualDepth).card = 0 := by
+      apply Nat.eq_zero_of_le_zero
+      exact (Finset.card_le_card commonShallowBad_subset_shell).trans_eq hshell
+    simp [hbad, hshell]
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_extends
@@ -412,3 +459,4 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_deep_prefix_implies_long_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_long_of_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_sparse_prefix
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance

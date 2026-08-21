@@ -2,6 +2,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingCounting
 import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Fintype.Pi
 import Mathlib.Data.Fintype.BigOperators
+import Mathlib.Data.Fintype.Powerset
 
 /-!
 # Restriction-class cardinalities (toward discharging the switching parameter gate)
@@ -16,10 +17,9 @@ counts:
 * `card_freeVars_eq` — exactly `2^(N - |S|)` restrictions have free set exactly `S`
   (the free coordinates are forced `none`, each fixed coordinate has two choices).
 
-From these the per-star count `|{stars = t}| = C(N,t)·2^(N-t)` and then the
-ratio inequality (choosing the restriction parameter so that the bad class is
-outnumbered) follow — that ratio/parameter balance is the remaining quantitative
-gate, not addressed here.
+The module now also proves the per-star count
+`|{stars = t}| = C(N,t)·2^(N-t)`.  The ratio inequality choosing parameters so that
+the bad class is outnumbered remains the quantitative gate.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -69,9 +69,44 @@ theorem card_freeVars_eq (S : Finset (Fin N)) :
   rw [← Fintype.card_subtype, Fintype.card_congr (freeVarsEquiv S), Fintype.card_fun,
     Fintype.card_bool, Fintype.card_coe, Finset.card_compl, Fintype.card_fin]
 
+/-- A restriction with exactly `K` stars is equivalently its `K`-element free set together with a
+restriction in the corresponding exact-free-set fiber. -/
+def starsFiberEquiv (K : ℕ) :
+    {ρ : Restriction N // stars ρ = K} ≃
+      Σ S : {S : Finset (Fin N) // S.card = K},
+        {ρ : Restriction N // freeVars ρ = S.1} where
+  toFun ρ := ⟨⟨freeVars ρ.1, ρ.2⟩, ⟨ρ.1, rfl⟩⟩
+  invFun z := ⟨z.2.1, by rw [stars, z.2.2, z.1.2]⟩
+  left_inv ρ := rfl
+  right_inv z := by
+    rcases z with ⟨⟨S, hS⟩, ⟨ρ, hρ⟩⟩
+    change freeVars ρ = S at hρ
+    subst S
+    rfl
+
+/-- **Exact `K`-star shell cardinality.**  Choose the `K` free coordinates, then choose one Boolean
+value for each of the other `N-K` coordinates. -/
+theorem card_stars_eq (N K : ℕ) :
+    (Finset.univ.filter (fun ρ : Restriction N => stars ρ = K)).card =
+      Nat.choose N K * 2 ^ (N - K) := by
+  rw [← Fintype.card_subtype, Fintype.card_congr (starsFiberEquiv (N := N) K),
+    Fintype.card_sigma]
+  calc
+    ∑ S : {S : Finset (Fin N) // S.card = K},
+        Fintype.card {ρ : Restriction N // freeVars ρ = S.1} =
+        ∑ _S : {S : Finset (Fin N) // S.card = K}, 2 ^ (N - K) := by
+          apply Finset.sum_congr rfl
+          intro S _
+          have hfiber := card_freeVars_eq (N := N) S.1
+          rw [← Fintype.card_subtype] at hfiber
+          rw [hfiber, S.2]
+    _ = Fintype.card {S : Finset (Fin N) // S.card = K} * 2 ^ (N - K) := by simp
+    _ = Nat.choose N K * 2 ^ (N - K) := by rw [Fintype.card_finset_len, Fintype.card_fin]
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_restrictions
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_freeVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.card_stars_eq
