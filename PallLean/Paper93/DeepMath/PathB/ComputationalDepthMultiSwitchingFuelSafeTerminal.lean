@@ -397,6 +397,21 @@ theorem commonShallowBad_card_le_of_ample_fuel_sparse_prefix
   intro ρ hρ
   exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
 
+/-- Ample-fuel shell count with the compressed prefix multiplicity label.  This removes both the
+`(d+1) * 2^d` transcript factor and the per-query `(G*m+1)^d` key factor from the sparse bound. -/
+theorem commonShallowBad_card_le_of_ample_fuel_prefix_counts
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        ((w + 1) ^ d * ((d + 1) ^ m) ^ G) := by
+  apply commonShallowBad_card_le_of_semantic_prefix_counts hnd hw hgate
+  intro ρ hρ
+  exact commonShallowBadAssignment_long_of_le_fuel hKfuel hρ
+
 /-- If the trunk budget covers every live variable and fuel is ample, the canonical prefix trunk
 already leaves every member residual at depth zero. -/
 theorem commonShallowAt_zero_of_stars_le_fuel_le_trunk {n G : ℕ}
@@ -615,6 +630,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_deep_prefix_implies_long_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBadAssignment_long_of_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_sparse_prefix
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_ample_fuel_prefix_counts
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_zero_of_stars_le_fuel_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_eq_zero_of_le_trunk
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_balance

@@ -1639,6 +1639,174 @@ theorem sparseCanonicalCommonLongPath_count {w d G m : ℕ}
       ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
       (hlong ρ hρ) (hlong σ hσ) hE hlabel
 
+/-! ### Prefix multiplicity compression
+
+The fresh tagged key stream is block-monotone, so the order of its first `d` keys is determined
+by their multiplicities.  Consequently a long-path prefix does not need one `(gate,term)` symbol
+per query.  A bounded multiplicity table suffices, and the branch transcript is also redundant:
+the selected-prefix endpoint already records the values fixed on the reconstructed variables. -/
+
+/-- A literal-position word and a bounded multiplicity table for the first `d` fresh keys. -/
+abbrev PrefixCountLabel (w d G m : ℕ) :=
+  (Fin d → Option (Fin w)) × (Fin G → Fin m → Fin (d + 1))
+
+/-- Exact size of the prefix-count label.  In particular the key component costs
+`(d+1)^(G*m)`, rather than `(G*m+1)^d`. -/
+theorem card_prefixCountLabel (w d G m : ℕ) :
+    Fintype.card (PrefixCountLabel w d G m) =
+      (w + 1) ^ d * ((d + 1) ^ m) ^ G := by
+  simp [PrefixCountLabel, Fintype.card_prod]
+
+/-- Multiplicities of `(gate,term)` keys in the first `d` globally fresh witnesses. -/
+def freshPrefixTermCounts {n G m d : ℕ} (gates : Fin G → List (Clause n))
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    Fin G → Fin m → Fin (d + 1) :=
+  fun g j => ⟨((freshTaggedWitSeq gates fuel σ x).take d).countP
+      (fun e => e.1 = g && e.2.2 = j.1), by
+    apply Nat.lt_succ_of_le
+    exact List.countP_le_length.trans (List.length_take_le d _)⟩
+
+@[simp] theorem freshPrefixTermCounts_val {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (g : Fin G) (j : Fin m) :
+    (freshPrefixTermCounts (m := m) (d := d) gates fuel σ x g j).1 =
+      ((freshTaggedWitSeq gates fuel σ x).take d).countP
+        (fun e => e.1 = g && e.2.2 = j.1) := rfl
+
+/-- Equality of the finite prefix multiplicity tables recovers the ordered prefix key stream. -/
+theorem freshPrefixKeys_eq_of_termCounts_eq {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (htable : freshPrefixTermCounts (m := m) (d := d) gates fuel ρ x =
+      freshPrefixTermCounts (m := m) (d := d) gates fuel σ y) :
+    ((freshTaggedWitSeq gates fuel ρ x).take d).map taggedWitKey =
+      ((freshTaggedWitSeq gates fuel σ y).take d).map taggedWitKey := by
+  apply taggedKeySeq_eq_of_count_eq
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel ρ x).take
+  · rw [List.map_take]
+    exact (freshTaggedWitSeq_keys_pairwise gates hnd fuel σ y).take
+  · rintro ⟨g, j⟩
+    rw [count_map_taggedWitKey, count_map_taggedWitKey]
+    by_cases hj : j < m
+    · have hentry := congrFun (congrFun htable g) ⟨j, hj⟩
+      exact congrArg Fin.val hentry
+    · have zeroCount (τ : Restriction n) (z : Fin n → Bool)
+          (e : TaggedWitEntry G)
+          (he : e ∈ (freshTaggedWitSeq gates fuel τ z).take d) : e.2.2 ≠ j := by
+        intro heq
+        have hefull : e ∈ freshTaggedWitSeq gates fuel τ z :=
+          (List.take_sublist d _).subset he
+        have hlt := freshTaggedWitSeq_termIdx_lt gates hnd hgate fuel τ z hefull
+        exact hj (heq ▸ hlt)
+      have hz (τ : Restriction n) (z : Fin n → Bool) :
+          ((freshTaggedWitSeq gates fuel τ z).take d).countP
+              (fun e => e.1 = g && e.2.2 = j) = 0 := by
+        rw [← count_map_taggedWitKey]
+        apply List.count_eq_zero.mpr
+        intro hk
+        obtain ⟨e, he, heq⟩ := List.mem_map.mp hk
+        exact zeroCount τ z e he (congrArg Prod.snd heq)
+      exact (hz ρ x).trans (hz σ y).symm
+
+/-- Position codes plus prefix multiplicities recover the first `d` fresh tagged witnesses. -/
+theorem freshTaggedWitSeq_take_eq_of_prefixCounts {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hpos : freshPositionOptionCode (d := d) gates hw fuel ρ x =
+      freshPositionOptionCode (d := d) gates hw fuel σ y)
+    (hcounts : freshPrefixTermCounts (m := m) (d := d) gates fuel ρ x =
+      freshPrefixTermCounts (m := m) (d := d) gates fuel σ y) :
+    (freshTaggedWitSeq gates fuel ρ x).take d =
+      (freshTaggedWitSeq gates fuel σ y).take d := by
+  apply taggedWitEntry_list_eq_of_key_pos
+  · exact freshPrefixKeys_eq_of_termCounts_eq gates hnd hgate fuel ρ σ x y hcounts
+  · exact freshPrefixPositions_eq_of_optionCode_eq gates hw fuel ρ σ x y
+      hlongρ hlongσ hpos
+
+/-- Concrete compressed label for a long fresh prefix. -/
+def canonicalPrefixCountLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    PrefixCountLabel w d G m :=
+  (freshPositionOptionCode (d := d) gates hw fuel σ x,
+    freshPrefixTermCounts (m := m) (d := d) gates fuel σ x)
+
+/-- The compressed prefix label determines the selected first-`d` variable set. -/
+theorem freshTaggedPrefixVars_eq_of_prefixCountLabel_eq {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hlabel : canonicalPrefixCountLabel (m := m) (d := d) gates hw fuel ρ x =
+      canonicalPrefixCountLabel (m := m) (d := d) gates hw fuel σ y) :
+    freshTaggedPrefixVars gates fuel ρ x d =
+      freshTaggedPrefixVars gates fuel σ y d := by
+  have hlongρ' : d ≤ (freshTaggedWitSeq gates fuel ρ x).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx]
+  have hlongσ' : d ≤ (freshTaggedWitSeq gates fuel σ y).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy]
+  have htake := freshTaggedWitSeq_take_eq_of_prefixCounts gates hnd hw hgate fuel
+    ρ σ x y hlongρ' hlongσ' (congrArg Prod.fst hlabel) (congrArg Prod.snd hlabel)
+  simp only [freshTaggedPrefixVars]
+  rw [htake]
+
+/-- The selected-prefix endpoint and compressed label injectively encode the root restriction. -/
+theorem canonicalFamily_prefixEndpoint_inj_of_prefixCountLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hE : freshTaggedPrefixEndpoint gates fuel ρ x d =
+      freshTaggedPrefixEndpoint gates fuel σ y d)
+    (hlabel : canonicalPrefixCountLabel (m := m) (d := d) gates hw fuel ρ x =
+      canonicalPrefixCountLabel (m := m) (d := d) gates hw fuel σ y) : ρ = σ := by
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel hx hy hE
+  exact freshTaggedPrefixVars_eq_of_prefixCountLabel_eq gates hnd hw hgate fuel
+    ρ σ x y hx hy hlongρ hlongσ hlabel
+
+/-- Long canonical-family path count using multiplicities instead of per-query key symbols. -/
+theorem prefixCountCanonicalCommonLongPath_count {w d G m : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    {Bad Short : Finset (Restriction n)}
+    (hext : ∀ ρ ∈ Bad, Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ Bad, d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length)
+    (hmem : ∀ ρ ∈ Bad,
+      freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d ∈ Short) :
+    Bad.card ≤ Short.card * ((w + 1) ^ d * ((d + 1) ^ m) ^ G) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d)
+    (fun ρ => canonicalPrefixCountLabel (m := m) (d := d) gates hw fuel ρ
+      (assignment ρ))
+  · exact le_of_eq (card_prefixCountLabel w d G m)
+  · exact hmem
+  · intro ρ hρ σ hσ hE hlabel
+    exact canonicalFamily_prefixEndpoint_inj_of_prefixCountLabel gates hnd hw hgate fuel
+      ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
+      (hlong ρ hρ) (hlong σ hσ) hE hlabel
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
@@ -1673,3 +1841,8 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_endpoint_inj_of_sparseLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparseCanonicalCommonBadPath_count
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparseCanonicalCommonLongPath_count
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_prefixCountLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshPrefixKeys_eq_of_termCounts_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_take_eq_of_prefixCounts
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_prefixCountLabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.prefixCountCanonicalCommonLongPath_count

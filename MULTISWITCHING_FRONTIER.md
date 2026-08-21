@@ -70,6 +70,21 @@ when the full path is longer (`freshTaggedWitSeq_take_eq_of_sparseCodes`).  Cons
 `commonShallowBad_card_le_of_sparse_prefix` are concrete injective counts: there is no residual
 label-reconstruction or prefix-variable-equality premise.
 
+The key word is now compressed further.  `freshTaggedWitSeq_keys_pairwise` shows that the global
+fresh key stream is lexicographically block-monotone.  Therefore the first `d` keys are uniquely
+determined by their `(gate,term)` multiplicities; `freshPrefixKeys_eq_of_termCounts_eq` and
+`freshTaggedWitSeq_take_eq_of_prefixCounts` prove this reconstruction.  The selected-prefix
+endpoint already stores the fixed values, so no branch transcript is needed.  The resulting label
+has exact cardinality
+
+```text
+(w+1)^d * ((d+1)^m)^G,
+```
+
+and `commonShallowBad_card_le_of_ample_fuel_prefix_counts` proves the corresponding ample-fuel
+bad-shell bound.  This is a parameter trade rather than a uniform domination of the earlier sparse
+label: it removes the per-query key alphabet and transcript, but retains a dense `G*m` count table.
+
 The semantic failure event now has a concrete witness extraction.  The canonical
 `prefixEndpoints` tree preserves the root restriction and is a valid `CommonShallowAt` certificate
 whenever all reached residual gates are shallow (`commonShallowAt_of_prefix_residual`).  Therefore a
@@ -117,9 +132,11 @@ precisely the new hypothesis (`stars root = 2` but `fuel = 1`).
 The current sparse count is an honest finite counting theorem, but it is not yet the quantitative
 multi-switching lemma:
 
-1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
-   multi-switching encoder must amortize this to run/block information (roughly one family choice per
-   residual-depth block), rather than one arbitrary key per query.
+1. The per-query `(G*m+1)^d` key factor has been eliminated using block monotonicity.  The replacement
+   `((d+1)^m)^G = (d+1)^(G*m)` table is sharper when the realized prefix is long relative to the
+   declared family table, but can be worse when `G*m` is large.  A sharp multi-switching encoder must
+   next encode only the realized key support/run boundaries, rather than every declared gate/term
+   counter.
 2. The shorter-shell count now yields a positive proportional shell contraction, but not yet with
    trunk parameters strong enough for iteration.  The exact shell identity
    `card_stars_eq`, namely `C(n,K) * 2^(n-K)`, is now proved, and
@@ -136,7 +153,8 @@ multi-switching lemma:
 3. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
-The next defensible route is therefore a block/run sparse encoder with a proved decoding theorem,
-aimed at reducing the `G*m` density penalty enough to replace the adaptive full-depth branch by a
-uniformly shallow trunk.  If the proposed block data collide, the collision must be retained as
+The next defensible route is therefore a realized-support/run encoder with a proved decoding
+theorem, aimed at replacing the dense `G*m` multiplicity table by data proportional to the keys
+actually appearing in the prefix and ultimately replacing the adaptive full-depth branch by a
+uniformly shallow trunk.  If the proposed support data collide, the collision must be retained as
 another concrete counterexample rather than hidden behind an injectivity premise.
