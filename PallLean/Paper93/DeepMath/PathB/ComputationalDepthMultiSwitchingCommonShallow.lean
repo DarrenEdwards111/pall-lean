@@ -180,6 +180,33 @@ theorem commonShallowBad_card_le_of_prefix_encoder
     exact CommonTree.prefixEndpoint_inj_of_prefixVars_eq
       (hext ρ hρ) (hext σ hσ) hE (hvars ρ hρ σ hσ hlabel)
 
+/-- Concrete sparse prefix count for genuinely long bad paths.  The first `d` fresh tagged
+witnesses are used as the selected set, so no unproved correspondence between two prefix orders is
+needed. -/
+theorem commonShallowBad_card_le_of_sparse_prefix
+    {n G w d m fuel K residualDepth : ℕ} {gates : Fin G → List (Clause n)}
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (assignment : Restriction n → (Fin n → Bool))
+    (hext : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ commonShallowBad gates fuel K d residualDepth,
+      d ≤ (CommonTree.trace
+        (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+          (assignment ρ)).length) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (Finset.univ.filter fun τ : Restriction n => stars τ = K - d).card *
+        (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) := by
+  apply sparseCanonicalCommonLongPath_count gates hnd hw hgate fuel assignment hext hlong
+  intro ρ hρ
+  rw [Finset.mem_filter]
+  refine ⟨Finset.mem_univ _, ?_⟩
+  rw [stars_freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d (hext ρ hρ),
+    (mem_commonShallowBad.mp hρ).1,
+    freshTaggedPrefixVars_card_eq_of_le_trace gates fuel ρ (assignment ρ) d
+      (hext ρ hρ) (hlong ρ hρ)]
+
 /-- The target explicitly implies the corresponding unnormalized bad-shell cardinality bound. -/
 theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
     {gates : Fin G → List (Clause n)} {fuel residualDepth : ℕ}
@@ -199,4 +226,5 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_exact_path_encoder
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_prefix_encoder
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_sparse_prefix
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_card_le_of_contraction

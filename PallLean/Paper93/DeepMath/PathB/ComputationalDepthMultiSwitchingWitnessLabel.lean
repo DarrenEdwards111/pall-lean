@@ -334,6 +334,114 @@ theorem freshTaggedWitSeq_length_eq_trace_readOnce {n G : ℕ}
   rw [List.toFinset_card_of_nodup (freshTaggedWitSeq_vars_nodup gates fuel σ x)]
   exact (freshTaggedAux_filterMap_length gates ∅ _).symm
 
+/-- Variables decoded by the first `budget` globally fresh tagged witnesses.  This selected set is
+prefix-local without requiring an order-equivalence theorem between the tagged witness stream and
+the normalized common-tree query stream. -/
+def freshTaggedPrefixVars {n G : ℕ} (gates : Fin G → List (Clause n))
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) (budget : ℕ) : Finset (Fin n) :=
+  (((freshTaggedWitSeq gates fuel σ x).take budget).filterMap
+    (taggedWitVar? gates)).toFinset
+
+/-- Filtering a list of entries which all decode successfully preserves its length. -/
+private theorem filterMap_length_eq_of_mem_isSome {α β : Type}
+    (f : α → Option β) (l : List α)
+    (h : ∀ a ∈ l, (f a).isSome = true) : (l.filterMap f).length = l.length := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+      cases ha : f a with
+      | none => simpa [ha] using h a (by simp)
+      | some b =>
+          simp only [List.filterMap_cons, ha, Option.toList_some,
+            List.singleton_append, List.length_cons]
+          rw [ih]
+          intro q hq
+          exact h q (by simp [hq])
+
+/-- A long normalized path supplies exactly `budget` distinct selected witness variables. -/
+theorem freshTaggedPrefixVars_card_eq_of_le_trace {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (budget : ℕ) (hext : Rung4Restriction.Extends σ x)
+    (hlong : budget ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length) :
+    (freshTaggedPrefixVars gates fuel σ x budget).card = budget := by
+  have hseq : budget ≤ (freshTaggedWitSeq gates fuel σ x).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ x hext]
+  rw [freshTaggedPrefixVars, List.toFinset_card_of_nodup]
+  · rw [filterMap_length_eq_of_mem_isSome, List.length_take_of_le hseq]
+    intro e he
+    exact freshTaggedAux_var_isSome gates ∅ _ e
+      ((List.take_sublist budget _).subset he)
+  · exact (freshTaggedWitSeq_vars_nodup gates fuel σ x).sublist
+      ((List.take_sublist budget _).filterMap (taggedWitVar? gates))
+
+/-- Every selected witness-prefix variable was live at the root. -/
+theorem freshTaggedPrefixVars_subset_freeVars {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (budget : ℕ) (hext : Rung4Restriction.Extends σ x) :
+    freshTaggedPrefixVars gates fuel σ x budget ⊆ freeVars σ := by
+  intro v hv
+  have hvprefix : v ∈ ((freshTaggedWitSeq gates fuel σ x).take budget).filterMap
+      (taggedWitVar? gates) := List.mem_toFinset.mp hv
+  have hvfull : v ∈ (freshTaggedWitSeq gates fuel σ x).filterMap
+      (taggedWitVar? gates) :=
+    ((List.take_sublist budget _).filterMap (taggedWitVar? gates)).subset hvprefix
+  have hvpath : v ∈ CommonTree.pathVars σ (canonicalFamilyTree gates fuel σ) x := by
+    rw [← freshTaggedWitSeq_vars_eq_pathVars gates fuel σ x hext]
+    exact List.mem_toFinset.mpr hvfull
+  exact CommonTree.pathVars_subset_freeVars σ (canonicalFamilyTree gates fuel σ) x hext hvpath
+
+/-- Restriction obtained by fixing the first `budget` fresh tagged-witness variables. -/
+def freshTaggedPrefixEndpoint {n G : ℕ} (gates : Fin G → List (Clause n))
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) (budget : ℕ) : Restriction n :=
+  fixOn σ (freshTaggedPrefixVars gates fuel σ x budget) x
+
+/-- The witness-prefix endpoint removes exactly its selected variables from the live set. -/
+theorem freeVars_freshTaggedPrefixEndpoint {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (budget : ℕ) :
+    freeVars (freshTaggedPrefixEndpoint gates fuel σ x budget) =
+      freeVars σ \ freshTaggedPrefixVars gates fuel σ x budget := by
+  ext v
+  simp only [mem_freeVars, freshTaggedPrefixEndpoint, fixOn, Finset.mem_sdiff]
+  by_cases hv : v ∈ freshTaggedPrefixVars gates fuel σ x budget <;> simp [hv]
+
+/-- The witness-prefix endpoint has the expected exact star loss. -/
+theorem stars_freshTaggedPrefixEndpoint {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (budget : ℕ) (hext : Rung4Restriction.Extends σ x) :
+    stars (freshTaggedPrefixEndpoint gates fuel σ x budget) =
+      stars σ - (freshTaggedPrefixVars gates fuel σ x budget).card := by
+  rw [stars, freeVars_freshTaggedPrefixEndpoint,
+    Finset.card_sdiff_of_subset
+      (freshTaggedPrefixVars_subset_freeVars gates fuel σ x budget hext), stars]
+
+/-- Re-freeing the selected witness-prefix variables recovers the root. -/
+theorem freeOn_freshTaggedPrefixEndpoint {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (budget : ℕ) (hext : Rung4Restriction.Extends σ x) :
+    freeOn (freshTaggedPrefixEndpoint gates fuel σ x budget)
+      (freshTaggedPrefixVars gates fuel σ x budget) = σ := by
+  exact freeOn_fixOn σ (freshTaggedPrefixVars gates fuel σ x budget) x
+    (freshTaggedPrefixVars_subset_freeVars gates fuel σ x budget hext)
+
+/-- Endpoint equality and selected-set equality recover the two roots. -/
+theorem freshTaggedPrefixEndpoint_inj_of_vars_eq {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel : ℕ)
+    {ρ σ : Restriction n} {x y : Fin n → Bool} {budget : ℕ}
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hE : freshTaggedPrefixEndpoint gates fuel ρ x budget =
+      freshTaggedPrefixEndpoint gates fuel σ y budget)
+    (hV : freshTaggedPrefixVars gates fuel ρ x budget =
+      freshTaggedPrefixVars gates fuel σ y budget) : ρ = σ := by
+  calc
+    ρ = freeOn (freshTaggedPrefixEndpoint gates fuel ρ x budget)
+        (freshTaggedPrefixVars gates fuel ρ x budget) :=
+      (freeOn_freshTaggedPrefixEndpoint gates fuel ρ x budget hx).symm
+    _ = freeOn (freshTaggedPrefixEndpoint gates fuel σ y budget)
+        (freshTaggedPrefixVars gates fuel σ y budget) := by rw [hE, hV]
+    _ = σ := freeOn_freshTaggedPrefixEndpoint gates fuel σ y budget hy
+
 /-- Any coordinate on a raw canonical gate path is represented by a genuine active-term/literal
 position entry in that gate's assignment-followed witness. -/
 theorem mem_witDecode_runWitSeq_of_mem_queryVars {n : ℕ}
@@ -1273,6 +1381,76 @@ theorem freshKeys_eq_of_optionCode_eq {n G m d : ℕ}
       (Option.map fun q : Fin G × Fin m => (q.1, q.2.1)) hentry
     simpa [freshKeyOptionCode, hiρ', hiσ', taggedWitKey] using hval
 
+/-- On two streams of length at least `d`, equality of the optional position codes recovers the
+position component of the first `d` fresh entries. -/
+theorem freshPrefixPositions_eq_of_optionCode_eq {n G w d : ℕ}
+    (gates : Fin G → List (Clause n))
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshPositionOptionCode (d := d) gates hw fuel ρ x =
+      freshPositionOptionCode (d := d) gates hw fuel σ y) :
+    ((freshTaggedWitSeq gates fuel ρ x).take d).map (fun e => e.2.1) =
+      ((freshTaggedWitSeq gates fuel σ y).take d).map (fun e => e.2.1) := by
+  apply List.ext_get
+  · simp only [List.length_map, List.length_take, Nat.min_eq_left hlongρ,
+      Nat.min_eq_left hlongσ]
+  · intro i hiρ hiσ
+    have hid : i < d := by
+      simpa only [List.length_map, List.length_take, Nat.min_eq_left hlongρ] using hiρ
+    have hiρ' : i < (freshTaggedWitSeq gates fuel ρ x).length := hid.trans_le hlongρ
+    have hiσ' : i < (freshTaggedWitSeq gates fuel σ y).length := hid.trans_le hlongσ
+    have hentry := congrFun hcode ⟨i, hid⟩
+    have hval := congrArg (Option.map Fin.val) hentry
+    simpa [freshPositionOptionCode, hiρ', hiσ'] using hval
+
+/-- On two streams of length at least `d`, equality of optional key codes recovers the key
+component of the first `d` fresh entries. -/
+theorem freshPrefixKeys_eq_of_optionCode_eq {n G m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hcode : freshKeyOptionCode (d := d) gates hnd hgate fuel ρ x =
+      freshKeyOptionCode (d := d) gates hnd hgate fuel σ y) :
+    ((freshTaggedWitSeq gates fuel ρ x).take d).map taggedWitKey =
+      ((freshTaggedWitSeq gates fuel σ y).take d).map taggedWitKey := by
+  apply List.ext_get
+  · simp only [List.length_map, List.length_take, Nat.min_eq_left hlongρ,
+      Nat.min_eq_left hlongσ]
+  · intro i hiρ hiσ
+    have hid : i < d := by
+      simpa only [List.length_map, List.length_take, Nat.min_eq_left hlongρ] using hiρ
+    have hiρ' : i < (freshTaggedWitSeq gates fuel ρ x).length := hid.trans_le hlongρ
+    have hiσ' : i < (freshTaggedWitSeq gates fuel σ y).length := hid.trans_le hlongσ
+    have hentry := congrFun hcode ⟨i, hid⟩
+    have hval := congrArg
+      (Option.map fun q : Fin G × Fin m => (q.1, q.2.1)) hentry
+    simpa [freshKeyOptionCode, hiρ', hiσ', taggedWitKey] using hval
+
+/-- The sparse optional codes recover the first `d` fresh witnesses whenever both paths are long
+enough.  Unlike full-stream reconstruction, no upper bound on either path length is used. -/
+theorem freshTaggedWitSeq_take_eq_of_sparseCodes {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hlongρ : d ≤ (freshTaggedWitSeq gates fuel ρ x).length)
+    (hlongσ : d ≤ (freshTaggedWitSeq gates fuel σ y).length)
+    (hpos : freshPositionOptionCode (d := d) gates hw fuel ρ x =
+      freshPositionOptionCode (d := d) gates hw fuel σ y)
+    (hkey : freshKeyOptionCode (d := d) gates hnd hgate fuel ρ x =
+      freshKeyOptionCode (d := d) gates hnd hgate fuel σ y) :
+    (freshTaggedWitSeq gates fuel ρ x).take d =
+      (freshTaggedWitSeq gates fuel σ y).take d := by
+  apply taggedWitEntry_list_eq_of_key_pos
+  · exact freshPrefixKeys_eq_of_optionCode_eq gates hnd hgate fuel ρ σ x y
+      hlongρ hlongσ hkey
+  · exact freshPrefixPositions_eq_of_optionCode_eq gates hw fuel ρ σ x y
+      hlongρ hlongσ hpos
+
 /-- The two sparse optional codes and the genuine length recover the entire fresh witness. -/
 theorem freshTaggedWitSeq_eq_of_sparseCodes {n G w m d : ℕ}
     (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
@@ -1307,6 +1485,65 @@ def sparseCanonicalCommonBadPathLabel {n G w m d : ℕ}
       (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x, hdepth⟩,
     freshPositionOptionCode (d := d) gates hw fuel σ x,
     freshKeyOptionCode (d := d) gates hnd hgate fuel σ x)
+
+/-- Sparse label for a long path, recording only its first `d` branch bits and first `d` fresh
+witness annotations.  No upper bound on the full path is required. -/
+def sparseCanonicalPrefixPathLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (σ : Restriction n) (x : Fin n → Bool) :
+    SparseCommonBadPathLabel w d G m :=
+  (CommonTree.PathLabel.toFinite ⟨(CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).take d,
+        List.length_take_le d _⟩,
+    freshPositionOptionCode (d := d) gates hw fuel σ x,
+    freshKeyOptionCode (d := d) gates hnd hgate fuel σ x)
+
+/-- Equality of long-path sparse labels determines the first `d` fresh selected-variable set. -/
+theorem freshTaggedPrefixVars_eq_of_sparsePrefixLabel_eq {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hlabel : sparseCanonicalPrefixPathLabel (d := d) gates hnd hw hgate fuel ρ x =
+      sparseCanonicalPrefixPathLabel (d := d) gates hnd hw hgate fuel σ y) :
+    freshTaggedPrefixVars gates fuel ρ x d =
+      freshTaggedPrefixVars gates fuel σ y d := by
+  have hpos := congrArg (fun z => z.2.1) hlabel
+  have hkey := congrArg (fun z => z.2.2) hlabel
+  have hlongρ' : d ≤ (freshTaggedWitSeq gates fuel ρ x).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel ρ x hx]
+  have hlongσ' : d ≤ (freshTaggedWitSeq gates fuel σ y).length := by
+    rwa [freshTaggedWitSeq_length_eq_trace_readOnce gates fuel σ y hy]
+  have htake := freshTaggedWitSeq_take_eq_of_sparseCodes gates hnd hw hgate fuel
+    ρ σ x y hlongρ' hlongσ' hpos hkey
+  simp only [freshTaggedPrefixVars]
+  rw [htake]
+
+/-- The concrete long-path sparse label and selected-prefix endpoint form an injective root code. -/
+theorem canonicalFamily_prefixEndpoint_inj_of_sparseLabel {n G w m d : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (ρ σ : Restriction n) (x y : Fin n → Bool)
+    (hx : Rung4Restriction.Extends ρ x) (hy : Rung4Restriction.Extends σ y)
+    (hlongρ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ)) x).length)
+    (hlongσ : d ≤ (CommonTree.trace
+      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) y).length)
+    (hE : freshTaggedPrefixEndpoint gates fuel ρ x d =
+      freshTaggedPrefixEndpoint gates fuel σ y d)
+    (hlabel : sparseCanonicalPrefixPathLabel (d := d) gates hnd hw hgate fuel ρ x =
+      sparseCanonicalPrefixPathLabel (d := d) gates hnd hw hgate fuel σ y) : ρ = σ := by
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel hx hy hE
+  exact freshTaggedPrefixVars_eq_of_sparsePrefixLabel_eq gates hnd hw hgate fuel
+    ρ σ x y hx hy hlongρ hlongσ hlabel
 
 /-- Endpoint equality plus equality of sparse canonical labels recovers the root restriction. -/
 theorem canonicalFamily_endpoint_inj_of_sparseLabel {n G w m d : ℕ}
@@ -1374,6 +1611,34 @@ theorem sparseCanonicalCommonBadPath_count {w d G m : ℕ}
       (assignment ρ) (assignment σ) (hext ρ) (hext σ) (hdepth ρ) (hdepth σ)
       hE hlabel
 
+/-- Sparse count for genuinely long canonical-family paths.  The endpoint fixes exactly `d`
+selected fresh witness variables, while the label reconstructs only that prefix. -/
+theorem sparseCanonicalCommonLongPath_count {w d G m : ℕ}
+    (gates : Fin G → List (Clause n)) (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (fuel : ℕ) (assignment : Restriction n → (Fin n → Bool))
+    {Bad Short : Finset (Restriction n)}
+    (hext : ∀ ρ ∈ Bad, Rung4Restriction.Extends ρ (assignment ρ))
+    (hlong : ∀ ρ ∈ Bad, d ≤ (CommonTree.trace
+      (CommonTree.readOnce ρ (canonicalFamilyTree gates fuel ρ))
+        (assignment ρ)).length)
+    (hmem : ∀ ρ ∈ Bad,
+      freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d ∈ Short) :
+    Bad.card ≤ Short.card *
+      (((d + 1) * 2 ^ d) * (w + 1) ^ d * (G * m + 1) ^ d) := by
+  classical
+  apply card_bad_le_label_card
+    (fun ρ => freshTaggedPrefixEndpoint gates fuel ρ (assignment ρ) d)
+    (fun ρ => sparseCanonicalPrefixPathLabel (d := d) gates hnd hw hgate fuel ρ
+      (assignment ρ))
+  · exact le_of_eq (card_sparseCommonBadPathLabel w d G m)
+  · exact hmem
+  · intro ρ hρ σ hσ hE hlabel
+    exact canonicalFamily_prefixEndpoint_inj_of_sparseLabel gates hnd hw hgate fuel
+      ρ σ (assignment ρ) (assignment σ) (hext ρ hρ) (hext σ hσ)
+      (hlong ρ hρ) (hlong σ hσ) hE hlabel
+
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_commonBadPathLabel
@@ -1400,5 +1665,11 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalCommonBadPath_count
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_sparseCommonBadPathLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_eq_of_sparseCodes
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedWitSeq_take_eq_of_sparseCodes
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedPrefixVars_card_eq_of_le_trace
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_freshTaggedPrefixEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freshTaggedPrefixVars_eq_of_sparsePrefixLabel_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_prefixEndpoint_inj_of_sparseLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_endpoint_inj_of_sparseLabel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparseCanonicalCommonBadPath_count
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sparseCanonicalCommonLongPath_count

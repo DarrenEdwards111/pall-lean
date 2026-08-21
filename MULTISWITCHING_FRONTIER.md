@@ -54,6 +54,20 @@ than the target depth `d`.  The new prefix endpoint API treats the first `d` fre
 Its only encoder-specific premise is equality of the first-`d` prefix-variable sets under label
 equality.  In particular, it does not assume that the entire bad path has length exactly `d`.
 
+The prefix-order seam has now been bypassed without assuming an unproved ordering equivalence.
+`freshTaggedPrefixVars` selects the variables decoded by the first `d` globally fresh tagged
+witnesses.  For every normalized trace of length at least `d`, Lean proves that this set:
+
+- has cardinality exactly `d` (`freshTaggedPrefixVars_card_eq_of_le_trace`);
+- is contained in the root's live variables;
+- produces an exact `K-d` endpoint and recovers the root when re-freed.
+
+The optional position and `(gate,term)` streams reconstruct those first `d` tagged entries even
+when the full path is longer (`freshTaggedWitSeq_take_eq_of_sparseCodes`).  Consequently
+`sparseCanonicalCommonLongPath_count` and
+`commonShallowBad_card_le_of_sparse_prefix` are concrete injective counts: there is no residual
+label-reconstruction or prefix-variable-equality premise.
+
 All printed axiom sets for these capstones are subsets of
 `{propext, Classical.choice, Quot.sound}`.  There is no `sorry`, `admit`, custom axiom, or
 `native_decide` in the affected modules.
@@ -74,15 +88,14 @@ multi-switching lemma:
 1. The factor `(G*m+1)^d` pays for a gate/term identity at every fresh query.  A sharp
    multi-switching encoder must amortize this to run/block information (roughly one family choice per
    residual-depth block), rather than one arbitrary key per query.
-2. For a genuinely long path, define the concrete sparse label from its first `d` fresh tagged
-   witness entries and prove that equality of those codes determines `CommonTree.prefixVars`.  The
-   existing `freshTaggedWitSeq_vars_eq_pathVars` identifies only the full finite set, so it cannot
-   justify a prefix claim by itself; an order-preserving prefix correspondence (or a different
-   selected-set endpoint) is required.
-3. The endpoint-membership premise must be realized by a genuine contraction: map every common-deep
-   bad root into a strictly smaller live shell and prove a positive shell saving.  The exact `K-d`
-   prefix shell is now formalized, but its concrete label reconstruction remains the preceding seam.
-   `commonShallowShellContraction_zero` still records that zero saving gives no iteration credit.
+2. The remaining semantic premise is to extract, from every failure of `CommonShallowAt`, an
+   extending assignment whose canonical-family trace has length at least `d`.  The exact `K-d`
+   endpoint and its concrete label reconstruction are now discharged once such an assignment is
+   supplied.  This implication must be proved from the residual-depth failure semantics; it is not
+   assumed to follow merely from the bad-event definition.
+3. Convert the resulting shorter-shell count into a positive proportional shell contraction with
+   parameters strong enough for iteration.  `commonShallowShellContraction_zero` still records that
+   zero saving gives no iteration credit.
 4. Only after these steps can the restriction iteration be tested against the required `AC⁰` depth
    reduction parameters.  No unrestricted P-time/SAT consequence follows from the present result.
 
