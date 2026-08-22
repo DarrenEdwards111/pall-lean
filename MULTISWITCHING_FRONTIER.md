@@ -2770,3 +2770,2145 @@ clause remains active and its first free literal is a fresh outside coordinate. 
 invariant and induct on remaining fuel; the exact canonical incidence and support-exponential
 validity statements will then follow by rewriting the theorems already proved here.  No
 P-versus-NP conclusion follows.
+
+### The order-independent canonical root invariant is now formalized
+
+The enumeration-sensitive selector gap has been removed.  The theorem
+`activeTerm_exhaustiveVectorClause_of_free` proves that whenever the protected final coordinate
+and at least one outside coordinate are free, `activeTerm` selects an exhaustive Boolean-vector
+clause from the prefix, not the appended protected target.  The proof uses only that some prefix
+clause is live; it does not inspect or constrain the order chosen by `Finset.toList`.
+
+The structural corollary `canonicalDT_exhaustiveVectorGate_root_query_of_free` unfolds one
+canonical-tree step and proves that its root query is `i.castSucc` for some `i : Fin Q`.  Since
+the selected literal belongs to `freeLits`, this is a fresh outside coordinate.  Thus the exact
+local invariant proposed above is now source-checked for every partial restriction and every
+remaining fuel.
+
+The stricter module-target build also exposed latent code-generation and proof gaps in the
+previous arbitrary-support block that a top-level replay had not rebuilt.  In particular,
+`Finset.toList` made the concrete gate inherently noncomputable.  The gate and family are now
+marked `noncomputable`, and the target-disjointness, live-clause, coordinate-fiber, and positive-
+support validity proofs were repaired.  The module now builds as an actual Lake target (8,347
+jobs), with all arbitrary-support capstones depending only on `propext`, `Classical.choice`, and
+`Quot.sound`.
+
+What remains is the global induction.  The precise next frontier is to prove that `fixVar` on
+such a root preserves the protected-coordinate hypothesis and removes exactly that one element
+from the free outside support, then induct on the support cardinality (not on the unspecified
+clause order).  This should yield
+
+```text
+queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none))
+  = Finset.univ.map Fin.castSuccEmb
+```
+
+and allow the already proved exact core-incidence rectangle to be rewritten over the gate's
+actual canonical queried set.  No P-versus-NP conclusion follows.
+
+### The arbitrary-support canonical query set is now exact
+
+The local invariant now closes under the full canonical walk.  The new finite support
+`exhaustiveVectorFreeSupport sigma` records precisely the outside coordinates still free under
+`sigma`.  The transition lemmas `fixVar_castSucc_last` and
+`exhaustiveVectorFreeSupport_fixVar` prove that fixing an embedded outside coordinate preserves
+the protected final coordinate and erases exactly that one support element, for either Boolean
+branch.
+
+`exhaustiveVectorGate_queriedVars_eq_freeSupport` then inducts on the support cardinality.  At
+every nonempty stage the previously proved root invariant supplies a fresh embedded query; both
+children have the same support with that coordinate erased, so the induction hypotheses identify
+both child query sets exactly.  This proof never inspects the order of `Finset.toList`.
+
+Specializing to the all-free root gives the formerly missing equality
+
+```text
+queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none))
+  = Finset.univ.map Fin.castSuccEmb.
+```
+
+Consequently `exhaustiveVectorCore_polarityCycleValid_canonical` proves, for every `Q > 0`, that
+the concrete canonical gate has a valid inclusion-minimal unsatisfiable polarity core of size
+`2^Q` on its actual queried support.  The rewritten incidence capstone
+`exhaustiveVectorCore_canonicalQueryIncidences_card` proves the exact canonical incidence count
+`2^Q * Q`; the earlier coordinate-fiber theorem therefore applies to actual canonical queries,
+with all `2^Q` clauses incident to every queried coordinate.
+
+This establishes the asymptotic obstruction requested by the incidence audit: normalization,
+minimal-core reduction, and canonical querying alone do not yield a subexponential raw incidence
+bound.  The precise next frontier is the remaining ownership-map possibility.  Define a selector
+that assigns each retained clause to one incident canonical coordinate and prove the sharp
+pigeonhole load for this exhaustive family (at least `ceil(2^Q / Q)` on some coordinate).  Then
+compare that unavoidable load directly with the preservation ratio `choose(K,R) / choose(B,R)`;
+if it is still incompatible, the generic polarity-ownership route is closed and the project
+should return to a stricter run-sensitive encoder.  No P-versus-NP conclusion follows.
+
+### Incident ownership has an unavoidable exponential-over-support load
+
+The ownership-map possibility now has a precise interface.  `IncidentCoordinateOwner` requires
+an arbitrary rule on indexed retained clauses to select both an actual canonical query and a
+coordinate in that clause's outside-target edge.  The definition does not assume that ownership
+is canonical, local, or order-independent, so the lower bound applies to every proposed rule of
+this form.
+
+`IncidentCoordinateOwner.exists_ceilDiv_le_load` proves the sharp finite averaging statement
+
+```text
+exists v in queried,
+  ceil(core.card / queried.card) <= |{p in core | owner p = v}|.
+```
+
+The proof partitions the core exactly into ownership fibers and uses natural ceiling division;
+nonempty core plus incident ownership supplies the required nonempty queried set.  Thus there is
+no hidden positivity or totality premise.
+
+The exhaustive family is nonvacuously inside this interface.  For `Q > 0`,
+`exhaustiveVectorFirstOwner` assigns every clause to the first outside coordinate, and
+`exhaustiveVectorFirstOwner_incident` proves this is a valid incident owner because every
+exhaustive competitor contains every outside coordinate.  More importantly, the universal
+capstone `exhaustiveVectorCore_incidentOwner_exists_load` proves for *every* incident owner that
+
+```text
+exists v in queriedVars(canonicalDT exhaustiveVectorGate),
+  ceil(2^Q / Q) <= |{p in exhaustiveVectorCore Q | owner p = v}|.
+```
+
+Hence ownership can reduce the raw `2^Q * Q` incidence charge only to an unavoidable maximum
+load of at least `ceil(2^Q / Q)`, still exponential up to a polynomial support factor.  This does
+not by itself close the ownership route: the restriction-preservation probability attached to a
+fiber has not yet been aligned with the existing shell parameters.
+
+The precise next frontier is to formalize the comparison with the preservation ratio
+`choose(K,R) / choose(B,R)`.  Instantiate the owner-load obstruction at the round's actual
+`Q`, `K`, `R`, and `B`, and determine whether the ratio can absorb `ceil(2^Q / Q)` uniformly over
+the intended multi-round schedule.  If not, record the quantitative incompatibility and return to
+a stricter run-sensitive encoder.  No P-versus-NP conclusion follows.
+
+### The exhaustive ownership obstruction is already bounded by the round's width factor
+
+The attempted shell-ratio instantiation exposed a necessary width check before any density
+comparison.  `exhaustiveVectorClause_length` proves that every Boolean-vector competitor in the
+exhaustive family has length exactly `Q`.  Consequently
+`exhaustiveVectorGate_width_forces_support_le` proves that any uniform width-`w` hypothesis on this
+gate forces `Q <= w`.  The construction's exponential support is therefore simultaneously
+growing clause width; it is not a constant-width exponential obstruction.
+
+For a layered round whose residual clause width is bounded by `s+1`, the new arithmetic capstone
+`exhaustiveVectorOwnerLoad_le_residualWidthFactor` proves, for positive `Q <= s+1`,
+
+```text
+ceil(2^Q / Q) <= 2^(s+1).
+```
+
+That right-hand side is already an explicit factor in `layeredRoundKeyCap`.  Thus the exhaustive
+family does not close the ownership route under the actual bounded-width schedule, even before
+using the additional preservation density `choose(K,R) / choose(B,R)`.  Its earlier exact
+canonical-query and minimal-core lower bounds remain valid, but their asymptotic interpretation
+must retain the growing-width cost.
+
+The stricter target replay also found and repaired an elaboration gap in
+`exhaustiveVectorFirstOwner_incident`: membership in the mapped canonical-query support is now
+proved with the explicit first `Fin Q` witness instead of relying on a `simp` call that left a
+goal in a fresh rebuild.
+
+The precise next frontier is width-sensitive.  Either prove a general ownership/load upper bound
+for normalized width-`w` polarity cores that fits the existing `2^(s+1)` recurrence charge, then
+combine it with the exact target-preservation balance, or construct a normalized constant-width
+canonical family whose minimal-core ownership load grows beyond every width-only bound.  The
+current exhaustive family cannot serve as that counterexample.  No P-versus-NP conclusion
+follows.
+
+### Minimal polarity cores are injective after semantic outside-literal normalization
+
+The first width-sensitive reduction is now formalized.  The new
+`competitorOutsideTargetLiteralSet target U` retains exactly the polarity-sensitive literals of
+`U` whose variables avoid the complete protected-target support, while forgetting target index,
+protected literals, order, and duplicate occurrences.  Its cardinality is at most `U.lits.length`,
+so an input width bound transfers directly to this semantic signature.
+
+`InclusionMinimalUnsatisfiableCore.outsideLiteralSet_injectiveOn` proves that this signature is
+injective on every inclusion-minimal unsatisfiable core.  If two indexed competitors had the same
+signature, the satisfying witness obtained after deleting the first would hit the second; the
+identical signature would then make it hit the deleted competitor as well, contradicting
+unsatisfiability.  The capstone `card_image_outsideLiteralSet` records the exact equinumerosity of
+the core and its signature image.
+
+This removes several false sources of ownership growth at once: repeating a semantic competitor
+under many target indices, changing literal order, adding protected literals, or repeating an
+outside literal cannot increase a minimal core.  The remaining problem is therefore the genuine
+combinatorics of distinct nonempty polarity-labelled subsets of queried coordinates of size at
+most `w`; syntactic gate multiplicity is no longer relevant.
+
+The precise next frontier is to exploit minimal unsatisfiability beyond this injectivity.  First
+derive (or refute with a normalized constant-width family) a bounded-load orientation theorem for
+the resulting irredundant semantic signatures.  A mere enumeration of all width-`w` signatures
+would still depend polynomially on the queried-support size and would not fit the existing
+`2^(s+1)` width-only recurrence charge; the needed next lemma must use the deletion witnesses, not
+only distinctness and width.  No P-versus-NP conclusion follows.
+
+### Bounded-load ownership reduces to a capacitated Hall-density problem
+
+The ownership question now has a proved local interface.  `incidentQueriedVars` intersects each
+competitor's genuine outside-target edge with the recorded query support, and
+`incidentOwnerSlots` gives every such coordinate `L` distinguishable ownership slots.  Hall's
+marriage theorem then yields
+`exists_incidentCoordinateOwner_load_le_of_localDensity`: for a nonempty core with nonempty
+incident queried edges, if every subfamily `S` satisfies
+
+```text
+|S| <= L * |union_{p in S} incidentQueriedVars(p)|,
+```
+
+there is an incident owner whose every coordinate fiber has size at most `L`.  Thus a sufficient
+route to the orientation theorem is neither an informal averaging argument nor a whole-core
+cardinality bound: it is capacitated Hall density over all subfamilies.  A direct converse is
+mathematically elementary, but the attempted Lean proof was deliberately not retained because its
+first proof route inherited `sorryAx` under the repository's axiom audit.
+
+This sharpens the role of the deletion witnesses.  Minimal unsatisfiability applies to the whole
+core, while Hall tests arbitrary subfamilies, which need not themselves be minimal or
+unsatisfiable.  Consequently the existing whole-core witness injection and semantic-signature
+injectivity do not yet discharge the new premise.
+
+The precise next frontier is to test the width budget `L = 2^w` against this Hall condition.
+Either use the deletion witnesses to prove, for every subfamily of a normalized width-`w` minimal
+polarity core, `|S| <= 2^w * |union incidentVars(S)|`, which immediately produces the ownership
+bound needed by the recurrence, or construct a normalized constant-width minimal core containing
+a subfamily whose clause-to-variable density exceeds every width-only `L`.  Any counterexample
+must violate this local inequality, not merely have a large total core.  No P-versus-NP conclusion
+follows.
+
+### Deletion witnesses give an exact local exponential bound, not yet the Hall bound
+
+The deletion-witness injection now works at the quantifier strength required by Hall.
+`InclusionMinimalUnsatisfiableCore.subfamily_card_le_two_pow_incidentUnion` proves for every
+subfamily `S` of a globally inclusion-minimal core, assuming all outside edges lie in the queried
+support,
+
+```text
+|S| <= 2 ^ |union_{p in S} incidentQueriedVars(p)|.
+```
+
+The subfamily need not itself be unsatisfiable or inclusion-minimal.  For each retained clause,
+the proof restricts its global deletion witness to the union touched by `S`; equality of two
+restricted witnesses would let one witness hit its own deleted clause through the other clause,
+contradicting global unsatisfiability.  This is therefore a genuine local consequence of the
+deletion witnesses, rather than a reuse of the earlier whole-core cardinality estimate.
+
+This identifies the remaining quantitative gap exactly.  If `q` coordinates occur in a Hall
+subfamily, the proved input is `|S| <= 2^q`, while the desired width budget requires
+`|S| <= 2^w * q`.  The former implies the latter only in the arithmetic range where
+`2^q <= 2^w * q`; minimality alone has not supplied a reason that every subfamily lies in that
+range.  The proof deliberately does not replace this exponential dependence by an unsupported
+width-only estimate.
+
+The precise next frontier is to add the missing width structure to this local witness code.
+Either prove that width-`w` private deletion witnesses force a compression/orientation of every
+subfamily from `2^q` down to `2^w * q`, or construct a normalized constant-width minimal core
+whose private-witness subfamily has density above `2^w`.  The latter must be a genuine minimal
+subcube cover/canonical-gate example, not merely an arithmetic counterexample to the current
+upper bound.  No P-versus-NP conclusion follows.
+
+### The witness code meets the Hall budget through support `w + 1`
+
+The first exact width-sensitive cutoff is now formalized.
+`InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_smallSupport` combines the
+local deletion-witness injection with the nonempty incident-edge premise used by capacitated
+Hall.  For positive `w`, every subfamily `S` whose incident union has cardinality `q <= w + 1`
+satisfies
+
+```text
+|S| <= 2^w * q.
+```
+
+The endpoint `q = w + 1` is included: `2^(w+1) = 2^w * 2`, and positivity of `w` gives
+`2 <= w + 1`.  Empty subfamilies are handled separately, so no hidden support-positivity premise
+is introduced.
+
+The contrapositive capstone
+`InclusionMinimalUnsatisfiableCore.width_add_two_le_incidentUnion_of_density_failure` proves that
+any actual failure of the desired load-`2^w` Hall inequality must have
+
+```text
+w + 2 <= q.
+```
+
+Thus the first support size beyond width is not an obstruction.  The unresolved range is now
+strictly the large-support regime, where the raw witness bound `2^q` ceases to fit the linear
+budget.  This does not prove the full Hall premise and does not produce the required owner.
+
+The precise next frontier is to exploit clause width inside that `q >= w + 2` regime.  A useful
+next discriminator is either a deletion/splitting recurrence that reduces a large-support
+subfamily to smaller-support pieces while paying at most `2^w` per coordinate, or a normalized
+constant-width minimal canonical core with a Hall-violating subfamily at the now-forced support
+threshold.  Any proposed counterexample with `q <= w + 1` is ruled out.  No P-versus-NP
+conclusion follows.
+
+### The witness-code cutoff extends through support `w + 2` for width at least two
+
+The next arithmetic endpoint of the local deletion-witness code is now formalized.
+`InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_support_le_add_two` proves
+that when `2 <= w`, every Hall subfamily touching `q <= w + 2` incident queried coordinates
+satisfies
+
+```text
+|S| <= 2^w * q.
+```
+
+The only case not covered by the previous `q <= w + 1` theorem is `q = w + 2`.  There the
+existing private-witness injection gives `|S| <= 2^(w+2) = 4 * 2^w`, and `2 <= w` gives
+`4 <= w + 2`.  No new combinatorial hypothesis is hidden in the improvement.
+
+The contrapositive capstone
+`InclusionMinimalUnsatisfiableCore.width_add_three_le_incidentUnion_of_density_failure` therefore
+forces every genuine failure of the desired load-`2^w` Hall inequality, for width at least two,
+into the stricter regime
+
+```text
+w + 3 <= q.
+```
+
+This remains an arithmetic consequence of the exponential witness code, not the full Hall
+premise.  The precise next frontier is to expose the complete arithmetic envelope
+`2^(q-w) <= q` and then use actual clause-width structure where that envelope fails.  Concretely,
+either prove a deletion/splitting recurrence for the first unsupported `(w,q)` pairs, or construct
+a normalized constant-width minimal canonical core violating Hall there.  No P-versus-NP
+conclusion follows.
+
+### The complete arithmetic envelope is now explicit
+
+The private deletion-witness code has now been separated exactly from the remaining structural
+problem.  The theorem
+`InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_pow_sub_le` proves that every
+Hall subfamily with incident-support size `q` satisfies
+
+```text
+|S| <= 2^w * q
+```
+
+whenever `2^(q-w) <= q`.  The proof also handles `q <= w` directly by monotonicity, so the stated
+condition is a complete sufficient arithmetic envelope rather than only a large-support lemma.
+For `w <= q`, it is exactly the factorization
+
+```text
+2^q = 2^w * 2^(q-w)
+```
+
+applied to the already proved local injection `|S| <= 2^q`.
+
+The contrapositive capstone
+`InclusionMinimalUnsatisfiableCore.pow_sub_gt_incidentUnion_of_density_failure` proves that any
+genuine load-`2^w` Hall-density failure must simultaneously satisfy
+
+```text
+w < q
+q < 2^(q-w).
+```
+
+Thus the remaining region is no longer described by a coarse cutoff such as `q >= w+3`; it is
+the exact scalar failure region of the witness code.  For example, the first still-unsupported
+endpoint is `(w,q) = (2,5)`, where `8 > 5`, while larger widths can remain inside the envelope
+for additional support levels.
+
+The precise next frontier is structural: analyze the first envelope-failing normalized
+constant-width cases (beginning with width two on five queried coordinates).  Either derive a
+deletion/splitting recurrence that uses each clause's width to recover the Hall budget there, or
+preserve a concrete inclusion-minimal canonical polarity core whose subfamily actually violates
+that budget.  Arithmetic refinement of the existing `2^q` code alone cannot decide this region.
+No P-versus-NP conclusion follows.
+
+### The first width-two obstruction is confined to a 21--32 clause window
+
+The first arithmetic-envelope failure has now been reduced to an exact finite cardinality target.
+`InclusionMinimalUnsatisfiableCore.widthTwo_fiveSupport_card_window_of_density_failure` proves
+that a Hall-violating subfamily on five incident coordinates at load `2^2 = 4` would have to
+satisfy
+
+```text
+21 <= |S| <= 32.
+```
+
+The lower endpoint is the strict Hall failure `4 * 5 < |S|`; the upper endpoint is the already
+proved deletion-witness injection `|S| <= 2^5`.  This theorem deliberately does not manufacture
+width structure that is absent from the generic witness argument.
+
+As a non-kernel discriminator, an exact mixed-integer model of all 50 non-tautological unit and
+binary semantic clauses on five Boolean variables was also tested.  The model enforces coverage
+of every assignment and gives every selected clause a private falsifying assignment, exactly the
+finite irredundant-cover conditions corresponding to inclusion-minimal unsatisfiability.  A
+30-second HiGHS run found a 10-clause feasible core and returned a valid branch-and-bound upper
+bound of 19 selected clauses.  Thus this search found no candidate in the Lean-proved 21--32
+obstruction window.  The solver run is useful route-selection evidence only: no solver
+certificate has been imported into Lean, so the width-two/five-support Hall bound is not claimed
+as proved.
+
+The precise next frontier is to formalize the width-two implication-graph (weak-double-cycle)
+bound needed to close this finite window, preferably as a reusable theorem that every normalized
+inclusion-minimal width-two core has at most four clauses per incident variable.  A smaller
+alternative is a kernel-checkable exhaustive certificate ruling out cardinalities 21 through 32
+on five variables.  Only after that bound is proved should the analysis move to the next
+arithmetic-envelope failure.  No P-versus-NP conclusion follows.
+
+### Minimal cores now have a kernel-checked private-point dimension interface
+
+The implication-graph route is not the shortest currently visible route.  Define the outside-term
+indicator of a retained indexed competitor to be one exactly when none of its available
+outside-target literals is falsified.  The theorem
+`InclusionMinimalUnsatisfiableCore.outsideTermIndicators_linearIndependent` proves over `ℚ` that
+all such indicators in an inclusion-minimal unsatisfiable core are linearly independent.
+
+The proof uses the deletion witness for a term `p`.  That assignment hits every other retained
+term.  It cannot also hit `p`, since it would then satisfy the whole core, contradicting global
+unsatisfiability.  It is therefore a private point where the indicator of `p` is one and every
+other indicator is zero.  Evaluating a putative linear dependence at this point isolates the
+coefficient of `p`.
+
+The companion theorem
+`InclusionMinimalUnsatisfiableCore.card_le_of_outsideTermIndicators_mem_span` packages the exact
+dimension consequence: if a finite function basis spans all outside-term indicators, then
+
+```text
+|core| <= |basis|.
+```
+
+This changes the best route to the five-variable width-two window.  After localizing to the five
+incident coordinates, every consistent width-two term indicator should lie in the span of the
+squarefree monomials of degrees zero, one, and two.  That basis has size
+
+```text
+choose(5,0) + choose(5,1) + choose(5,2) = 1 + 5 + 10 = 16,
+```
+
+which is already strictly below the Hall-failure threshold 21.  Thus the non-kernel MILP upper
+bound 19 is no longer the sharp guide; the private-point dimension argument predicts a stronger
+kernel-checkable bound of 16 under the required width and localization premises.
+
+The precise next frontier is to formalize the localization map from the five-coordinate incident
+union, express each outside-term indicator as a degree-at-most-two squarefree polynomial (including
+unit and empty outside signatures), and instantiate the abstract span theorem with the 16-element
+monomial basis.  That would close the first `w = 2, q = 5` obstruction without an implication-graph
+classification.  The same construction should then be generalized to the binomial-sum bound
+`sum_{i <= w} choose(q,i)` and tested against the subsequent arithmetic-envelope failures.  No
+P-versus-NP conclusion follows.
+
+### Outside-term indicators are now localized to the queried support
+
+The ambient-coordinate part of the private-point dimension route has now been removed.
+`outsideCompetitorTermFires_congr_of_eqOn` proves that, whenever a competitor's available
+outside variables lie in `queried`, its indicator has the same value on any two assignments
+agreeing on `queried`.  The explicit maps `restrictQueriedAssignment` and
+`extendQueriedAssignment` package this as
+
+```text
+ambient indicator assignment
+  = localized indicator (assignment restricted to queried).
+```
+
+More importantly,
+`InclusionMinimalUnsatisfiableCore.localizedOutsideTermIndicators_linearIndependent` proves
+that the localized indicators are already linearly independent over `ℚ` as functions on
+assignments `(queried → Bool)`.  The companion theorem
+`card_le_of_localizedOutsideTermIndicators_mem_span` therefore bounds the core directly by any
+finite basis on that localized assignment space.  No ambient-coordinate monomials or arbitrary
+off-support values need to be carried into the five-variable argument.
+
+This completes the localization substep but does not yet prove the bound 16.  The precise next
+frontier is now purely algebraic: define the degree-at-most-two squarefree monomials on
+`↥queried`, prove every localized indicator arising from an outside signature of length at most
+two lies in their span (including empty and unit signatures and both polarities), and prove that
+this basis has cardinality at most `1 + q + choose(q,2)`.  Instantiating at `q = 5` would give 16
+and close the 21--32 Hall-failure window.  No P-versus-NP conclusion follows.
+
+### The localized degree-two monomial family and its exact size budget are formalized
+
+The algebraic target is now a concrete finite family rather than an informal dimension count.
+`localizedSquarefreeMonomial` defines the rational-valued Boolean monomial on a finite subset of
+the queried coordinates, and `localizedDegreeTwoMonomialBasis` collects the images of all
+supports of cardinality zero, one, or two.  Defining the family as an image deliberately avoids
+needing monomial injectivity: any coincident functions only make the eventual upper bound
+stronger.
+
+The theorem `localizedDegreeTwoMonomialBasis_card_le` proves the kernel-checked estimate
+
+```text
+|basis| <= 1 + q + choose(q,2),
+```
+
+using `powersetCard` and its exact binomial cardinality.  The companion theorem
+`localizedSquarefreeMonomial_mem_degreeTwo_span` proves that every monomial whose support has
+size at most two is already in the span of this displayed family.  In particular, at `q = 5`
+the available dimension budget is at most 16; this is now a proved arithmetic fact about the
+actual basis that will be passed to the localized dimension cap.
+
+This does not yet show that each width-two outside-term indicator belongs to the span.  The
+precise next frontier is the signed expansion lemma: rewrite the indicator as the product of at
+most two affine coordinate factors, handle repeated variables with equal or opposite polarity,
+and expand it into the proved constant, singleton, and pair generators.  Composing that lemma
+with `card_le_of_localizedOutsideTermIndicators_mem_span` will yield the 16-clause cap and close
+the five-coordinate 21--32 failure window.  No P-versus-NP conclusion follows.
+
+### The signed width-two expansion and the five-coordinate full-core cap are formalized
+
+The algebraic gap is now closed.  `localizedLiteralFiringFactor` is the affine factor contributed
+by one available outside literal.  The two span lemmas prove that one such factor and the product
+of two such factors belong to `localizedDegreeTwoMonomialBasis`.  The product proof explicitly
+handles repeated coordinates: equal falsifying polarities collapse to one factor, while opposite
+polarities give the zero function; distinct coordinates expand into the constant, singleton, and
+pair monomials.
+
+`localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span` connects those factors to the actual
+competitor semantics for every syntactic clause of width at most two.  Its list analysis includes
+empty and unit clauses and literals protected by the target support.  Composing this theorem with
+localized private-point linear independence gives
+
+```text
+|core| <= 1 + q + choose(q,2).
+```
+
+Thus a width-two inclusion-minimal core whose entire outside support is localized to five queried
+coordinates has at most 16 members.  The theorem
+`not_widthTwo_fiveSupport_density_failure` rules out the 21--32 density window under exactly this
+full-core five-coordinate localization.
+
+This last qualifier matters.  The Hall audit needs the same dimension argument for an arbitrary
+subfamily `s` localized to its own incident union, even when other members of the ambient minimal
+core use coordinates outside that union.  The current full-core theorem cannot simply replace
+`queried` by that local union because its support premise quantifies over every core member.
+The precise next frontier is therefore to restrict the private-point linear-independence family
+to `s`, localize only those indicators to `s.biUnion incidentQueriedVars`, and derive the
+subfamily bound `|s| <= 1 + q + choose(q,2)`.  That would genuinely close the width-two `q = 5`
+window (and also the `q = 6` load-four inequality); at `q = 7` this quadratic budget becomes 29
+against a Hall budget of 28, exposing the next structural boundary.  No P-versus-NP conclusion
+follows.
+
+### The width-two private-point bound now applies to every Hall subfamily
+
+The full-core qualifier has been removed.  The theorem
+`subfamily_localizedOutsideTermIndicators_linearIndependent` restricts the deletion-witness
+argument to an arbitrary `s : Finset ↥core`: every selected clause still has a private point
+against all other core clauses, hence in particular against the other selected clauses.  Only
+the selected indicators must localize to the chosen coordinate set; unselected ambient core
+members may use unrelated coordinates.
+
+Combining this restricted independence with the signed degree-two expansion gives
+`subfamily_card_le_degreeTwo_incidentUnion`:
+
+```text
+|s| <= 1 + q + choose(q,2),
+q = |s.biUnion incidentQueriedVars|.
+```
+
+The two arithmetic corollaries
+`not_widthTwo_subfamily_density_failure_five` and
+`not_widthTwo_subfamily_density_failure_six` now rule out load-four Hall failure at `q = 5` and
+`q = 6` for arbitrary subfamilies, not merely when the whole minimal core has that support.
+Their budgets are respectively `16 <= 20` and `22 <= 24`.
+
+The precise next frontier is `q = 7`.  The current degree-two dimension estimate gives 29 while
+load four permits only 28, so span dimension alone misses by exactly one.  The highest-value next
+test is to identify a universally absent degree-two direction forced by unsatisfiability or by
+nonempty incidence, or else construct a normalized inclusion-minimal width-two core/subfamily
+realizing all 29 dimensions on seven incident coordinates.  That decides whether the Hall route
+extends past this first one-dimensional deficit.  No P-versus-NP conclusion follows.
+
+### Full degree-two dimension now forces a pointwise partition
+
+The one-dimensional `q = 7` deficit has been reduced to an equality-case packing problem.
+`sum_eq_one_of_privatePoints_of_finrank_le_card` proves an abstract finite-dimensional statement:
+if a linearly independent family fills a function subspace and every vector has a coordinate
+private point, then the vectors sum pointwise to the constant-one function.  Evaluation at a
+private point forces the corresponding coefficient of the constant function to be exactly one.
+
+The circuit-facing theorem
+`InclusionMinimalUnsatisfiableCore.subfamily_indicators_partition_of_degreeTwo_full` instantiates
+this fact for an arbitrary Hall subfamily.  If the subfamily attains
+
+```text
+|s| = 1 + q + choose(q,2),
+```
+
+then on every localized Boolean assignment exactly one of its zero-one outside-term indicators
+fires.  In particular, a hypothetical `q = 7`, 29-member obstruction cannot merely realize all
+29 polynomial directions: its width-two firing subcubes must partition the 128-point Boolean
+cube.  This is substantially more rigid than linear independence and rules out searching for an
+arbitrary 29-element degree-two basis as a counterexample.
+
+### The partition-mass obstruction closes the seven-coordinate Hall case
+
+The finite-fiber step is now kernel checked.  The abstract theorem
+`boolAssignment_card_le_four_mul_firingFiber_of_twoCoordinateRetraction` records the two bits
+erased when an assignment is overwritten on two coordinates, producing an injection into four
+copies of the firing fiber.  The circuit-facing dependency theorem
+`localizedOutsideCompetitorTermFires_dependsOn_twoCoordinates` proves that every localized
+syntactic-width-two indicator has such a two-coordinate support.  Protected literals are treated
+as constant factors, repeated coordinates are allowed, and the contradictory repeated-polarity
+case is not discarded: `localizedOutsideCompetitorTermFires_cube_card_le_four_mul_fiber` requires
+an explicit firing witness.  Minimal-core deletion witnesses provide exactly that nonzeroness.
+
+The double-counting theorem `card_le_four_of_partition_and_quarter_fibers` shows that a pointwise
+partition by nonempty subsets, each occupying at least one quarter of a finite cube, has at most
+four parts.  Combining it with the full-dimension partition gives the strict general bound
+`InclusionMinimalUnsatisfiableCore.subfamily_card_lt_degreeTwo_binomialBudget` whenever the
+degree-two budget exceeds four.  In particular,
+`widthTwo_subfamily_card_le_twentyEight_of_seven` improves the seven-coordinate cap from 29 to 28,
+and `not_widthTwo_subfamily_density_failure_seven` closes load-four Hall failure at `q = 7`.
+
+The mass arithmetic is actually stronger than the initially proposed `29 * 32 > 128`
+specialization: equality in the degree-two dimension budget is impossible whenever that budget
+exceeds four.  The precise next frontier is `q = 8`.  The strict degree-two cap is 36 while load
+four permits 32, leaving four dimensions of slack; closing this case requires extracting more
+than the equality case—either a sharper structural rank defect, a stronger packing inequality for
+the deletion-witness indicators, or a normalized counterexample showing the load-four Hall route
+stops there.  No P-versus-NP conclusion follows.
+
+### The first eight-coordinate packing stress test is formalized
+
+The most direct strengthening of the partition-mass argument does not by itself close `q = 8`.
+`positivePairSupportsEight` is the family of all 28 unordered coordinate pairs, and
+`positivePairFiresEight` assigns to each pair the quarter-cube on which both coordinates are true.
+The kernel-checked theorems `positivePairSupportsEight_card` and
+`positivePairSupportsEight_private` prove that all 28 fibers are irredundant: the assignment true
+exactly on a given pair is private to that pair.
+
+This construction does not violate load four: 28 is still below the threshold 32.  It does show
+that nonzeroness, quarter-cube mass, and deletion-style private points permit a genuinely
+quadratic family already on the exact eight-cube, so no linear packing bound can be inferred from
+those ingredients alone.  A direct mixed-integer feasibility search for 33 codimension-at-most-two
+subcubes was also run as a diagnostic; it found neither a feasible family nor an infeasibility
+certificate within the time limit, so it is recorded only as a failed route and is not used by
+any theorem.
+
+The precise next frontier is to exploit the signed two-literal structure beyond bare private
+points and decide the narrow 33--36 window.  The highest-value finite target is a certified upper
+bound of 32 for irredundant codimension-at-most-two subcubes on eight coordinates, or an explicit
+33-member family.  If the abstract cube problem admits 33 members, the next check is whether such
+a family can also arise from an inclusion-minimal unsatisfiable core with the bridge's protected
+target semantics.  No P-versus-NP conclusion follows.
+
+### Meshulam's bound collapses the eight-coordinate window to 28--29
+
+The preceding 33--36 target overlooked a classical irredundant-subcube bound.  First, allowing
+codimension *at most* two does not enlarge the homogeneous extremal problem here.  Choose a private
+point in every member and, for each codimension-zero or codimension-one cube, fix arbitrary
+additional free coordinates to their values at that private point until the cube has codimension
+exactly two.  Every shrunken cube still contains its own private point and lies inside its original
+cube, so the private points remain private.  Two shrunken cubes cannot coincide, since then each
+would contain the other's private point.  (If the whole cube is the sole member the desired bound
+is immediate.)  Thus any relevant family of size greater than one homogenizes injectively to an
+irredundant family of six-dimensional subcubes of the eight-cube.
+
+Meshulam's general bound for irredundant `k`-dimensional subcubes is
+
+```text
+M(n,k) <= 2^n * choose(n,k) / sum_{i=0}^k choose(n,i).
+```
+
+At `n = 8`, `k = 6`, the ball volume is `247` and the incidence budget is
+`256 * 28 = 7168`.  Consequently `247 * |family| <= 7168`, hence
+`|family| <= 29`.  The new Lean theorem `meshulamEightCodimensionTwo_arithmetic` kernel-checks
+this exact integer specialization from the displayed Meshulam inequality; the companion theorem
+`meshulamEightCodimensionTwo_twentyNine_compatible` records that the inequality genuinely still
+allows 29.  The combinatorial inequality itself is not yet formalized in this repository.  The
+external source is David Ellis, *Irredundant Families of Subcubes* (2010), Theorem 4, which gives
+a proof of Meshulam's bound via Bollobás' inequality:
+https://arxiv.org/abs/1003.2960.
+
+This rules out the entire 30--36 window and makes the failed 33-member feasibility search moot as
+an extremal guide, though it remains recorded above as a failed route.  Together with the explicit
+28-member positive-pair family, the abstract extremal value is now confined to `28` or `29`.
+
+The precise next frontier is the single equality gap: either formalize enough of the local
+Bollobás/Meshulam argument to obtain the kernel-checked cap 29 and then exclude its equality case,
+or construct an explicit 29-member irredundant codimension-two family.  If 29 is attainable, test
+whether it can arise from an inclusion-minimal unsatisfiable core with the protected-target
+semantics; if it is not, the 28 positive-pair construction is optimal and the load-four Hall case
+at `q = 8` closes.  No P-versus-NP conclusion follows.
+
+### The Hall frontier moves past the unresolved 28/29 extremal gap
+
+The preceding exact-extremal target is mathematically natural but is not on the critical path for
+the load-four Hall argument.  At eight incident coordinates Hall permits `4 * 8 = 32` members, so
+the conditional Meshulam cap 29 already excludes density failure regardless of whether 28 or 29 is
+the true extremal value.  The new theorem
+`not_widthTwo_subfamily_density_failure_eight_of_meshulam` formalizes this implication while
+keeping the unformalized combinatorial Meshulam inequality as an explicit premise.
+
+The same audit advances one coordinate further.  At `n = 9`, codimension two means dimension seven,
+and Meshulam specializes to
+
+```text
+502 * |family| <= 512 * 36 = 18432,
+|family| <= 36 = 4 * 9.
+```
+
+`meshulamNineCodimensionTwo_arithmetic` and
+`not_widthTwo_subfamily_density_failure_nine_of_meshulam` kernel-check the arithmetic and its Hall
+consequence.  Thus, conditional on the same external combinatorial inequality, both `q = 8` and
+`q = 9` are closed.  The unresolved 28/29 question is retained above as a useful extremal side
+problem, and a symmetry-reduced exact mixed-integer search for 29 was also attempted: after fixing
+one cube and moving its private point to zero, the model shrank from 112 to 85 candidate cubes but
+still returned no construction or infeasibility certificate within the time limit.  It is therefore
+recorded only as a failed diagnostic.
+
+The first arithmetic failure is now `q = 10`.  Theorems
+`meshulamTenCodimensionTwo_arithmetic` and
+`meshulamTenCodimensionTwo_fortyFive_compatible` show exactly
+
+```text
+1013 * |family| <= 1024 * 45 = 46080,
+|family| <= 45,
+```
+
+while load four permits only 40.  The precise next frontier is therefore to formalize the
+codimension-two Meshulam inequality for the bridge's homogenized subfamily model and then seek a
+five-member improvement at ten incident coordinates, or exploit additional protected-target
+semantics before homogenization.  Resolving 28 versus 29 is no longer required to advance the Hall
+schedule.  No P-versus-NP conclusion follows.
+
+### The codimension-two homogenization step is now kernel checked
+
+The informal reduction from codimension at most two to codimension exactly two is now a proved
+abstract theorem.  `BooleanSubcube` represents a Boolean subcube by its partial assignment, with
+`fixedVars` recording its codimension and `Contains` its point membership.  The theorem
+`BooleanSubcube.exists_codimensionTwo_refinement_preserving_privatePoints` starts from any finite
+indexed family with:
+
+```text
+at most two fixed coordinates per member;
+one displayed private point per member;
+at least two ambient coordinates.
+```
+
+For each member it extends the fixed-coordinate set to cardinality exactly two and fixes every
+new coordinate to that member's private-point value.  The resulting subcube contains its old
+private point, is contained in its original subcube, preserves all cross-member exclusions, and
+is injectively indexed.  Thus irredundancy survives homogenization without assuming that the
+original family was already uniform.  In particular, the earlier prose reduction used before the
+Meshulam arithmetic is no longer an unverified step.
+
+This does not yet prove Meshulam's inequality or automatically identify the bridge's localized
+firing predicates with the new partial-assignment representation.  The precise next frontier is
+to construct that identification for every nonzero localized width-two competitor indicator
+(including protected literals and repeated coordinates), extract the minimal-core deletion
+witnesses as private points, and then formalize the homogeneous codimension-two Meshulam bound.
+At `q = 10`, Meshulam alone will still leave the recorded five-member `45` versus `40` gap, so a
+protected-target refinement remains necessary after that bridge.  No P-versus-NP conclusion
+follows.
+
+### Localized width-two indicators are now realized as irredundant Boolean subcubes
+
+The circuit-to-subcube identification is now kernel checked.  `BooleanSubcube` was generalized
+from `Fin Q` coordinates to any finite coordinate type, so the bridge can work directly on the
+subtype of a queried finset without an arbitrary enumeration.  For a supported competitor,
+`localizedOutsideCompetitorFixedVars` records exactly the queried coordinates carrying available
+outside-target literals, and `localizedOutsideCompetitorSubcube` fixes those coordinates to the
+values of one displayed firing witness.
+
+The theorem `localizedOutsideCompetitorTermFires_iff_subcubeContains` proves that, once the
+indicator is nonzero, its firing predicate is exactly membership in this subcube.  This covers
+protected literals, duplicate occurrences, same-polarity repeated variables, and contradictory
+repeated polarities: the last case simply cannot have a firing witness unless the contradictory
+literal is protected.  The companion codimension theorem bounds the number of fixed coordinates
+by the original syntactic clause length.
+
+At family level, `InclusionMinimalUnsatisfiableCore.exists_subfamily_booleanSubcubes` chooses each
+member's deletion witness, restricts it to the local queried coordinates, and proves that these
+are private points for the represented subcubes.  Finally,
+`exists_subfamily_codimensionTwo_refinement` composes this result with homogenization: whenever
+the local support has at least two coordinates, every localized width-two Hall subfamily has an
+injectively indexed, irredundant codimension-exactly-two refinement contained in its original
+firing fibers.
+
+Thus the previously missing bridge into Meshulam's homogeneous model is closed.  The precise next
+frontier is to formalize Meshulam's codimension-two inequality itself (most economically via the
+local Bollobás set-pairs argument) and instantiate it on these refined Hall subfamilies.  That will
+kernel-check the conditional `q = 8` and `q = 9` closures already audited above.  At `q = 10`, a
+separate protected-target rank or packing refinement must still improve Meshulam's cap from `45`
+to the Hall budget `40`.  No P-versus-NP conclusion follows.
+
+### Meshulam's global count is reduced to one local occupancy lemma
+
+The global part of the Bollobás/Meshulam argument is now kernel checked.  The generic theorem
+`finiteRelation_card_mul_le_card_mul` double-counts a finite relation from a common row size and a
+uniform column cap.  For Boolean cubes, `booleanAssignmentDisagreementEquiv` identifies an
+assignment with the set of coordinates on which it differs from a fixed center, and
+`booleanHammingBall_card` proves the exact radius-`k` volume
+
+```text
+sum_{i=0}^k choose(n,i).
+```
+
+The capstone `meshulam_global_fin_of_local_ball_bound` combines these results.  For any displayed
+private points `w_p : Fin n -> Bool`, it derives
+
+```text
+|family| * sum_{i=0}^k choose(n,i) <= 2^n * choose(n,k)
+```
+
+from exactly the pointwise local premise
+
+```text
+for every x, at most choose(n,k) private points w_p have Hamming distance at most k from x.
+```
+
+Thus Hamming-ball enumeration, incidence rearrangement, and the final global arithmetic are no
+longer part of the unformalized Meshulam gap.
+
+### The exact local set-pairs reduction is now formalized
+
+The earlier description of the local step as a direct set-pairs argument on each member's full
+fixed-coordinate set was too compressed.  Ellis's proof of the Hamming-ball form of Meshulam's
+bound first writes every Boolean subcube as a subset-lattice interval `[v_C,u_C]`.  For a chosen
+private point `w_C`, it then uses the smaller interval `[w_C,u_C]` and averages a weighted
+Bollobas inequality over all ambient `k`-sets in that interval.
+
+The `BooleanSubcube` namespace now contains the required kernel-checked structural layer:
+
+* `trueSupport`, `fixedTrueVars`, `fixedFalseVars`, and `endVars` give the subset-lattice data;
+* `contains_iff_trueSupport_interval` proves exactly
+  `Contains c a <-> fixedTrueVars c ⊆ trueSupport a ⊆ endVars c`;
+* `fixedTrueVars_subset_privateSupport_iff` proves that if one common set `x` lies above every
+  selected private support and below every selected upper endpoint, then
+  `fixedTrueVars (c i) ⊆ trueSupport (w j)` iff `i = j`;
+* `fixedTrueVars_disjoint_privateComplement_iff` packages the corresponding Bollobas pairs
+  `(fixedTrueVars (c i), x \ trueSupport (w i))`, whose intersections vanish exactly on the
+  diagonal;
+* `card_sdiff_trueSupport_of_subset` identifies the second pair size as
+  `x.card - (trueSupport (w i)).card`.
+
+This closes the non-counting heart of the local argument and corrects the route to match Ellis,
+Theorem 7.  The precise next frontier is now to formalize the weighted Bollobas inequality
+
+```text
+sum_i 1 / choose(|A_i| + |B_i|, |B_i|) <= 1
+```
+
+for finite set pairs whose intersections are empty exactly on the diagonal, then sum it over the
+`k`-sets `x` in each private-point-to-end interval.  That will prove the local occupancy cap,
+after which specializing to codimension two (`k = n - 2`) and transporting the queried-coordinate
+subtype to `Fin q` makes the existing `q = 8` and `q = 9` Hall closures unconditional.  The
+separate `q = 10` gap remains `45` versus `40`.  No P-versus-NP conclusion follows.
+
+### Weighted interval aggregation is now kernel checked
+
+The averaging step after the pointwise Bollobas inequalities is no longer part of the gap.
+`BooleanSubcube.finite_weighted_cover_card_le` proves the exact finite double-counting statement:
+if index `i` occurs on a finite set `S_i`, its weight is normalized by
+
+```text
+|S_i| * weight_i = 1,
+```
+
+and the total weight through every ambient point is at most one, then the number of indices is at
+most the number of ambient points.  The reciprocal specialization
+`finite_reciprocal_cover_card_le` takes `weight_i = 1 / |S_i|` and exposes only the necessary
+nonemptiness premise.  Its proof expands the incidence sum in both orders, so every member
+contributes exactly one; no positivity or lossy maximum-weight estimate is used.
+
+For Ellis's application, `S_i` is the set of ambient `k`-sets in the interval from private point
+`w_i` to upper endpoint `u_i`, and the ambient type is the collection of all `k`-sets.  The precise
+next frontier has consequently narrowed to the genuinely combinatorial input: prove the exact
+interval-slice cardinality
+
+```text
+|S_i| = choose(|fixedTrue_i| + k - |w_i|, |fixedTrue_i|)
+```
+
+for homogeneous `k`-cubes, and prove the weighted Bollobas inequality for the set pairs already
+constructed at each ambient `k`-set.  Those two facts feed directly into the verified reciprocal
+cover theorem and yield the local occupancy cap.  The `q = 10` gap remains `45` versus `40`.  No
+P-versus-NP conclusion follows.
+
+### The exact private-point-to-end slice cardinality is now kernel checked
+
+The first of the two remaining local counting inputs is closed.  The generic theorem
+`card_powersetCard_filter_superset` proves that the number of `k`-subsets of an ambient finite set
+which contain a required subset is exactly
+
+```text
+choose(|ambient| - |required|, k - |required|).
+```
+
+Specializing `ambient` to a Boolean subcube's upper endpoint and `required` to the true support of
+its displayed private point gives `privateToEndSlice_card`.  The homogeneous specialization
+`privateToEndSlice_card_of_dimension` additionally proves the exact Ellis denominator
+
+```text
+|S_i| = choose(|fixedTrue_i| + k - |w_i|, |fixedTrue_i|).
+```
+
+The proof explicitly identifies every slice member with the uniquely chosen extra coordinates;
+it does not estimate the slice by a worst-case binomial coefficient.  The companion endpoint
+identity shows that a dimension-`k` subcube's upper endpoint consists of its fixed-true lower
+endpoint plus exactly `k` free coordinates.
+
+The precise next frontier is now the weighted Bollobas set-pairs inequality itself for the pairs
+`(fixedTrueVars (c i), x \ trueSupport (w i))` already constructed at each ambient `k`-set.  Once
+that pointwise rational-weight bound is formalized, the verified reciprocal aggregation theorem
+supplies the local Meshulam occupancy cap.  The separate `q = 10` gap remains `45` versus `40`.
+No P-versus-NP conclusion follows.
+
+### Bollobas order-event exclusivity is now kernel checked
+
+The permutation route to the remaining weighted set-pairs inequality has passed its first
+structural test.  `BooleanSubcube.AllBefore r A B` records that every member of `A` precedes every
+member of `B` in an asymmetric relation.  The generic theorem
+`allBefore_events_pairwiseExclusive` proves that, whenever
+
+```text
+Disjoint (A_i, B_j) <-> i = j,
+```
+
+the order events for two distinct indices cannot both occur.  Its proof extracts one element of
+each cross-intersection and obtains both `a < b` and `b < a`.  The specialized theorem
+`fixedTrueVars_allBefore_events_pairwiseExclusive` instantiates this result directly on the
+already-constructed pairs
+
+```text
+(fixedTrueVars (c i), x \ trueSupport (w i)).
+```
+
+Thus there is no additional compatibility gap between the private-point construction and the
+standard permutation proof of Bollobas' inequality.  The precise next frontier is the remaining
+enumeration lemma: for disjoint finite `A,B`, count the permutations (or induced orders on
+`A ∪ B`) satisfying `AllBefore` and prove that their fraction is exactly
+`1 / choose(|A| + |B|, |A|)`.  Pairwise exclusivity will then sum those fractions to at most one,
+which feeds the verified reciprocal interval aggregation and yields the local Meshulam occupancy
+cap.  The separate `q = 10` gap remains `45` versus `40`.  No P-versus-NP conclusion follows.
+
+### The exact two-block shuffle fraction is now kernel checked
+
+The binomial enumeration inside the remaining permutation argument is no longer implicit.
+`BooleanSubcube.firstPositions a b` is the initial `a`-block of `Fin (a + b)`, while
+`AllSelectedBefore S` states that every selected position precedes every unselected position.
+The theorem `allSelectedBefore_eq_firstPositions` proves that an `a`-element pattern satisfying
+this condition must be the initial block.  Consequently `allFirstPatterns_eq_singleton` and
+`card_allFirstPatterns` show that exactly one of the
+
+```text
+choose(a + b, a)
+```
+
+possible rank patterns is favorable.  The rational capstone `allFirstPatterns_fraction` records
+the exact required weight
+
+```text
+1 / choose(a + b, a).
+```
+
+Thus the numerical denominator in the weighted Bollobas argument is now proved, including the
+empty-block edge cases; it is not a factorial estimate.  The precise next frontier is to define
+the rank-pattern map from ambient permutations to the positions occupied by `A` inside `A ∪ B`,
+prove all fibers have equal cardinality, and prove that `AllBefore` is the preimage of the unique
+favorable pattern.  Combining that transport with the already-proved pairwise exclusivity yields
+the weighted Bollobas inequality, which then feeds the verified reciprocal interval aggregation
+into the local Meshulam occupancy cap.  The separate `q = 10` gap remains `45` versus `40`.
+No P-versus-NP conclusion follows.
+
+### The order event is now identified with the unique favorable rank pattern
+
+The structural transport half of the remaining permutation argument is now kernel checked.
+For disjoint finite blocks `A,B`, `BooleanSubcube.leftBlock` and `rightBlock` place both blocks
+inside the finite subtype on `A ∪ B`.  Any equivalence
+
+```text
+e : (A ∪ B) ≃ Fin (a + b)
+```
+
+then defines `inducedRankPattern A B a b e`, the positions occupied by `A`.  Its cardinality is
+exactly `|A|`.  The theorem `allBefore_iff_allSelectedBefore_inducedRankPattern` proves that the
+strict order induced by `e` puts all of `A` before all of `B` exactly when every selected rank
+precedes every unselected rank.  Specializing `|A| = a`, the capstone
+`allBefore_iff_inducedRankPattern_eq_firstPositions` identifies this event with the preimage of
+the unique initial-block pattern counted in the preceding section.
+
+This closes the event/preimage identification, including empty-block cases, and makes explicit
+that ambient coordinates outside `A ∪ B` are irrelevant.  The precise next frontier is the one
+remaining counting statement: prove that the map from rankings `e` to `inducedRankPattern` has
+uniform fibers (equivalently, construct the postcomposition bijection between the fibers over any
+two `a`-patterns).  That gives the exact event fraction; transporting ambient permutations to
+relative rankings and summing the already pairwise-exclusive events then yields weighted
+Bollobas.  The separate `q = 10` gap remains `45` versus `40`.  No P-versus-NP conclusion
+follows.
+
+### The favorable relative rankings now have an exact factorial count
+
+The favorable relative-order enumeration can be discharged directly, without first proving
+uniformity of every shuffle-pattern fiber.  For disjoint finite blocks `A,B`,
+`numbering_isPrefix_leftBlock_allBefore` proves that every numbering in which the copy of `A` is
+an initial block realizes the required `AllBefore` event.  Mathlib's prefix-numbering
+decomposition then gives the exact capstone
+
+```text
+|prefixed(leftBlock A B)| = |A|! * |B|!.
+```
+
+This count includes empty-block cases and depends only on the relative union: coordinates outside
+`A ∪ B` are absent.  Since the full relative-ranking space has size `(|A|+|B|)!`, the usual
+reciprocal-binomial weight is now available by the factorial route as well as by the previously
+checked unique-pattern route.  Full uniformity of all induced-pattern fibers is therefore not
+needed for the favorable event itself.
+
+The precise next frontier is the ambient transport needed to put all indices into one common
+permutation space: prove that restricting an ambient numbering to the relative order on `A ∪ B`
+has uniform fibers, so each prefix event retains the exact relative fraction.  Then the already
+proved pairwise exclusivity sums those fractions to the weighted Bollobas inequality.  The
+separate `q = 10` gap remains `45` versus `40`.  No P-versus-NP conclusion follows.
+
+### The exact favorable relative-order event is now kernel checked
+
+The preceding factorial count proved the size of the prefix family and only the implication from
+prefix rankings to the `AllBefore` event.  That was not yet enough to identify the event's exact
+size.  The missing converse is now proved by
+`numbering_isPrefix_leftBlock_iff_allBefore`: after casting a numbering of `A ∪ B` to
+`Fin (|A| + |B|)`, the already-verified unique favorable rank pattern forces `A` to be precisely
+the initial prefix.  This works unchanged when either block is empty.
+
+The new finite event `allBeforeNumberings A B` is therefore exactly
+`Numbering.prefixed (leftBlock A B)`.  Its cardinality is
+
+```text
+|A|! * |B|!
+```
+
+and its `ℚ≥0` density is exactly
+
+```text
+1 / choose(|A| + |B|, |A|).
+```
+
+Thus the relative favorable-event fraction, rather than merely a favorable subfamily count, is
+now established.  The precise next frontier remains the genuinely ambient step: construct the
+relative-order restriction from a common numbering of the full coordinate type and prove that
+its fibers are uniform (or directly prove preservation of the density above).  Pairwise
+exclusivity can then sum these exact weights to weighted Bollobas.  The separate `q = 10` gap
+remains `45` versus `40`.  No P-versus-NP conclusion follows.
+
+### Ambient numberings now restrict canonically to relative order
+
+The structural half of the ambient transport is now kernel checked.  For an ambient numbering
+`e : Numbering alpha` and finite set `S`, `relativeRanks e S` records the occupied ambient ranks.
+`ambientRelativeNumbering e S` sorts those ranks and replaces each element of `S` by its position
+in the sorted list.  The theorem `ambientRelativeNumbering_lt_iff` proves the exact comparison
+interface
+
+```text
+ambientRelativeNumbering e S x < ambientRelativeNumbering e S y
+  <-> e x < e y.
+```
+
+Consequently `allBefore_ambientRelativeNumbering_iff` transports every two-block `AllBefore`
+event between the common ambient numbering and the induced numbering on `A union B`, without a
+disjointness assumption and including empty unions.  This closes the subtype and order-preservation
+plumbing; it does not yet establish that every relative numbering has equally many ambient
+extensions.
+
+The precise next frontier is now only the counting half of ambient transport: prove that every
+fiber of `fun e => ambientRelativeNumbering e S` has cardinality
+
+```text
+choose(|alpha|, |S|) * (|alpha| - |S|)!
+```
+
+or directly prove that preimages preserve the density of `allBeforeNumberings`.  Combining that
+with the already-proved event transport and pairwise exclusivity yields weighted Bollobas.  The
+separate `q = 10` gap remains `45` versus `40`.  No P-versus-NP conclusion follows.
+
+### Ambient relative-order fibers now have the exact extension count
+
+The counting half of ambient transport is now kernel checked.  For a finite ambient type `alpha`,
+a finite subset `S`, and any relative numbering `r : Numbering S`, the new theorem
+`card_ambientRelativeFiber` proves
+
+```text
+|{e : Numbering alpha | ambientRelativeNumbering e S = r}|
+  = choose(|alpha|, |S|) * (|alpha| - |S|)!.
+```
+
+The proof first constructs an ambient relabeling that transports any relative numbering to any
+other.  Precomposition by this permutation gives an explicit bijection between arbitrary fibers,
+so all fibers have equal cardinality.  Summing those fibers over all `|S|!` relative numberings
+and using the exact `|alpha|!` ambient numbering count yields the displayed formula.  Empty and
+full subsets require no separate cases.
+
+This closes the last stated ambient-counting gap.  The precise next frontier is to package the
+fiber formula and `allBefore_ambientRelativeNumbering_iff` into an exact ambient-event density
+theorem, then sum the already pairwise-exclusive events to obtain the weighted Bollobas
+inequality.  That inequality can then feed the verified reciprocal interval aggregation into the
+local Meshulam occupancy cap.  The separate `q = 10` gap remains `45` versus `40`.
+No P-versus-NP conclusion follows.
+
+### The weighted Bollobás inequality is now kernel checked
+
+The exact ambient fiber count has now been converted into the common-permutation statement
+needed by the local Meshulam argument.  For finite disjoint blocks `A,B`, the new ambient event
+
+```text
+ambientAllBeforeNumberings A B
+```
+
+consists of the numberings of the full coordinate type that place every element of `A` before
+every element of `B`.  Its membership is exactly the preimage of `allBeforeNumberings A B` under
+`ambientRelativeNumbering`.  Summing the already-uniform fibers proves its exact cardinality and
+density; the coordinates outside `A ∪ B` cancel, leaving
+
+```text
+dens(ambientAllBeforeNumberings A B)
+  = 1 / choose(|A| + |B|, |A|).
+```
+
+The capstone `weighted_bollobas` then combines this density formula with the previously proved
+pairwise exclusivity of the ambient order events.  For every finite family satisfying
+
+```text
+Disjoint (A i) (B j)  <->  i = j,
+```
+
+it proves
+
+```text
+sum_i 1 / choose(|A i| + |B i|, |A i|) <= 1.
+```
+
+This closes the permutation-counting and summation gap, including empty-block cases.  The precise
+next frontier is to specialize `weighted_bollobas` to the private-point pairs
+`(fixedTrueVars (c i), x \ trueSupport (w i))`, rewrite the second-block cardinality, and feed
+that pointwise reciprocal bound into `finite_reciprocal_cover_card_le`.  That will establish the
+local occupancy cap required by `meshulam_global_of_local_ball_bound`; only then should the
+`q = 8,9,10` consequences be reassessed.  The previously recorded `q = 10` arithmetic gap remains
+`45` versus `40`.  No P-versus-NP conclusion follows.
+
+### The local Bollobás occupancy cap is now kernel checked
+
+The private-point specialization and reciprocal aggregation are now complete.  For each ambient
+`k`-set `x`, `privateToEndSlice_local_reciprocal_le` restricts to the subcubes whose
+private-point-to-end intervals contain `x` and applies `weighted_bollobas` to
+
+```text
+A_i = fixedTrueVars(c_i),
+B_i = x \ trueSupport(w_i).
+```
+
+The existing private-point lemma supplies the exact diagonal disjointness condition.  Exact slice
+enumeration and `|x| = k` identify the Bollobás denominator with the interval-slice cardinality,
+including varying values of `|trueSupport(w_i)|`.
+
+The slices are then embedded losslessly into the finite type of all ambient `k`-sets.
+`privatePoint_family_card_le_choose` feeds the pointwise reciprocal inequality into
+`finite_reciprocal_cover_card_le` and proves
+
+```text
+|I| <= choose(|alpha|, k)
+```
+
+for a homogeneous irredundant family of dimension `k` whenever every displayed private point has
+support at most `k`.  This support premise is exactly the local Hamming-ball condition after a
+coordinatewise translation sending the chosen ball center to zero.
+
+The precise next frontier is to formalize that coordinatewise Boolean translation for subcubes,
+show that it preserves dimension and private points while converting Hamming distance from an
+arbitrary center into true-support size, and thereby discharge the `hlocal` premise of
+`meshulam_global_fin_of_local_ball_bound`.  Only after that composition should the `q = 8,9,10`
+consequences be reassessed.  The separate `q = 10` gap remains `45` versus `40`.
+No P-versus-NP conclusion follows.
+
+### The arbitrary-center Meshulam bridge is now kernel checked
+
+Coordinatewise Boolean translation now closes the remaining local-to-global interface.
+`translatePoint center a` records whether `a` disagrees with `center`, while
+`translateSubcube center c` applies the same involution to every fixed value.  The proved
+translation lemmas show that:
+
+```text
+fixedVars (translateSubcube center c) = fixedVars c
+Contains (translateSubcube center c) (translatePoint center a) <-> Contains c a
+trueSupport (translatePoint center a) = {i | a i != center i}.
+```
+
+For a fixed center, `privatePoint_hammingBall_occupancy_le_choose` restricts to precisely the
+members whose private points lie in its radius-`k` Hamming ball, translates that restricted
+family to the all-false vertex, and invokes `privatePoint_family_card_le_choose`.  It proves the
+previously assumed pointwise occupancy cap
+
+```text
+|{i | center in booleanHammingBall (w i) k}| <= choose(|alpha|, k).
+```
+
+The capstone `BooleanSubcube.meshulam_global_fin` feeds this result directly into
+`meshulam_global_fin_of_local_ball_bound`.  Thus every homogeneous irredundant family of
+dimension `k` subcubes on `Fin n` now satisfies
+
+```text
+|I| * sum_{j=0}^k choose(n,j) <= 2^n * choose(n,k)
+```
+
+without an external local premise.
+
+The precise next frontier is to compose this unconditional global theorem with
+`exists_subfamily_codimensionTwo_refinement` and the existing arithmetic specializations.  That
+should remove the explicit `hmeshulam` premises from the eight- and nine-coordinate Hall
+exclusions, while the ten-coordinate arithmetic remains a genuine `45` versus `40` gap requiring
+additional structure.  No P-versus-NP conclusion follows.
+
+### Eight- and nine-coordinate Hall exclusions are now unconditional
+
+The unconditional Meshulam theorem now composes with the localized codimension-two refinement.
+The reusable theorem `BooleanSubcube.meshulam_global` extends the `Fin n` formulation to every
+finite coordinate type; its Hamming-ball volume is proved directly by counting finite subsets.
+This lets the Hall argument work on the exact subtype of coordinates touched by the selected
+subfamily, without choosing or transporting an external numbering.
+
+For an inclusion-minimal outside-competitor core whose selected clauses have width at most two,
+the new theorems
+
+```text
+InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_eight
+InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_nine
+```
+
+construct the selected family's private-point subcubes, refine every member to codimension two,
+apply the arbitrary-finite-coordinate Meshulam inequality, and discharge the existing exact
+arithmetic.  Consequently no selected Hall subfamily on exactly eight or nine incident queried
+coordinates can exceed the load-four budget.  There is no longer an explicit `hmeshulam` premise
+at either support size.
+
+The precise next frontier is the ten-coordinate structural gap.  Homogeneous Meshulam alone
+gives `|s| <= 45`, whereas load four requires `|s| <= 40`; the verified compatibility of 45 means
+that merely replaying the same global inequality cannot close this case.  The next high-value
+step is to identify and formalize an additional constraint satisfied by localized firing fibers
+but absent from arbitrary irredundant codimension-two subcubes, then test whether it removes at
+least five members at `q = 10`.  No P-versus-NP conclusion follows.
+
+### Ten-coordinate failures are narrow and deletion-redundant
+
+The first structural reduction beyond the raw Meshulam count is now kernel checked.  The theorem
+`widthTwo_tenSupport_card_window_of_density_failure` composes the unconditional localized
+codimension-two refinement with Meshulam at ten coordinates and proves that every actual
+load-four Hall failure lies in the exact window
+
+```text
+41 <= |s| <= 45.
+```
+
+More importantly, `biUnion_erase_eq_of_loadFour_deletionMinimalFailure` isolates a property that
+the global cardinality inequality does not see.  For any deletion-minimal load-four Hall failure,
+deleting one member preserves the entire incident union.  The circuit-specialized capstone
+`widthTwo_tenSupport_deletionMinimalFailure_structure` packages both conclusions: a minimal
+ten-coordinate obstruction has 41--45 members, and every one-member deletion still touches all
+ten coordinates.  Equivalently, no retained competitor is the unique carrier of any incident
+queried coordinate.
+
+This does not close the five-member gap: incidence redundancy alone has not yet been combined
+with the private-point set-pairs argument.  The precise next frontier is to minimize an arbitrary
+Hall-failing subfamily under deletion (and transport the already-proved exclusions for support at
+most nine to show that its union remains ten), then strengthen the local Bollobas/Meshulam count
+using the resulting no-private-incidence condition.  A useful target is a local occupancy deficit
+of at least five relative to the generic 45-member extremum.  No P-versus-NP conclusion follows.
+
+### Arbitrary ten-coordinate failures now reduce to minimal ten-coordinate obstructions
+
+The deletion-minimization step and its support-retention interface are now kernel checked.
+The generic theorem `exists_subset_loadFour_deletionMinimalFailure` extracts from any finite
+load-four Hall failure a failing subfamily `t` such that every one-member deletion satisfies the
+Hall bound.  It uses well-founded strict inclusion on finite sets and makes no circuit-specific
+assumptions.
+
+The circuit capstone
+
+```text
+InclusionMinimalUnsatisfiableCore.exists_tenSupport_deletionMinimalFailure_structure
+```
+
+starts with an arbitrary width-two failure on ten incident queried coordinates.  Under the
+explicit hypothesis that every core member has a nonempty incident queried set, it proves the
+existence of `t` contained in the original family with all of the following properties:
+
+```text
+|union(t)| = 10,
+41 <= |t| <= 45,
+deleting any p in t preserves union(t).
+```
+
+Support retention is not assumed.  The small-support cutoff first gives `|union(t)| >= 5`; the
+unconditional exclusions at support sizes 5, 6, 7, 8, and 9 then force equality with ten.  This
+also records why the nonempty-incidence premise is material: without it, the existing cutoff
+does not exclude a degenerate failure below support five.
+
+Thus deletion minimality is no longer an external premise at the ten-coordinate frontier.  The
+remaining five-member gap is genuinely structural.  The precise next frontier is to transport
+the no-private-incidence conclusion through the localized codimension-two refinement and
+identify its set-pair consequence inside the weighted Bollobas/Meshulam argument.  The target is
+an occupancy or global deficit of at least five from the generic cap of 45; a first useful audit
+is whether no-private incidence forbids equality in one or more local reciprocal inequalities.
+No P-versus-NP conclusion follows.
+
+### No-private incidence does not make the local bound strict
+
+The proposed first strictness route has now been audited and ruled out by a kernel-checked
+extremal stress test.  The family `positivePairSupportsTen` consists of all 45 unordered
+coordinate pairs on ten coordinates.  Each pair indexes the positive codimension-two subcube
+fixing precisely those two coordinates to true, and the point supported exactly on that pair is
+private to its member.
+
+This family already has the deletion-redundancy property extracted from a minimal Hall failure:
+
+```text
+union(s \ {p}) = all ten coordinates   for every p in s.
+```
+
+Nevertheless the local occupancy inequality is sharp.  At the all-false center, all 45 pair
+private points lie in the radius-eight Hamming ball, and
+
+```text
+local occupancy = 45 = choose(10, 8).
+```
+
+Thus no-private incidence, even together with exact codimension two, injective indexing, and
+displayed private points, cannot force strictness in the local Bollobas/Meshulam cap.  The failed
+route is preserved explicitly rather than hidden: the missing five-member deficit must use a
+property of localized circuit firing fibers that excludes the complete positive-pair family,
+not merely incidence redundancy after homogenization.
+
+The precise next frontier is to compare the complete positive-pair stress test against the
+pre-refinement localized fibers.  In particular, audit whether deletion-witness assignments,
+literal polarities, protected target support, or the fact that refinement may add fixed
+coordinates imposes a compatibility constraint absent from arbitrary positive pair cubes.  The
+next useful theorem should isolate one such circuit-specific invariant before attempting any
+new counting inequality.  No P-versus-NP conclusion follows.
+
+### Full-core firing fibers cover, but Hall subfamilies need not
+
+The first pre-refinement distinction is now kernel checked.
+`InclusionMinimalUnsatisfiableCore.localizedOutsideTermFires_cover` proves that the original
+localized firing fibers of the entire unsatisfiable competitor core cover every Boolean
+assignment on any chosen queried support.  The proof extends the queried assignment by false
+off-support; if every competitor failed to fire, that extension would hit every retained
+outside clause, contradicting core unsatisfiability.  This statement is deliberately made before
+codimension-two homogenization, since refinement shrinks fibers and need not preserve a cover.
+
+The sharp stress test fails this invariant in the simplest possible way:
+`positivePairSupportsTen_not_cover` proves that the all-false point belongs to none of the 45
+positive-pair fibers.  Thus the complete positive-pair family cannot itself be the full
+pre-refinement firing family of an unsatisfiable core.  This is a genuine circuit-origin
+constraint absent from arbitrary irredundant subcubes.
+
+The distinction does not yet close the ten-coordinate gap.  The 41--45 member object extracted
+by the Hall reduction is a subfamily of the ambient minimal core, and an arbitrary subfamily need
+not cover.  Therefore a direct cover count would silently strengthen the hypotheses and is not a
+sound next step.
+
+The resulting precise frontier is the local sparsity consequence of *ambient* minimal
+unsatisfiability.  The verified SCC development already provides the 2-SAT implication relation
+and satisfiability criterion.  The classical two-path proof for minimally unsatisfiable 2-CNF
+(Choongbum Lee, *Electronic Journal of Combinatorics* 16 (2009), N3,
+doi:10.37236/241) charges every indispensable clause to one of two simple contradiction paths.
+Restricted to a Hall subfamily supported on `q` variables, each path has at most `2q - 1`
+internal edges, suggesting exactly `|s| <= 4q - 2`, stronger than the required `4q`.
+The next concrete step is to bridge semantic outside-literal signatures to the existing
+`TwoSATFastSAT.Edge` representation and kernel-check simple contradiction-path extraction plus
+the local internal-edge count.  No P-versus-NP conclusion follows.
+
+### Width-two outside cores now enter the verified implication graph
+
+The syntax and basic path boundary is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The polarity map
+`outsideLiteralToTwoSAT` sends an outside occurrence to `(litVar ell, falValue ell)`, exactly the
+literal made true by a competitor-hitting assignment.  Every nonempty semantic signature of
+cardinality at most two is presented as one pair clause; singleton signatures repeat their one
+literal, so unit clauses require no separate graph syntax.  `edge_singleton_outsidePairClause_iff`
+proves that these clauses contribute exactly the two edges of the existing
+`TwoSATFastSAT.Edge` relation.
+
+At formula level, `outsideCoreTwoSATClauses` retains one pair clause per indexed core member, and
+`hitsOutsideCompetitorCore_iff_twoSATClauses` proves exact assignment-by-assignment semantic
+agreement.  Consequently `twoSat_outsideCore_iff` identifies the existing `TwoSat` predicate
+with satisfiability of the original outside competitor core.  No graph model is duplicated.
+
+For an inclusion-minimal unsatisfiable nonempty width-two core, the capstones
+
+```text
+exists_twoSAT_contradiction_reaches
+exists_twoSAT_simple_contradiction_walks
+```
+
+extract a literal with reaches in both directions to its negation, erase cycles in both reaches,
+and prove that the two simple walks have individual lengths at most `2n-1` and combined length at
+most `4n-2`.  This establishes the graph-theoretic numerical budget in the ambient literal
+universe.
+
+The bound does not yet apply to an arbitrary Hall subfamily: two arbitrary contradiction walks
+need not contain an edge from every indispensable clause, and the ambient `n` count must be
+replaced by the subfamily's `q` incident variables for internal edges.  The precise next frontier
+is therefore the minimality charging lemma from deletion witnesses: prove that every retained
+pair clause is forced onto one of a suitably chosen pair of contradiction paths (or inject it into
+their directed edge occurrences), then separate clauses of a queried Hall subfamily as internal
+edges on its `2q` literal vertices.  That step would make the verified `4q-2` budget relevant to
+the ten-coordinate obstruction.  No P-versus-NP conclusion follows.
+
+### Deletion satisfiability now forces path coverage
+
+The graph-theoretic charging step has now been isolated and kernel checked at the pair-clause
+list level.  `TwoSATPathCharge.EdgeWalk.usedEdges` records the directed edge occurrences actually
+traversed by an explicit walk; `usedEdges_length` proves that this list has exactly the walk
+length; and `exists_of_usedEdges_subset` transports a walk whenever all of its used occurrences
+survive in a second edge list.
+
+`mem_implicationEdges_erase_of_ne` proves the exact deletion fact: an implication edge of `cls`
+remains in `cls.erase c` unless it is one of the two directed edges contributed by `c`.  The new
+capstone `clause_edge_used_of_twoSat_erase` then fixes any forward/backward contradiction walks
+and proves that, if `cls.erase c` is satisfiable, at least one of `c`'s two directed edges occurs
+on one of those walks.  Otherwise both walks transport through the erased formula and contradict
+its satisfiability.  This matches the logical step in Lee's Proposition 1; the paths do not need
+to be chosen specially.
+
+This theorem deliberately assumes deletion satisfiability for the concrete pair-clause list.
+The semantic competitor core supplies a deletion witness indexed by a core member, while
+`outsideCoreTwoSATClauses` is currently a mapped attached list.  Applying the new charge therefore
+still requires a representation lemma proving that the translated list is duplicate-free and
+that erasing the clause translated from `p` has exactly the hitting semantics of `core.erase p`.
+That interface must use the existing injectivity of semantic outside-literal signatures; silently
+erasing a possibly duplicated pair clause would be unsound.
+
+The precise next frontier is this indexed-deletion transport.  Prove pair-clause injectivity on
+the attached minimal core, derive `TwoSat (outsideCoreTwoSATClauses ... |>.erase c_p)` from the
+deletion witness for `p`, and instantiate `clause_edge_used_of_twoSat_erase` on the two verified
+simple walks.  After that, count only charged edges whose two endpoints lie over the Hall
+subfamily's `q` variables; simplicity should give the intended combined `4q-2` occurrence budget.
+No P-versus-NP conclusion follows.
+
+### Indexed core deletion now transports to concrete path coverage
+
+The semantic-to-list deletion interface is now kernel checked.  The polarity encoding
+`outsideLiteralToTwoSAT` is injective: variable and falsifying value recover the original
+`Rung4Literal`.  Combining this with the existing minimal-core injectivity of unordered outside
+signatures proves `coreOutsideClause_injective`, even though each two-element signature is
+presented by a classically chosen order.  Consequently
+`outsideCoreTwoSATClauses_nodup` establishes that the translated attached list contains exactly
+one distinct pair clause per core member.
+
+`twoSat_erase_coreOutsideClause` then transports the semantic deletion witness for every attached
+member `p` directly to
+
+```text
+TwoSat ((outsideCoreTwoSATClauses ...).erase (coreOutsideClause ... p)).
+```
+
+The proof audits membership in the erased list rather than assuming a finset/list erasure
+identity: list `Nodup` ensures that any surviving translated clause comes from a different
+attached member, which the original deletion assignment hits.  The capstone
+`coreOutsideClause_edge_used` composes this result with `clause_edge_used_of_twoSat_erase` and
+proves that every retained core member contributes one of its two directed edges to either fixed
+contradiction walk.  Thus the classical path-coverage statement now applies to the actual
+semantic outside core, with no special path choice.
+
+The precise next frontier is the localized counting injection.  For a Hall subfamily supported
+on `q` queried variables, turn each covered member into a distinct directed used-edge occurrence,
+prove its endpoints lie over those `q` variables, and use simplicity of the two walks to bound
+their internal occurrences by at most `(2q-1) + (2q-1) = 4q-2`.  The key audit is that choosing
+among a clause's two orientations and the two walks preserves injectivity at the occurrence
+level.  No P-versus-NP conclusion follows.
+
+### The two-walk charge is injective
+
+The orientation-collision audit is now kernel checked.  A directed implication edge determines
+its source literal after applying `neg` and its destination literal, hence remembers the
+underlying pair clause up to swapping.  The theorem
+`eq_of_shared_coreOutsideClause_edge` combines this observation with injectivity of the semantic
+outside signatures: if two attached core members can both be charged to the same directed edge,
+they are the same member, even if the two charges selected opposite clause orientations.
+
+`TwoWalkUsedEdgeSlot` is the disjoint union of the directed edge values used by the fixed forward
+and backward contradiction walks.  `coreOutsideEdgeCharge` chooses a covered slot for every core
+member, and `coreOutsideEdgeCharge_injective` proves this choice injective.  The sum tag separates
+the two walks; no orientation tag is needed.  Counting the finite slot type gives
+
+```text
+core.card <= forward.length + backward.length.
+```
+
+Repeated occurrences of the same directed edge only shrink the slot type, so this counting step
+does not itself require walk simplicity.  Composing it with the previously extracted simple
+contradiction walks proves the ambient semantic capstone
+
+```text
+InclusionMinimalUnsatisfiableCore.card_le_four_mul_sub_two:
+  core.card <= 4*n - 2.
+```
+
+Thus the feared loss from choosing among two orientations and two paths does not occur, and the
+classical minimally-unsatisfiable 2-CNF bound has now been transported end to end into the actual
+outside-core representation.  This ambient theorem still counts all `2n` literals, however; it
+does not by itself bound an arbitrary Hall subfamily by its smaller incident support.
+
+The precise next frontier is endpoint localization.  For a Hall subfamily `s`, prove that the
+edge charged from each `p in s` has both endpoint variables in
+`s.biUnion (incidentQueriedVars target queried)`.  Then restrict the two injective charge images
+to internal used-edge slots and prove that a simple walk has at most `2q-1` such slots over `q`
+variables.  That composition would give `s.card <= 4q-2`, closing the remaining ten-coordinate
+load-four obstruction.  No P-versus-NP conclusion follows.
+
+### Hall-subfamily charges are now endpoint-localized
+
+The semantic localization boundary is now kernel checked.  `TwoWalkUsedEdgeSlot.edge` forgets
+only the forward/backward tag and membership proof of a charged slot.  The theorem
+`CoreOutsideEdgeChargeValid.endpoints_mem_incidentQueriedVars` proves that both endpoint
+variables of any valid charge lie in the charged member's `incidentQueriedVars`, under the
+existing support premise that all of that member's outside variables are queried.  Its proof
+recovers the two semantic outside literals from `coreOutsidePair_spec`; implication-source
+negation changes polarity but not the variable.
+
+The subfamily capstone
+
+```text
+coreOutsideEdgeCharge_endpoints_mem_incidentUnion
+```
+
+instantiates this fact for the chosen injective charge and places both endpoints in
+`s.biUnion (incidentQueriedVars target queried)` for every `p : s`.  Thus no charged Hall member
+can consume an edge slot whose source or destination variable lies outside its `q` incident
+variables.  The global support hypothesis is material: without it, `incidentQueriedVars` is an
+intersection with `queried`, and the claimed localization would not follow merely from clause
+membership.
+
+The precise next frontier is now purely the internal simple-walk count.  Define the finite set of
+used directed edges whose two endpoint variables lie in a fixed nonempty `q`-variable set, prove
+that a vertex-simple walk contributes at most `2q-1` such edge values, and restrict the already
+injective subfamily charge into the sum of the forward and backward internal-edge sets.  This
+would yield `s.card <= 4q-2` (with the empty-support case discharged separately) and close the
+remaining ten-coordinate load-four obstruction.  No P-versus-NP conclusion follows.
+
+### The load-four Hall obstruction is closed by localized simple-walk counting
+
+The internal walk count and its Hall composition are now kernel checked.  Rather than first
+formalizing the stronger but unnecessary `2q-1` estimate, `EdgeWalk.internalUsedEdges` filters
+the distinct directed edge values of a walk to those whose two endpoint variables lie in a fixed
+support.  On a vertex-simple walk, destination literals identify traversed edges injectively.
+Since a `q`-variable support has exactly `2q` polarized literals,
+`internalUsedEdges_card_le_two_mul` proves the sufficient bound
+
+```text
+internalUsedEdges.card <= 2 * support.card.
+```
+
+`coreOutsideInternalEdgeCharge` restricts the previously chosen subfamily charge to the sum of
+the forward and backward internal-edge sets.  Forgetting the internal-support proofs recovers the
+original charge, so injectivity is preserved.  Combining the two simple-walk bounds proves
+
+```text
+subfamily_card_le_four_mul_incidentUnion_twoSAT:
+  s.card <= 4 * incidentUnion(s).card.
+```
+
+The empty-support case is automatic; no nonempty-support subtraction is needed.  A short bridge
+derives the translated outside-signature nonemptiness from the existing nonempty-incidence
+premise.  Consequently `exists_incidentCoordinateOwner_load_le_four` discharges the complete
+capacitated Hall interface and produces an incident-coordinate owner whose every fiber has size
+at most four.  Thus the former five-through-ten-coordinate case analysis is superseded for
+width-two inclusion-minimal cores; the stronger `4q-2` refinement is no longer on the critical
+path.
+
+The precise next frontier is to thread this unconditional load-four owner into the canonical
+multi-switching encoder that previously stopped at the ownership premise, then recompute the
+realized-prefix key count and survivor-shell recurrence with owner multiplicity four.  The audit
+must check whether the owner is used only extensionally (so the noncomputable Hall choice is
+acceptable) or whether the encoder needs executable owner data.  No P-versus-NP conclusion
+follows.
+
+### Load four now has an exact extensional key alphabet
+
+The Hall output has now been strengthened from a bare owner/fiber statement to the finite code
+interface needed by counting.  `WidthTwoOwnedKey queried` is the product of an actually queried
+coordinate with `Fin 4`.  Its cardinality is exactly
+
+```text
+4 * queried.card.
+```
+
+`InclusionMinimalUnsatisfiableCore.exists_incidentWidthTwoOwnedKeyEmbedding` constructs, for every
+qualifying width-two minimal core, an injective map from its attached members into this alphabet;
+the coordinate component is proved to lie in that member's genuine outside-target support.  The
+proof extracts the injective capacitated-Hall slot assignment directly.  It is existential and
+noncomputable, but all present uses are extensional (injectivity, incidence, and cardinality), so
+no executable owner data is required for this local compression.
+
+The exact length-`d` multiset alphabet is now recorded as `WidthTwoOwnedPrefixCode`, with
+
+```text
+card = choose(4*q + d - 1, d).
+```
+
+`widthTwoOwnedPrefix_balance` recomputes the conditional survivor-shell arithmetic: replacing the
+old key count `A` by `4*q` requires density base
+
+```text
+4 * (w+1) * (4*q+1).
+```
+
+This does **not** yet re-encode the canonical prefix.  The current decoder compares globally
+stable `(gate,term-position)` keys across two roots.  The Hall code is chosen for a
+restriction-dependent minimal competitor core, and two roots need not expose definitionally the
+same core or the same Hall matching.  Equality of their owned multisets therefore does not yet
+recover equality of the original term keys.  This coherence gap, rather than executability or
+the stars-and-bars arithmetic, is the remaining obstruction.
+
+The precise next frontier is to construct a root-independent core/slot assignment for every
+canonical witness position, or prove a transport theorem showing that equal prefix endpoints and
+owned labels identify the two restriction-dependent cores and Hall codes.  Only after that
+coherence theorem may `widthTwoOwnedPrefix_balance` replace the existing `(gate,term-position)`
+factor in `commonShallowBad`; absent such a theorem, the load-four alphabet is a local cardinal
+compression rather than a sound canonical encoder.  No P-versus-NP conclusion follows.
+
+### Core and Hall choices are now canonical in their semantic inputs
+
+The two apparent choice-level coherence problems have been removed.  In
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`,
+`canonicalMinimalUnsatisfiableCore` chooses an inclusion-minimal subcore as a fixed function of
+the target and full finite competitor pool.  Its subset and minimality specifications are proved,
+and `canonicalMinimalUnsatisfiableCore_proof_irrel` shows that changing the proof of full-core
+unsatisfiability cannot change the selected core.
+
+Likewise, `incidentWidthTwoOwnedKeyEmbedding` chooses the load-four Hall embedding as a fixed
+function of the exact target, core, queried set, and their verified structural premises.  The
+new injectivity and incidence theorems expose its complete decoder-facing contract, while
+`incidentWidthTwoOwnedKeyEmbedding_proof_irrel` proves that different minimality, support,
+incidence, or width proofs yield exactly the same function.  Therefore Hall-matching
+nonuniqueness is not an independent obstruction: once two roots transport to equal semantic
+target/full-pool/queried data, they definitionally reuse the same canonical core and embedding
+(up to proof irrelevance).
+
+This does not yet prove that equal canonical-prefix endpoints produce equal semantic inputs.
+The full competitor pool depends on the selected targets and their source gates, and the current
+realized-prefix decoder still compares stable `(gate,term-position)` keys before those data have
+been reconstructed.  The precise next frontier is now narrower: define the target/full-pool data
+attached to a realized prefix and prove that endpoint plus the position component of the label
+transports those data across roots.  If that is impossible, preserve a counterexample identifying
+which of target identity, source-gate identity, or competitor-pool equality fails.  Only after
+this transport may the canonical owned multiset replace the current global term keys in
+`commonShallowBad`.  No P-versus-NP conclusion follows.
+
+### Endpoint plus literal position does not transport target data
+
+The proposed semantic-input transport is false at the current label interface.  The definition
+`realizedPrefixTargetData` records, for each of the first `d` fresh witnesses, the selected target
+clause together with its source-gate index.  The kernel-checked two-singleton counterexample
+
+```text
+endpoint_position_do_not_transport_realizedPrefixTargetData
+```
+
+uses two roots with one different free coordinate.  Both canonical one-query prefixes reach the
+same all-false endpoint, and both have the identical width-one literal-position word (position
+zero).  Nevertheless one witness originates in gate zero and the other in gate one, so their
+source-gate/target-clause data differ.  The companion theorem
+`endpoint_position_do_not_transport_realizedPrefixKeys` confirms that their stable
+`(gate,term-position)` keys differ as well.
+
+Thus proof irrelevance successfully canonicalizes the minimal core and Hall matching only *after*
+the semantic inputs are known, but endpoint plus literal positions cannot supply those inputs.
+The failure already occurs before any competitor pool or unsatisfiable core is formed; source-gate
+identity is the first missing datum, and target identity fails with it.  Consequently the current
+owned-key proposal is circular if it needs root-dependent Hall data to reconstruct the global key
+that would identify that Hall data.
+
+The precise next frontier is to test a hybrid coherent label that retains just enough stable
+source identity to select a root-independent semantic problem while compressing only the remaining
+competitor multiplicity into load-four owned slots.  Its decoder must be proved injective and its
+alphabet recomputed; if the retained source component restores the full `G` factor, the Hall
+compression gives no asymptotic improvement and this route should be recorded as quantitatively
+closed.  No P-versus-NP conclusion follows.
+
+### Stable source identity still does not select the semantic target
+
+The proposed source-owned hybrid fails one interface earlier than its Hall-slot arithmetic.  The
+new one-gate family `sameGateTwoTargetGates` contains the two singleton terms `x₀` and `x₁`.
+Two roots free one coordinate each and fix the other false.  Their one-query prefixes have the
+same all-false endpoint, the same unique source-gate word, and the same literal-position word
+(position zero), but select different target clauses.  The kernel-checked capstones
+
+```text
+endpoint_sourceGate_position_do_not_transport_realizedPrefixTargetData
+endpoint_sourceGate_position_do_not_transport_realizedPrefixKeys
+```
+
+show respectively that target data and the existing stable keys differ.  Thus retaining `Fin G`
+does not make the semantic core or Hall embedding root-independent: term position is also needed
+before either can be selected.
+
+The abstract counting theorem `stableTermKey_card_le_of_leftInverse` records the quantitative
+consequence.  Any finite label admitting a decoder that is a left inverse on all stable
+`Fin G × Fin m` keys has cardinality at least `G*m`.  Therefore a hybrid compatible with the
+current decoder cannot replace the original key alphabet by `Fin G × (queried × Fin 4)`:
+the stable `(gate,term-position)` datum already incurs the complete rectangular factor, and an
+owned Hall slot can only add information.  The load-four theorem remains a valid local
+compression of a fixed semantic core, but this particular route for turning it into a coherent
+realized-prefix encoder is quantitatively closed.
+
+The precise next frontier is to change the decoder interface rather than add another component to
+the label.  A viable route must reconstruct the prefix from a root-independent semantic quotient
+that does not first decode syntactic term identity, while preserving exact canonical-tree order;
+the existing subsumption and permutation counterexamples must be respected.  Failing such a
+quotient, return to the verified realized-prefix encoder and audit whether its exact ragged
+alphabet and survivor schedule suffice under a structural bottom-occurrence bound.  No
+P-versus-NP conclusion follows.
+
+### Distinct semantic targets retain the full stable-key lower bound
+
+Changing the decoder's codomain from syntactic keys to a root-independent semantic type does not
+give a uniform compression.  The abstract kernel-checked theorem
+`stableTargetMeaning_card_le_of_decoder` assumes only that each stable `(gate,term-position)` key
+has a semantic meaning, those meanings are pairwise distinct, and decoding an encoded label
+recovers that meaning.  It concludes
+
+```text
+G*m <= card(label alphabet).
+```
+
+This strictly weakens the earlier left-inverse premise: the decoder need not reconstruct the
+syntactic key at all.  Consequently the lower bound is not an artifact of the current decoder
+interface.  A semantic quotient can reduce the alphabet only to the extent that the concrete
+family contains provable semantic collisions; families of pairwise distinct targets still pay the
+entire ragged occurrence count (and a rectangular family can still realize `G*m` distinct
+targets).  The permutation examples show that useful semantic collisions do occur, while the
+subsumption examples show that exploiting them requires changing the canonical walk rather than
+merely relabeling its existing witnesses.
+
+The precise next frontier is therefore family-structural rather than another abstract quotient:
+either prove a roundwise bound on the number of distinct canonical target meanings below the live
+dimension and rebuild the walk over that normal form, or change the shell injection so that it
+does not encode one independently decodable target per prefix witness.  Without one of those new
+ingredients, the verified ragged occurrence obstruction remains sharp on distinct-target
+families.  No P-versus-NP conclusion follows.
+
+### Width one already realizes the full distinct-meaning obstruction
+
+The pairwise-distinct premise in `stableTargetMeaning_card_le_of_decoder` is now realized by a
+concrete canonical gate family, rather than left as an abstract worst case.
+`rectangularDistinctSingletonGates G m` has `G` gates, exactly `m` positive singleton clauses in
+each gate, and ambient dimension `G*m`.  The product equivalence assigns a separate coordinate to
+every stable `(gate,term-position)` key.  The membership theorem
+`rectangularDistinctSingletonGates_width_one` proves that every target has bottom width one.
+
+More importantly, `rectangularDistinctSingletonSemantics_injective` proves that the resulting
+`G*m` clauses compute pairwise distinct Boolean functions: evaluating at the assignment supported
+on one key's coordinate separates it from every other key.  Therefore
+`rectangularDistinctSingleton_card_le_of_semanticDecoder` specializes the semantic decoder lower
+bound to this actual family:
+
+```text
+G*m <= card(label alphabet).
+```
+
+Thus no uniform sub-live bound on distinct target meanings follows from bounded width,
+duplicate-freeness, or semantic quotienting alone; width-one families can already attain one
+distinct meaning per live coordinate and one per syntactic occurrence.  Any useful roundwise
+collision theorem must exploit an additional circuit invariant that excludes this independent
+singleton family.
+
+The precise next frontier is to identify such an invariant in the outputs of the layered
+`collapseRound` recurrence and prove that it forces a sub-occurrence target-meaning bound, or to
+abandon independently decodable per-witness targets and construct a joint shell injection.  The
+verified singleton family should remain as the regression obstruction for any proposed uniform
+normal-form compression.  No P-versus-NP conclusion follows.
+
+### The singleton obstruction is produced by an actual collapse round
+
+The range of `collapseRound` alone does not exclude the width-one distinct-meaning obstruction.
+For positive `G,m`, `rectangularDistinctSingletonPredecessor G m` is a genuine `AltO 4` circuit:
+an outer `gOr`, one `gAnd` per row, and one positive singleton DNF per rectangular key.  The
+kernel-checked theorem `rectangularDistinctSingletonPredecessor_altO` proves this alternation
+invariant explicitly, including the nonempty-gate requirements.
+
+At fuel one and the all-live restriction,
+`collapseRound_rectangularDistinctSingletonPredecessor` computes the round exactly:
+
+```text
+collapseRound 1 allLive predecessor = rectangularDistinctSingletonRoundOutput G m.
+```
+
+The local theorem `collapseRound_positiveSingletonDnf` proves the basic switch from a singleton
+DNF to the corresponding singleton CNF.  The inner `gAnd` merge concatenates the `m` singleton
+CNFs in each row; the outer `gOr` does not merge those CNF children.  Finally,
+`bottomGates_rectangularDistinctSingletonRoundOutput` identifies the output bottom-gate list
+definitionally with `List.ofFn (rectangularDistinctSingletonGates G m)`.
+
+Combining that exact range witness with the preceding semantic injection shows that even the
+positive-polarity half of a bona fide round output can contain `G*m` pairwise distinct width-one
+target meanings.  Therefore no collision theorem can follow merely from being an `AltO` circuit
+produced by one `collapseRound`, nor from the already tracked width, duplicate, and semantic
+normalization invariants.  Any useful extra invariant must depend on narrower global history—for
+example the survivor schedule, the relation between the live dimension and the original circuit's
+occurrence budget, or a multi-round conservation law—not just the syntactic range of the round
+operator.
+
+The precise next frontier is to audit those genuinely global recurrence invariants against this
+new exact range counterexample.  If none forces a sub-live occurrence bound, the remaining viable
+route is a joint shell injection that encodes the prefix without independently decoding one target
+meaning per witness.  The exact collapse-output family should remain as a regression test.  No
+P-versus-NP conclusion follows.
+
+### Original occurrence conservation and live dimension are both saturated
+
+The first global-invariant audit is now exact.  In
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`, the predecessor and its one-round output
+satisfy
+
+```text
+bottomClauseCount predecessor = G*m,
+bottomClauseCount output      = G*m,
+bottomGates output            = G,
+stars allLive                 = G*m.
+```
+
+The combined theorem
+`rectangularDistinctSingletonRoundOutput_saturates_global_budgets` records that the output's
+occurrence count is simultaneously equal to the original predecessor occurrence count and to the
+current live dimension.  Hence neither bare conservation of bottom-clause occurrences nor the
+non-strict invariant `occurrences <= live` forces any collision or sub-live encoder alphabet:
+both bounds can be tight on a genuine `collapseRound` output whose width-one targets have pairwise
+distinct meanings.
+
+This does not yet rule out a recurrence invariant with quantitative slack.  In particular, the
+verified shell schedule operates after extending restrictions and may enforce a strict gap between
+the current live shell and the inherited occurrence budget.  The precise next frontier is to pad
+the construction with already-fixed ambient coordinates and realize the same saturation at a
+non-root extending restriction, or prove that the intended survivor schedule excludes that padded
+state.  If saturation remains realizable inside the actual schedule, scalar occurrence/live
+history is exhausted and the next route is a genuinely joint prefix injection.  No P-versus-NP
+conclusion follows.
+
+### Non-root restriction extension still saturates both scalar budgets
+
+Padding does not create the hoped-for quantitative slack.  For arbitrary `pad`, `G`, and `m`, the
+new restriction `paddedRectangularRestriction pad G m` fixes the first `pad` ambient coordinates
+to false and leaves the right-hand `G*m` coordinates live.  It extends the all-live root, and for
+`pad > 0` the extension is strict.  The corresponding predecessor places the independent positive
+singletons only on those surviving coordinates.
+
+The local theorem `collapseRound_positiveSingletonDnf_of_free` first removes the artificial
+all-live premise from the singleton computation: any still-free positive singleton switches to
+its singleton CNF at fuel one.  The capstone
+`paddedRectangularRoundOutput_saturates_global_budgets` then proves, for positive `pad`, `G`, and
+`m`, all of the following together:
+
+```text
+allLive < paddedRectangularRestriction,
+AltO 4 predecessor,
+collapseRound 1 paddedRestriction predecessor = output,
+bottomClauseCount output = bottomClauseCount predecessor = G*m,
+stars paddedRestriction = G*m.
+```
+
+Thus saturation is not a root-shell artifact.  It survives after an arbitrary positive number of
+ambient coordinates have already been fixed, on an actual `collapseRound` state.  Bare scalar
+history consisting of inherited bottom-occurrence budget and current live dimension is therefore
+exhausted: neither conservation nor passage to a non-root survivor shell forces a strict gap.
+
+The precise next frontier is to compare this padded state with the *specific probabilistic shell
+schedule* used by the iteration, including its required live-density relation to the original
+ambient dimension.  Either prove that schedule assigns the padded saturated states negligible
+weight for a reason stronger than scalar occurrence/live totals, or proceed to a joint prefix
+injection that does not decode an independent target for every witness.  The padded construction
+must remain as the regression obstruction.  No P-versus-NP conclusion follows.
+
+### The exact survivor schedule admits a saturated padded state
+
+The live-density comparison is now kernel-checked at an exact schedule point.  In
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`, the theorem
+`paddedRectangularRoundOutput_realizes_actual_schedule` instantiates the linear ragged-alphabet
+schedule at
+
+```text
+M = 10,  s = 0,  r = 1,  j = 0,
+live dimension = 164000,
+survivor shell = 20,
+two-polarity key cap = 40.
+```
+
+Taking `pad = 163980`, `G = 1`, and `m = 20` gives a strict extension of the all-live root whose
+twenty surviving coordinates carry twenty independent singleton clauses.  Its genuine
+`collapseRound` output still satisfies
+
+```text
+bottomClauseCount output = stars restriction = 20,
+stars restriction = layeredRoundActualShell 10 0 1 0,
+normalized two-polarity total length <= layeredRoundActualKeyCap 10 0.
+```
+
+The new helper `paddedRectangularSingletonRoundOutput_bottomWidth_one` verifies the schedule's
+residual width hypothesis, and the capstone additionally applies
+`normalizedLayered_commonShallowBad_scaled_le_actual_schedule` to this exact circuit family.
+Thus the density relation and the global half-shell contraction theorem are both compatible with
+the saturated state; the intended schedule does not exclude it merely by ambient dimension,
+shell membership, width, occurrence count, or normalized alphabet cap.
+
+This theorem does not show that the particular restriction is itself in `commonShallowBad`, nor
+does existence of one shell point refute the global contraction bound.  It isolates the remaining
+question correctly: any negligibility proof for saturated states must use a finer structural
+statistic that correlates with badness, rather than the audited scalar schedule interfaces.
+Absent such a statistic, the precise next frontier is a joint prefix injection that reconstructs
+the canonical prefix without independently decoding one target meaning per witness.  The exact
+scheduled state should remain as the regression test.  No P-versus-NP conclusion follows.
+
+### The exact scheduled saturated state is genuinely bad
+
+The compatibility gap in the preceding audit is now closed for the concrete regression family.
+The theorem `paddedRectangularRoundOutput_schedule_restriction_mem_bad` proves that the same
+restriction used by `paddedRectangularRoundOutput_realizes_actual_schedule` is an actual member of
+
+```text
+commonShallowBad (normalizedLayeredBottomFamily C) 20 20 10 0.
+```
+
+The proof is semantic and does not reduce a large canonical tree.  Follow an alleged depth-ten
+common trunk on the all-false assignment.  Its query path contains at most ten coordinates, so it
+misses one of the twenty surviving singleton coordinates.  Flipping that unqueried coordinate
+reaches the same trunk leaf.  The positive packed singleton DNF is false on the first assignment
+and true on the second, whereas residual canonical depth zero would make its tree constant.
+Canonical-tree correctness applies because restriction extension preserves the twenty-unit fuel
+bound.
+
+Consequently saturation is not merely compatible with the scheduled bad-set estimate: at least
+one exact scheduled saturated state is bad.  This rules out any proposed negligibility argument
+whose only mechanism is to show that saturated states are automatically good.  It still does not
+show that saturated bad states have large shell mass; the verified global contraction theorem is
+fully consistent with this individual bad point.
+
+The precise next frontier is therefore quantitative: characterize and count the shell family of
+saturated bad states (the natural next test is to generalize the packed-singleton argument across
+support sets and polarities), or construct the joint prefix injection that avoids independently
+decoding one target meaning per witness.  Any finer structural statistic must distinguish a
+negligible saturated-bad class, not merely separate saturation from badness.  No P-versus-NP
+conclusion follows.
+
+### The scheduled obstruction fills its entire fixed-support polarity fiber
+
+The single bad schedule point is not isolated in the Boolean values assigned off its live
+support.  In `ComputationalDepthMultiSwitchingTwoSATBridge.lean`, the support-local theorem
+`scheduledSingletonSupport_not_commonShallow` now takes an arbitrary restriction `sigma` with
+
+```text
+freeVars sigma = scheduledSingletonSupport
+```
+
+and rules out a depth-ten common trunk with residual depth zero.  The proof reuses the semantic
+missed-coordinate argument, but its base assignment is now derived from `sigma`; no value of any
+of the other 163980 coordinates is inspected.  The finset wrapper
+`scheduledSingletonSupport_fiber_mem_bad` puts every such restriction in the exact scheduled bad
+event, while the previous concrete restriction is recovered as a corollary.
+
+The capstone `scheduledSingletonSupport_bad_card_lower_bound` counts this fiber.  The standard
+fixed-free-set equivalence gives exactly two choices for each of the 163980 fixed coordinates, and
+the support-local inclusion therefore proves
+
+```text
+2^163980 <= |scheduledSingletonBad|.
+```
+
+Thus arbitrary padding polarities do not suppress the obstruction at all.  Relative to the whole
+20-star shell, this particular fixed-support fiber accounts for one of the `choose(164000,20)`
+possible live supports, so the result does not show a nonnegligible shell density.  It identifies
+the remaining quantitative question sharply: all possible saving must come from how rarely the
+circuit's packed singleton support occurs among shell supports, not from assignments on its fixed
+complement.
+
+The precise next frontier is to move the packed singleton construction across a large family of
+20-element live supports while keeping one fixed scheduled circuit, and count how many such
+supports retain a gate with more than ten live independent singleton coordinates.  Equivalently,
+compute the support-overlap tail for the circuit's singleton blocks and compare it with the
+verified half-shell contraction.  If circuit-fixed support variation remains negligible, return
+to the joint prefix injection.  No P-versus-NP conclusion follows.
+
+### The support-overlap criterion is polarity-sensitive
+
+The packed-singleton argument now moves beyond one fixed live support.  The theorem
+`scheduledSingletonSupport_not_commonShallow_of_live_false` proves that an arbitrary scheduled
+20-star restriction is bad whenever more than ten of the circuit's twenty singleton coordinates
+remain live and every other singleton coordinate is fixed false.  The wrapper
+`scheduledSingletonSupport_mem_bad_of_live_false` places every such restriction in the exact
+scheduled bad finset.  Values on all coordinates outside the packed gate remain irrelevant.
+
+This is the correct support-overlap statement for the positive singleton DNF.  A raw overlap count
+alone would be false: fixing even one nonlive singleton coordinate true makes that positive OR
+constant.  Thus the remaining count must retain the polarity condition.  For an overlap of `q`,
+the support multiplicity is `choose(20,q) * choose(163980,20-q)`, but only the assignment fibers
+whose other `20-q` packed coordinates are false are certified by this theorem.
+
+The precise next frontier is to formalize that hypergeometric sum for `q = 11,...,20`, multiply
+each support class by its exact admissible fixed-assignment fiber, and compare the resulting mass
+with both the full 20-star shell and the verified half-shell contraction.  If this certified tail
+is negligible, the packed circuit is only a regression test and the joint prefix injection again
+becomes the main route.  No P-versus-NP conclusion follows.
+
+### The polarity-sensitive tail now has an exact overlap-class partition
+
+The countable event itself is now formalized in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The finset
+`scheduledSingletonCertifiedTail` contains exactly the scheduled restrictions with more than ten
+live packed singleton coordinates and with every remaining packed coordinate fixed false.
+Together with `scheduledSingletonSupport_mem_bad_of_live_false`, its membership theorem gives a
+pointwise kernel-checked inclusion in the scheduled bad event.
+
+For every natural `q`, `scheduledSingletonCertifiedOverlap q` fixes the packed live-overlap to
+exactly `q`.  The theorem `scheduledSingletonCertifiedTail_eq_biUnion_overlap` proves the exact
+partition
+
+```text
+scheduledSingletonCertifiedTail
+  = biUnion q in Icc 11 20, scheduledSingletonCertifiedOverlap q.
+```
+
+This removes ambiguity about the range and polarity event before the cardinality calculation.
+An independent exact-integer audit of the intended summands
+
+```text
+choose(20,q) * choose(163980,20-q) * 2^(163960+q)
+```
+
+shows that their sum is approximately `2^-139.5908` of the full twenty-star shell.  Multiplying
+by the verified `2^10` contraction factor leaves approximately `9.75623e-40` of the shell.  This
+numeric audit is not yet a Lean theorem: the new Lean result establishes the exact finite
+partition to which the count must be applied.
+
+The evidence therefore strongly indicates that the packed singleton obstruction is negligible
+at the audited schedule and should remain a regression test rather than the main route.  The
+precise next frontier is to prove the per-class cardinality formula above and a kernel-checked
+comparison with `choose(164000,20) * 2^163980`.  Once that closes, return to the joint prefix
+injection (or find a different bad family with materially larger shell mass).  No P-versus-NP
+conclusion follows.
+
+### The certified tail now has an exact kernel-checked cardinality
+
+The per-class stars-and-bars calculation is now proved in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`scheduledSingletonCertifiedOverlap_card` gives, for every `q ≤ 20`,
+
+```text
+|scheduledSingletonCertifiedOverlap q|
+  = choose(20,q) * choose(163980,20-q) * 2^(163960+q).
+```
+
+The proof reuses two existing exact bijective counts rather than introducing a second restriction
+encoding.  `scheduledSingletonOverlapFreeSets_card` counts the live packed and padding coordinates
+through the generic occupancy fiber, while `scheduledSingletonFalseRoot_fiber_card` counts the
+fixed-value fiber as extensions of the root that forces the `20-q` nonlive packed coordinates
+false.  The overlap classes are proved disjoint, and `scheduledSingletonCertifiedTail_card` sums
+the formula exactly over `q = 11,...,20`.
+
+The normalized coefficient comparison is also kernel checked:
+
+```text
+sum q=11..20,
+  choose(20,q) * choose(163980,20-q) * 2^(q-10)
+    < choose(164000,20).
+```
+
+This is `scheduledSingletonCertifiedTail_coefficient_lt`.  Its proof avoids evaluating
+`choose(164000,20)` recursively: it bounds the smaller binomials by powers, multiplies by `20!`,
+and compares against the 20-factor descending factorial.  A direct theorem restating the result
+with the common factor `2^163980` was attempted, but Lean's kernel recursion limit was reached
+while checking the enormous power expression; that failed presentation route is intentionally
+not treated as a theorem.  The exact tail count and normalized inequality already isolate the
+remaining step as power-factor bookkeeping, not combinatorial uncertainty.
+
+The precise next frontier is to package the common-power cancellation as a small generic lemma
+with a symbolic exponent and instantiate it without forcing kernel reduction of `2^163980`.
+After that presentation-level bridge closes, the packed singleton family should return to its
+role as a regression test and work should resume on the joint-prefix injection.  No P-versus-NP
+conclusion follows.
+
+### Symbolic cancellation closes the certified-tail regression audit
+
+The large-power presentation is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The generic theorem
+`finset_sum_mul_two_pow_add_lt_mul_two_pow` restores an opaque common factor `2^k` to a strict
+finite-sum inequality.  Its proof uses positivity and distributivity only, so the kernel never
+evaluates the common power.
+
+Instantiating it at `k = 163970`, with the overlap exponent written as `q - 10`, proves
+
+```text
+|scheduledSingletonCertifiedTail| < choose(164000,20) * 2^163970.
+```
+
+The theorem `scheduledSingletonCertifiedTail_mul_two_pow_ten_lt_shell` then gives the exact
+requested contraction comparison
+
+```text
+|scheduledSingletonCertifiedTail| * 2^10
+  < choose(164000,20) * 2^163980.
+```
+
+Thus the polarity-sensitive packed-singleton bad family is rigorously negligible relative to the
+verified half-shell target: even after paying the full `2^10` contraction factor, its certified
+mass remains strictly below the complete twenty-star shell.  This closes the presentation-level
+gap left by the normalized coefficient theorem and confirms that this construction is a useful
+regression test, not the current quantitative obstruction.
+
+The precise next frontier returns to the joint-prefix injection.  The highest-value next step is
+to formulate a decoder for the whole canonical realized prefix from one shared structural code,
+without assigning an independently decodable target meaning to every witness; the existing
+endpoint/source-gate non-transport theorems and the saturated scheduled state remain mandatory
+regression tests.  No P-versus-NP conclusion follows.
+
+### A shared whole-prefix decoder still pays the complete independent-subset fiber
+
+The proposed joint-prefix route now has an exact information-theoretic regression test in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`independentRealizedPrefix_sharedDecoder_card_lower_bound` allows an arbitrary finite label type,
+one arbitrary shared code per root, and one arbitrary decoder returning the selected-variable set
+of the entire prefix.  It does not assume a product label or independently decoded target meaning
+at each witness.
+
+On the independent singleton family, every `d`-subset is realized by a root whose full fresh
+prefix selects exactly that subset, while every such root reaches the same all-false endpoint.
+The decoder therefore makes its encoder injective on a fiber of exact size `choose(n,d)`, proving
+
+```text
+choose(n,d) <= |shared code alphabet|.
+```
+
+Consequently, merely replacing per-witness meanings by one opaque whole-prefix code cannot beat
+the compatible-subset multiplicity in the worst case; the endpoint supplies no extra information
+on this family.  This does not refute a decoder whose smallness is proved only on the actual bad
+event: the packed-singleton audit already showed that the explicit saturated bad family can be
+negligible in the scheduled shell.
+
+The precise next frontier is to make the decoder bad-event-sensitive.  Formulate a shared code
+only for roots in `commonShallowBad` and prove either (a) a structural bound on the number of
+independent selected subsets that remain bad for one fixed circuit and endpoint, or (b) an
+injective reconstruction whose alphabet is charged to a statistic of that bad fiber rather than
+the full realized prefix.  The endpoint/source-gate examples and the scheduled saturated state
+remain regression tests.  No P-versus-NP conclusion follows.
+
+### Bad-event sensitivity alone does not shrink the independent-subset fiber
+
+The shared-decoder regression test is now restricted to the actual semantic bad event in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  For `d > 0`,
+`independentRealizedRoots_subset_commonShallowBad` proves that every root freeing exactly `d`
+independent singleton coordinates belongs to
+
+```text
+commonShallowBad (independentLiteralGates n) 1 d (d-1) 0.
+```
+
+Consequently `independentRealizedRoots_inter_commonShallowBad` identifies the bad slice with the
+entire realized common-endpoint fiber.  The capstone
+`independentBadRealizedPrefix_sharedDecoder_card_lower_bound` allows an arbitrary shared finite
+code and decoder whose correctness is assumed only on that intersection, yet still proves
+
+```text
+choose(n,d) <= |shared code alphabet|.
+```
+
+Thus merely restricting the whole-prefix decoder to `commonShallowBad` gives no worst-case
+information saving: an actual bad event can retain every independent selected subset over the
+same endpoint.  This does not contradict the shell contraction theorem, because the independent
+family has one indexed gate per ambient coordinate and need not satisfy its small-alphabet density
+premise.
+
+The precise next frontier is therefore to make bad sensitivity *density-aware*.  For one fixed
+circuit and endpoint satisfying the verified actual-alphabet density premise, bound the number of
+distinct realized prefix-variable sets in the bad fiber by a statistic controlled by the
+normalized clause-occurrence alphabet; alternatively construct a density-admissible family that
+still attains the independent-subset lower bound.  The independent family and the scheduled
+saturated singleton state remain mandatory regression tests.  No P-versus-NP conclusion follows.

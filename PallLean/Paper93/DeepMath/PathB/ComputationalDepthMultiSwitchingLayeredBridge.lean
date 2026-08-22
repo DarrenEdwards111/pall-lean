@@ -6,6 +6,10 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3LeafTowerCount
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3CollapseRoundCount2
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3TotalClauseCount
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDimension
+import Mathlib.Combinatorics.Hall.Finite
+import Mathlib.Combinatorics.KatonaCircle
+import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
 
 /-!
 # Bridge from a common switching trunk to one layered collapse round
@@ -4129,6 +4133,67 @@ def InclusionMinimalUnsatisfiableCore {n G : ℕ} (target : Fin G → Clause n)
     ∀ p ∈ core, ∃ assignment,
       HitsOutsideCompetitorCore target (core.erase p) assignment
 
+/-- The polarity-sensitive semantic signature of a competitor after deleting every literal on
+the protected target support.  Unlike `competitorOutsideTargetVars`, this retains the falsifying
+polarity, and unlike the original clause it forgets order and duplicate literal occurrences. -/
+def competitorOutsideTargetLiteralSet {n G : ℕ} (target : Fin G → Clause n)
+    (U : Clause n) : Finset (Rung4Literal n) :=
+  U.lits.toFinset.filter fun ell => litVar ell ∉ compatibleIsolationTargetVars target
+
+theorem mem_competitorOutsideTargetLiteralSet {n G : ℕ}
+    (target : Fin G → Clause n) (U : Clause n) (ell : Rung4Literal n) :
+    ell ∈ competitorOutsideTargetLiteralSet target U ↔
+      ell ∈ U.lits ∧ litVar ell ∉ compatibleIsolationTargetVars target := by
+  simp [competitorOutsideTargetLiteralSet]
+
+/-- Semantic outside-target normalization never increases width. -/
+theorem competitorOutsideTargetLiteralSet_card_le_length {n G : ℕ}
+    (target : Fin G → Clause n) (U : Clause n) :
+    (competitorOutsideTargetLiteralSet target U).card ≤ U.lits.length := by
+  exact (Finset.card_filter_le _ _).trans (List.toFinset_card_le U.lits)
+
+/-- Inclusion-minimality removes more than syntactically duplicate clauses: two retained indexed
+competitors cannot induce the same polarity-sensitive outside-target literal set.  Otherwise the
+deletion witness for one competitor also hits it through the other competitor's identical
+signature, satisfying the whole core.  In particular, target indices, literal order, protected
+literals, and repeated occurrences cannot create extra ownership load in a minimal core. -/
+theorem InclusionMinimalUnsatisfiableCore.outsideLiteralSet_injectiveOn {n G : ℕ}
+    {target : Fin G → Clause n} {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core) :
+    Set.InjOn (fun p : Fin G × Clause n =>
+      competitorOutsideTargetLiteralSet target p.2) core := by
+  intro p hp q hq hsignature
+  change competitorOutsideTargetLiteralSet target p.2 =
+    competitorOutsideTargetLiteralSet target q.2 at hsignature
+  by_contra hpq
+  obtain ⟨assignment, hhit⟩ := hminimal.2 p hp
+  apply hminimal.1
+  refine ⟨assignment, ?_⟩
+  intro r hr
+  by_cases hrp : r = p
+  · subst r
+    have hqp : q ≠ p := fun h => hpq h.symm
+    obtain ⟨ell, hellq, hout, hvalue⟩ :=
+      hhit q (Finset.mem_erase.mpr ⟨hqp, hq⟩)
+    have hellSignatureQ : ell ∈ competitorOutsideTargetLiteralSet target q.2 :=
+      (mem_competitorOutsideTargetLiteralSet target q.2 ell).2 ⟨hellq, hout⟩
+    have hellSignatureP : ell ∈ competitorOutsideTargetLiteralSet target p.2 := by
+      rw [hsignature]
+      exact hellSignatureQ
+    exact ⟨ell,
+      (mem_competitorOutsideTargetLiteralSet target p.2 ell).1 hellSignatureP |>.1,
+      hout, hvalue⟩
+  · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+
+/-- A minimal core is equinumerous with its set of semantic outside-literal signatures.  This is
+the correct starting point for a width-sensitive ownership count: it removes spurious growth from
+gate indices and syntactic clause variants before any bounded-width enumeration is attempted. -/
+theorem InclusionMinimalUnsatisfiableCore.card_image_outsideLiteralSet {n G : ℕ}
+    {target : Fin G → Clause n} {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core) :
+    (core.image fun p => competitorOutsideTargetLiteralSet target p.2).card = core.card := by
+  exact Finset.card_image_iff.mpr hminimal.outsideLiteralSet_injectiveOn
+
 /-- Every finite unsatisfiable competitor system contains an inclusion-minimal unsatisfiable
 subcore.  This is purely a finite descent statement and makes no quantitative small-core claim. -/
 theorem exists_inclusionMinimalUnsatisfiableCore_subset {n G : ℕ}
@@ -4438,6 +4503,3943 @@ theorem InclusionMinimalUnsatisfiableCore.polarityCoreQueryIncidences_card_le
   exact (polarityCoreQueryIncidences_card_le_mul target core queried).trans
     (Nat.mul_le_mul_right queried.card
       (hminimal.card_le_two_pow_queried hedges))
+
+/-! ### Incident-coordinate ownership and its unavoidable load -/
+
+/-- An ownership rule retains one genuinely incident queried coordinate for every core clause.
+The rule may otherwise depend arbitrarily on the entire indexed clause. -/
+def IncidentCoordinateOwner {n G : ℕ} (target : Fin G → Clause n)
+    (core : Finset (Fin G × Clause n)) (queried : Finset (Fin n))
+    (owner : (Fin G × Clause n) → Fin n) : Prop :=
+  ∀ p ∈ core,
+    owner p ∈ queried ∧ owner p ∈ competitorOutsideTargetVars target p.2
+
+/-- Finite averaging for an incident ownership rule.  Some queried coordinate owns at least the
+ceiling of the number of retained clauses divided by the number of queried coordinates.  The
+statement uses `⌈/⌉`, Mathlib's natural-number ceiling division. -/
+theorem IncidentCoordinateOwner.exists_ceilDiv_le_load {n G : ℕ}
+    {target : Fin G → Clause n} {core : Finset (Fin G × Clause n)}
+    {queried : Finset (Fin n)} {owner : (Fin G × Clause n) → Fin n}
+    (howner : IncidentCoordinateOwner target core queried owner)
+    (hcore : core.Nonempty) :
+    ∃ v ∈ queried,
+      core.card ⌈/⌉ queried.card ≤ (core.filter fun p => owner p = v).card := by
+  have hqueried : queried.Nonempty := by
+    obtain ⟨p, hp⟩ := hcore
+    exact ⟨owner p, (howner p hp).1⟩
+  have hqpos : 0 < queried.card := Finset.card_pos.mpr hqueried
+  have hpartition :
+      core.card = ∑ v ∈ queried, (core.filter fun p => owner p = v).card := by
+    rw [Finset.card_eq_sum_card_fiberwise
+      (f := owner) (t := queried) (fun p hp => (howner p hp).1)]
+  suffices hex : ∃ v ∈ queried,
+      core.card ≤ queried.card * (core.filter fun p => owner p = v).card by
+    obtain ⟨v, hv, hload⟩ := hex
+    exact ⟨v, hv, (ceilDiv_le_iff_le_mul hqpos).2 hload⟩
+  by_contra hnone
+  push_neg at hnone
+  have hstrict :
+      (∑ v ∈ queried, queried.card * (core.filter fun p => owner p = v).card) <
+        ∑ _v ∈ queried, core.card := by
+    exact Finset.sum_lt_sum_of_nonempty hqueried fun v hv => hnone v hv
+  rw [← Finset.mul_sum, ← hpartition] at hstrict
+  simp at hstrict
+
+/-! ### Capacitated Hall reduction for bounded-load ownership -/
+
+/-- The queried coordinates genuinely available to own one retained competitor. -/
+def incidentQueriedVars {n G : ℕ} (target : Fin G → Clause n)
+    (queried : Finset (Fin n)) (p : Fin G × Clause n) : Finset (Fin n) :=
+  competitorOutsideTargetVars target p.2 ∩ queried
+
+/-- Global inclusion-minimality also controls every local Hall subfamily, but only
+exponentially in that subfamily's incident support.  Restrict the deletion witness for each
+retained clause to the union of queried coordinates touched by the chosen subfamily.  Two such
+restricted witnesses cannot agree: the witness for deleting one clause hits the other, and the
+common local values would then make it hit the deleted clause as well.
+
+This is the strongest bound obtained directly from the existing witness injection.  It applies
+to arbitrary subfamilies (which need not themselves be unsatisfiable), but does not by itself
+imply the width-only linear Hall estimate `|s| ≤ 2^w * |union incidentVars(s)|`. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_two_pow_incidentUnion
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (s : Finset ↥core) :
+    s.card ≤
+      2 ^ (s.biUnion fun p => incidentQueriedVars target queried p.1).card := by
+  classical
+  let localVars : Finset (Fin n) :=
+    s.biUnion fun p => incidentQueriedVars target queried p.1
+  let fullWitness : ↥s → (Fin n → Bool) := fun p =>
+    Classical.choose (hminimal.2 p.1.1 p.1.2)
+  have hfullWitness (p : ↥s) :
+      HitsOutsideCompetitorCore target (core.erase p.1.1) (fullWitness p) :=
+    Classical.choose_spec (hminimal.2 p.1.1 p.1.2)
+  let witness : ↥s → (↥localVars → Bool) := fun p i => fullWitness p i.1
+  have hinjective : Function.Injective witness := by
+    intro p q hw
+    apply Subtype.ext
+    by_contra hpq
+    apply hminimal.1
+    refine ⟨fullWitness p, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1.1
+    · subst r
+      have hpneqq : p.1.1 ≠ q.1.1 := by
+        intro heq
+        apply hpq
+        exact Subtype.ext heq
+      obtain ⟨ell, hell, hout, hvalue⟩ :=
+        hfullWitness q p.1.1 (Finset.mem_erase.mpr ⟨hpneqq, p.1.2⟩)
+      have hedge : litVar ell ∈ competitorOutsideTargetVars target p.1.1.2 :=
+        (mem_competitorOutsideTargetVars target p.1.1.2 (litVar ell)).2
+          ⟨⟨ell, hell, rfl⟩, hout⟩
+      have hqueried : litVar ell ∈ queried := hsupport p.1.1 p.1.2 hedge
+      have hlocal : litVar ell ∈ localVars := by
+        rw [show localVars =
+          s.biUnion fun z => incidentQueriedVars target queried z.1 by rfl]
+        rw [Finset.mem_biUnion]
+        exact ⟨p.1, p.2, Finset.mem_inter.mpr ⟨hedge, hqueried⟩⟩
+      refine ⟨ell, hell, hout, ?_⟩
+      have hcoordinate := congrFun hw ⟨litVar ell, hlocal⟩
+      exact hcoordinate.trans hvalue
+    · exact hfullWitness p r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  calc
+    s.card = Fintype.card ↥s := by simp
+    _ ≤ Fintype.card (↥localVars → Bool) :=
+      Fintype.card_le_of_injective witness hinjective
+    _ = 2 ^ localVars.card := by
+      rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_coe]
+    _ = 2 ^ (s.biUnion fun p => incidentQueriedVars target queried p.1).card := rfl
+
+/-- The deletion-witness code already meets the desired width-only Hall budget on every
+subfamily whose incident support has size at most `w + 1`.  The only extra input beyond global
+minimality is the nonempty-edge premise required by the eventual Hall application.  Thus any
+counterexample to the `2^w` load budget must touch at least `w + 2` queried coordinates; the
+unresolved range is genuinely the large-support range, not the first step beyond width `w`. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_smallSupport
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (hw : 0 < w) (s : Finset ↥core)
+    (hsmall : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card ≤ w + 1) :
+    s.card ≤
+      2 ^ w * (s.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hcode : s.card ≤ 2 ^ localVars.card := by
+    simpa [localVars] using
+      hminimal.subfamily_card_le_two_pow_incidentUnion hsupport s
+  by_cases hs : s.Nonempty
+  · have hlocal : localVars.Nonempty := by
+      obtain ⟨p, hp⟩ := hs
+      obtain ⟨v, hv⟩ := hincident p.1 p.2
+      refine ⟨v, ?_⟩
+      rw [show localVars =
+        s.biUnion fun z => incidentQueriedVars target queried z.1 by rfl]
+      exact Finset.mem_biUnion.mpr ⟨p, hp, hv⟩
+    have hqpos : 0 < localVars.card := Finset.card_pos.mpr hlocal
+    have hsmall' : localVars.card ≤ w + 1 := by
+      simpa [localVars] using hsmall
+    have hpowers : 2 ^ localVars.card ≤ 2 ^ w * localVars.card := by
+      by_cases hle : localVars.card ≤ w
+      · calc
+          2 ^ localVars.card ≤ 2 ^ w := Nat.pow_le_pow_right (by norm_num) hle
+          _ ≤ 2 ^ w * localVars.card := Nat.le_mul_of_pos_right _ hqpos
+      · have heq : localVars.card = w + 1 := by omega
+        rw [heq, pow_succ]
+        exact Nat.mul_le_mul_left (2 ^ w) (by omega)
+    exact hcode.trans hpowers
+  · rw [Finset.not_nonempty_iff_eq_empty.mp hs]
+    simp
+
+/-- Contrapositive form of the small-support cutoff: a Hall-density failure at load `2^w`
+cannot occur before the incident union reaches `w + 2` coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.width_add_two_le_incidentUnion_of_density_failure
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (hw : 0 < w) (s : Finset ↥core)
+    (hfail : 2 ^ w * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    w + 2 ≤ (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card := by
+  by_contra hsmall
+  have hle : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card ≤ w + 1 := by omega
+  have hbound := hminimal.subfamily_card_le_widthBudget_of_smallSupport
+    hsupport hincident hw s hle
+  omega
+
+/-- For width at least two, the same deletion-witness code also covers the second support
+level beyond width.  At the only new endpoint `q = w + 2`, its exponential bound is
+`2^(w+2) = 4 * 2^w`, while `4 ≤ w + 2`.  Hence a load-`2^w` Hall-density failure must in fact
+start at support `w + 3` or later. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_support_le_add_two
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (hw : 2 ≤ w) (s : Finset ↥core)
+    (hsmall : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card ≤ w + 2) :
+    s.card ≤
+      2 ^ w * (s.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  by_cases hfirst : localVars.card ≤ w + 1
+  · exact hminimal.subfamily_card_le_widthBudget_of_smallSupport
+      hsupport hincident (by omega) s (by simpa [localVars] using hfirst)
+  · have hendpoint : localVars.card = w + 2 := by
+      have : localVars.card ≤ w + 2 := by simpa [localVars] using hsmall
+      omega
+    have hcode : s.card ≤ 2 ^ localVars.card := by
+      simpa [localVars] using
+        hminimal.subfamily_card_le_two_pow_incidentUnion hsupport s
+    have hpowers : 2 ^ localVars.card ≤ 2 ^ w * localVars.card := by
+      rw [hendpoint, pow_add]
+      norm_num
+      omega
+    exact hcode.trans hpowers
+
+/-- Contrapositive of the width-at-least-two endpoint improvement: a Hall-density failure at
+load `2^w` requires at least `w + 3` incident queried coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.width_add_three_le_incidentUnion_of_density_failure
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (hw : 2 ≤ w) (s : Finset ↥core)
+    (hfail : 2 ^ w * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    w + 3 ≤ (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card := by
+  by_contra hsmall
+  have hle : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card ≤ w + 2 := by omega
+  have hbound := hminimal.subfamily_card_le_widthBudget_of_support_le_add_two
+    hsupport hincident hw s hle
+  omega
+
+/-- The complete arithmetic envelope of the deletion-witness code.  Write `q` for the incident
+support size of a Hall subfamily.  If `q ≤ w`, monotonicity of powers already gives the desired
+load-`2^w` density bound.  If `w ≤ q`, factoring `2^q` as
+`2^w * 2^(q-w)` shows that the exact remaining arithmetic condition is `2^(q-w) ≤ q`.
+
+This theorem deliberately isolates arithmetic from clause structure: outside this envelope a
+stronger proof must use the width of the individual clauses, rather than only injectivity of the
+restricted deletion-witness code. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_pow_sub_le
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (s : Finset ↥core)
+    (henvelope : 2 ^ ((s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card - w) ≤
+        (s.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card) :
+    s.card ≤
+      2 ^ w * (s.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hcode : s.card ≤ 2 ^ localVars.card := by
+    simpa [localVars] using
+      hminimal.subfamily_card_le_two_pow_incidentUnion hsupport s
+  by_cases hs : s.Nonempty
+  · have hlocal : localVars.Nonempty := by
+      obtain ⟨p, hp⟩ := hs
+      obtain ⟨v, hv⟩ := hincident p.1 p.2
+      refine ⟨v, ?_⟩
+      rw [show localVars =
+        s.biUnion fun z => incidentQueriedVars target queried z.1 by rfl]
+      exact Finset.mem_biUnion.mpr ⟨p, hp, hv⟩
+    have hqpos : 0 < localVars.card := Finset.card_pos.mpr hlocal
+    have hpowers : 2 ^ localVars.card ≤ 2 ^ w * localVars.card := by
+      by_cases hqw : localVars.card ≤ w
+      · calc
+          2 ^ localVars.card ≤ 2 ^ w := Nat.pow_le_pow_right (by norm_num) hqw
+          _ ≤ 2 ^ w * localVars.card := Nat.le_mul_of_pos_right _ hqpos
+      · have hwq : w ≤ localVars.card := by omega
+        have henv : 2 ^ (localVars.card - w) ≤ localVars.card := by
+          simpa [localVars] using henvelope
+        calc
+          2 ^ localVars.card = 2 ^ (localVars.card - w) * 2 ^ w := by
+            rw [← pow_add, Nat.sub_add_cancel hwq]
+          _ = 2 ^ w * 2 ^ (localVars.card - w) := Nat.mul_comm _ _
+          _ ≤ 2 ^ w * localVars.card := Nat.mul_le_mul_left _ henv
+    exact hcode.trans hpowers
+  · rw [Finset.not_nonempty_iff_eq_empty.mp hs]
+    simp
+
+/-- Exact contrapositive of the arithmetic-envelope lemma.  Any genuine Hall-density failure
+must lie beyond width and must fail the scalar inequality `2^(q-w) ≤ q`.  These are precisely the
+support sizes at which a subsequent argument has to exploit clause-width structure. -/
+theorem InclusionMinimalUnsatisfiableCore.pow_sub_gt_incidentUnion_of_density_failure
+    {n G w : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (s : Finset ↥core)
+    (hfail : 2 ^ w * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    w < (s.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card ∧
+      (s.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card <
+          2 ^ ((s.biUnion fun p =>
+            incidentQueriedVars target queried p.1).card - w) := by
+  let q := (s.biUnion fun p =>
+    incidentQueriedVars target queried p.1).card
+  have hnotEnvelope : ¬ 2 ^ (q - w) ≤ q := by
+    intro henvelope
+    have hbound := hminimal.subfamily_card_le_widthBudget_of_pow_sub_le
+      hsupport hincident s (by simpa [q] using henvelope)
+    omega
+  have hs : s.Nonempty := Finset.card_pos.mp (lt_of_le_of_lt (Nat.zero_le _) hfail)
+  have hqpos : 0 < q := by
+    obtain ⟨p, hp⟩ := hs
+    obtain ⟨v, hv⟩ := hincident p.1 p.2
+    change 0 < (s.biUnion fun z =>
+      incidentQueriedVars target queried z.1).card
+    exact Finset.card_pos.mpr ⟨v, Finset.mem_biUnion.mpr ⟨p, hp, hv⟩⟩
+  have hwq : w < q := by
+    by_contra h
+    have hsub : q - w = 0 := Nat.sub_eq_zero_of_le (by omega)
+    rw [hsub] at hnotEnvelope
+    exact hnotEnvelope (by simpa using hqpos)
+  have hpow : q < 2 ^ (q - w) := Nat.lt_of_not_ge hnotEnvelope
+  constructor
+  · simpa [q] using hwq
+  · simpa [q] using hpow
+
+/-- Exact cardinality window for the first point outside the arithmetic envelope.  At width two
+and incident support five, a Hall-density failure would have to retain at least 21 clauses.  The
+deletion-witness injection simultaneously limits the same subfamily to at most 32 clauses.
+
+This theorem does not assert that such a core exists.  It isolates the finite structural problem
+left at `(w,q) = (2,5)`: width-two minimality must rule out precisely the cardinalities 21 through
+32 (or an example in that window would be a genuine obstruction). -/
+theorem InclusionMinimalUnsatisfiableCore.widthTwo_fiveSupport_card_window_of_density_failure
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (s : Finset ↥core)
+    (hfive : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 5)
+    (hfail : 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    21 ≤ s.card ∧ s.card ≤ 32 := by
+  constructor
+  · norm_num [hfive] at hfail ⊢
+    omega
+  · have hcode := hminimal.subfamily_card_le_two_pow_incidentUnion hsupport s
+    norm_num [hfive] at hcode ⊢
+    exact hcode
+
+/-- The Boolean indicator that an indexed competitor term fires after protected-target literals
+are discarded.  Equivalently, none of its available outside literals is falsified. -/
+def outsideCompetitorTermFires {n G : ℕ} (target : Fin G → Clause n)
+    (p : Fin G × Clause n) (assignment : Fin n → Bool) : Bool :=
+  decide (¬ ∃ ell ∈ p.2.lits,
+    litVar ell ∉ compatibleIsolationTargetVars target ∧
+      assignment (litVar ell) = falValue ell)
+
+/-- Extend an assignment on a finite queried support to the ambient coordinates, using `false`
+off the support.  The off-support choice is immaterial for competitors whose available outside
+variables are contained in `queried`. -/
+def extendQueriedAssignment {n : ℕ} (queried : Finset (Fin n))
+    (assignment : (↥queried) → Bool) : Fin n → Bool :=
+  fun i => if hi : i ∈ queried then assignment ⟨i, hi⟩ else false
+
+/-- Restrict an ambient Boolean assignment to a finite queried support. -/
+def restrictQueriedAssignment {n : ℕ} (queried : Finset (Fin n))
+    (assignment : Fin n → Bool) : (↥queried) → Bool :=
+  fun i => assignment i.1
+
+/-- An outside-term indicator depends only on the queried coordinates containing all of the
+competitor's available outside variables.  This is the semantic localization step needed before
+placing width-bounded indicators in a finite squarefree-monomial span. -/
+theorem outsideCompetitorTermFires_congr_of_eqOn {n G : ℕ}
+    {target : Fin G → Clause n} {p : Fin G × Clause n}
+    {queried : Finset (Fin n)}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    {a b : Fin n → Bool} (hab : Set.EqOn a b ↑queried) :
+    outsideCompetitorTermFires target p a =
+      outsideCompetitorTermFires target p b := by
+  have hexists :
+      (∃ ell ∈ p.2.lits,
+        litVar ell ∉ compatibleIsolationTargetVars target ∧
+          a (litVar ell) = falValue ell) ↔
+      (∃ ell ∈ p.2.lits,
+        litVar ell ∉ compatibleIsolationTargetVars target ∧
+          b (litVar ell) = falValue ell) := by
+    constructor
+    · rintro ⟨ell, hell, hout, ha⟩
+      have hvar : litVar ell ∈ queried := hsupport
+        (mem_competitorOutsideTargetVars target p.2 (litVar ell) |>.2
+          ⟨⟨ell, hell, rfl⟩, hout⟩)
+      exact ⟨ell, hell, hout, (hab hvar).symm.trans ha⟩
+    · rintro ⟨ell, hell, hout, hb⟩
+      have hvar : litVar ell ∈ queried := hsupport
+        (mem_competitorOutsideTargetVars target p.2 (litVar ell) |>.2
+          ⟨⟨ell, hell, rfl⟩, hout⟩)
+      exact ⟨ell, hell, hout, (hab hvar).trans hb⟩
+  exact Bool.decide_congr (not_congr hexists)
+
+/-- The localized outside-term indicator on assignments to `queried` alone. -/
+def localizedOutsideCompetitorTermFires {n G : ℕ} (target : Fin G → Clause n)
+    (queried : Finset (Fin n)) (p : Fin G × Clause n)
+    (assignment : (↥queried) → Bool) : Bool :=
+  outsideCompetitorTermFires target p (extendQueriedAssignment queried assignment)
+
+/-- The squarefree Boolean monomial supported on `s`, viewed as a rational-valued function on
+assignments to the queried coordinates. -/
+def localizedSquarefreeMonomial {n : ℕ} {queried : Finset (Fin n)}
+    (s : Finset ↥queried) : ((↥queried) → Bool) → ℚ :=
+  fun assignment => ∏ i ∈ s, if assignment i then (1 : ℚ) else 0
+
+/-- The concrete degree-at-most-two squarefree monomial family on the queried support.  It is
+defined as an image so that accidental equality of functions can only decrease its cardinality;
+the dimension argument needs an upper bound, not a separate proof of monomial independence. -/
+def localizedDegreeTwoMonomialBasis {n : ℕ} (queried : Finset (Fin n)) :
+    Finset (((↥queried) → Bool) → ℚ) :=
+  ((Finset.univ.powersetCard 0 ∪ Finset.univ.powersetCard 1) ∪
+      Finset.univ.powersetCard 2).image localizedSquarefreeMonomial
+
+/-- The degree-at-most-two monomial family has the expected binomial-sum cardinality bound. -/
+theorem localizedDegreeTwoMonomialBasis_card_le {n : ℕ}
+    (queried : Finset (Fin n)) :
+    (localizedDegreeTwoMonomialBasis queried).card ≤
+      1 + queried.card + Nat.choose queried.card 2 := by
+  calc
+    (localizedDegreeTwoMonomialBasis queried).card ≤
+        (((Finset.univ.powersetCard 0 ∪ Finset.univ.powersetCard 1) ∪
+          Finset.univ.powersetCard 2) : Finset (Finset ↥queried)).card := by
+      exact Finset.card_image_le
+    _ ≤ (Finset.univ.powersetCard 0 : Finset (Finset ↥queried)).card +
+          (Finset.univ.powersetCard 1 : Finset (Finset ↥queried)).card +
+          (Finset.univ.powersetCard 2 : Finset (Finset ↥queried)).card := by
+      exact (Finset.card_union_le _ _).trans (Nat.add_le_add_right
+        (Finset.card_union_le _ _) _)
+    _ = 1 + queried.card + Nat.choose queried.card 2 := by
+      simp [Finset.card_powersetCard]
+
+/-- Every squarefree monomial of support size at most two is one of the displayed generators,
+and hence belongs to their span. -/
+theorem localizedSquarefreeMonomial_mem_degreeTwo_span {n : ℕ}
+    {queried : Finset (Fin n)} {s : Finset ↥queried} (hs : s.card ≤ 2) :
+    localizedSquarefreeMonomial s ∈
+      Submodule.span ℚ (↑(localizedDegreeTwoMonomialBasis queried) :
+        Set (((↥queried) → Bool) → ℚ)) := by
+  apply Submodule.subset_span
+  simp only [localizedDegreeTwoMonomialBasis, Finset.mem_coe, Finset.mem_image]
+  refine ⟨s, ?_, rfl⟩
+  have hcard : s.card = 0 ∨ s.card = 1 ∨ s.card = 2 := by omega
+  rcases hcard with h | h | h
+  · exact Finset.mem_union_left _ (Finset.mem_union_left _
+      (Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, h⟩))
+  · exact Finset.mem_union_left _ (Finset.mem_union_right _
+      (Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, h⟩))
+  · exact Finset.mem_union_right _
+      (Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, h⟩)
+
+/-- The affine factor contributed by one available outside literal.  It is one precisely when
+the queried assignment does not falsify that literal. -/
+def localizedLiteralFiringFactor {n : ℕ} {queried : Finset (Fin n)}
+    (ell : Rung4Literal n) (hvar : litVar ell ∈ queried) :
+    ((↥queried) → Bool) → ℚ :=
+  fun assignment =>
+    if assignment ⟨litVar ell, hvar⟩ = falValue ell then 0 else 1
+
+/-- A single signed coordinate factor is affine, so it belongs to the localized degree-two
+span. -/
+theorem localizedLiteralFiringFactor_mem_degreeTwo_span {n : ℕ}
+    {queried : Finset (Fin n)} (ell : Rung4Literal n)
+    (hvar : litVar ell ∈ queried) :
+    localizedLiteralFiringFactor ell hvar ∈
+      Submodule.span ℚ (↑(localizedDegreeTwoMonomialBasis queried) :
+        Set (((↥queried) → Bool) → ℚ)) := by
+  let i : ↥queried := ⟨litVar ell, hvar⟩
+  have hzero := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := ∅) (by simp)
+  have hone := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := {i}) (by simp)
+  cases hfal : falValue ell
+  · convert hone using 1
+    funext assignment
+    cases hi : assignment i <;>
+      simp [localizedLiteralFiringFactor, hfal, localizedSquarefreeMonomial, i, hi]
+  · have hsub := Submodule.sub_mem _ hzero hone
+    convert hsub using 1
+    funext assignment
+    cases hi : assignment i <;>
+      simp [localizedLiteralFiringFactor, hfal, localizedSquarefreeMonomial, i, hi]
+
+/-- The product of two signed coordinate factors remains in the degree-two span.  The proof
+explicitly separates repeated coordinates: equal polarities collapse to one affine factor,
+whereas opposite polarities give zero. -/
+theorem localizedLiteralFiringFactor_mul_mem_degreeTwo_span {n : ℕ}
+    {queried : Finset (Fin n)} (ell₁ ell₂ : Rung4Literal n)
+    (hvar₁ : litVar ell₁ ∈ queried) (hvar₂ : litVar ell₂ ∈ queried) :
+    localizedLiteralFiringFactor ell₁ hvar₁ *
+        localizedLiteralFiringFactor ell₂ hvar₂ ∈
+      Submodule.span ℚ (↑(localizedDegreeTwoMonomialBasis queried) :
+        Set (((↥queried) → Bool) → ℚ)) := by
+  let i : ↥queried := ⟨litVar ell₁, hvar₁⟩
+  let j : ↥queried := ⟨litVar ell₂, hvar₂⟩
+  have hconst := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := ∅) (by simp)
+  have hi := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := {i}) (by simp)
+  have hj := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := {j}) (by simp)
+  have hij := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := {i, j}) (by
+      calc
+        ({i, j} : Finset ↥queried).card ≤
+            ({j} : Finset ↥queried).card + 1 := Finset.card_insert_le _ _
+        _ ≤ 2 := by simp)
+  by_cases heq : i = j
+  ·
+    by_cases hpol : falValue ell₁ = falValue ell₂
+    · convert localizedLiteralFiringFactor_mem_degreeTwo_span ell₁ hvar₁ using 1
+      funext assignment
+      cases hbit : assignment i <;> cases h₂ : falValue ell₂ <;>
+        simp_all [localizedLiteralFiringFactor, i, j]
+    · convert Submodule.zero_mem _ using 1
+      funext assignment
+      cases hbit : assignment i <;>
+        cases h₁ : falValue ell₁ <;> cases h₂ : falValue ell₂ <;>
+          simp_all [localizedLiteralFiringFactor, i, j]
+  · cases h₁ : falValue ell₁ <;> cases h₂ : falValue ell₂
+    · convert hij using 1
+      funext assignment
+      cases hi' : assignment i <;> cases hj' : assignment j <;>
+        simp [localizedLiteralFiringFactor, localizedSquarefreeMonomial,
+          i, j, h₁, h₂, hi', hj', heq]
+    · have hmem := Submodule.sub_mem _ hi hij
+      convert hmem using 1
+      funext assignment
+      cases hi' : assignment i <;> cases hj' : assignment j <;>
+        simp [localizedLiteralFiringFactor, localizedSquarefreeMonomial,
+          i, j, h₁, h₂, hi', hj', heq]
+    · have hmem := Submodule.sub_mem _ hj hij
+      convert hmem using 1
+      funext assignment
+      cases hi' : assignment i <;> cases hj' : assignment j <;>
+        simp [localizedLiteralFiringFactor, localizedSquarefreeMonomial,
+          i, j, h₁, h₂, hi', hj', heq]
+    · have hmem := Submodule.add_mem _
+          (Submodule.sub_mem _ (Submodule.sub_mem _ hconst hi) hj) hij
+      convert hmem using 1
+      funext assignment
+      cases hi' : assignment i <;> cases hj' : assignment j <;>
+        simp [localizedLiteralFiringFactor, localizedSquarefreeMonomial,
+          i, j, h₁, h₂, hi', hj', heq]
+
+/-- Every localized outside-term indicator of syntactic width at most two belongs to the
+degree-two squarefree span.  Protected target literals contribute the constant factor one;
+available outside literals contribute the affine factors above.  Thus this statement includes
+empty and unit outside signatures as well as both repeated-variable polarity cases. -/
+theorem localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : p.2.lits.length ≤ 2) :
+    (fun assignment : (↥queried) → Bool =>
+      if localizedOutsideCompetitorTermFires target queried p assignment
+        then (1 : ℚ) else 0) ∈
+      Submodule.span ℚ (↑(localizedDegreeTwoMonomialBasis queried) :
+        Set (((↥queried) → Bool) → ℚ)) := by
+  have hconst := localizedSquarefreeMonomial_mem_degreeTwo_span
+    (queried := queried) (s := ∅) (by simp)
+  rcases p with ⟨g, T⟩
+  change T.lits.length ≤ 2 at hwidth
+  change competitorOutsideTargetVars target T ⊆ queried at hsupport
+  cases hlits : T.lits with
+  | nil =>
+      convert hconst using 1
+      funext assignment
+      simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+        localizedSquarefreeMonomial, hlits]
+  | cons ell₁ tail =>
+      cases htail : tail with
+      | nil =>
+          by_cases hout₁ : litVar ell₁ ∉ compatibleIsolationTargetVars target
+          · have hvar₁ : litVar ell₁ ∈ queried := hsupport
+              (mem_competitorOutsideTargetVars target T (litVar ell₁) |>.2
+                ⟨⟨ell₁, by simp [hlits, htail], rfl⟩, hout₁⟩)
+            convert localizedLiteralFiringFactor_mem_degreeTwo_span ell₁ hvar₁ using 1
+            funext assignment
+            simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+              localizedLiteralFiringFactor, extendQueriedAssignment, hlits, htail,
+              hout₁, hvar₁]
+          · convert hconst using 1
+            funext assignment
+            simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+              localizedSquarefreeMonomial, hlits, htail, hout₁]
+      | cons ell₂ rest =>
+          cases hrest : rest with
+          | cons ell₃ more => exact False.elim (by
+              simp [hlits, htail, hrest] at hwidth
+              omega)
+          | nil =>
+              by_cases hout₁ : litVar ell₁ ∉ compatibleIsolationTargetVars target
+              · have hvar₁ : litVar ell₁ ∈ queried := hsupport
+                    (mem_competitorOutsideTargetVars target T (litVar ell₁) |>.2
+                      ⟨⟨ell₁, by simp [hlits, htail, hrest], rfl⟩, hout₁⟩)
+                by_cases hout₂ : litVar ell₂ ∉ compatibleIsolationTargetVars target
+                · have hvar₂ : litVar ell₂ ∈ queried := hsupport
+                      (mem_competitorOutsideTargetVars target T (litVar ell₂) |>.2
+                        ⟨⟨ell₂, by simp [hlits, htail, hrest], rfl⟩, hout₂⟩)
+                  convert localizedLiteralFiringFactor_mul_mem_degreeTwo_span
+                    ell₁ ell₂ hvar₁ hvar₂ using 1
+                  funext assignment
+                  simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                    localizedLiteralFiringFactor, extendQueriedAssignment, hlits, htail,
+                    hrest, hout₁, hout₂, hvar₁, hvar₂]
+                  by_cases h₁ : assignment ⟨litVar ell₁, hvar₁⟩ = falValue ell₁ <;>
+                    by_cases h₂ : assignment ⟨litVar ell₂, hvar₂⟩ = falValue ell₂ <;>
+                    simp_all
+                · convert localizedLiteralFiringFactor_mem_degreeTwo_span ell₁ hvar₁ using 1
+                  funext assignment
+                  simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                    localizedLiteralFiringFactor, extendQueriedAssignment, hlits, htail,
+                    hrest, hout₁, hout₂, hvar₁]
+              · by_cases hout₂ : litVar ell₂ ∉ compatibleIsolationTargetVars target
+                · have hvar₂ : litVar ell₂ ∈ queried := hsupport
+                      (mem_competitorOutsideTargetVars target T (litVar ell₂) |>.2
+                        ⟨⟨ell₂, by simp [hlits, htail, hrest], rfl⟩, hout₂⟩)
+                  convert localizedLiteralFiringFactor_mem_degreeTwo_span ell₂ hvar₂ using 1
+                  funext assignment
+                  simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                    localizedLiteralFiringFactor, extendQueriedAssignment, hlits, htail,
+                    hrest, hout₁, hout₂, hvar₂]
+                · convert hconst using 1
+                  funext assignment
+                  simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                    localizedSquarefreeMonomial, hlits, htail, hrest, hout₁, hout₂]
+/-- Pulling the localized indicator back along assignment restriction recovers the ambient
+indicator whenever all available outside variables lie in the queried support. -/
+theorem outsideCompetitorTermFires_eq_localized_restrict {n G : ℕ}
+    {target : Fin G → Clause n} {p : Fin G × Clause n}
+    {queried : Finset (Fin n)}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (assignment : Fin n → Bool) :
+    outsideCompetitorTermFires target p assignment =
+      localizedOutsideCompetitorTermFires target queried p
+        (restrictQueriedAssignment queried assignment) := by
+  apply outsideCompetitorTermFires_congr_of_eqOn hsupport
+  intro i hi
+  have hi' : i ∈ queried := hi
+  simp [extendQueriedAssignment, restrictQueriedAssignment, hi']
+
+/-- The localized firing fibers of the *entire* unsatisfiable core cover the queried Boolean
+cube.  Indeed, extend a queried assignment arbitrarily off the queried support.  If no retained
+competitor fired, that extension would hit every competitor and contradict unsatisfiability.
+
+This is stronger than irredundancy of the displayed deletion witnesses and is deliberately
+stated before codimension-two refinement: shrinking a firing fiber during homogenization need
+not preserve the cover.  The theorem is also deliberately about the full core.  An arbitrary
+Hall subfamily need not cover, which is the remaining interface at the ten-coordinate frontier. -/
+theorem InclusionMinimalUnsatisfiableCore.localizedOutsideTermFires_cover
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (assignment : (↥queried) → Bool) :
+    ∃ p : ↥core,
+      localizedOutsideCompetitorTermFires target queried p.1 assignment = true := by
+  by_contra hnone
+  push_neg at hnone
+  apply hminimal.1
+  refine ⟨extendQueriedAssignment queried assignment, ?_⟩
+  intro p hp
+  have hfalse : localizedOutsideCompetitorTermFires target queried p assignment = false := by
+    cases hfire : localizedOutsideCompetitorTermFires target queried p assignment with
+    | false => rfl
+    | true => exact False.elim (hnone ⟨p, hp⟩ hfire)
+  rw [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires] at hfalse
+  exact Classical.byContradiction (of_decide_eq_false hfalse)
+
+/-- Deletion witnesses in an inclusion-minimal unsatisfiable core are private points for the
+outside-term indicators: the deleted term fires, while every other retained term does not.
+Consequently those indicator functions are linearly independent over the rationals.
+
+This is the algebraic replacement for the proposed implication-graph count.  Once width `w`
+places all indicators in the span of squarefree monomials of degree at most `w`, linear
+independence bounds the core by the dimension of that span. -/
+theorem InclusionMinimalUnsatisfiableCore.outsideTermIndicators_linearIndependent
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core) :
+    LinearIndependent ℚ (fun p : ↑core => fun assignment : Fin n → Bool =>
+      if outsideCompetitorTermFires target p.1 assignment then (1 : ℚ) else 0) := by
+  rw [Fintype.linearIndependent_iff]
+  intro coeff hzero p
+  obtain ⟨assignment, hhit⟩ := hminimal.2 p.1 p.2
+  have hpPrivate : ¬ ∃ ell ∈ p.1.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        assignment (litVar ell) = falValue ell := by
+    intro hpHit
+    apply hminimal.1
+    refine ⟨assignment, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1
+    · simpa [hrp] using hpHit
+    · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  have hev := congrFun hzero assignment
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at hev
+  rw [Finset.sum_eq_single p] at hev
+  · simpa [outsideCompetitorTermFires, hpPrivate] using hev
+  · intro q _ hqp
+    have hqHit := hhit q.1 (Finset.mem_erase.mpr ⟨by
+      intro h
+      apply hqp
+      exact Subtype.ext h, q.2⟩)
+    simp [outsideCompetitorTermFires, hqHit]
+  · intro hp
+    exact absurd (Finset.mem_univ p) hp
+
+/-- After support localization, the same deletion witnesses remain private points.  Thus the
+indicator family is linearly independent already in the function space on assignments to
+`queried`; ambient coordinates contribute no dimension. -/
+theorem InclusionMinimalUnsatisfiableCore.localizedOutsideTermIndicators_linearIndependent
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried) :
+    LinearIndependent ℚ (fun p : ↑core => fun assignment : (↥queried) → Bool =>
+      if localizedOutsideCompetitorTermFires target queried p.1 assignment
+        then (1 : ℚ) else 0) := by
+  rw [Fintype.linearIndependent_iff]
+  intro coeff hzero p
+  obtain ⟨assignment, hhit⟩ := hminimal.2 p.1 p.2
+  have hpPrivate : ¬ ∃ ell ∈ p.1.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        assignment (litVar ell) = falValue ell := by
+    intro hpHit
+    apply hminimal.1
+    refine ⟨assignment, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1
+    · simpa [hrp] using hpHit
+    · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  have hpFires : localizedOutsideCompetitorTermFires target queried p.1
+      (restrictQueriedAssignment queried assignment) = true := by
+    rw [← outsideCompetitorTermFires_eq_localized_restrict
+      (hsupport p.1 p.2)]
+    simp [outsideCompetitorTermFires, hpPrivate]
+  have hev := congrFun hzero (restrictQueriedAssignment queried assignment)
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at hev
+  rw [Finset.sum_eq_single p] at hev
+  · simpa [hpFires] using hev
+  · intro q _ hqp
+    have hqHit := hhit q.1 (Finset.mem_erase.mpr ⟨by
+      intro h
+      apply hqp
+      exact Subtype.ext h, q.2⟩)
+    have hqFires : localizedOutsideCompetitorTermFires target queried q.1
+        (restrictQueriedAssignment queried assignment) = false := by
+      rw [← outsideCompetitorTermFires_eq_localized_restrict
+        (hsupport q.1 q.2)]
+      simp [outsideCompetitorTermFires, hqHit]
+    simp [hqFires]
+  · intro hp
+    exact absurd (Finset.mem_univ p) hp
+
+/-- Abstract dimension cap for a minimal outside-competitor core.  Any finite function family
+spanning all outside-term indicators has cardinality at least the core.  This separates the
+semantic private-witness argument above from the forthcoming width-sensitive choice of a
+squarefree monomial basis. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_of_outsideTermIndicators_mem_span
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (basis : Finset ((Fin n → Bool) → ℚ))
+    (hspan : ∀ p : ↑core,
+      (fun assignment : Fin n → Bool =>
+        if outsideCompetitorTermFires target p.1 assignment then (1 : ℚ) else 0) ∈
+          Submodule.span ℚ (↑basis : Set ((Fin n → Bool) → ℚ))) :
+    core.card ≤ basis.card := by
+  let W := Submodule.span ℚ (↑basis : Set ((Fin n → Bool) → ℚ))
+  let indicators : ↑core → W := fun p =>
+    ⟨(fun assignment : Fin n → Bool =>
+      if outsideCompetitorTermFires target p.1 assignment then (1 : ℚ) else 0), hspan p⟩
+  have hambient := hminimal.outsideTermIndicators_linearIndependent
+  have hind : LinearIndependent ℚ indicators := by
+    apply LinearIndependent.of_comp W.subtype
+    simpa [indicators, W] using hambient
+  calc
+    core.card = Fintype.card ↑core := by simp
+    _ ≤ Module.finrank ℚ W := hind.fintype_card_le_finrank
+    _ ≤ basis.card := by
+      simpa [W] using
+        (finrank_span_le_card (↑basis : Set ((Fin n → Bool) → ℚ)))
+
+/-- Localized dimension cap.  A basis of functions on assignments to the finite queried support
+is enough to bound the core, provided every available outside variable lies in that support. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_of_localizedOutsideTermIndicators_mem_span
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (basis : Finset (((↥queried) → Bool) → ℚ))
+    (hspan : ∀ p : ↑core,
+      (fun assignment : (↥queried) → Bool =>
+        if localizedOutsideCompetitorTermFires target queried p.1 assignment
+          then (1 : ℚ) else 0) ∈
+        Submodule.span ℚ (↑basis : Set (((↥queried) → Bool) → ℚ))) :
+    core.card ≤ basis.card := by
+  let W := Submodule.span ℚ (↑basis : Set (((↥queried) → Bool) → ℚ))
+  let indicators : ↑core → W := fun p =>
+    ⟨(fun assignment : (↥queried) → Bool =>
+      if localizedOutsideCompetitorTermFires target queried p.1 assignment
+        then (1 : ℚ) else 0), hspan p⟩
+  have hambient := hminimal.localizedOutsideTermIndicators_linearIndependent hsupport
+  have hind : LinearIndependent ℚ indicators := by
+    apply LinearIndependent.of_comp W.subtype
+    simpa [indicators, W] using hambient
+  calc
+    core.card = Fintype.card ↑core := by simp
+    _ ≤ Module.finrank ℚ W := hind.fintype_card_le_finrank
+    _ ≤ basis.card := by
+      simpa [W] using
+        (finrank_span_le_card (↑basis : Set (((↥queried) → Bool) → ℚ)))
+
+/-- A width-two inclusion-minimal outside-competitor core localized to `queried` has size at most
+the degree-two binomial budget. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_degreeTwo_binomialBudget
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2) :
+    core.card ≤ 1 + queried.card + Nat.choose queried.card 2 := by
+  have hspan : ∀ p : ↑core,
+      (fun assignment : (↥queried) → Bool =>
+        if localizedOutsideCompetitorTermFires target queried p.1 assignment
+          then (1 : ℚ) else 0) ∈
+        Submodule.span ℚ (↑(localizedDegreeTwoMonomialBasis queried) :
+          Set (((↥queried) → Bool) → ℚ)) := fun p =>
+    localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span
+      (hsupport p.1 p.2) (hwidth p.1 p.2)
+  exact (hminimal.card_le_of_localizedOutsideTermIndicators_mem_span
+    hsupport (localizedDegreeTwoMonomialBasis queried) hspan).trans
+      (localizedDegreeTwoMonomialBasis_card_le queried)
+
+/-- Private deletion witnesses remain private after restricting both the indexed family and its
+coordinate support.  This is the subfamily form needed by the capacitated Hall argument: members
+of the ambient minimal core outside `s` do not have to be supported on `local`. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_localizedOutsideTermIndicators_linearIndependent
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) {localVars : Finset (Fin n)}
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars) :
+    LinearIndependent ℚ (fun p : ↥s => fun assignment : (↥localVars) → Bool =>
+      if localizedOutsideCompetitorTermFires target localVars p.1.1 assignment
+        then (1 : ℚ) else 0) := by
+  rw [Fintype.linearIndependent_iff]
+  intro coeff hzero p
+  obtain ⟨assignment, hhit⟩ := hminimal.2 p.1.1 p.1.2
+  have hpPrivate : ¬ ∃ ell ∈ p.1.1.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        assignment (litVar ell) = falValue ell := by
+    intro hpHit
+    apply hminimal.1
+    refine ⟨assignment, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1.1
+    · simpa [hrp] using hpHit
+    · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  have hpFires : localizedOutsideCompetitorTermFires target localVars p.1.1
+      (restrictQueriedAssignment localVars assignment) = true := by
+    rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport p)]
+    simp [outsideCompetitorTermFires, hpPrivate]
+  have hev := congrFun hzero (restrictQueriedAssignment localVars assignment)
+  simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at hev
+  rw [Finset.sum_eq_single p] at hev
+  · simpa [hpFires] using hev
+  · intro q _ hqp
+    have hqpPair : q.1.1 ≠ p.1.1 := by
+      intro h
+      apply hqp
+      apply Subtype.ext
+      exact Subtype.ext h
+    have hqHit := hhit q.1.1 (Finset.mem_erase.mpr ⟨hqpPair, q.1.2⟩)
+    have hqFires : localizedOutsideCompetitorTermFires target localVars q.1.1
+        (restrictQueriedAssignment localVars assignment) = false := by
+      rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport q)]
+      simp [outsideCompetitorTermFires, hqHit]
+    simp [hqFires]
+  · intro hp
+    exact absurd (Finset.mem_univ p) hp
+
+/-- A full-dimensional family with coordinate private points must partition its underlying
+finite domain.  This is the equality case behind the degree-two dimension bound: once the
+private-point vectors fill the ambient subspace, the constant-one function has coefficient one
+on every vector, because evaluation at the private point isolates that coefficient. -/
+theorem sum_eq_one_of_privatePoints_of_finrank_le_card
+    {ι X : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι] [Fintype X]
+    (W : Submodule ℚ (X → ℚ)) (f : ι → W)
+    (hlin : LinearIndependent ℚ f)
+    (hfinrank : Module.finrank ℚ W ≤ Fintype.card ι)
+    (hone : (fun _ : X => (1 : ℚ)) ∈ W)
+    (hprivate : ∀ i, ∃ x,
+      (f i : X → ℚ) x = 1 ∧ ∀ j, j ≠ i → (f j : X → ℚ) x = 0) :
+    ∀ x, ∑ i, (f i : X → ℚ) x = 1 := by
+  classical
+  have hcard : Fintype.card ι = Module.finrank ℚ W :=
+    (hlin.fintype_card_le_finrank).antisymm hfinrank
+  let b : Module.Basis ι ℚ W :=
+    basisOfLinearIndependentOfCardEqFinrank hlin hcard
+  let oneW : W := ⟨fun _ => 1, hone⟩
+  have hb (i : ι) : b i = f i := by
+    change basisOfLinearIndependentOfCardEqFinrank hlin hcard i = f i
+    rw [coe_basisOfLinearIndependentOfCardEqFinrank]
+  have hcoeff (i : ι) : b.repr oneW i = 1 := by
+    obtain ⟨x, hix, hothers⟩ := hprivate i
+    have hrecon := b.sum_repr oneW
+    have heval := congrArg (fun z : W => (z : X → ℚ) x) hrecon
+    simp only [Submodule.coe_sum, SetLike.val_smul, Finset.sum_apply,
+      Pi.smul_apply, smul_eq_mul] at heval
+    rw [Finset.sum_eq_single i] at heval
+    · simpa [hb, hix, oneW] using heval
+    · intro j _ hji
+      simp [hb, hothers j hji]
+    · intro hi
+      exact absurd (Finset.mem_univ i) hi
+  intro x
+  have hrecon := b.sum_repr oneW
+  have heval := congrArg (fun z : W => (z : X → ℚ) x) hrecon
+  simp only [Submodule.coe_sum, SetLike.val_smul, Finset.sum_apply,
+    Pi.smul_apply, smul_eq_mul] at heval
+  simpa [hb, hcoeff, oneW] using heval
+
+/-- If a localized width-two Hall subfamily attains the entire degree-two binomial budget, its
+outside-term indicators partition the localized Boolean cube pointwise.  This equality-case
+statement is strictly stronger than the cardinality bound and exposes the remaining `q = 7`
+problem as a finite mass/packing contradiction rather than a search for a missing linear
+direction. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_indicators_partition_of_degreeTwo_full
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) (localVars : Finset (Fin n))
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars)
+    (hwidth : ∀ p : ↥s, p.1.1.2.lits.length ≤ 2)
+    (hfull : s.card = 1 + localVars.card + Nat.choose localVars.card 2) :
+    ∀ assignment : (↥localVars) → Bool,
+      ∑ p : ↥s, (if localizedOutsideCompetitorTermFires target localVars p.1.1 assignment
+        then (1 : ℚ) else 0) = 1 := by
+  classical
+  have hsne : Nonempty ↥s := by
+    apply Set.Nonempty.to_subtype
+    simpa only [Finset.coe_nonempty] using
+      (Finset.card_pos.mp (by rw [hfull]; omega) : s.Nonempty)
+  let W := Submodule.span ℚ
+    (↑(localizedDegreeTwoMonomialBasis localVars) :
+      Set (((↥localVars) → Bool) → ℚ))
+  let indicators : ↥s → W := fun p =>
+    ⟨(fun assignment : (↥localVars) → Bool =>
+      if localizedOutsideCompetitorTermFires target localVars p.1.1 assignment
+        then (1 : ℚ) else 0),
+      localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span
+        (hsupport p) (hwidth p)⟩
+  have hambient :=
+    hminimal.subfamily_localizedOutsideTermIndicators_linearIndependent s hsupport
+  have hind : LinearIndependent ℚ indicators := by
+    apply LinearIndependent.of_comp W.subtype
+    simpa [indicators, W] using hambient
+  have hfinrank : Module.finrank ℚ W ≤ Fintype.card ↥s := by
+    calc
+      Module.finrank ℚ W ≤ (localizedDegreeTwoMonomialBasis localVars).card := by
+        simpa [W] using
+          (finrank_span_le_card
+            (↑(localizedDegreeTwoMonomialBasis localVars) :
+              Set (((↥localVars) → Bool) → ℚ)))
+      _ ≤ 1 + localVars.card + Nat.choose localVars.card 2 :=
+        localizedDegreeTwoMonomialBasis_card_le localVars
+      _ = Fintype.card ↥s := by simp [hfull]
+  have hone : (fun _ : (↥localVars) → Bool => (1 : ℚ)) ∈ W := by
+    have hconst := localizedSquarefreeMonomial_mem_degreeTwo_span
+      (queried := localVars) (s := ∅) (by simp)
+    simpa [W, localizedSquarefreeMonomial] using hconst
+  letI : Nonempty ↥s := hsne
+  apply sum_eq_one_of_privatePoints_of_finrank_le_card W indicators hind hfinrank hone
+  intro p
+  obtain ⟨ambientAssignment, hhit⟩ := hminimal.2 p.1.1 p.1.2
+  let assignment := restrictQueriedAssignment localVars ambientAssignment
+  have hpPrivate : ¬ ∃ ell ∈ p.1.1.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        ambientAssignment (litVar ell) = falValue ell := by
+    intro hpHit
+    apply hminimal.1
+    refine ⟨ambientAssignment, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1.1
+    · simpa [hrp] using hpHit
+    · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  have hpFires : localizedOutsideCompetitorTermFires target localVars p.1.1 assignment = true := by
+    rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport p)]
+    simp [outsideCompetitorTermFires, hpPrivate, assignment]
+  refine ⟨assignment, by simp [indicators, hpFires], ?_⟩
+  intro q hqp
+  have hqpPair : q.1.1 ≠ p.1.1 := by
+    intro h
+    apply hqp
+    apply Subtype.ext
+    exact Subtype.ext h
+  have hqHit := hhit q.1.1 (Finset.mem_erase.mpr ⟨hqpPair, q.1.2⟩)
+  have hqFires : localizedOutsideCompetitorTermFires target localVars q.1.1 assignment = false := by
+    rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport q)]
+    simp [outsideCompetitorTermFires, hqHit, assignment]
+  simp [indicators, hqFires]
+
+/-- Overwriting two Boolean coordinates with the values of a fixed witness gives a retraction
+into any predicate preserved by that overwrite.  Recording the two erased bits makes the map
+injective, so a nonempty two-coordinate cylinder occupies at least one quarter of the cube. -/
+theorem boolAssignment_card_le_four_mul_firingFiber_of_twoCoordinateRetraction
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (P : (X → Bool) → Prop) [DecidablePred P] (i j : X) (witness : X → Bool)
+    (hretract : ∀ assignment : X → Bool,
+      P (fun x => if x = i ∨ x = j then witness x else assignment x)) :
+    Fintype.card (X → Bool) ≤ 4 * Fintype.card {assignment : X → Bool // P assignment} := by
+  let overwrite : (X → Bool) → (X → Bool) := fun assignment x =>
+    if x = i ∨ x = j then witness x else assignment x
+  let encode : (X → Bool) → ((Bool × Bool) × {assignment : X → Bool // P assignment}) :=
+    fun assignment => ((assignment i, assignment j),
+      ⟨overwrite assignment, hretract assignment⟩)
+  have hinjective : Function.Injective encode := by
+    intro a b hab
+    funext x
+    by_cases hxi : x = i
+    · subst x
+      exact congrArg (fun z => z.1.1) hab
+    by_cases hxj : x = j
+    · subst x
+      exact congrArg (fun z => z.1.2) hab
+    have hoverwrite := congrArg (fun z => (z.2.1 : X → Bool) x) hab
+    simpa [encode, overwrite, hxi, hxj] using hoverwrite
+  have hcard := Fintype.card_le_of_injective encode hinjective
+  simpa [Fintype.card_prod, Fintype.card_bool, Nat.mul_assoc] using hcard
+
+/-- A localized indicator of syntactic width at most two depends on at most two queried
+coordinates.  Protected literals contribute no coordinate; in those branches an arbitrary
+queried coordinate is used as harmless padding. -/
+theorem localizedOutsideCompetitorTermFires_dependsOn_twoCoordinates
+    {n G : ℕ} {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    [Nonempty ↥queried] {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : p.2.lits.length ≤ 2) :
+    ∃ i j : ↥queried, ∀ a b : (↥queried) → Bool,
+      (∀ x, x = i ∨ x = j → a x = b x) →
+      localizedOutsideCompetitorTermFires target queried p a =
+        localizedOutsideCompetitorTermFires target queried p b := by
+  letI : Inhabited ↥queried := Classical.inhabited_of_nonempty
+    (inferInstance : Nonempty ↥queried)
+  rcases p with ⟨g, T⟩
+  change T.lits.length ≤ 2 at hwidth
+  change competitorOutsideTargetVars target T ⊆ queried at hsupport
+  cases hlits : T.lits with
+  | nil =>
+      exact ⟨default, default, by
+        intro a b hab
+        simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires, hlits]⟩
+  | cons ell₁ tail =>
+      cases htail : tail with
+      | nil =>
+          by_cases hout₁ : litVar ell₁ ∉ compatibleIsolationTargetVars target
+          · have hvar₁ : litVar ell₁ ∈ queried := hsupport
+                (mem_competitorOutsideTargetVars target T (litVar ell₁) |>.2
+                  ⟨⟨ell₁, by simp [hlits, htail], rfl⟩, hout₁⟩)
+            let i : ↥queried := ⟨litVar ell₁, hvar₁⟩
+            exact ⟨i, i, by
+              intro a b hab
+              have heq := hab i (Or.inl rfl)
+              simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                extendQueriedAssignment, hlits, htail, hout₁, hvar₁, i, heq]⟩
+          · exact ⟨default, default, by
+              intro a b hab
+              simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                hlits, htail, hout₁]⟩
+      | cons ell₂ rest =>
+          cases hrest : rest with
+          | cons ell₃ more => exact False.elim (by
+              simp [hlits, htail, hrest] at hwidth
+              omega)
+          | nil =>
+              by_cases hout₁ : litVar ell₁ ∉ compatibleIsolationTargetVars target
+              · have hvar₁ : litVar ell₁ ∈ queried := hsupport
+                    (mem_competitorOutsideTargetVars target T (litVar ell₁) |>.2
+                      ⟨⟨ell₁, by simp [hlits, htail, hrest], rfl⟩, hout₁⟩)
+                by_cases hout₂ : litVar ell₂ ∉ compatibleIsolationTargetVars target
+                · have hvar₂ : litVar ell₂ ∈ queried := hsupport
+                      (mem_competitorOutsideTargetVars target T (litVar ell₂) |>.2
+                        ⟨⟨ell₂, by simp [hlits, htail, hrest], rfl⟩, hout₂⟩)
+                  let i : ↥queried := ⟨litVar ell₁, hvar₁⟩
+                  let j : ↥queried := ⟨litVar ell₂, hvar₂⟩
+                  exact ⟨i, j, by
+                    intro a b hab
+                    have heq₁ := hab i (Or.inl rfl)
+                    have heq₂ := hab j (Or.inr rfl)
+                    simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                      extendQueriedAssignment, hlits, htail, hrest, hout₁, hout₂,
+                      hvar₁, hvar₂, i, j, heq₁, heq₂]⟩
+                · let i : ↥queried := ⟨litVar ell₁, hvar₁⟩
+                  exact ⟨i, i, by
+                    intro a b hab
+                    have heq := hab i (Or.inl rfl)
+                    simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                      extendQueriedAssignment, hlits, htail, hrest, hout₁, hout₂,
+                      hvar₁, i, heq]⟩
+              · by_cases hout₂ : litVar ell₂ ∉ compatibleIsolationTargetVars target
+                · have hvar₂ : litVar ell₂ ∈ queried := hsupport
+                      (mem_competitorOutsideTargetVars target T (litVar ell₂) |>.2
+                        ⟨⟨ell₂, by simp [hlits, htail, hrest], rfl⟩, hout₂⟩)
+                  let j : ↥queried := ⟨litVar ell₂, hvar₂⟩
+                  exact ⟨j, j, by
+                    intro a b hab
+                    have heq := hab j (Or.inl rfl)
+                    simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                      extendQueriedAssignment, hlits, htail, hrest, hout₁, hout₂,
+                      hvar₂, j, heq]⟩
+                · exact ⟨default, default, by
+                    intro a b hab
+                    simp [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires,
+                      hlits, htail, hrest, hout₁, hout₂]⟩
+
+/-- Every nonzero localized width-two indicator occupies at least one quarter of its Boolean
+cube.  The witness hypothesis is essential: two opposite literals on one variable give the zero
+indicator, and are deliberately not normalized away here. -/
+theorem localizedOutsideCompetitorTermFires_cube_card_le_four_mul_fiber
+    {n G : ℕ} {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    [Nonempty ↥queried] {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : p.2.lits.length ≤ 2)
+    (witness : (↥queried) → Bool)
+    (hwitness : localizedOutsideCompetitorTermFires target queried p witness = true) :
+    Fintype.card ((↥queried) → Bool) ≤ 4 *
+      Fintype.card {assignment : (↥queried) → Bool //
+        localizedOutsideCompetitorTermFires target queried p assignment = true} := by
+  obtain ⟨i, j, hdepends⟩ :=
+    localizedOutsideCompetitorTermFires_dependsOn_twoCoordinates hsupport hwidth
+  apply boolAssignment_card_le_four_mul_firingFiber_of_twoCoordinateRetraction
+    (fun assignment =>
+      localizedOutsideCompetitorTermFires target queried p assignment = true)
+    i j witness
+  intro assignment
+  let overwritten : (↥queried) → Bool := fun x =>
+    if x = i ∨ x = j then witness x else assignment x
+  have hagree : ∀ x, x = i ∨ x = j → overwritten x = witness x := by
+    intro x hx
+    simp [overwritten, hx]
+  have heq := hdepends overwritten witness hagree
+  simpa [overwritten, hwitness] using heq
+
+/-- A pointwise partition of a finite set into nonempty pieces, each occupying at least one
+quarter of the set, has at most four parts.  The statement uses only cardinal lower bounds, so it
+also applies when the pieces are presented as Boolean indicator functions. -/
+theorem card_le_four_of_partition_and_quarter_fibers
+    {ι X : Type*} [Fintype ι] [Fintype X] [Nonempty X]
+    (P : ι → X → Prop) [∀ i, DecidablePred (P i)]
+    (hpartition : ∀ x, ∑ i, (if P i x then (1 : ℚ) else 0) = 1)
+    (hquarter : ∀ i,
+      Fintype.card X ≤ 4 * Fintype.card {x : X // P i x}) :
+    Fintype.card ι ≤ 4 := by
+  classical
+  have hpartitionNat (x : X) : ∑ i, (if P i x then 1 else 0) = 1 := by
+    exact_mod_cast hpartition x
+  have hfiber (i : ι) :
+      Fintype.card {x : X // P i x} = ∑ x, if P i x then 1 else 0 := by
+    calc
+      Fintype.card {x : X // P i x} = (Finset.univ.filter (P i)).card := by
+        rw [← Finset.card_subtype (P i) Finset.univ]
+        simp
+      _ = ∑ x, if P i x then 1 else 0 := Finset.card_filter _ _
+  have htotal : ∑ i, Fintype.card {x : X // P i x} = Fintype.card X := by
+    simp_rw [hfiber]
+    rw [Finset.sum_comm]
+    simp [hpartitionNat]
+  have hsum := Finset.sum_le_sum fun i (_ : i ∈ (Finset.univ : Finset ι)) => hquarter i
+  simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul] at hsum
+  rw [← Finset.mul_sum, htotal] at hsum
+  exact Nat.le_of_mul_le_mul_right (by simpa [Nat.mul_comm, Nat.mul_left_comm,
+    Nat.mul_assoc] using hsum) (Fintype.card_pos_iff.mpr inferInstance)
+
+/-- The localized degree-two dimension bound applies to every subfamily of an ambient minimal
+core, using only the support and width hypotheses of the selected members. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_degreeTwo_binomialBudget
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) (localVars : Finset (Fin n))
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars)
+    (hwidth : ∀ p : ↥s, p.1.1.2.lits.length ≤ 2) :
+    s.card ≤ 1 + localVars.card + Nat.choose localVars.card 2 := by
+  let W := Submodule.span ℚ
+    (↑(localizedDegreeTwoMonomialBasis localVars) :
+      Set (((↥localVars) → Bool) → ℚ))
+  let indicators : ↥s → W := fun p =>
+    ⟨(fun assignment : (↥localVars) → Bool =>
+      if localizedOutsideCompetitorTermFires target localVars p.1.1 assignment
+        then (1 : ℚ) else 0),
+      localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span
+        (hsupport p) (hwidth p)⟩
+  have hambient :=
+    hminimal.subfamily_localizedOutsideTermIndicators_linearIndependent s hsupport
+  have hind : LinearIndependent ℚ indicators := by
+    apply LinearIndependent.of_comp W.subtype
+    simpa [indicators, W] using hambient
+  calc
+    s.card = Fintype.card ↥s := by simp
+    _ ≤ Module.finrank ℚ W := hind.fintype_card_le_finrank
+    _ ≤ (localizedDegreeTwoMonomialBasis localVars).card := by
+      simpa [W] using
+        (finrank_span_le_card
+          (↑(localizedDegreeTwoMonomialBasis localVars) :
+            Set (((↥localVars) → Bool) → ℚ)))
+    _ ≤ 1 + localVars.card + Nat.choose localVars.card 2 :=
+      localizedDegreeTwoMonomialBasis_card_le localVars
+
+/-- Except in the tiny dimension-budget cases, the degree-two bound is strict.  Equality would
+make the indicators a pointwise partition, while deletion witnesses make every selected
+indicator nonzero and width two gives every firing fiber at least one quarter of the cube.  Such
+a partition has at most four members. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_lt_degreeTwo_binomialBudget
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) (localVars : Finset (Fin n))
+    (hlocal : localVars.Nonempty)
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars)
+    (hwidth : ∀ p : ↥s, p.1.1.2.lits.length ≤ 2)
+    (hbudget : 4 < 1 + localVars.card + Nat.choose localVars.card 2) :
+    s.card < 1 + localVars.card + Nat.choose localVars.card 2 := by
+  classical
+  have hle := hminimal.subfamily_card_le_degreeTwo_binomialBudget
+    s localVars hsupport hwidth
+  apply lt_of_le_of_ne hle
+  intro heq
+  have hfull : s.card = 1 + localVars.card + Nat.choose localVars.card 2 := heq
+  letI : Nonempty ↥localVars := Set.Nonempty.to_subtype (by
+    simpa only [Finset.coe_nonempty] using hlocal)
+  let P : ↥s → ((↥localVars) → Bool) → Prop := fun p assignment =>
+    localizedOutsideCompetitorTermFires target localVars p.1.1 assignment = true
+  have hpartition : ∀ assignment : (↥localVars) → Bool,
+      ∑ p : ↥s, (if P p assignment then (1 : ℚ) else 0) = 1 := by
+    simpa [P] using
+      hminimal.subfamily_indicators_partition_of_degreeTwo_full
+        s localVars hsupport hwidth hfull
+  have hquarter (p : ↥s) :
+      Fintype.card ((↥localVars) → Bool) ≤
+        4 * Fintype.card {assignment : (↥localVars) → Bool // P p assignment} := by
+    obtain ⟨ambientAssignment, hhit⟩ := hminimal.2 p.1.1 p.1.2
+    let witness := restrictQueriedAssignment localVars ambientAssignment
+    have hpPrivate : ¬ ∃ ell ∈ p.1.1.2.lits,
+        litVar ell ∉ compatibleIsolationTargetVars target ∧
+          ambientAssignment (litVar ell) = falValue ell := by
+      intro hpHit
+      apply hminimal.1
+      refine ⟨ambientAssignment, ?_⟩
+      intro r hr
+      by_cases hrp : r = p.1.1
+      · simpa [hrp] using hpHit
+      · exact hhit r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+    have hwitness :
+        localizedOutsideCompetitorTermFires target localVars p.1.1 witness = true := by
+      rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport p)]
+      simp [outsideCompetitorTermFires, hpPrivate, witness]
+    simpa [P] using
+      localizedOutsideCompetitorTermFires_cube_card_le_four_mul_fiber
+        (hsupport p) (hwidth p) witness hwitness
+  have hfour : Fintype.card ↥s ≤ 4 :=
+    card_le_four_of_partition_and_quarter_fibers P hpartition hquarter
+  have : s.card ≤ 4 := by simpa using hfour
+  omega
+
+/-- Specialization to the exact incident union of a Hall subfamily.  Ambient core members outside
+`s` may use unrelated queried coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.subfamily_card_le_degreeTwo_incidentUnion
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core) :
+    s.card ≤ 1 + (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card +
+        Nat.choose (s.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card 2 := by
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  apply hminimal.subfamily_card_le_degreeTwo_binomialBudget s localVars
+  · intro p v hv
+    have hvQueried : v ∈ queried := hsupport p.1.1 p.1.2 hv
+    have hvIncident : v ∈ incidentQueriedVars target queried p.1.1 :=
+      Finset.mem_inter.mpr ⟨hv, hvQueried⟩
+    exact Finset.mem_biUnion.mpr ⟨p.1, p.2, hvIncident⟩
+  · intro p
+    exact hwidth p.1.1 p.1.2
+
+/-- A width-two Hall subfamily on exactly five incident coordinates cannot exceed load four. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_five
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hfive : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 5) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  intro hfail
+  have hbound :=
+    hminimal.subfamily_card_le_degreeTwo_incidentUnion hsupport hwidth s
+  norm_num [hfive, Nat.choose] at hbound hfail
+  omega
+
+/-- The same quadratic dimension budget closes the next Hall case, six incident coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_six
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hsix : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 6) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  intro hfail
+  have hbound :=
+    hminimal.subfamily_card_le_degreeTwo_incidentUnion hsupport hwidth s
+  norm_num [hsix, Nat.choose] at hbound hfail
+  omega
+
+/-- The partition-mass obstruction removes the one-dimensional slack at seven incident
+coordinates: a width-two Hall subfamily has at most twenty-eight members, not merely the
+degree-two dimension bound of twenty-nine. -/
+theorem InclusionMinimalUnsatisfiableCore.widthTwo_subfamily_card_le_twentyEight_of_seven
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hseven : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 7) :
+    s.card ≤ 28 := by
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hlocal : localVars.Nonempty := Finset.card_pos.mp (by simp [localVars, hseven])
+  have hsupportLocal : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars := by
+    intro p v hv
+    have hvQueried : v ∈ queried := hsupport p.1.1 p.1.2 hv
+    have hvIncident : v ∈ incidentQueriedVars target queried p.1.1 :=
+      Finset.mem_inter.mpr ⟨hv, hvQueried⟩
+    exact Finset.mem_biUnion.mpr ⟨p.1, p.2, hvIncident⟩
+  have hstrict := hminimal.subfamily_card_lt_degreeTwo_binomialBudget
+    s localVars hlocal hsupportLocal (fun p => hwidth p.1.1 p.1.2) (by
+      norm_num [localVars, hseven, Nat.choose])
+  norm_num [localVars, hseven, Nat.choose] at hstrict
+  omega
+
+/-- Consequently load four satisfies Hall's local-density inequality also at seven incident
+coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_seven
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hseven : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 7) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  intro hfail
+  have hbound := hminimal.widthTwo_subfamily_card_le_twentyEight_of_seven
+    hsupport hwidth s hseven
+  norm_num [hseven] at hfail
+  omega
+
+/-! ### The first `q = 8` packing test -/
+
+/-! ### Homogenizing codimension-at-most-two subcubes
+
+The localized width-two indicators above are subcubes with at most two fixed coordinates.
+Meshulam's theorem is stated for subcubes of one fixed dimension.  The following abstract lemma
+kernel-checks the reduction needed here: use each member's private point to fix arbitrary extra
+coordinates until its codimension is exactly two.  The shrunken members remain irredundant. -/
+
+/-- A Boolean subcube is represented by the partial assignment defining its fixed coordinates. -/
+abbrev BooleanSubcube (α : Type*) := α → Option Bool
+
+namespace BooleanSubcube
+
+/-- The coordinates fixed by a partial-assignment presentation of a subcube. -/
+def fixedVars {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) : Finset α :=
+  Finset.univ.filter fun i => (c i).isSome
+
+/-- Membership of a Boolean point in the presented subcube. -/
+def Contains {α : Type*} (c : BooleanSubcube α) (a : α → Bool) : Prop :=
+  ∀ i b, c i = some b → a i = b
+
+/-- The set presentation of a Boolean point, relative to the all-false vertex. -/
+def trueSupport {α : Type*} [Fintype α] [DecidableEq α]
+    (a : α → Bool) : Finset α :=
+  Finset.univ.filter fun i => a i = true
+
+/-- The lower endpoint of a Boolean subcube in the subset-lattice presentation. -/
+def fixedTrueVars {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) : Finset α :=
+  Finset.univ.filter fun i => c i = some true
+
+/-- The coordinates excluded from the upper endpoint of a Boolean subcube. -/
+def fixedFalseVars {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) : Finset α :=
+  Finset.univ.filter fun i => c i = some false
+
+/-- The upper endpoint of a Boolean subcube in the subset-lattice presentation. -/
+def endVars {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) : Finset α :=
+  Finset.univ \ fixedFalseVars c
+
+/-- A partial assignment contains a Boolean point exactly when the point's true support lies
+between the partial assignment's lower and upper endpoints. -/
+theorem contains_iff_trueSupport_interval
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (a : α → Bool) :
+    Contains c a ↔
+      fixedTrueVars c ⊆ trueSupport a ∧ trueSupport a ⊆ endVars c := by
+  constructor
+  · intro ha
+    constructor
+    · intro i hi
+      have hci : c i = some true := by
+        simpa [fixedTrueVars] using hi
+      have hai : a i = true := ha i true hci
+      simp [trueSupport, hai]
+    · intro i hi
+      have hai : a i = true := by
+        simpa [trueSupport] using hi
+      simp only [endVars, Finset.mem_sdiff, Finset.mem_univ, true_and]
+      intro hiFalse
+      have hci : c i = some false := by
+        simpa [fixedFalseVars] using hiFalse
+      have := ha i false hci
+      simp [hai] at this
+  · rintro ⟨hlower, hupper⟩ i b hib
+    cases b with
+    | false =>
+        by_contra hai
+        have haiTrue : a i = true := by
+          cases h : a i <;> simp_all
+        have hiSupport : i ∈ trueSupport a := by
+          simp [trueSupport, haiTrue]
+        have hiEnd := hupper hiSupport
+        have hiFalse : i ∈ fixedFalseVars c := by
+          simp [fixedFalseVars, hib]
+        exact (Finset.mem_sdiff.mp hiEnd).2 hiFalse
+    | true =>
+        have hiLower : i ∈ fixedTrueVars c := by
+          simp [fixedTrueVars, hib]
+        have hiSupport := hlower hiLower
+        simpa [trueSupport] using hiSupport
+
+/-- The exact cross-disjointness input used in the Hamming-ball proof of Meshulam's bound.
+For each member, let `w i` be its private point and suppose one common set `x` lies above every
+private point and below every member's upper endpoint.  Then the lower endpoint of member `i`
+is contained in the support of private point `j` exactly on the diagonal.  Equivalently, the
+set pairs `fixedTrueVars (c i)` and `x \ trueSupport (w i)` satisfy Bollobas' hypothesis.
+
+This is the non-counting heart of Ellis's local proof: the common set `x` is later allowed to
+range over all `k`-sets lying in the private-point-to-end subcube. -/
+theorem fixedTrueVars_subset_privateSupport_iff
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (x : Finset α)
+    (hself : ∀ i, Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c i) (w j))
+    (hwx : ∀ i, trueSupport (w i) ⊆ x)
+    (hxend : ∀ i, x ⊆ endVars (c i)) :
+    ∀ i j, fixedTrueVars (c i) ⊆ trueSupport (w j) ↔ i = j := by
+  intro i j
+  constructor
+  · intro hlower
+    by_contra hij
+    apply hprivate i j hij
+    exact (contains_iff_trueSupport_interval (c i) (w j)).2
+      ⟨hlower, (hwx j).trans (hxend i)⟩
+  · rintro rfl
+    exact ((contains_iff_trueSupport_interval (c i) (w i)).1 (hself i)).1
+
+/-- Set-difference form of the same diagonal condition, ready for the weighted Bollobas
+set-pairs inequality. -/
+theorem fixedTrueVars_disjoint_privateComplement_iff
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (x : Finset α)
+    (hself : ∀ i, Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c i) (w j))
+    (hwx : ∀ i, trueSupport (w i) ⊆ x)
+    (hxend : ∀ i, x ⊆ endVars (c i)) :
+    ∀ i j, Disjoint (fixedTrueVars (c i)) (x \ trueSupport (w j)) ↔ i = j := by
+  intro i j
+  have hiLower : fixedTrueVars (c i) ⊆ trueSupport (w i) :=
+    ((contains_iff_trueSupport_interval (c i) (w i)).1 (hself i)).1
+  have hiX : fixedTrueVars (c i) ⊆ x := hiLower.trans (hwx i)
+  have hdisjoint :
+      Disjoint (fixedTrueVars (c i)) (x \ trueSupport (w j)) ↔
+        fixedTrueVars (c i) ⊆ trueSupport (w j) := by
+    constructor
+    · intro hd a ha
+      by_contra haw
+      exact (Finset.disjoint_left.mp hd ha)
+        (Finset.mem_sdiff.mpr ⟨hiX ha, haw⟩)
+    · intro hsub
+      apply Finset.disjoint_left.mpr
+      intro a ha hax
+      exact (Finset.mem_sdiff.mp hax).2 (hsub ha)
+  rw [hdisjoint]
+  exact fixedTrueVars_subset_privateSupport_iff c w x hself hprivate hwx hxend i j
+
+/-- The second set in the Bollobas pair has the expected size.  In the local argument `x` is a
+`k`-set and the private support lies below it, so this reads `k - |w|`. -/
+theorem card_sdiff_trueSupport_of_subset
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (a : α → Bool) (x : Finset α) (hax : trueSupport a ⊆ x) :
+    (x \ trueSupport a).card = x.card - (trueSupport a).card := by
+  rw [Finset.card_sdiff, Finset.inter_eq_left.mpr hax]
+
+/-! ### Pairwise exclusivity of the Bollobas order events -/
+
+/-- Every element of `A` occurs before every element of `B` in the relation `r`.  For the
+permutation proof of Bollobas' inequality, `r` is the strict order induced by one permutation. -/
+def AllBefore {α : Type*} (r : α → α → Prop) (A B : Finset α) : Prop :=
+  ∀ a ∈ A, ∀ b ∈ B, r a b
+
+/-- The order events in Bollobas' permutation proof are pairwise exclusive.  This is the
+structural half of the weighted inequality: if diagonal pairs are disjoint and every cross-pair
+intersects, two distinct pairs cannot both have all of their first set before all of their second
+set in one asymmetric order. -/
+theorem allBefore_events_pairwiseExclusive
+    {α ι : Type*} [DecidableEq α]
+    (A B : ι → Finset α)
+    (hcross : ∀ i j, Disjoint (A i) (B j) ↔ i = j)
+    (r : α → α → Prop) [Std.Asymm r] :
+    ∀ i j, i ≠ j →
+      ¬ (AllBefore r (A i) (B i) ∧ AllBefore r (A j) (B j)) := by
+  intro i j hij hboth
+  have hijCross : ¬ Disjoint (A i) (B j) := by
+    intro hd
+    exact hij ((hcross i j).1 hd)
+  have hjiCross : ¬ Disjoint (A j) (B i) := by
+    intro hd
+    exact hij (((hcross j i).1 hd).symm)
+  obtain ⟨a, haA, haB⟩ := Finset.not_disjoint_iff.mp hijCross
+  obtain ⟨b, hbA, hbB⟩ := Finset.not_disjoint_iff.mp hjiCross
+  exact (asymm (hboth.1 a haA b hbB)) (hboth.2 b hbA a haB)
+
+/-- The concrete set pairs extracted from private subcube witnesses therefore give pairwise
+exclusive order events.  The remaining counting step is to enumerate, for each pair, the
+permutations realizing its event. -/
+theorem fixedTrueVars_allBefore_events_pairwiseExclusive
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (x : Finset α)
+    (hself : ∀ i, Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c i) (w j))
+    (hwx : ∀ i, trueSupport (w i) ⊆ x)
+    (hxend : ∀ i, x ⊆ endVars (c i))
+    (r : α → α → Prop) [Std.Asymm r] :
+    ∀ i j, i ≠ j →
+      ¬ (AllBefore r (fixedTrueVars (c i)) (x \ trueSupport (w i)) ∧
+        AllBefore r (fixedTrueVars (c j)) (x \ trueSupport (w j))) := by
+  apply allBefore_events_pairwiseExclusive
+  exact fixedTrueVars_disjoint_privateComplement_iff c w x hself hprivate hwx hxend
+
+/-! ### Exact enumeration of the favorable two-block pattern
+
+An order on a disjoint union of an `a`-set and a `b`-set induces an `a`-subset of its
+`a + b` ranks: the positions occupied by the first set.  The `AllBefore` event is exactly the
+unique pattern consisting of the first `a` ranks.  The lemmas below isolate and count that
+binomial pattern space.  The remaining permutation step is therefore only the equal-fiber
+transport from ambient orders to their induced rank patterns. -/
+
+/-- The first `a` positions in a linearly ordered block of length `a + b`. -/
+def firstPositions (a b : ℕ) : Finset (Fin (a + b)) :=
+  (Finset.univ : Finset (Fin a)).map (Fin.castLEEmb (Nat.le_add_right a b))
+
+@[simp] theorem card_firstPositions (a b : ℕ) :
+    (firstPositions a b).card = a := by
+  simp [firstPositions]
+
+theorem mem_firstPositions_iff {a b : ℕ} {i : Fin (a + b)} :
+    i ∈ firstPositions a b ↔ i.val < a := by
+  constructor
+  · intro hi
+    rw [firstPositions, Finset.mem_map] at hi
+    obtain ⟨j, _, rfl⟩ := hi
+    exact j.isLt
+  · intro hi
+    rw [firstPositions, Finset.mem_map]
+    exact ⟨⟨i.val, hi⟩, Finset.mem_univ _, Fin.ext rfl⟩
+
+/-- Every selected position occurs before every unselected position. -/
+def AllSelectedBefore (S : Finset (Fin n)) : Prop :=
+  ∀ i ∈ S, ∀ j ∉ S, i < j
+
+/-- An `a`-position pattern with all selected positions first is forced to be the initial block. -/
+theorem allSelectedBefore_eq_firstPositions {a b : ℕ} {S : Finset (Fin (a + b))}
+    (hcard : S.card = a) (hbefore : AllSelectedBefore S) :
+    S = firstPositions a b := by
+  apply Finset.eq_of_subset_of_card_le
+  · intro i hiS
+    rw [mem_firstPositions_iff]
+    by_contra hia
+    have hnotSubset : ¬ firstPositions a b ⊆ S := by
+      intro hsub
+      have heq : firstPositions a b = S := Finset.eq_of_subset_of_card_le hsub (by
+        rw [hcard, card_firstPositions])
+      have : i ∈ firstPositions a b := heq.symm ▸ hiS
+      exact hia (mem_firstPositions_iff.mp this)
+    simp only [Finset.not_subset] at hnotSubset
+    obtain ⟨j, hjFirst, hjS⟩ := hnotSubset
+    have hij : i < j := hbefore i hiS j hjS
+    have hjval : j.val < a := mem_firstPositions_iff.mp hjFirst
+    omega
+  · rw [hcard, card_firstPositions]
+
+/-- The favorable patterns inside the full binomial shuffle-pattern space. -/
+noncomputable def allFirstPatterns (a b : ℕ) : Finset (Finset (Fin (a + b))) := by
+  classical
+  exact ((Finset.univ : Finset (Fin (a + b))).powersetCard a).filter AllSelectedBefore
+
+theorem allFirstPatterns_eq_singleton (a b : ℕ) :
+    allFirstPatterns a b = {firstPositions a b} := by
+  classical
+  ext S
+  simp only [allFirstPatterns, Finset.mem_filter, Finset.mem_powersetCard,
+    Finset.subset_univ, true_and, Finset.mem_singleton]
+  constructor
+  · rintro ⟨hcard, hbefore⟩
+    exact allSelectedBefore_eq_firstPositions hcard hbefore
+  · rintro rfl
+    constructor
+    · exact card_firstPositions a b
+    · intro i hi j hj
+      rw [mem_firstPositions_iff] at hi
+      have hj' : ¬ j.val < a := by
+        intro h
+        exact hj (mem_firstPositions_iff.mpr h)
+      exact Fin.mk_lt_mk.mpr (by omega)
+
+/-- Exactly one shuffle pattern puts the entire first block before the second. -/
+theorem card_allFirstPatterns (a b : ℕ) :
+    (allFirstPatterns a b).card = 1 := by
+  rw [allFirstPatterns_eq_singleton]
+  simp
+
+/-- The full shuffle-pattern space has the expected binomial cardinality. -/
+theorem card_shufflePatterns (a b : ℕ) :
+    ((Finset.univ : Finset (Fin (a + b))).powersetCard a).card =
+      Nat.choose (a + b) a := by
+  simp
+
+/-- Consequently the favorable fraction in the induced pattern space is the reciprocal
+binomial weight required by Bollobas' inequality. -/
+theorem allFirstPatterns_fraction (a b : ℕ) :
+    ((allFirstPatterns a b).card : ℚ) /
+        (((Finset.univ : Finset (Fin (a + b))).powersetCard a).card : ℚ) =
+      1 / (Nat.choose (a + b) a : ℚ) := by
+  rw [card_allFirstPatterns, card_shufflePatterns]
+  norm_num
+
+/-! ### Transport from a finite order to its shuffle pattern -/
+
+/-- The copy of `A` inside the subtype on `A ∪ B`.  Working on the union subtype makes the
+relative order independent of all ambient elements outside the two Bollobas blocks. -/
+def leftBlock {α : Type*} [DecidableEq α] (A B : Finset α) :
+    Finset (↥(A ∪ B)) :=
+  Finset.univ.filter fun x => x.1 ∈ A
+
+/-- The analogous copy of `B` inside the subtype on `A ∪ B`. -/
+def rightBlock {α : Type*} [DecidableEq α] (A B : Finset α) :
+    Finset (↥(A ∪ B)) :=
+  Finset.univ.filter fun x => x.1 ∈ B
+
+@[simp] theorem mem_leftBlock {α : Type*} [DecidableEq α]
+    {A B : Finset α} {x : ↥(A ∪ B)} :
+    x ∈ leftBlock A B ↔ x.1 ∈ A := by
+  simp [leftBlock]
+
+@[simp] theorem mem_rightBlock {α : Type*} [DecidableEq α]
+    {A B : Finset α} {x : ↥(A ∪ B)} :
+    x ∈ rightBlock A B ↔ x.1 ∈ B := by
+  simp [rightBlock]
+
+@[simp] theorem card_leftBlock {α : Type*} [DecidableEq α]
+    (A B : Finset α) :
+    (leftBlock A B).card = A.card := by
+  classical
+  let incEmb : ↥A ↪ ↥(A ∪ B) :=
+    ⟨fun x => ⟨x.1, Finset.mem_union_left B x.2⟩, fun x y h => by
+      apply Subtype.ext
+      exact congrArg (fun z : ↥(A ∪ B) => z.1) h⟩
+  have himage : (Finset.univ : Finset ↥A).map incEmb = leftBlock A B := by
+    ext x
+    constructor
+    · intro hx
+      rw [Finset.mem_map] at hx
+      obtain ⟨y, _, hy⟩ := hx
+      rw [← hy]
+      exact mem_leftBlock.mpr y.2
+    · intro hx
+      rw [Finset.mem_map]
+      refine ⟨⟨x.1, mem_leftBlock.mp hx⟩, Finset.mem_univ _, ?_⟩
+      exact Subtype.ext rfl
+  rw [← himage]
+  simp
+
+/-- The positions occupied by `A` after an arbitrary ranking of `A ∪ B`.  An equivalence with
+`Fin (a+b)` is exactly a finite order once the target is given its standard order. -/
+def inducedRankPattern {α : Type*} [DecidableEq α]
+    (A B : Finset α) (a b : ℕ) (e : ↥(A ∪ B) ≃ Fin (a + b)) :
+    Finset (Fin (a + b)) :=
+  (leftBlock A B).map e.toEmbedding
+
+@[simp] theorem card_inducedRankPattern {α : Type*} [DecidableEq α]
+    (A B : Finset α) (a b : ℕ) (e : ↥(A ∪ B) ≃ Fin (a + b)) :
+    (inducedRankPattern A B a b e).card = A.card := by
+  simp [inducedRankPattern]
+
+/-- For disjoint blocks, the order event is exactly the event that every selected position of
+the induced shuffle pattern precedes every unselected position. -/
+theorem allBefore_iff_allSelectedBefore_inducedRankPattern
+    {α : Type*} [DecidableEq α] (A B : Finset α) (a b : ℕ)
+    (hdisjoint : Disjoint A B) (e : ↥(A ∪ B) ≃ Fin (a + b)) :
+    AllBefore (fun x y => e x < e y) (leftBlock A B) (rightBlock A B) ↔
+      AllSelectedBefore (inducedRankPattern A B a b e) := by
+  classical
+  constructor
+  · intro hbefore i hi j hj
+    rw [inducedRankPattern, Finset.mem_map] at hi
+    obtain ⟨x, hxA, rfl⟩ := hi
+    have hyNotA : (e.symm j).1 ∉ A := by
+      intro hyA
+      apply hj
+      rw [inducedRankPattern, Finset.mem_map]
+      exact ⟨e.symm j, mem_leftBlock.mpr hyA, e.apply_symm_apply j⟩
+    have hyB : (e.symm j).1 ∈ B := by
+      have hyUnion : (e.symm j).1 ∈ A ∪ B := (e.symm j).2
+      exact (Finset.mem_union.mp hyUnion).resolve_left hyNotA
+    simpa using hbefore x hxA (e.symm j) (mem_rightBlock.mpr hyB)
+  · intro hpattern x hxA y hyB
+    apply hpattern (e x)
+    · rw [inducedRankPattern, Finset.mem_map]
+      exact ⟨x, hxA, rfl⟩
+    · intro hyPattern
+      rw [inducedRankPattern, Finset.mem_map] at hyPattern
+      obtain ⟨z, hzA, hz⟩ := hyPattern
+      have hzy : z = y := e.injective hz
+      subst z
+      exact (Finset.disjoint_left.mp hdisjoint)
+        (mem_leftBlock.mp hzA) (mem_rightBlock.mp hyB)
+
+/-- Hence, when the block sizes are `a` and `b`, `AllBefore` is precisely the preimage of the
+unique favorable shuffle pattern. -/
+theorem allBefore_iff_inducedRankPattern_eq_firstPositions
+    {α : Type*} [DecidableEq α] (A B : Finset α) (a b : ℕ)
+    (hdisjoint : Disjoint A B) (hA : A.card = a)
+    (e : ↥(A ∪ B) ≃ Fin (a + b)) :
+    AllBefore (fun x y => e x < e y) (leftBlock A B) (rightBlock A B) ↔
+      inducedRankPattern A B a b e = firstPositions a b := by
+  rw [allBefore_iff_allSelectedBefore_inducedRankPattern A B a b hdisjoint e]
+  constructor
+  · exact allSelectedBefore_eq_firstPositions (by simpa using hA)
+  · rintro hpattern
+    rw [hpattern]
+    intro i hi j hj
+    rw [mem_firstPositions_iff] at hi
+    have hj' : ¬ j.val < a := by
+      intro h
+      exact hj (mem_firstPositions_iff.mpr h)
+    exact Fin.mk_lt_mk.mpr (by omega)
+
+/-! ### Direct enumeration by prefix numberings -/
+
+/-- A prefix numbering of `A` inside the disjoint union `A ∪ B` realizes the required
+`AllBefore` event.  This direction is enough to connect Mathlib's exact prefix decomposition to
+the order-event language used above. -/
+theorem numbering_isPrefix_leftBlock_allBefore
+    {α : Type*} [DecidableEq α] (A B : Finset α)
+    (hdisjoint : Disjoint A B)
+    (e : Numbering ↥(A ∪ B))
+    (hpref : Numbering.IsPrefix e (leftBlock A B)) :
+    AllBefore (fun x y => e x < e y) (leftBlock A B) (rightBlock A B) := by
+  intro x hx y hy
+  have hyNotLeft : y ∉ leftBlock A B := by
+    intro hyLeft
+    exact (Finset.disjoint_left.mp hdisjoint)
+      (mem_leftBlock.mp hyLeft) (mem_rightBlock.mp hy)
+  exact (hpref x).mp hx |>.trans_le (not_lt.mp (fun h => hyNotLeft ((hpref y).mpr h)))
+
+/-- On the relative union, the prefix condition is not merely sufficient: it is exactly the
+`AllBefore` event.  The converse transports the numbering to `Fin (|A| + |B|)` and uses the
+already-identified unique favorable rank pattern. -/
+theorem numbering_isPrefix_leftBlock_iff_allBefore
+    {α : Type*} [DecidableEq α] (A B : Finset α)
+    (hdisjoint : Disjoint A B)
+    (e : Numbering ↥(A ∪ B)) :
+    Numbering.IsPrefix e (leftBlock A B) ↔
+      AllBefore (fun x y => e x < e y) (leftBlock A B) (rightBlock A B) := by
+  constructor
+  · exact numbering_isPrefix_leftBlock_allBefore A B hdisjoint e
+  · intro hbefore
+    have hunion : (A ∪ B).card = A.card + B.card :=
+      Finset.card_union_of_disjoint hdisjoint
+    have hunion' : Fintype.card ↥(A ∪ B) = A.card + B.card := by
+      simpa using hunion
+    let e' : ↥(A ∪ B) ≃ Fin (A.card + B.card) :=
+      e.trans (Fin.castOrderIso hunion').toEquiv
+    have hbefore' :
+        AllBefore (fun x y => e' x < e' y) (leftBlock A B) (rightBlock A B) := by
+      simpa [e'] using hbefore
+    have hpattern :=
+      (allBefore_iff_inducedRankPattern_eq_firstPositions
+        A B A.card B.card hdisjoint rfl e').mp hbefore'
+    intro x
+    constructor
+    · intro hx
+      have hxPattern : e' x ∈ inducedRankPattern A B A.card B.card e' := by
+        rw [inducedRankPattern, Finset.mem_map]
+        exact ⟨x, hx, rfl⟩
+      rw [hpattern, mem_firstPositions_iff] at hxPattern
+      simpa [e'] using hxPattern
+    · intro hxRank
+      have hxPattern : e' x ∈ firstPositions A.card B.card := by
+        rw [mem_firstPositions_iff]
+        simpa [e'] using hxRank
+      rw [← hpattern, inducedRankPattern, Finset.mem_map] at hxPattern
+      obtain ⟨y, hy, hyeq⟩ := hxPattern
+      have : y = x := e'.injective hyeq
+      simpa [this] using hy
+
+/-- The favorable relative rankings, expressed directly in the order-event language. -/
+noncomputable def allBeforeNumberings
+    {α : Type*} [DecidableEq α] (A B : Finset α) :
+    Finset (Numbering ↥(A ∪ B)) := by
+  classical
+  exact Finset.univ.filter fun e =>
+    AllBefore (fun x y => e x < e y) (leftBlock A B) (rightBlock A B)
+
+theorem allBeforeNumberings_eq_prefixed
+    {α : Type*} [DecidableEq α] (A B : Finset α) (hdisjoint : Disjoint A B) :
+    allBeforeNumberings A B = Numbering.prefixed (leftBlock A B) := by
+  classical
+  ext e
+  simp only [allBeforeNumberings, Finset.mem_filter, Finset.mem_univ, true_and,
+    Numbering.mem_prefixed]
+  exact (numbering_isPrefix_leftBlock_iff_allBefore A B hdisjoint e).symm
+
+/-- The favorable prefix rankings have the exact factorial product cardinality.  In particular,
+the count depends only on the two block sizes; ambient coordinates outside `A ∪ B` never enter. -/
+theorem card_prefixed_leftBlock
+    {α : Type*} [DecidableEq α] (A B : Finset α) (hdisjoint : Disjoint A B) :
+    (Numbering.prefixed (leftBlock A B)).card = A.card.factorial * B.card.factorial := by
+  rw [Numbering.card_prefixed, card_leftBlock]
+  have hunion : (A ∪ B).card = A.card + B.card := Finset.card_union_of_disjoint hdisjoint
+  simp only [Fintype.card_coe, hunion]
+  rw [Nat.add_sub_cancel_left]
+
+/-- Therefore the favorable relative-order event itself, rather than merely a contained prefix
+family, has the exact factorial-product cardinality. -/
+theorem card_allBeforeNumberings
+    {α : Type*} [DecidableEq α] (A B : Finset α) (hdisjoint : Disjoint A B) :
+    (allBeforeNumberings A B).card = A.card.factorial * B.card.factorial := by
+  rw [allBeforeNumberings_eq_prefixed A B hdisjoint,
+    card_prefixed_leftBlock A B hdisjoint]
+
+/-- In density form, the exact favorable fraction is the reciprocal binomial coefficient. -/
+theorem dens_allBeforeNumberings
+    {α : Type*} [DecidableEq α] (A B : Finset α) (hdisjoint : Disjoint A B) :
+    (allBeforeNumberings A B).dens =
+      ((Nat.choose (A.card + B.card) A.card : ℕ) : ℚ≥0)⁻¹ := by
+  rw [allBeforeNumberings_eq_prefixed A B hdisjoint, Numbering.dens_prefixed]
+  congr 2
+  rw [show Fintype.card ↥(A ∪ B) = A.card + B.card by
+    simpa using Finset.card_union_of_disjoint hdisjoint]
+  rw [card_leftBlock]
+
+/-! ### Restricting an ambient numbering to relative order
+
+The weighted Bollobas argument uses one common numbering of the full ambient type, while the
+exact event computation above lives on each pair's union subtype.  The following construction
+closes the structural part of that transport: retain the ambient ranks occupied by a finite set,
+sort those ranks, and replace each occupied rank by its position in that sorted list. -/
+
+/-- The ambient ranks occupied by `S` in the numbering `e`. -/
+def relativeRanks {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Numbering α) (S : Finset α) : Finset (Fin (Fintype.card α)) :=
+  S.map e.toEmbedding
+
+/-- The tautological equivalence between a finite set and its occupied ambient ranks. -/
+def relativeRankEquiv {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Numbering α) (S : Finset α) : ↥S ≃ ↥(relativeRanks e S) where
+  toFun x := ⟨e x.1, Finset.mem_map.mpr ⟨x.1, x.2, rfl⟩⟩
+  invFun y := ⟨e.symm y.1, by
+    have hy : y.1 ∈ relativeRanks e S := y.2
+    change y.1 ∈ S.map e.toEmbedding at hy
+    rw [Finset.mem_map] at hy
+    obtain ⟨x, hx, hxy⟩ := hy
+    simpa [← hxy] using hx⟩
+  left_inv x := by
+    apply Subtype.ext
+    simp
+  right_inv y := by
+    apply Subtype.ext
+    simp
+
+/-- The relative numbering induced on `S` by an ambient numbering.  Its values are exactly the
+positions of `S`'s elements after the occupied ambient ranks are sorted increasingly. -/
+noncomputable def ambientRelativeNumbering
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Numbering α) (S : Finset α) : Numbering ↥S :=
+  (relativeRankEquiv e S).trans
+    ((relativeRanks e S).orderIsoOfFin (by simp [relativeRanks])).symm.toEquiv
+
+/-- Restriction to relative order preserves and reflects every strict comparison.  Thus an
+`AllBefore` event can be moved between the common ambient numbering and the numbering induced on
+the relevant pair union without changing its truth value. -/
+theorem ambientRelativeNumbering_lt_iff
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Numbering α) (S : Finset α) (x y : ↥S) :
+    ambientRelativeNumbering e S x < ambientRelativeNumbering e S y ↔ e x.1 < e y.1 := by
+  let ranks := relativeRanks e S
+  let rankOrder : Fin (Fintype.card ↥S) ≃o ↥ranks :=
+    ranks.orderIsoOfFin (by simp [ranks, relativeRanks])
+  change rankOrder.symm ((relativeRankEquiv e S) x) <
+      rankOrder.symm ((relativeRankEquiv e S) y) ↔ e x.1 < e y.1
+  rw [rankOrder.symm.lt_iff_lt]
+  rfl
+
+/-- On a pair union, the relative numbering realizes exactly the same `AllBefore` event as the
+ambient numbering.  No disjointness premise is needed for this structural transport. -/
+theorem allBefore_ambientRelativeNumbering_iff
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (e : Numbering α) (A B : Finset α) :
+    AllBefore
+        (fun x y : ↥(A ∪ B) =>
+          ambientRelativeNumbering e (A ∪ B) x < ambientRelativeNumbering e (A ∪ B) y)
+        (leftBlock A B) (rightBlock A B) ↔
+      AllBefore (fun x y : α => e x < e y) A B := by
+  constructor
+  · intro h a ha b hb
+    let a' : ↥(A ∪ B) := ⟨a, Finset.mem_union_left B ha⟩
+    let b' : ↥(A ∪ B) := ⟨b, Finset.mem_union_right A hb⟩
+    have hab := h a' (mem_leftBlock.mpr ha) b' (mem_rightBlock.mpr hb)
+    exact (ambientRelativeNumbering_lt_iff e (A ∪ B) a' b').mp hab
+  · intro h a ha b hb
+    apply (ambientRelativeNumbering_lt_iff e (A ∪ B) a b).mpr
+    exact h a.1 (mem_leftBlock.mp ha) b.1 (mem_rightBlock.mp hb)
+
+/-- Two numberings of the same finite type are equal when they induce the same strict order.
+This turns the comparison interface of `ambientRelativeNumbering_lt_iff` into an extensionality
+principle for relative numberings. -/
+theorem numbering_ext_of_lt_iff
+    {X : Type*} [Fintype X] (f g : Numbering X)
+    (h : ∀ x y, f x < f y ↔ g x < g y) : f = g := by
+  let u : Fin (Fintype.card X) → Fin (Fintype.card X) := fun i => g (f.symm i)
+  have hu : StrictMono u := by
+    intro i j hij
+    exact (h (f.symm i) (f.symm j)).mp (by simpa using hij)
+  have huid : u = id := by
+    funext i
+    exact le_antisymm (hu.le_id i) (hu.id_le i)
+  ext x
+  have hx := congrFun huid (f x)
+  exact congrArg Fin.val (by simpa [u] using hx.symm)
+
+/-- Relabel the elements inside `S` so that relative numbering `r` is transported to `t`, while
+extending that relabeling to a permutation of the full ambient type. -/
+noncomputable def ambientRelabel
+    {X : Type*} [Fintype X] [DecidableEq X] (S : Finset X)
+    (r t : Numbering ↑S) : Equiv.Perm X :=
+  (t.trans r.symm).extendSubtype
+
+/-- Precomposing an ambient numbering with the relabeling from `r` to `t` carries the relative
+numbering from `r` to `t`. -/
+theorem ambientRelativeNumbering_ambientRelabel
+    {X : Type*} [Fintype X] [DecidableEq X] (S : Finset X)
+    (r t : Numbering ↑S) (e : Numbering X)
+    (he : ambientRelativeNumbering e S = r) :
+    ambientRelativeNumbering ((ambientRelabel S r t).trans e) S = t := by
+  apply numbering_ext_of_lt_iff
+  intro x y
+  rw [ambientRelativeNumbering_lt_iff]
+  rw [Equiv.trans_apply, Equiv.trans_apply]
+  simp only [ambientRelabel, Equiv.extendSubtype_apply_of_mem _ x.1 x.2,
+    Equiv.extendSubtype_apply_of_mem _ y.1 y.2]
+  change e ((t.trans r.symm) x) < e ((t.trans r.symm) y) ↔ t x < t y
+  rw [← ambientRelativeNumbering_lt_iff e S]
+  rw [he]
+  simp
+
+/-- The fiber of the ambient-to-relative numbering map over `r`. -/
+noncomputable def ambientRelativeFiber
+    {X : Type*} [Fintype X] [DecidableEq X] (S : Finset X)
+    (r : Numbering ↑S) : Finset (Numbering X) :=
+  Finset.univ.filter fun e => ambientRelativeNumbering e S = r
+
+/-- All relative-order fibers have the same size.  The bijection precomposes by an ambient
+extension of the unique relabeling between the two relative numberings. -/
+theorem card_ambientRelativeFiber_eq
+    {X : Type*} [Fintype X] [DecidableEq X] (S : Finset X)
+    (r t : Numbering ↑S) :
+    (ambientRelativeFiber S r).card = (ambientRelativeFiber S t).card := by
+  classical
+  let p := ambientRelabel S r t
+  let forward : Numbering X → Numbering X := fun e => p.trans e
+  let backward : Numbering X → Numbering X := fun e => p.symm.trans e
+  apply Finset.card_bij' (fun e _ => forward e) (fun e _ => backward e)
+  · intro e he
+    simp only [ambientRelativeFiber, Finset.mem_filter, Finset.mem_univ, true_and] at he ⊢
+    exact ambientRelativeNumbering_ambientRelabel S r t e he
+  · intro e he
+    simp only [ambientRelativeFiber, Finset.mem_filter, Finset.mem_univ, true_and] at he ⊢
+    apply numbering_ext_of_lt_iff
+    intro x y
+    rw [ambientRelativeNumbering_lt_iff]
+    change e (p.symm x.1) < e (p.symm y.1) ↔ r x < r y
+    have hpx : p.symm x.1 = (r.trans t.symm) x := by
+      apply p.injective
+      rw [Equiv.apply_symm_apply]
+      change x.1 = ambientRelabel S r t ((r.trans t.symm) x).1
+      rw [ambientRelabel, Equiv.extendSubtype_apply_of_mem]
+      · simp
+      · exact ((r.trans t.symm) x).2
+    have hpy : p.symm y.1 = (r.trans t.symm) y := by
+      apply p.injective
+      rw [Equiv.apply_symm_apply]
+      change y.1 = ambientRelabel S r t ((r.trans t.symm) y).1
+      rw [ambientRelabel, Equiv.extendSubtype_apply_of_mem]
+      · simp
+      · exact ((r.trans t.symm) y).2
+    rw [hpx, hpy]
+    rw [← ambientRelativeNumbering_lt_iff e S]
+    rw [he]
+    simp
+  · intro e he
+    apply Equiv.ext
+    intro x
+    simp [forward, backward]
+  · intro e he
+    apply Equiv.ext
+    intro x
+    simp [forward, backward]
+
+/-- Every relative numbering has exactly the expected number of ambient extensions.  Choose the
+occupied ambient ranks, order the complement arbitrarily, and equivalently obtain
+`choose(|X|, |S|) * (|X| - |S|)!` extensions.  The proof derives this count from the uniform-fiber
+bijection and the exact cardinalities of both numbering spaces. -/
+theorem card_ambientRelativeFiber
+    {X : Type*} [Fintype X] [DecidableEq X] (S : Finset X)
+    (r : Numbering ↑S) :
+    (ambientRelativeFiber S r).card =
+      Nat.choose (Fintype.card X) S.card * (Fintype.card X - S.card).factorial := by
+  classical
+  let k := (ambientRelativeFiber S r).card
+  have hfiber (t : Numbering ↑S) :
+      ({e : Numbering X | ambientRelativeNumbering e S = t} : Finset _).card = k := by
+    exact card_ambientRelativeFiber_eq S t r
+  have htotal : (Fintype.card X).factorial = S.card.factorial * k := by
+    rw [← Fintype.card_numbering]
+    rw [show Fintype.card (Numbering X) =
+        (Finset.univ : Finset (Numbering X)).card by simp]
+    rw [Finset.card_eq_sum_card_fiberwise
+      (f := fun e : Numbering X => ambientRelativeNumbering e S)
+      (t := (Finset.univ : Finset (Numbering ↑S))) (by simp)]
+    simp_rw [hfiber]
+    simp [k]
+  apply Nat.eq_of_mul_eq_mul_left S.card.factorial_pos
+  rw [← htotal]
+  calc
+    (Fintype.card X).factorial =
+        Nat.choose (Fintype.card X) S.card * S.card.factorial *
+          (Fintype.card X - S.card).factorial :=
+      (Nat.choose_mul_factorial_mul_factorial S.card_le_univ).symm
+    _ = S.card.factorial *
+        (Nat.choose (Fintype.card X) S.card *
+          (Fintype.card X - S.card).factorial) := by ac_rfl
+
+/-! ### Exact density of an ambient `AllBefore` event -/
+
+/-- Ambient numberings which place every element of `A` before every element of `B`.  Unlike
+`allBeforeNumberings`, this is a subset of one common numbering space, so events belonging to
+different set pairs can be compared and summed directly. -/
+noncomputable def ambientAllBeforeNumberings
+    {X : Type*} [Fintype X] [DecidableEq X] (A B : Finset X) :
+    Finset (Numbering X) := by
+  classical
+  exact Finset.univ.filter fun e => AllBefore (fun x y => e x < e y) A B
+
+/-- The ambient event is exactly the preimage of the corresponding relative-order event. -/
+theorem mem_ambientAllBeforeNumberings_iff
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (A B : Finset X) (e : Numbering X) :
+    e ∈ ambientAllBeforeNumberings A B ↔
+      ambientRelativeNumbering e (A ∪ B) ∈ allBeforeNumberings A B := by
+  classical
+  simp only [ambientAllBeforeNumberings, allBeforeNumberings, Finset.mem_filter,
+    Finset.mem_univ, true_and]
+  exact (allBefore_ambientRelativeNumbering_iff e A B).symm
+
+/-- Exact ambient-event cardinality.  Each favorable relative order has the common extension
+factor proved above, and the favorable relative orders are counted by the two factorials. -/
+theorem card_ambientAllBeforeNumberings
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (A B : Finset X) (hdisjoint : Disjoint A B) :
+    (ambientAllBeforeNumberings A B).card =
+      (A.card.factorial * B.card.factorial) *
+        (Nat.choose (Fintype.card X) (A ∪ B).card *
+          (Fintype.card X - (A ∪ B).card).factorial) := by
+  classical
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun e : Numbering X => ambientRelativeNumbering e (A ∪ B))
+    (t := allBeforeNumberings A B) (fun e he =>
+      (mem_ambientAllBeforeNumberings_iff A B e).mp he)]
+  have hfiber (r : Numbering ↥(A ∪ B)) (hr : r ∈ allBeforeNumberings A B) :
+      ((ambientAllBeforeNumberings A B).filter fun e =>
+          ambientRelativeNumbering e (A ∪ B) = r).card =
+        Nat.choose (Fintype.card X) (A ∪ B).card *
+          (Fintype.card X - (A ∪ B).card).factorial := by
+    rw [show (ambientAllBeforeNumberings A B).filter (fun e =>
+        ambientRelativeNumbering e (A ∪ B) = r) =
+        ambientRelativeFiber (A ∪ B) r by
+      ext e
+      simp only [Finset.mem_filter, ambientRelativeFiber, Finset.mem_univ, true_and]
+      constructor
+      · exact fun h => h.2
+      · intro he
+        exact ⟨(mem_ambientAllBeforeNumberings_iff A B e).mpr (he ▸ hr), he⟩]
+    exact card_ambientRelativeFiber (A ∪ B) r
+  rw [Finset.sum_congr rfl hfiber]
+  rw [Finset.sum_const, card_allBeforeNumberings A B hdisjoint]
+  simp
+
+/-- Passing from the relative union to a common ambient numbering space preserves the exact
+event density.  In particular, coordinates outside `A ∪ B` contribute the same extension factor
+to every relative order and cancel completely. -/
+theorem dens_ambientAllBeforeNumberings
+    {X : Type*} [Fintype X] [DecidableEq X]
+    (A B : Finset X) (hdisjoint : Disjoint A B) :
+    (ambientAllBeforeNumberings A B).dens =
+      ((Nat.choose (A.card + B.card) A.card : ℕ) : ℚ≥0)⁻¹ := by
+  rw [Finset.dens_eq_card_div_card, card_ambientAllBeforeNumberings A B hdisjoint,
+    Fintype.card_numbering]
+  have hunion : (A ∪ B).card = A.card + B.card :=
+    Finset.card_union_of_disjoint hdisjoint
+  rw [hunion]
+  have hle : A.card + B.card ≤ Fintype.card X := by
+    rw [← hunion]
+    exact Finset.card_le_univ (A ∪ B)
+  rw [show (Fintype.card X).factorial =
+      Nat.choose (Fintype.card X) (A.card + B.card) *
+        (A.card + B.card).factorial *
+          (Fintype.card X - (A.card + B.card)).factorial from
+    (Nat.choose_mul_factorial_mul_factorial hle).symm]
+  have hab := Nat.choose_mul_factorial_mul_factorial
+    (show A.card ≤ A.card + B.card by omega)
+  rw [Nat.add_sub_cancel_left] at hab
+  rw [show (A.card + B.card).factorial =
+      Nat.choose (A.card + B.card) A.card * A.card.factorial * B.card.factorial from
+    hab.symm]
+  push_cast
+  have hchoose :
+      (↑(Nat.choose (Fintype.card X) (A.card + B.card)) : ℚ≥0) ≠ 0 := by
+    exact_mod_cast (Nat.ne_of_gt (Nat.choose_pos hle))
+  field_simp
+
+/-- The weighted Bollobás set-pairs inequality.  The diagonal pairs are disjoint and every
+off-diagonal cross-pair intersects; hence their ambient `AllBefore` events are pairwise disjoint.
+Their exact densities are the reciprocal binomial weights, so those weights sum to at most one. -/
+theorem weighted_bollobas
+    {X ι : Type*} [Fintype X] [Fintype ι] [DecidableEq X]
+    (A B : ι → Finset X)
+    (hcross : ∀ i j, Disjoint (A i) (B j) ↔ i = j) :
+    ∑ i : ι, ((Nat.choose ((A i).card + (B i).card) (A i).card : ℕ) : ℚ≥0)⁻¹ ≤ 1 := by
+  classical
+  let events : ι → Finset (Numbering X) := fun i =>
+    ambientAllBeforeNumberings (A i) (B i)
+  have hpairwise : ((Finset.univ : Finset ι) : Set ι).PairwiseDisjoint events := by
+    intro i _ j _ hij
+    apply Finset.disjoint_left.mpr
+    intro e hei hej
+    have hi : AllBefore (fun x y : X => e x < e y) (A i) (B i) := by
+      simpa [events, ambientAllBeforeNumberings] using hei
+    have hj : AllBefore (fun x y : X => e x < e y) (A j) (B j) := by
+      simpa [events, ambientAllBeforeNumberings] using hej
+    letI : Std.Asymm (fun x y : X => e x < e y) :=
+      ⟨fun _ _ hxy => lt_asymm hxy⟩
+    exact allBefore_events_pairwiseExclusive A B hcross
+      (fun x y : X => e x < e y) i j hij ⟨hi, hj⟩
+  calc
+    (∑ i : ι,
+        ((Nat.choose ((A i).card + (B i).card) (A i).card : ℕ) : ℚ≥0)⁻¹) =
+        ∑ i : ι, (events i).dens := by
+      apply Finset.sum_congr rfl
+      intro i _
+      symm
+      exact dens_ambientAllBeforeNumberings (A i) (B i) ((hcross i i).2 rfl)
+    _ = ((Finset.univ : Finset ι).biUnion events).dens :=
+      (Finset.dens_biUnion hpairwise).symm
+    _ ≤ 1 := Finset.dens_le_one
+
+/-! ### Exact private-point-to-end interval slices -/
+
+/-- The ambient `k`-sets lying between a displayed private point and a subcube's upper
+endpoint.  These are precisely the sets over which the local Bollobas weight for that member is
+aggregated. -/
+def privateToEndSlice {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ) : Finset (Finset α) :=
+  (endVars c).powersetCard k |>.filter fun x => trueSupport w ⊆ x
+
+/-- Generic interval-slice enumeration: among the `k`-subsets of `ambient`, those containing a
+fixed `required` set are obtained uniquely by adjoining `k - |required|` elements of its
+complement. -/
+theorem card_powersetCard_filter_superset
+    {α : Type*} [DecidableEq α] (ambient required : Finset α) (k : ℕ)
+    (hrequired : required ⊆ ambient) (hrequiredK : required.card ≤ k) :
+    ((ambient.powersetCard k).filter fun x => required ⊆ x).card =
+      Nat.choose (ambient.card - required.card) (k - required.card) := by
+  let extras := (ambient \ required).powersetCard (k - required.card)
+  let addRequired : Finset α → Finset α := fun u => required ∪ u
+  have himage : extras.image addRequired =
+      (ambient.powersetCard k).filter fun x => required ⊆ x := by
+    ext x
+    simp only [Finset.mem_image, Finset.mem_filter, Finset.mem_powersetCard]
+    constructor
+    · rintro ⟨u, hu, rfl⟩
+      have hu' := Finset.mem_powersetCard.mp hu
+      constructor
+      · constructor
+        · exact Finset.union_subset hrequired (hu'.1.trans Finset.sdiff_subset)
+        · rw [Finset.card_union_of_disjoint]
+          · omega
+          · exact Finset.disjoint_left.mpr fun i hi hiu =>
+              (Finset.mem_sdiff.mp (hu'.1 hiu)).2 hi
+      · exact Finset.subset_union_left
+    · rintro ⟨⟨hxambient, hxcard⟩, hrequiredx⟩
+      refine ⟨x \ required, ?_, ?_⟩
+      · rw [Finset.mem_powersetCard]
+        constructor
+        · intro i hi
+          exact Finset.mem_sdiff.mpr
+            ⟨hxambient (Finset.mem_sdiff.mp hi).1, (Finset.mem_sdiff.mp hi).2⟩
+        · rw [Finset.card_sdiff_of_subset hrequiredx]
+          omega
+      · exact Finset.union_sdiff_of_subset hrequiredx
+  rw [← himage]
+  have hinjective : Set.InjOn addRequired extras := by
+    intro u hu v hv huv
+    change required ∪ u = required ∪ v at huv
+    have husub := (Finset.mem_powersetCard.mp hu).1
+    have hvsub := (Finset.mem_powersetCard.mp hv).1
+    ext i
+    constructor
+    · intro hiu
+      have hinot : i ∉ required := (Finset.mem_sdiff.mp (husub hiu)).2
+      have hiunion : i ∈ required ∪ v := by
+        rw [← huv]
+        exact Finset.mem_union_right required hiu
+      exact (Finset.mem_union.mp hiunion).resolve_left hinot
+    · intro hiv
+      have hinot : i ∉ required := (Finset.mem_sdiff.mp (hvsub hiv)).2
+      have hiunion : i ∈ required ∪ u := by
+        rw [huv]
+        exact Finset.mem_union_right required hiv
+      exact (Finset.mem_union.mp hiunion).resolve_left hinot
+  rw [Finset.card_image_iff.mpr hinjective, Finset.card_powersetCard,
+    Finset.card_sdiff_of_subset hrequired]
+
+/-- Exact cardinality of a private-point-to-end `k`-slice, without any homogeneity assumption. -/
+theorem privateToEndSlice_card
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ)
+    (hself : Contains c w) (hwk : (trueSupport w).card ≤ k) :
+    (privateToEndSlice c w k).card =
+      Nat.choose ((endVars c).card - (trueSupport w).card)
+        (k - (trueSupport w).card) := by
+  apply card_powersetCard_filter_superset
+  · exact ((contains_iff_trueSupport_interval c w).1 hself).2
+  · exact hwk
+
+/-- The upper endpoint of a dimension-`k` subcube has `k` free coordinates in addition to its
+fixed-true lower endpoint. -/
+theorem endVars_card_eq_fixedTrueVars_card_add
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (k : ℕ)
+    (hdim : (fixedVars c).card + k = Fintype.card α) :
+    (endVars c).card = (fixedTrueVars c).card + k := by
+  have hfixed : fixedVars c = fixedTrueVars c ∪ fixedFalseVars c := by
+    ext i
+    cases hci : c i <;> simp [fixedVars, fixedTrueVars, fixedFalseVars, hci]
+  have hdisjoint : Disjoint (fixedTrueVars c) (fixedFalseVars c) := by
+    exact Finset.disjoint_left.mpr fun i hit hif => by
+      simp [fixedTrueVars] at hit
+      simp [fixedFalseVars, hit] at hif
+  have hend : (endVars c).card = Fintype.card α - (fixedFalseVars c).card := by
+    rw [endVars, Finset.card_sdiff_of_subset (Finset.subset_univ _)]
+    simp
+  rw [hfixed, Finset.card_union_of_disjoint hdisjoint] at hdim
+  omega
+
+/-- Homogeneous form used in Ellis's local Meshulam argument.  Its denominator is exactly
+`choose(|fixedTrue| + k - |w|, |fixedTrue|)`, with no worst-case replacement. -/
+theorem privateToEndSlice_card_of_dimension
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ)
+    (hdim : (fixedVars c).card + k = Fintype.card α)
+    (hself : Contains c w) (hwk : (trueSupport w).card ≤ k) :
+    (privateToEndSlice c w k).card =
+      Nat.choose ((fixedTrueVars c).card + k - (trueSupport w).card)
+        (fixedTrueVars c).card := by
+  rw [privateToEndSlice_card c w k hself hwk,
+    endVars_card_eq_fixedTrueVars_card_add c k hdim]
+  have hlower : (fixedTrueVars c).card ≤ (trueSupport w).card :=
+    Finset.card_le_card ((contains_iff_trueSupport_interval c w).1 hself).1
+  have hsum : (fixedTrueVars c).card + (k - (trueSupport w).card) =
+      (fixedTrueVars c).card + k - (trueSupport w).card := by omega
+  exact (Nat.choose_symm_of_eq_add hsum.symm).symm
+
+/-! ### The weighted local-to-global averaging step
+
+The weighted Bollobas inequality is applied separately at every ambient `k`-set.  The following
+double-counting lemma isolates what happens after those pointwise inequalities have been proved:
+if member `i` occurs in `sets i`, with reciprocal weight `1 / |sets i|`, then its total
+contribution over all ambient points is exactly one. -/
+
+/-- Finite weighted-cover averaging.  No positivity premise on `weight` is needed: the exact
+normalization turns the double sum over incidences into one unit for every index. -/
+theorem finite_weighted_cover_card_le
+    {ι X : Type*} [Fintype ι] [Fintype X] [DecidableEq X]
+    (sets : ι → Finset X) (weight : ι → ℚ)
+    (hnorm : ∀ i, ((sets i).card : ℚ) * weight i = 1)
+    (hlocal : ∀ x, ∑ i with x ∈ sets i, weight i ≤ 1) :
+    Fintype.card ι ≤ Fintype.card X := by
+  classical
+  have htotal : (Fintype.card ι : ℚ) =
+      ∑ x : X, ∑ i with x ∈ sets i, weight i := by
+    calc
+      (Fintype.card ι : ℚ) = ∑ i : ι, (1 : ℚ) := by simp
+      _ = ∑ i : ι, ((sets i).card : ℚ) * weight i := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        symm
+        exact hnorm i
+      _ = ∑ i : ι, ∑ x ∈ sets i, weight i := by simp
+      _ = ∑ i : ι, ∑ x : X, if x ∈ sets i then weight i else 0 := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        simp
+      _ = ∑ x : X, ∑ i : ι, if x ∈ sets i then weight i else 0 :=
+        Finset.sum_comm
+      _ = ∑ x : X, ∑ i with x ∈ sets i, weight i := by
+        apply Finset.sum_congr rfl
+        intro x hx
+        simp [Finset.sum_filter]
+  have hle : (Fintype.card ι : ℚ) ≤ Fintype.card X := by
+    rw [htotal]
+    calc
+      (∑ x : X, ∑ i with x ∈ sets i, weight i) ≤ ∑ _x : X, (1 : ℚ) :=
+        Finset.sum_le_sum fun x _ => hlocal x
+      _ = Fintype.card X := by simp
+  exact_mod_cast hle
+
+/-- Reciprocal-weight form used by the Meshulam argument.  This packages the only division
+side-condition explicitly: every private-point-to-end interval slice must be nonempty. -/
+theorem finite_reciprocal_cover_card_le
+    {ι X : Type*} [Fintype ι] [Fintype X] [DecidableEq X]
+    (sets : ι → Finset X) (hnonempty : ∀ i, (sets i).Nonempty)
+    (hlocal : ∀ x,
+      ∑ i with x ∈ sets i, (1 : ℚ) / (sets i).card ≤ 1) :
+    Fintype.card ι ≤ Fintype.card X := by
+  apply finite_weighted_cover_card_le sets
+      (fun i => (1 : ℚ) / (sets i).card)
+  · intro i
+    have hcard : ((sets i).card : ℚ) ≠ 0 := by
+      exact_mod_cast (Finset.card_ne_zero.mpr (hnonempty i))
+    field_simp
+  · exact hlocal
+
+/-- Pointwise Bollobás bound for the private-point-to-end slices of a homogeneous family.
+For one ambient `k`-set `x`, restrict to the members whose displayed interval contains `x`.
+Their set pairs are `fixedTrueVars (c i)` and `x \ trueSupport (w i)`; private points give the
+cross-intersection hypothesis, while homogeneity identifies each binomial denominator with the
+cardinality of the corresponding interval slice. -/
+theorem privateToEndSlice_local_reciprocal_le
+    {α ι : Type*} [Fintype α] [DecidableEq α] [Fintype ι]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (k : ℕ)
+    (hdim : ∀ i, (fixedVars (c i)).card + k = Fintype.card α)
+    (hself : ∀ i, Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c i) (w j))
+    (x : Finset α) (hxcard : x.card = k) :
+    ∑ i with x ∈ privateToEndSlice (c i) (w i) k,
+        (1 : ℚ) / (privateToEndSlice (c i) (w i) k).card ≤ 1 := by
+  classical
+  let active : Finset ι := Finset.univ.filter fun i =>
+    x ∈ privateToEndSlice (c i) (w i) k
+  let A : ↑active → Finset α := fun i => fixedTrueVars (c i)
+  let B : ↑active → Finset α := fun i => x \ trueSupport (w i)
+  have hactive (i : ↑active) : x ∈ privateToEndSlice (c i) (w i) k := by
+    have hi := i.property
+    change i.val ∈ Finset.univ.filter (fun j =>
+      x ∈ privateToEndSlice (c j) (w j) k) at hi
+    exact (Finset.mem_filter.mp hi).2
+  have hwx (i : ↑active) : trueSupport (w i) ⊆ x := by
+    exact (Finset.mem_filter.mp (hactive i)).2
+  have hxend (i : ↑active) : x ⊆ endVars (c i) := by
+    exact (Finset.mem_powersetCard.mp (Finset.mem_filter.mp (hactive i)).1).1
+  have hcross : ∀ i j, Disjoint (A i) (B j) ↔ i = j := by
+    intro i j
+    simpa [A, B] using
+      (fixedTrueVars_disjoint_privateComplement_iff
+        (fun p : ↑active => c p) (fun p : ↑active => w p) x
+        (fun p => hself p)
+        (fun p q hpq => hprivate p q (fun hpq' => hpq (Subtype.ext hpq')))
+        hwx hxend i j)
+  have hboll := weighted_bollobas A B hcross
+  have hdenom (i : ↑active) :
+      (privateToEndSlice (c i) (w i) k).card =
+        Nat.choose ((A i).card + (B i).card) (A i).card := by
+    rw [privateToEndSlice_card_of_dimension (c i) (w i) k
+      (hdim i) (hself i)]
+    · simp only [A, B]
+      have hwk : (trueSupport (w i)).card ≤ k :=
+        (Finset.card_le_card (hwx i)).trans_eq hxcard
+      rw [card_sdiff_trueSupport_of_subset (w i) x (hwx i), hxcard]
+      rw [show (fixedTrueVars (c i)).card + k - (trueSupport (w i)).card =
+          (fixedTrueVars (c i)).card + (k - (trueSupport (w i)).card) by omega]
+    · exact (Finset.card_le_card (hwx i)).trans_eq hxcard
+  have hbollQ' :
+      ∑ i : ↑active,
+          (((Nat.choose ((A i).card + (B i).card) (A i).card : ℕ) : ℚ))⁻¹ ≤ 1 := by
+    have hcast :
+        ((↑(∑ i : ↑active,
+          ((Nat.choose ((A i).card + (B i).card) (A i).card : ℕ) : ℚ≥0)⁻¹) : ℚ) ≤ 1) := by
+      exact_mod_cast hboll
+    push_cast at hcast
+    simpa only [NNRat.coe_inv, NNRat.coe_natCast] using hcast
+  have hbollQ :
+      ∑ i : ↑active,
+          (1 : ℚ) / (privateToEndSlice (c i) (w i) k).card ≤ 1 := by
+    calc
+      (∑ i : ↑active,
+          (1 : ℚ) / (privateToEndSlice (c i) (w i) k).card) =
+          ∑ i : ↑active,
+            (((Nat.choose ((A i).card + (B i).card) (A i).card : ℕ) : ℚ))⁻¹ := by
+        apply Finset.sum_congr rfl
+        intro i _
+        rw [hdenom i]
+        simp [one_div]
+      _ ≤ 1 := hbollQ'
+  change (∑ i ∈ active,
+      (1 : ℚ) / (privateToEndSlice (c i) (w i) k).card) ≤ 1
+  rw [← active.sum_attach]
+  exact hbollQ
+
+/-- Regard an interval slice as a finset in the finite type of all ambient `k`-sets. -/
+def privateToEndSliceAsAmbient
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ) :
+    Finset ↑((Finset.univ : Finset α).powersetCard k) :=
+  (privateToEndSlice c w k).attach.image fun x =>
+    ⟨x.val, by
+      rw [Finset.mem_powersetCard]
+      have hx := (Finset.mem_filter.mp x.property).1
+      exact ⟨(Finset.mem_powersetCard.mp hx).1.trans (Finset.subset_univ _),
+        (Finset.mem_powersetCard.mp hx).2⟩⟩
+
+theorem mem_privateToEndSliceAsAmbient
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ)
+    (x : ↑((Finset.univ : Finset α).powersetCard k)) :
+    x ∈ privateToEndSliceAsAmbient c w k ↔
+      x.val ∈ privateToEndSlice c w k := by
+  rw [privateToEndSliceAsAmbient]
+  constructor
+  · intro hx
+    obtain ⟨y, hy, hxy⟩ := Finset.mem_image.mp hx
+    have hval : y.val = x.val := congrArg Subtype.val hxy
+    simpa [hval] using y.property
+  · intro hx
+    let y : ↑(privateToEndSlice c w k) := ⟨x.val, hx⟩
+    apply Finset.mem_image.mpr
+    refine ⟨y, Finset.mem_attach _ y, ?_⟩
+    apply Subtype.ext
+    rfl
+
+theorem privateToEndSliceAsAmbient_card
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (c : BooleanSubcube α) (w : α → Bool) (k : ℕ) :
+    (privateToEndSliceAsAmbient c w k).card =
+      (privateToEndSlice c w k).card := by
+  rw [privateToEndSliceAsAmbient,
+    Finset.card_image_of_injective _ (by
+      intro x y hxy
+      apply Subtype.ext
+      exact congrArg (fun z => z.val) hxy),
+    Finset.card_attach]
+
+/-- Bollobás' local occupancy cap.  A homogeneous irredundant family whose displayed private
+points have support at most `k` has at most `choose(|α|, k)` members.  The support premise is the
+local Hamming-ball condition after translating the chosen ball center to zero. -/
+theorem privatePoint_family_card_le_choose
+    {α ι : Type*} [Fintype α] [DecidableEq α] [Fintype ι]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (k : ℕ)
+    (hdim : ∀ i, (fixedVars (c i)).card + k = Fintype.card α)
+    (hself : ∀ i, Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c i) (w j))
+    (hwk : ∀ i, (trueSupport (w i)).card ≤ k) :
+    Fintype.card ι ≤ Nat.choose (Fintype.card α) k := by
+  classical
+  let ambient := (Finset.univ : Finset α).powersetCard k
+  let sets : ι → Finset ↑ambient := fun i =>
+    privateToEndSliceAsAmbient (c i) (w i) k
+  have hsetsCard (i : ι) :
+      (sets i).card = (privateToEndSlice (c i) (w i) k).card := by
+    exact privateToEndSliceAsAmbient_card (c i) (w i) k
+  have hnonempty (i : ι) : (sets i).Nonempty := by
+    apply Finset.card_ne_zero.mp
+    rw [hsetsCard i,
+      privateToEndSlice_card_of_dimension (c i) (w i) k
+        (hdim i) (hself i) (hwk i)]
+    have hle : (fixedTrueVars (c i)).card ≤
+        (fixedTrueVars (c i)).card + k - (trueSupport (w i)).card := by
+      have hi := hwk i
+      omega
+    exact Nat.ne_of_gt (Nat.choose_pos hle)
+  have hlocal (x : ↑ambient) :
+      ∑ i with x ∈ sets i, (1 : ℚ) / (sets i).card ≤ 1 := by
+    have hxcard : x.val.card = k :=
+      (Finset.mem_powersetCard.mp x.property).2
+    have h := privateToEndSlice_local_reciprocal_le c w k hdim hself hprivate
+      x.val hxcard
+    have hfilter :
+        (Finset.univ.filter fun i => x ∈ sets i) =
+          Finset.univ.filter fun i =>
+            x.val ∈ privateToEndSlice (c i) (w i) k := by
+      ext i
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      exact mem_privateToEndSliceAsAmbient (c i) (w i) k x
+    rw [hfilter]
+    simpa only [hsetsCard] using h
+  have hcard := finite_reciprocal_cover_card_le sets hnonempty hlocal
+  simpa [ambient, Fintype.card_coe, Finset.card_powersetCard] using hcard
+
+/-! ### Coordinatewise translation to the all-false vertex -/
+
+/-- Translate a Boolean point by a fixed center.  A translated coordinate is true exactly when
+the original point disagrees with the center there. -/
+def translatePoint {α : Type*} (center a : α → Bool) : α → Bool :=
+  fun i => a i != center i
+
+/-- Translate a partial assignment by the same coordinatewise Boolean involution. -/
+def translateSubcube {α : Type*} (center : α → Bool)
+    (c : BooleanSubcube α) : BooleanSubcube α :=
+  fun i => (c i).map fun b => b != center i
+
+/-- Coordinatewise translation preserves the fixed-coordinate set, and hence dimension. -/
+theorem fixedVars_translateSubcube
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (center : α → Bool) (c : BooleanSubcube α) :
+    fixedVars (translateSubcube center c) = fixedVars c := by
+  ext i
+  cases hci : c i <;> simp [fixedVars, translateSubcube, hci]
+
+/-- Translation preserves subcube membership in both directions. -/
+theorem contains_translateSubcube_iff
+    {α : Type*} (center : α → Bool) (c : BooleanSubcube α) (a : α → Bool) :
+    Contains (translateSubcube center c) (translatePoint center a) ↔ Contains c a := by
+  constructor
+  · intro h i b hib
+    have ht := h i (b != center i)
+    simp [translateSubcube, hib] at ht
+    simpa [translatePoint] using ht
+  · intro h i b hib
+    cases hci : c i with
+    | none => simp [translateSubcube, hci] at hib
+    | some value =>
+        have hb : b = (value != center i) := by
+          symm
+          simpa [translateSubcube, hci] using congrArg id hib
+        subst b
+        have ha : a i = value := h i value hci
+        simp [translatePoint, ha]
+
+/-- The true support after translation is exactly the disagreement set from the center. -/
+theorem trueSupport_translatePoint
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (center a : α → Bool) :
+    trueSupport (translatePoint center a) =
+      Finset.univ.filter fun i => a i ≠ center i := by
+  ext i
+  cases hai : a i <;> cases hci : center i <;>
+    simp [trueSupport, translatePoint, hai, hci]
+
+theorem mem_fixedVars_of_eq_some {α : Type*} [Fintype α] [DecidableEq α]
+    {c : BooleanSubcube α} {i : α} {b : Bool}
+    (h : c i = some b) : i ∈ fixedVars c := by
+  simp [fixedVars, h]
+
+/-- Any finite irredundant family of Boolean subcubes of codimension at most two can be
+homogenized to codimension exactly two, provided the ambient cube has at least two coordinates.
+Each new member lies inside its old member and contains the same private point.  In particular,
+the displayed private points remain private, so no two homogenized members coincide.
+
+This is the precise abstract reduction from the bridge's codimension-at-most-two firing fibers
+to the homogeneous input expected by Meshulam's inequality. -/
+theorem exists_codimensionTwo_refinement_preserving_privatePoints
+    {α ι : Type*} [Fintype α] [DecidableEq α] [Fintype ι]
+    (c : ι → BooleanSubcube α) (privatePoint : ι → α → Bool)
+    (hQ : 2 ≤ Fintype.card α)
+    (hcodim : ∀ j, (fixedVars (c j)).card ≤ 2)
+    (hself : ∀ j, Contains (c j) (privatePoint j))
+    (hprivate : ∀ i j, i ≠ j → ¬ Contains (c j) (privatePoint i)) :
+    ∃ c' : ι → BooleanSubcube α,
+      (∀ j, (fixedVars (c' j)).card = 2) ∧
+      (∀ j, Contains (c' j) (privatePoint j)) ∧
+      (∀ j a, Contains (c' j) a → Contains (c j) a) ∧
+      (∀ i j, i ≠ j → ¬ Contains (c' j) (privatePoint i)) ∧
+      Function.Injective c' := by
+  classical
+  have hextend (j : ι) : ∃ t : Finset α,
+      fixedVars (c j) ⊆ t ∧ t.card = 2 := by
+    apply Finset.exists_superset_card_eq (hcodim j)
+    simpa using hQ
+  let support : ι → Finset α := fun j => Classical.choose (hextend j)
+  have hsupport (j : ι) : fixedVars (c j) ⊆ support j :=
+    (Classical.choose_spec (hextend j)).1
+  have hsupportCard (j : ι) : (support j).card = 2 :=
+    (Classical.choose_spec (hextend j)).2
+  let c' : ι → BooleanSubcube α := fun j i =>
+    if i ∈ support j then some (privatePoint j i) else none
+  have hfixed (j : ι) : fixedVars (c' j) = support j := by
+    ext i
+    simp [fixedVars, c']
+  have hself' (j : ι) : Contains (c' j) (privatePoint j) := by
+    intro i b hib
+    by_cases hi : i ∈ support j
+    · simpa [c', hi] using hib
+    · simp [c', hi] at hib
+  have hrefine (j : ι) (a : α → Bool) :
+      Contains (c' j) a → Contains (c j) a := by
+    intro ha i b hib
+    have hiFixed : i ∈ fixedVars (c j) := mem_fixedVars_of_eq_some hib
+    have hiSupport : i ∈ support j := hsupport j hiFixed
+    have haValue : a i = privatePoint j i := by
+      apply ha i (privatePoint j i)
+      simp [c', hiSupport]
+    have hprivateValue : privatePoint j i = b := hself j i b hib
+    exact haValue.trans hprivateValue
+  refine ⟨c', fun j => by rw [hfixed, hsupportCard], hself', hrefine, ?_, ?_⟩
+  · intro i j hij hijContains
+    exact hprivate i j hij (hrefine j _ hijContains)
+  · intro i j heq
+    by_contra hij
+    apply hprivate i j hij
+    apply hrefine j
+    rw [← heq]
+    exact hself' i
+
+end BooleanSubcube
+
+/-! ### Realizing localized competitor indicators as Boolean subcubes -/
+
+/-- The queried coordinates on which an outside competitor actually places a literal.  The
+definition uses the semantic outside-literal set, so protected literals and duplicate
+occurrences contribute no fixed coordinate. -/
+def localizedOutsideCompetitorFixedVars {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried) : Finset ↥queried :=
+  (competitorOutsideTargetLiteralSet target p.2).attach.image fun ell =>
+    ⟨litVar ell.1, hsupport <| (mem_competitorOutsideTargetVars
+      target p.2 (litVar ell.1)).2 ⟨⟨ell.1,
+        (mem_competitorOutsideTargetLiteralSet target p.2 ell.1).1 ell.2 |>.1, rfl⟩,
+        (mem_competitorOutsideTargetLiteralSet target p.2 ell.1).1 ell.2 |>.2⟩⟩
+
+/-- Present a nonempty localized firing fiber as a partial assignment.  Fixed coordinates take
+their value from the displayed firing witness.  This avoids choosing a polarity from the clause:
+nonemptiness itself guarantees that all repeated literals on one coordinate demand that same
+value. -/
+def localizedOutsideCompetitorSubcube {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (witness : (↥queried) → Bool) : BooleanSubcube ↥queried :=
+  fun i => if i ∈ localizedOutsideCompetitorFixedVars hsupport
+    then some (witness i) else none
+
+theorem localizedOutsideCompetitorSubcube_fixedVars {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (witness : (↥queried) → Bool) :
+    BooleanSubcube.fixedVars
+        (localizedOutsideCompetitorSubcube hsupport witness) =
+      localizedOutsideCompetitorFixedVars hsupport := by
+  ext i
+  simp [BooleanSubcube.fixedVars, localizedOutsideCompetitorSubcube]
+
+/-- Syntactic width bounds the codimension of the localized firing subcube, even with protected
+literals, repeated variables, or duplicate literal occurrences. -/
+theorem localizedOutsideCompetitorSubcube_fixedVars_card_le_length {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (witness : (↥queried) → Bool) :
+    (BooleanSubcube.fixedVars
+      (localizedOutsideCompetitorSubcube hsupport witness)).card ≤ p.2.lits.length := by
+  rw [localizedOutsideCompetitorSubcube_fixedVars]
+  exact (Finset.card_image_le.trans (by
+    simp only [Finset.card_attach]
+    exact competitorOutsideTargetLiteralSet_card_le_length target p.2))
+
+/-- Every nonzero localized width-bounded indicator is exactly the membership predicate of its
+displayed Boolean subcube.  The statement deliberately covers protected literals and both
+same-polarity and opposite-polarity repeated coordinates; the latter can satisfy the witness
+premise only when the contradictory literal is protected. -/
+theorem localizedOutsideCompetitorTermFires_iff_subcubeContains {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {p : Fin G × Clause n}
+    (hsupport : competitorOutsideTargetVars target p.2 ⊆ queried)
+    (witness assignment : (↥queried) → Bool)
+    (hwitness : localizedOutsideCompetitorTermFires target queried p witness = true) :
+    localizedOutsideCompetitorTermFires target queried p assignment = true ↔
+      BooleanSubcube.Contains
+        (localizedOutsideCompetitorSubcube hsupport witness) assignment := by
+  have hwitness' : ¬ ∃ ell ∈ p.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        extendQueriedAssignment queried witness (litVar ell) = falValue ell := by
+    simpa [localizedOutsideCompetitorTermFires, outsideCompetitorTermFires] using
+      of_decide_eq_true hwitness
+  constructor
+  · intro hassignment i b hib
+    have hi : i ∈ localizedOutsideCompetitorFixedVars hsupport := by
+      by_contra hi
+      simp [localizedOutsideCompetitorSubcube, hi] at hib
+    have hb : b = witness i := by
+      have hb' : witness i = b := by
+        simpa [localizedOutsideCompetitorSubcube, hi] using hib
+      exact hb'.symm
+    rw [hb]
+    obtain ⟨ell, hellAttach, hellVar⟩ := Finset.mem_image.mp hi
+    have hellSet := ell.2
+    have hell := (mem_competitorOutsideTargetLiteralSet target p.2 ell.1).1 hellSet
+    have hvarEq : litVar ell.1 = i.1 := congrArg Subtype.val hellVar
+    have hvarMem : litVar ell.1 ∈ queried := by
+      rw [hvarEq]
+      exact i.2
+    have hsubtypeEq : (⟨litVar ell.1, hvarMem⟩ : ↥queried) = i :=
+      Subtype.ext hvarEq
+    have haNot : assignment i ≠ falValue ell.1 := by
+      intro ha
+      have hbad : ∃ ell ∈ p.2.lits,
+          litVar ell ∉ compatibleIsolationTargetVars target ∧
+            extendQueriedAssignment queried assignment (litVar ell) = falValue ell := by
+        refine ⟨ell.1, hell.1, hell.2, ?_⟩
+        rw [extendQueriedAssignment, dif_pos hvarMem, hsubtypeEq]
+        exact ha
+      have hfire := of_decide_eq_true hassignment
+      exact hfire hbad
+    have hwNot : witness i ≠ falValue ell.1 := by
+      intro hw
+      apply hwitness'
+      refine ⟨ell.1, hell.1, hell.2, ?_⟩
+      rw [extendQueriedAssignment, dif_pos hvarMem, hsubtypeEq]
+      exact hw
+    cases hai : assignment i <;> cases hwi : witness i <;>
+      simp_all
+  · intro hcontains
+    apply decide_eq_true
+    intro hbad
+    obtain ⟨ell, hell, hout, ha⟩ := hbad
+    have hvar : litVar ell ∈ queried := hsupport
+      ((mem_competitorOutsideTargetVars target p.2 (litVar ell)).2
+        ⟨⟨ell, hell, rfl⟩, hout⟩)
+    let i : ↥queried := ⟨litVar ell, hvar⟩
+    have hi : i ∈ localizedOutsideCompetitorFixedVars hsupport := by
+      apply Finset.mem_image.mpr
+      let e : ↥(competitorOutsideTargetLiteralSet target p.2) :=
+        ⟨ell, (mem_competitorOutsideTargetLiteralSet target p.2 ell).2 ⟨hell, hout⟩⟩
+      refine ⟨e, Finset.mem_attach _ e, ?_⟩
+      apply Subtype.ext
+      rfl
+    have hvalue : assignment i = witness i := by
+      apply hcontains i (witness i)
+      simp [localizedOutsideCompetitorSubcube, hi]
+    have ha' : assignment i = falValue ell := by
+      simpa [i, extendQueriedAssignment, hvar] using ha
+    have hw' : witness i ≠ falValue ell := by
+      intro hw
+      apply hwitness'
+      refine ⟨ell, hell, hout, ?_⟩
+      simpa [i, extendQueriedAssignment, hvar] using hw
+    exact hw' (hvalue.symm.trans ha')
+
+/-- An arbitrary subfamily of a minimal unsatisfiable core is an irredundant family of localized
+Boolean subcubes.  The private point of a member is the restriction of its deletion witness.
+This packages the individual firing-fiber representation with precisely the family-level data
+needed by the codimension-two homogenization theorem. -/
+theorem InclusionMinimalUnsatisfiableCore.exists_subfamily_booleanSubcubes
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) {localVars : Finset (Fin n)}
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars)
+    (hwidth : ∀ p : ↥s, p.1.1.2.lits.length ≤ 2) :
+    ∃ c : ↥s → BooleanSubcube ↥localVars,
+      ∃ privatePoint : ↥s → (↥localVars → Bool),
+        (∀ p, (BooleanSubcube.fixedVars (c p)).card ≤ 2) ∧
+        (∀ p, BooleanSubcube.Contains (c p) (privatePoint p)) ∧
+        (∀ p q, p ≠ q → ¬ BooleanSubcube.Contains (c q) (privatePoint p)) ∧
+        (∀ p assignment,
+          localizedOutsideCompetitorTermFires target localVars p.1.1 assignment = true ↔
+            BooleanSubcube.Contains (c p) assignment) := by
+  classical
+  let deletionAssignment : ↥s → Fin n → Bool := fun p =>
+    Classical.choose (hminimal.2 p.1.1 p.1.2)
+  have hdeletion (p : ↥s) : HitsOutsideCompetitorCore target
+      (core.erase p.1.1) (deletionAssignment p) :=
+    Classical.choose_spec (hminimal.2 p.1.1 p.1.2)
+  let privatePoint : ↥s → (↥localVars → Bool) := fun p =>
+    restrictQueriedAssignment localVars (deletionAssignment p)
+  have hprivateFires (p : ↥s) :
+      localizedOutsideCompetitorTermFires target localVars p.1.1
+        (privatePoint p) = true := by
+    have hpPrivate : ¬ ∃ ell ∈ p.1.1.2.lits,
+        litVar ell ∉ compatibleIsolationTargetVars target ∧
+          deletionAssignment p (litVar ell) = falValue ell := by
+      intro hpHit
+      apply hminimal.1
+      refine ⟨deletionAssignment p, ?_⟩
+      intro r hr
+      by_cases hrp : r = p.1.1
+      · simpa [hrp] using hpHit
+      · exact hdeletion p r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+    rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport p)]
+    simp [outsideCompetitorTermFires, hpPrivate, privatePoint]
+  let c : ↥s → BooleanSubcube ↥localVars := fun p =>
+    localizedOutsideCompetitorSubcube (hsupport p) (privatePoint p)
+  refine ⟨c, privatePoint, ?_, ?_, ?_, ?_⟩
+  · intro p
+    exact (localizedOutsideCompetitorSubcube_fixedVars_card_le_length
+      (hsupport p) (privatePoint p)).trans (hwidth p)
+  · intro p
+    exact (localizedOutsideCompetitorTermFires_iff_subcubeContains
+      (hsupport p) (privatePoint p) (privatePoint p) (hprivateFires p)).mp
+        (hprivateFires p)
+  · intro p q hpq hcontains
+    have hqFires := (localizedOutsideCompetitorTermFires_iff_subcubeContains
+      (hsupport q) (privatePoint q) (privatePoint p) (hprivateFires q)).mpr hcontains
+    have hpqPair : q.1.1 ≠ p.1.1 := by
+      intro heq
+      apply hpq
+      apply Subtype.ext
+      apply Subtype.ext
+      exact heq.symm
+    have hqHit := hdeletion p q.1.1
+      (Finset.mem_erase.mpr ⟨hpqPair, q.1.2⟩)
+    have hqFalse : localizedOutsideCompetitorTermFires target localVars q.1.1
+        (privatePoint p) = false := by
+      rw [← outsideCompetitorTermFires_eq_localized_restrict (hsupport q)]
+      simp [outsideCompetitorTermFires, hqHit, privatePoint]
+    rw [hqFalse] at hqFires
+    contradiction
+  · intro p assignment
+    exact localizedOutsideCompetitorTermFires_iff_subcubeContains
+      (hsupport p) (privatePoint p) assignment (hprivateFires p)
+
+/-- Consequently, when the localized support has at least two coordinates, every width-two Hall
+subfamily admits an injectively indexed codimension-exactly-two refinement.  Each refined member
+still contains its deletion witness, lies inside the original localized firing fiber, and misses
+all other displayed private points. -/
+theorem InclusionMinimalUnsatisfiableCore.exists_subfamily_codimensionTwo_refinement
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (s : Finset ↥core) {localVars : Finset (Fin n)}
+    (hsupport : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars)
+    (hwidth : ∀ p : ↥s, p.1.1.2.lits.length ≤ 2)
+    (hloc : 2 ≤ localVars.card) :
+    ∃ c' : ↥s → BooleanSubcube ↥localVars,
+      ∃ privatePoint : ↥s → (↥localVars → Bool),
+        (∀ p, (BooleanSubcube.fixedVars (c' p)).card = 2) ∧
+        (∀ p, BooleanSubcube.Contains (c' p) (privatePoint p)) ∧
+        (∀ p assignment, BooleanSubcube.Contains (c' p) assignment →
+          localizedOutsideCompetitorTermFires target localVars p.1.1 assignment = true) ∧
+        (∀ p q, p ≠ q → ¬ BooleanSubcube.Contains (c' q) (privatePoint p)) ∧
+        Function.Injective c' := by
+  obtain ⟨c, privatePoint, hcodim, hself, hprivate, hcharacterize⟩ :=
+    hminimal.exists_subfamily_booleanSubcubes s hsupport hwidth
+  obtain ⟨c', hcodim', hself', hrefine, hprivate', hinjective⟩ :=
+    BooleanSubcube.exists_codimensionTwo_refinement_preserving_privatePoints
+      c privatePoint (by simpa using hloc) hcodim hself hprivate
+  refine ⟨c', privatePoint, hcodim', hself', ?_, hprivate', hinjective⟩
+  intro p assignment hcontains
+  exact (hcharacterize p assignment).mpr (hrefine p assignment hcontains)
+
+/-! ### Reducing Meshulam's global inequality to its local set-pairs lemma -/
+
+/-- Finite double counting with a uniform row size and a uniform column cap.  This is the
+incidence-counting step in Meshulam's argument, separated from the genuinely combinatorial local
+set-pairs bound. -/
+theorem finiteRelation_card_mul_le_card_mul
+    {ι X : Type*} [Fintype ι] [DecidableEq ι] [Fintype X] [DecidableEq X]
+    (R : ι → X → Prop) [DecidableRel R] (rowSize columnCap : ℕ)
+    (hrow : ∀ i, (Finset.univ.filter fun x => R i x).card = rowSize)
+    (hcolumn : ∀ x, (Finset.univ.filter fun i => R i x).card ≤ columnCap) :
+    Fintype.card ι * rowSize ≤ Fintype.card X * columnCap := by
+  classical
+  calc
+    Fintype.card ι * rowSize = ∑ _i : ι, rowSize := by simp
+    _ = ∑ i : ι, ∑ x : X, if R i x then 1 else 0 := by
+      apply Finset.sum_congr rfl
+      intro i _
+      rw [← hrow i, Finset.card_eq_sum_ones]
+      simp
+    _ = ∑ x : X, ∑ i : ι, if R i x then 1 else 0 := Finset.sum_comm
+    _ ≤ ∑ _x : X, columnCap := by
+      apply Finset.sum_le_sum
+      intro x _
+      simpa only [Finset.card_filter] using hcolumn x
+    _ = Fintype.card X * columnCap := by simp
+
+/-- The Hamming ball around a Boolean point, presented in the form used by Meshulam's double
+count. -/
+def booleanHammingBall {α : Type*} [Fintype α] [DecidableEq α]
+    (center : α → Bool) (radius : ℕ) : Finset (α → Bool) :=
+  Finset.univ.filter fun a =>
+    (Finset.univ.filter fun i => a i ≠ center i).card ≤ radius
+
+/-- Toggling the coordinates that disagree with a fixed center identifies Boolean assignments
+with subsets of the coordinate set. -/
+def booleanAssignmentDisagreementEquiv {α : Type*} [Fintype α] [DecidableEq α]
+    (center : α → Bool) : (α → Bool) ≃ Finset α where
+  toFun a := Finset.univ.filter fun i => a i ≠ center i
+  invFun s i := if i ∈ s then !(center i) else center i
+  left_inv a := by
+    funext i
+    by_cases hi : a i = center i
+    · simp [hi]
+    · simp [hi]
+      cases hai : a i <;> cases hci : center i <;> simp_all
+  right_inv s := by
+    ext i
+    by_cases hi : i ∈ s <;> simp [hi]
+
+/-- Every radius-`k` Hamming ball in an `n`-dimensional Boolean cube has the usual binomial
+volume. -/
+theorem booleanHammingBall_card (n k : ℕ) (center : Fin n → Bool) :
+    (booleanHammingBall center k).card =
+      ∑ i ∈ Finset.range (k + 1), Nat.choose n i := by
+  let e := (booleanAssignmentDisagreementEquiv center).subtypeEquiv
+    (p := fun a => (Finset.univ.filter fun i => a i ≠ center i).card ≤ k)
+    (q := fun s => s.card ≤ k)
+    (fun a => show
+      (Finset.univ.filter fun i => a i ≠ center i).card ≤ k ↔
+        (booleanAssignmentDisagreementEquiv center a).card ≤ k from Iff.rfl)
+  have hcard := Fintype.card_congr e
+  rw [Fintype.card_subtype, Fintype.card_subtype] at hcard
+  rw [show booleanHammingBall center k =
+      Finset.univ.filter fun a =>
+        (Finset.univ.filter fun i => a i ≠ center i).card ≤ k from rfl]
+  rw [hcard]
+  exact PallLean.Paper93.DeepMath.PathB.Dimension.card_subsets_card_le n k
+
+/-- The Hamming-ball volume formula on an arbitrary finite coordinate type.  This avoids an
+artificial reindexing through `Fin n` when the coordinates are presented as a finite subtype,
+as they are for the exact incident union of a Hall subfamily. -/
+theorem booleanHammingBall_card_fintype
+    {α : Type*} [Fintype α] [DecidableEq α]
+    (k : ℕ) (center : α → Bool) :
+    (booleanHammingBall center k).card =
+      ∑ i ∈ Finset.range (k + 1), Nat.choose (Fintype.card α) i := by
+  let e := (booleanAssignmentDisagreementEquiv center).subtypeEquiv
+    (p := fun a => (Finset.univ.filter fun i => a i ≠ center i).card ≤ k)
+    (q := fun s => s.card ≤ k)
+    (fun a => show
+      (Finset.univ.filter fun i => a i ≠ center i).card ≤ k ↔
+        (booleanAssignmentDisagreementEquiv center a).card ≤ k from Iff.rfl)
+  have hcard := Fintype.card_congr e
+  rw [Fintype.card_subtype, Fintype.card_subtype] at hcard
+  rw [show booleanHammingBall center k =
+      Finset.univ.filter fun a =>
+        (Finset.univ.filter fun i => a i ≠ center i).card ≤ k from rfl]
+  rw [hcard]
+  have hmem : Set.MapsTo (fun s : Finset α => s.card)
+      (Finset.univ.filter (fun s : Finset α => s.card ≤ k) : Set (Finset α))
+      (Finset.range (k + 1)) := by
+    intro s hs
+    simpa using (Finset.mem_filter.mp hs).2
+  rw [Finset.card_eq_sum_card_fiberwise hmem]
+  apply Finset.sum_congr rfl
+  intro i hi
+  have hi' : i ≤ k := Nat.le_of_lt_succ (Finset.mem_range.mp hi)
+  have hfiber :
+      (Finset.univ.filter (fun s : Finset α => s.card ≤ k)).filter
+          (fun s => s.card = i) =
+        Finset.univ.filter (fun s : Finset α => s.card = i) := by
+    rw [Finset.filter_filter]
+    apply Finset.filter_congr
+    intro s _
+    exact ⟨fun h => h.2, fun h => ⟨h ▸ hi', h⟩⟩
+  rw [hfiber, Finset.univ_filter_card_eq, Finset.card_powersetCard,
+    Finset.card_univ]
+
+/-- Meshulam's local occupancy bound, discharged from the homogeneous private-point hypotheses.
+Translate the chosen ball center to zero, restrict the family to the private points in that ball,
+and apply the local Bollobás cap to the translated subcubes. -/
+theorem BooleanSubcube.privatePoint_hammingBall_occupancy_le_choose
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    [Fintype ι] [DecidableEq ι]
+    (c : ι → BooleanSubcube α) (w : ι → α → Bool) (k : ℕ)
+    (hdim : ∀ i, (BooleanSubcube.fixedVars (c i)).card + k = Fintype.card α)
+    (hself : ∀ i, BooleanSubcube.Contains (c i) (w i))
+    (hprivate : ∀ i j, i ≠ j → ¬ BooleanSubcube.Contains (c i) (w j))
+    (center : α → Bool) :
+    (Finset.univ.filter fun i => center ∈ booleanHammingBall (w i) k).card ≤
+      Nat.choose (Fintype.card α) k := by
+  classical
+  let active : Finset ι := Finset.univ.filter fun i =>
+    center ∈ booleanHammingBall (w i) k
+  let translatedCube : ↥active → BooleanSubcube α := fun i =>
+    BooleanSubcube.translateSubcube center (c i)
+  let translatedPoint : ↥active → α → Bool := fun i =>
+    BooleanSubcube.translatePoint center (w i)
+  have hdim' (i : ↥active) :
+      (BooleanSubcube.fixedVars (translatedCube i)).card + k = Fintype.card α := by
+    rw [BooleanSubcube.fixedVars_translateSubcube]
+    exact hdim i
+  have hself' (i : ↥active) :
+      BooleanSubcube.Contains (translatedCube i) (translatedPoint i) := by
+    exact (BooleanSubcube.contains_translateSubcube_iff center (c i) (w i)).2 (hself i)
+  have hprivate' (i j : ↥active) (hij : i ≠ j) :
+      ¬ BooleanSubcube.Contains (translatedCube i) (translatedPoint j) := by
+    rw [BooleanSubcube.contains_translateSubcube_iff]
+    exact hprivate i j (fun hij' => hij (Subtype.ext hij'))
+  have hwk' (i : ↥active) :
+      (BooleanSubcube.trueSupport (translatedPoint i)).card ≤ k := by
+    rw [BooleanSubcube.trueSupport_translatePoint]
+    have hi := i.property
+    change i.val ∈ Finset.univ.filter (fun j =>
+      center ∈ booleanHammingBall (w j) k) at hi
+    simpa [booleanHammingBall, ne_comm] using (Finset.mem_filter.mp hi).2
+  have hbound := BooleanSubcube.privatePoint_family_card_le_choose
+    translatedCube translatedPoint k hdim' hself' hprivate' hwk'
+  change active.card ≤ Nat.choose (Fintype.card α) k
+  rw [← Fintype.card_coe]
+  exact hbound
+
+/-- Once the two inputs of the local set-pairs argument are supplied--the common Hamming-ball
+volume and the pointwise occupancy cap--finite double counting gives exactly Meshulam's global
+inequality. -/
+theorem meshulam_global_of_local_ball_bound
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    [Fintype ι] [DecidableEq ι]
+    (privatePoint : ι → α → Bool) (k ballVolume : ℕ)
+    (hball : ∀ p, (booleanHammingBall (privatePoint p) k).card = ballVolume)
+    (hlocal : ∀ a, (Finset.univ.filter fun p =>
+      a ∈ booleanHammingBall (privatePoint p) k).card ≤
+        Nat.choose (Fintype.card α) k) :
+    Fintype.card ι * ballVolume ≤
+      Fintype.card (α → Bool) * Nat.choose (Fintype.card α) k := by
+  apply finiteRelation_card_mul_le_card_mul
+    (fun p a => a ∈ booleanHammingBall (privatePoint p) k)
+      ballVolume (Nat.choose (Fintype.card α) k)
+  · intro p
+    simpa using hball p
+  · exact hlocal
+
+/-- On `Fin n`, the Hamming-ball volume discharges automatically.  Hence the displayed local
+occupancy bound is now the sole unformalized content of the Bollobás/Meshulam argument. -/
+theorem meshulam_global_fin_of_local_ball_bound
+    {n k : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (privatePoint : ι → Fin n → Bool)
+    (hlocal : ∀ a, (Finset.univ.filter fun p =>
+      a ∈ booleanHammingBall (privatePoint p) k).card ≤ Nat.choose n k) :
+    Fintype.card ι * (∑ i ∈ Finset.range (k + 1), Nat.choose n i) ≤
+      2 ^ n * Nat.choose n k := by
+  have h := meshulam_global_of_local_ball_bound privatePoint k
+    (∑ i ∈ Finset.range (k + 1), Nat.choose n i)
+    (fun p => booleanHammingBall_card n k (privatePoint p)) (by simpa using hlocal)
+  simpa using h
+
+/-- Meshulam's global inequality for a homogeneous irredundant family on `Fin n`.  The local
+Hamming-ball premise of `meshulam_global_fin_of_local_ball_bound` is supplied by coordinatewise
+translation and the weighted Bollobás occupancy cap. -/
+theorem BooleanSubcube.meshulam_global_fin
+    {n k : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (c : ι → BooleanSubcube (Fin n)) (privatePoint : ι → Fin n → Bool)
+    (hdim : ∀ i, (BooleanSubcube.fixedVars (c i)).card + k = n)
+    (hself : ∀ i, BooleanSubcube.Contains (c i) (privatePoint i))
+    (hprivate : ∀ i j, i ≠ j →
+      ¬ BooleanSubcube.Contains (c i) (privatePoint j)) :
+    Fintype.card ι * (∑ i ∈ Finset.range (k + 1), Nat.choose n i) ≤
+      2 ^ n * Nat.choose n k := by
+  apply meshulam_global_fin_of_local_ball_bound privatePoint
+  intro center
+  simpa using BooleanSubcube.privatePoint_hammingBall_occupancy_le_choose
+    c privatePoint k (by simpa using hdim) hself hprivate center
+
+/-- Meshulam's global inequality on an arbitrary finite coordinate type.  In particular this
+applies directly to the subtype of the coordinates touched by a Hall subfamily. -/
+theorem BooleanSubcube.meshulam_global
+    {α ι : Type*} [Fintype α] [DecidableEq α]
+    [Fintype ι] [DecidableEq ι]
+    (c : ι → BooleanSubcube α) (privatePoint : ι → α → Bool) (k : ℕ)
+    (hdim : ∀ i, (BooleanSubcube.fixedVars (c i)).card + k = Fintype.card α)
+    (hself : ∀ i, BooleanSubcube.Contains (c i) (privatePoint i))
+    (hprivate : ∀ i j, i ≠ j →
+      ¬ BooleanSubcube.Contains (c i) (privatePoint j)) :
+    Fintype.card ι *
+        (∑ i ∈ Finset.range (k + 1), Nat.choose (Fintype.card α) i) ≤
+      2 ^ Fintype.card α * Nat.choose (Fintype.card α) k := by
+  have h := meshulam_global_of_local_ball_bound privatePoint k
+    (∑ i ∈ Finset.range (k + 1), Nat.choose (Fintype.card α) i)
+    (fun p => booleanHammingBall_card_fintype k (privatePoint p))
+    (fun center => BooleanSubcube.privatePoint_hammingBall_occupancy_le_choose
+      c privatePoint k hdim hself hprivate center)
+  simpa using h
+
+/-- All unordered coordinate pairs on the eight-cube, represented by their increasing ordered
+pair.  This is the most economical explicit stress test for any proposed improvement that uses
+only nonempty quarter-cube fibers and private points. -/
+def positivePairSupportsEight : Finset (Fin 8 × Fin 8) :=
+  Finset.univ.filter fun p => p.1 < p.2
+
+/-- The positive quarter-cube attached to a coordinate pair. -/
+def positivePairFiresEight (p : Fin 8 × Fin 8) (assignment : Fin 8 → Bool) : Prop :=
+  assignment p.1 = true ∧ assignment p.2 = true
+
+/-- The assignment supported exactly on the displayed pair is its private point. -/
+def positivePairPrivatePointEight (p : Fin 8 × Fin 8) : Fin 8 → Bool :=
+  fun i => decide (i = p.1 ∨ i = p.2)
+
+/-- There are twenty-eight pair fibers on eight coordinates. -/
+theorem positivePairSupportsEight_card : positivePairSupportsEight.card = 28 := by
+  decide
+
+/-- The twenty-eight positive pair fibers form an irredundant quarter-cube family: every pair
+has a point missed by all the others.  Hence private points plus the one-quarter mass lower bound
+alone cannot improve the `q = 8` Hall threshold of 32; an additional four members would still be
+needed for an actual obstruction. -/
+theorem positivePairSupportsEight_private :
+    ∀ p ∈ positivePairSupportsEight,
+      positivePairFiresEight p (positivePairPrivatePointEight p) ∧
+        ∀ q ∈ positivePairSupportsEight, q ≠ p →
+          ¬ positivePairFiresEight q (positivePairPrivatePointEight p) := by
+  intro p hp
+  have hpLt : p.1 < p.2 := by
+    simpa [positivePairSupportsEight] using hp
+  constructor
+  · simp [positivePairFiresEight, positivePairPrivatePointEight]
+  · intro q hq hne hfire
+    have hqLt : q.1 < q.2 := by
+      simpa [positivePairSupportsEight] using hq
+    have hqOne : q.1 = p.1 ∨ q.1 = p.2 := by
+      simpa [positivePairPrivatePointEight] using hfire.1
+    have hqTwo : q.2 = p.1 ∨ q.2 = p.2 := by
+      simpa [positivePairPrivatePointEight] using hfire.2
+    rcases hqOne with hqOne | hqOne <;>
+      rcases hqTwo with hqTwo | hqTwo
+    · omega
+    · apply hne
+      apply Prod.ext <;> assumption
+    · omega
+    · omega
+
+/-- The exact arithmetic specialization of Meshulam's irredundant-subcube bound to
+codimension two in the eight-cube.  In dimension notation the subcubes have dimension six, so
+the bound is
+
+`M * sum_{i=0}^6 choose(8,i) <= 2^8 * choose(8,6)`.
+
+The left ball volume is `247` and the right incidence budget is `7168`; hence the integer bound
+is `M <= 29`.  The combinatorial Meshulam inequality is deliberately an explicit premise here:
+this theorem kernel-checks the specialization without silently importing the external theorem. -/
+theorem meshulamEightCodimensionTwo_arithmetic (M : ℕ)
+    (hmeshulam :
+      M * (∑ i ∈ Finset.range 7, Nat.choose 8 i) ≤
+        2 ^ 8 * Nat.choose 8 6) :
+    M ≤ 29 := by
+  norm_num [Finset.sum_range_succ, Nat.choose] at hmeshulam ⊢
+  omega
+
+/-- Meshulam's specialized arithmetic still permits 29 members.  Thus that general bound alone
+cannot prove the principal 28-member construction optimal. -/
+theorem meshulamEightCodimensionTwo_twentyNine_compatible :
+    29 * (∑ i ∈ Finset.range 7, Nat.choose 8 i) ≤
+      2 ^ 8 * Nat.choose 8 6 := by
+  norm_num [Finset.sum_range_succ, Nat.choose]
+
+/-- The exact codimension-two Meshulam specialization on nine coordinates.  Here the integer
+cap is already the load-four Hall budget: `M ≤ 36 = 4 * 9`.  As above, the combinatorial
+inequality remains an explicit premise. -/
+theorem meshulamNineCodimensionTwo_arithmetic (M : ℕ)
+    (hmeshulam :
+      M * (∑ i ∈ Finset.range 8, Nat.choose 9 i) ≤
+        2 ^ 9 * Nat.choose 9 7) :
+    M ≤ 36 := by
+  norm_num [Finset.sum_range_succ, Nat.choose] at hmeshulam ⊢
+  omega
+
+/-- Consequently the specialized Meshulam inequality, if supplied for a Hall subfamily on eight
+incident coordinates, already excludes load-four density failure.  Resolving whether the exact
+extremal value is 28 or 29 is unnecessary for this Hall step. -/
+theorem not_widthTwo_subfamily_density_failure_eight_of_meshulam
+    {n G : ℕ} {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    (s : Finset (Fin G × Clause n))
+    (height : (s.biUnion fun p =>
+      incidentQueriedVars target queried p).card = 8)
+    (hmeshulam :
+      s.card * (∑ i ∈ Finset.range 7, Nat.choose 8 i) ≤
+        2 ^ 8 * Nat.choose 8 6) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p).card < s.card := by
+  intro hfail
+  have hcap := meshulamEightCodimensionTwo_arithmetic s.card hmeshulam
+  norm_num [height] at hfail
+  omega
+
+/-- The same conditional bridge closes nine incident coordinates: Meshulam gives 36 and Hall
+permits exactly `4 * 9 = 36`. -/
+theorem not_widthTwo_subfamily_density_failure_nine_of_meshulam
+    {n G : ℕ} {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    (s : Finset (Fin G × Clause n))
+    (hnine : (s.biUnion fun p =>
+      incidentQueriedVars target queried p).card = 9)
+    (hmeshulam :
+      s.card * (∑ i ∈ Finset.range 8, Nat.choose 9 i) ≤
+        2 ^ 9 * Nat.choose 9 7) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p).card < s.card := by
+  intro hfail
+  have hcap := meshulamNineCodimensionTwo_arithmetic s.card hmeshulam
+  norm_num [hnine] at hfail
+  omega
+
+/-- An inclusion-minimal width-two core has no load-four Hall-density failure on exactly eight
+incident coordinates.  The codimension-two refinement supplies a homogeneous irredundant
+subcube family, so the Meshulam premise used by the earlier arithmetic bridge is automatic. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_eight
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (height : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 8) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hlocalCard : Fintype.card ↥localVars = 8 := by
+    rw [Fintype.card_coe]
+    simpa [localVars] using height
+  have hsupportLocal : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars := by
+    intro p v hv
+    have hvQueried : v ∈ queried := hsupport p.1.1 p.1.2 hv
+    exact Finset.mem_biUnion.mpr
+      ⟨p.1, p.2, Finset.mem_inter.mpr ⟨hv, hvQueried⟩⟩
+  obtain ⟨c, privatePoint, hcodim, hself, -, hprivate, -⟩ :=
+    hminimal.exists_subfamily_codimensionTwo_refinement s hsupportLocal
+      (fun p => hwidth p.1.1 p.1.2) (by simp [localVars, height])
+  have hmeshulam := BooleanSubcube.meshulam_global c privatePoint 6
+    (fun p => by simp [hcodim p, hlocalCard]) hself
+    (fun i j hij => hprivate j i hij.symm)
+  have hcap : s.card ≤ 29 := by
+    apply meshulamEightCodimensionTwo_arithmetic
+    simpa [hlocalCard] using hmeshulam
+  intro hfail
+  norm_num [height] at hfail
+  omega
+
+/-- The same unconditional composition closes exactly nine incident coordinates, where
+Meshulam's integer cap is the load-four Hall budget `36`. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_nine
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hnine : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 9) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hlocalCard : Fintype.card ↥localVars = 9 := by
+    rw [Fintype.card_coe]
+    simpa [localVars] using hnine
+  have hsupportLocal : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars := by
+    intro p v hv
+    have hvQueried : v ∈ queried := hsupport p.1.1 p.1.2 hv
+    exact Finset.mem_biUnion.mpr
+      ⟨p.1, p.2, Finset.mem_inter.mpr ⟨hv, hvQueried⟩⟩
+  obtain ⟨c, privatePoint, hcodim, hself, -, hprivate, -⟩ :=
+    hminimal.exists_subfamily_codimensionTwo_refinement s hsupportLocal
+      (fun p => hwidth p.1.1 p.1.2) (by simp [localVars, hnine])
+  have hmeshulam := BooleanSubcube.meshulam_global c privatePoint 7
+    (fun p => by simp [hcodim p, hlocalCard]) hself
+    (fun i j hij => hprivate j i hij.symm)
+  have hcap : s.card ≤ 36 := by
+    apply meshulamNineCodimensionTwo_arithmetic
+    simpa [hlocalCard] using hmeshulam
+  intro hfail
+  norm_num [hnine] at hfail
+  omega
+
+/-- At ten coordinates Meshulam's codimension-two arithmetic first ceases to close load four:
+the cap is 45, while Hall permits only 40. -/
+theorem meshulamTenCodimensionTwo_arithmetic (M : ℕ)
+    (hmeshulam :
+      M * (∑ i ∈ Finset.range 9, Nat.choose 10 i) ≤
+        2 ^ 10 * Nat.choose 10 8) :
+    M ≤ 45 := by
+  norm_num [Finset.sum_range_succ, Nat.choose] at hmeshulam ⊢
+  omega
+
+/-- The ten-coordinate Meshulam inequality genuinely permits 45, recording the five-member gap
+to the load-four Hall budget rather than hiding it behind a loose estimate. -/
+theorem meshulamTenCodimensionTwo_fortyFive_compatible :
+    45 * (∑ i ∈ Finset.range 9, Nat.choose 10 i) ≤
+      2 ^ 10 * Nat.choose 10 8 := by
+  norm_num [Finset.sum_range_succ, Nat.choose]
+
+/-! ### A sharp ten-coordinate stress test for incidence redundancy -/
+
+/-- All unordered coordinate pairs on ten coordinates.  These index the 45 positive
+quarter-cubes that witness why deletion-redundant incidence alone cannot improve the generic
+codimension-two local bound. -/
+def positivePairSupportsTen : Finset (Fin 10 × Fin 10) :=
+  Finset.univ.filter fun p => p.1 < p.2
+
+/-- The positive quarter-cube supported on the displayed coordinate pair. -/
+def positivePairSubcubeTen (p : Fin 10 × Fin 10) : BooleanSubcube (Fin 10) :=
+  fun i => if i = p.1 ∨ i = p.2 then some true else none
+
+/-- The firing predicate of the positive quarter-cube on a displayed pair. -/
+def positivePairFiresTen (p : Fin 10 × Fin 10) (assignment : Fin 10 → Bool) : Prop :=
+  assignment p.1 = true ∧ assignment p.2 = true
+
+/-- The Boolean point supported exactly on the displayed coordinate pair. -/
+def positivePairPrivatePointTen (p : Fin 10 × Fin 10) : Fin 10 → Bool :=
+  fun i => decide (i = p.1 ∨ i = p.2)
+
+/-- The ten-coordinate positive-pair family has the full generic size 45. -/
+theorem positivePairSupportsTen_card : positivePairSupportsTen.card = 45 := by
+  decide
+
+/-- The fixed-coordinate incidence set of a positive pair is exactly its two endpoints. -/
+theorem positivePairSubcubeTen_fixedVars
+    (p : Fin 10 × Fin 10) :
+    BooleanSubcube.fixedVars (positivePairSubcubeTen p) = {p.1, p.2} := by
+  ext i
+  by_cases hi : i = p.1 ∨ i = p.2 <;>
+    simp [BooleanSubcube.fixedVars, positivePairSubcubeTen, hi]
+
+/-- Membership in the displayed subcube is its elementary two-coordinate firing predicate. -/
+theorem positivePairSubcubeTen_contains_iff
+    (p : Fin 10 × Fin 10) (assignment : Fin 10 → Bool) :
+    BooleanSubcube.Contains (positivePairSubcubeTen p) assignment ↔
+      positivePairFiresTen p assignment := by
+  constructor
+  · intro h
+    constructor
+    · exact h p.1 true (by simp [positivePairSubcubeTen])
+    · exact h p.2 true (by simp [positivePairSubcubeTen])
+  · rintro ⟨hpOne, hpTwo⟩ i b hib
+    by_cases hi : i = p.1 ∨ i = p.2
+    · have hb : b = true := by
+        simpa [positivePairSubcubeTen, hi] using congrArg id hib.symm
+      rcases hi with hi | hi
+      · subst i
+        exact hpOne.trans hb.symm
+      · subst i
+        exact hpTwo.trans hb.symm
+    · simp [positivePairSubcubeTen, hi] at hib
+
+/-- The 45 positive pair cubes are irredundant, with the pair indicators as private points. -/
+theorem positivePairSupportsTen_private :
+    ∀ p ∈ positivePairSupportsTen,
+      positivePairFiresTen p (positivePairPrivatePointTen p) ∧
+      ∀ q ∈ positivePairSupportsTen, q ≠ p →
+        ¬ positivePairFiresTen q (positivePairPrivatePointTen p) := by
+  intro p hp
+  have hpLt : p.1 < p.2 := by
+    simpa [positivePairSupportsTen] using hp
+  constructor
+  · simp [positivePairFiresTen, positivePairPrivatePointTen]
+  · intro q hq hne hfire
+    have hqLt : q.1 < q.2 := by
+      simpa [positivePairSupportsTen] using hq
+    have hqOne : q.1 = p.1 ∨ q.1 = p.2 := by
+      simpa [positivePairPrivatePointTen] using hfire.1
+    have hqTwo : q.2 = p.1 ∨ q.2 = p.2 := by
+      simpa [positivePairPrivatePointTen] using hfire.2
+    rcases hqOne with hqOne | hqOne <;>
+      rcases hqTwo with hqTwo | hqTwo
+    · omega
+    · apply hne
+      apply Prod.ext <;> assumption
+    · omega
+    · omega
+
+/-- Subcube form of the preceding irredundancy statement, matching the hypotheses of the local
+Bollobás/Meshulam bound exactly. -/
+theorem positivePairSupportsTen_subcube_private :
+    ∀ p ∈ positivePairSupportsTen,
+      BooleanSubcube.Contains (positivePairSubcubeTen p)
+        (positivePairPrivatePointTen p) ∧
+      ∀ q ∈ positivePairSupportsTen, q ≠ p →
+        ¬ BooleanSubcube.Contains (positivePairSubcubeTen q)
+          (positivePairPrivatePointTen p) := by
+  intro p hp
+  obtain ⟨hself, hprivate⟩ := positivePairSupportsTen_private p hp
+  refine ⟨(positivePairSubcubeTen_contains_iff p _).2 hself, ?_⟩
+  intro q hq hne
+  exact fun hcontains => hprivate q hq hne
+    ((positivePairSubcubeTen_contains_iff q _).1 hcontains)
+
+/-- The all-false assignment lies in none of the positive pair firing fibers. -/
+theorem positivePairSupportsTen_allFalse_not_fires :
+    ∀ p ∈ positivePairSupportsTen,
+      ¬ positivePairFiresTen p (fun _ : Fin 10 => false) := by
+  simp [positivePairFiresTen]
+
+/-- Consequently the sharp 45-member irredundant stress test is not a cover of the Boolean
+cube.  This separates it from the unrefined firing fibers of an entire unsatisfiable competitor
+core, while leaving open the essential issue that a Hall-failing subfamily of such a core need
+not itself be a cover. -/
+theorem positivePairSupportsTen_not_cover :
+    ¬ (∀ assignment : Fin 10 → Bool,
+      ∃ p ∈ positivePairSupportsTen, positivePairFiresTen p assignment) := by
+  intro hcover
+  obtain ⟨p, hp, hfire⟩ := hcover (fun _ => false)
+  exact positivePairSupportsTen_allFalse_not_fires p hp hfire
+
+/-- Deleting any positive pair still leaves every coordinate incident to another retained pair.
+Thus this extremal irredundant family satisfies exactly the no-private-incidence conclusion
+obtained from a deletion-minimal Hall obstruction. -/
+theorem positivePairSupportsTen_deletionRedundant :
+    ∀ p ∈ positivePairSupportsTen,
+      (positivePairSupportsTen.erase p).biUnion
+          (fun q => ({q.1, q.2} : Finset (Fin 10))) = Finset.univ := by
+  set_option maxRecDepth 100000 in
+    set_option maxHeartbeats 1000000 in
+      decide
+
+/-- At the all-false center every pair indicator lies in the radius-eight ball, so the local
+Bollobás/Meshulam occupancy cap is attained exactly: both sides are 45.  In particular,
+no-private incidence does not force strictness in even this local inequality. -/
+theorem positivePairSupportsTen_localOccupancy_eq_choose :
+    (positivePairSupportsTen.attach.filter fun p =>
+      (fun _ : Fin 10 => false) ∈
+        booleanHammingBall (positivePairPrivatePointTen p.1) 8).card =
+      Nat.choose 10 8 := by
+  have hfilter : (positivePairSupportsTen.attach.filter fun p =>
+      (fun _ : Fin 10 => false) ∈
+        booleanHammingBall (positivePairPrivatePointTen p.1) 8) =
+      positivePairSupportsTen.attach := by
+    apply Finset.filter_eq_self.mpr
+    intro p hp
+    have hpLt : p.1.1 < p.1.2 := by
+      exact (Finset.mem_filter.mp p.2).2
+    have hsupport : (Finset.univ.filter fun i : Fin 10 =>
+        false ≠ positivePairPrivatePointTen p.1 i) = {p.1.1, p.1.2} := by
+      ext i
+      by_cases hiOne : i = p.1.1 <;> by_cases hiTwo : i = p.1.2 <;>
+        simp [positivePairPrivatePointTen, hiOne, hiTwo]
+    simp only [booleanHammingBall, Finset.mem_filter, Finset.mem_univ, true_and]
+    rw [hsupport]
+    simp [ne_of_lt hpLt]
+  rw [hfilter, Finset.card_attach, positivePairSupportsTen_card]
+  norm_num [Nat.choose]
+
+/-- Every finite load-four Hall failure contains a deletion-minimal failing subfamily.  This
+generic reduction records both containment in the original family and the exact one-deletion
+minimality needed by the incidence-redundancy lemma below. -/
+theorem exists_subset_loadFour_deletionMinimalFailure
+    {ι α : Type*} [DecidableEq ι] [DecidableEq α]
+    (s : Finset ι) (incident : ι → Finset α)
+    (hfail : 4 * (s.biUnion incident).card < s.card) :
+    ∃ t ⊆ s,
+      4 * (t.biUnion incident).card < t.card ∧
+        ∀ p ∈ t, (t.erase p).card ≤
+          4 * ((t.erase p).biUnion incident).card := by
+  let Failure : Finset ι → Prop := fun t =>
+    t ⊆ s ∧ 4 * (t.biUnion incident).card < t.card
+  obtain ⟨t, htmin⟩ := exists_minimal_of_wellFoundedLT Failure ⟨s, Finset.Subset.rfl, hfail⟩
+  refine ⟨t, htmin.1.1, htmin.1.2, ?_⟩
+  intro p hp
+  by_contra herase
+  have heraseFail : 4 * ((t.erase p).biUnion incident).card < (t.erase p).card := by
+    omega
+  have heraseSubset : t.erase p ⊆ s :=
+    (Finset.erase_subset p t).trans htmin.1.1
+  have htSubsetErase : t ⊆ t.erase p :=
+    htmin.2 ⟨heraseSubset, heraseFail⟩ (Finset.erase_subset p t)
+  exact (Finset.mem_erase.mp (htSubsetErase hp)).1 rfl
+
+/-- A deletion-minimal load-four Hall failure has no member carrying a private incident
+coordinate: deleting any one member leaves the entire incident union unchanged.  This is the
+first structural constraint on a putative Hall obstruction that is invisible to the cardinality
+form of Meshulam's inequality.
+
+The statement is purely finite-set theoretic, so it can be reused before specializing to
+localized firing fibers. -/
+theorem biUnion_erase_eq_of_loadFour_deletionMinimalFailure
+    {ι α : Type*} [DecidableEq ι] [DecidableEq α]
+    (s : Finset ι) (incident : ι → Finset α)
+    (hfail : 4 * (s.biUnion incident).card < s.card)
+    (herase : ∀ p ∈ s,
+      (s.erase p).card ≤ 4 * ((s.erase p).biUnion incident).card) :
+    ∀ p ∈ s, (s.erase p).biUnion incident = s.biUnion incident := by
+  intro p hp
+  have heraseCard : (s.erase p).card = s.card - 1 := Finset.card_erase_of_mem hp
+  have hlower : 4 * (s.biUnion incident).card ≤ (s.erase p).card := by
+    rw [heraseCard]
+    omega
+  have hcardForward :
+      (s.biUnion incident).card ≤ ((s.erase p).biUnion incident).card := by
+    have hmul := hlower.trans (herase p hp)
+    omega
+  have hsubset : (s.erase p).biUnion incident ⊆ s.biUnion incident := by
+    intro x hx
+    obtain ⟨i, hiErase, hxi⟩ := Finset.mem_biUnion.mp hx
+    exact Finset.mem_biUnion.mpr ⟨i, Finset.mem_of_mem_erase hiErase, hxi⟩
+  exact Finset.eq_of_subset_of_card_le hsubset hcardForward
+
+/-- An actual width-two Hall failure on ten incident coordinates is confined to the five-value
+window `41 ≤ |s| ≤ 45`.  The lower endpoint is the load-four failure itself; the upper
+endpoint is the unconditional Meshulam bound applied to the localized codimension-two
+refinement. -/
+theorem InclusionMinimalUnsatisfiableCore.widthTwo_tenSupport_card_window_of_density_failure
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hten : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 10)
+    (hfail : 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    41 ≤ s.card ∧ s.card ≤ 45 := by
+  classical
+  let localVars := s.biUnion fun p => incidentQueriedVars target queried p.1
+  have hlocalCard : Fintype.card ↥localVars = 10 := by
+    rw [Fintype.card_coe]
+    simpa [localVars] using hten
+  have hsupportLocal : ∀ p : ↥s,
+      competitorOutsideTargetVars target p.1.1.2 ⊆ localVars := by
+    intro p v hv
+    have hvQueried : v ∈ queried := hsupport p.1.1 p.1.2 hv
+    exact Finset.mem_biUnion.mpr
+      ⟨p.1, p.2, Finset.mem_inter.mpr ⟨hv, hvQueried⟩⟩
+  obtain ⟨c, privatePoint, hcodim, hself, -, hprivate, -⟩ :=
+    hminimal.exists_subfamily_codimensionTwo_refinement s hsupportLocal
+      (fun p => hwidth p.1.1 p.1.2) (by simp [localVars, hten])
+  have hmeshulam := BooleanSubcube.meshulam_global c privatePoint 8
+    (fun p => by simp [hcodim p, hlocalCard]) hself
+    (fun i j hij => hprivate j i hij.symm)
+  have hcap : s.card ≤ 45 := by
+    apply meshulamTenCodimensionTwo_arithmetic
+    simpa [hlocalCard] using hmeshulam
+  constructor
+  · norm_num [hten] at hfail
+    omega
+  · exact hcap
+
+/-- A deletion-minimal ten-coordinate counterexample is therefore both numerically narrow and
+incidence-redundant: it has 41--45 members, and removing any member preserves all ten incident
+coordinates. -/
+theorem InclusionMinimalUnsatisfiableCore.widthTwo_tenSupport_deletionMinimalFailure_structure
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hten : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 10)
+    (hfail : 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card)
+    (herase : ∀ p ∈ s,
+      (s.erase p).card ≤ 2 ^ 2 * ((s.erase p).biUnion fun q =>
+        incidentQueriedVars target queried q.1).card) :
+    (41 ≤ s.card ∧ s.card ≤ 45) ∧
+      ∀ p ∈ s, (s.erase p).biUnion (fun q =>
+        incidentQueriedVars target queried q.1) =
+          s.biUnion fun q => incidentQueriedVars target queried q.1 := by
+  refine ⟨hminimal.widthTwo_tenSupport_card_window_of_density_failure
+    hsupport hwidth s hten hfail, ?_⟩
+  apply biUnion_erase_eq_of_loadFour_deletionMinimalFailure s
+    (fun q => incidentQueriedVars target queried q.1)
+  · simpa using hfail
+  · intro p hp
+    simpa using herase p hp
+
+/-- Any width-two load-four failure supported on at most ten queried coordinates contains a
+deletion-minimal failure that still uses exactly ten coordinates, provided every core member has
+a genuine incident queried coordinate.  The already proved exclusions at support sizes five
+through nine prevent minimization from shrinking the support.  The resulting obstruction is
+therefore in the `41--45` window and has no private incidence. -/
+theorem InclusionMinimalUnsatisfiableCore.exists_tenSupport_deletionMinimalFailure_structure
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hincident : ∀ p ∈ core,
+      (incidentQueriedVars target queried p).Nonempty)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (s : Finset ↥core)
+    (hten : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 10)
+    (hfail : 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card) :
+    ∃ t ⊆ s,
+      (t.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card = 10 ∧
+      2 ^ 2 * (t.biUnion fun p =>
+        incidentQueriedVars target queried p.1).card < t.card ∧
+      (41 ≤ t.card ∧ t.card ≤ 45) ∧
+      ∀ p ∈ t, (t.erase p).biUnion (fun q =>
+        incidentQueriedVars target queried q.1) =
+          t.biUnion fun q => incidentQueriedVars target queried q.1 := by
+  classical
+  let incident : ↥core → Finset (Fin n) := fun p =>
+    incidentQueriedVars target queried p.1
+  obtain ⟨t, hts, htfail, hterase⟩ :=
+    exists_subset_loadFour_deletionMinimalFailure s incident (by simpa [incident] using hfail)
+  have htge : 5 ≤ (t.biUnion incident).card := by
+    have := hminimal.width_add_three_le_incidentUnion_of_density_failure
+      hsupport hincident (w := 2) (by norm_num) t (by simpa [incident] using htfail)
+    simpa [incident] using this
+  have htUnionSubset : t.biUnion incident ⊆ s.biUnion incident := by
+    intro v hv
+    obtain ⟨p, hpt, hvp⟩ := Finset.mem_biUnion.mp hv
+    exact Finset.mem_biUnion.mpr ⟨p, hts hpt, hvp⟩
+  have htle : (t.biUnion incident).card ≤ 10 := by
+    have := Finset.card_le_card htUnionSubset
+    simpa [incident, hten] using this
+  have htfail' : 2 ^ 2 * (t.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < t.card := by
+    simpa [incident] using htfail
+  have htt : (t.biUnion incident).card = 10 := by
+    by_contra hne
+    have htlt : (t.biUnion incident).card < 10 := by omega
+    interval_cases hq : (t.biUnion incident).card
+    · have hq' : (t.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card = 5 := by simpa [incident] using hq
+      apply hminimal.not_widthTwo_subfamily_density_failure_five hsupport hwidth t hq'
+      simpa [hq'] using htfail'
+    · have hq' : (t.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card = 6 := by simpa [incident] using hq
+      apply hminimal.not_widthTwo_subfamily_density_failure_six hsupport hwidth t hq'
+      simpa [hq'] using htfail'
+    · have hq' : (t.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card = 7 := by simpa [incident] using hq
+      apply hminimal.not_widthTwo_subfamily_density_failure_seven hsupport hwidth t hq'
+      simpa [hq'] using htfail'
+    · have hq' : (t.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card = 8 := by simpa [incident] using hq
+      apply hminimal.not_widthTwo_subfamily_density_failure_eight hsupport hwidth t hq'
+      simpa [hq'] using htfail'
+    · have hq' : (t.biUnion fun p =>
+          incidentQueriedVars target queried p.1).card = 9 := by simpa [incident] using hq
+      apply hminimal.not_widthTwo_subfamily_density_failure_nine hsupport hwidth t hq'
+      simpa [hq'] using htfail'
+  have hstructure := hminimal.widthTwo_tenSupport_deletionMinimalFailure_structure
+    hsupport hwidth t (by simpa [incident] using htt) (by simpa [incident] using htfail)
+      (by intro p hp; simpa [incident] using hterase p hp)
+  refine ⟨t, hts, by simpa [incident] using htt, by simpa [incident] using htfail,
+    hstructure.1, ?_⟩
+  simpa [incident] using hstructure.2
+
+/-- At five queried coordinates the width-two dimension cap is exactly sixteen. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_sixteen_of_widthTwo_fiveSupport
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (hfive : queried.card = 5) :
+    core.card ≤ 16 := by
+  have hbound := hminimal.card_le_degreeTwo_binomialBudget hsupport hwidth
+  norm_num [hfive] at hbound ⊢
+  exact hbound
+
+/-- Consequently the previously isolated 21--32 Hall-failure window at width two and support
+five is empty: a subfamily cannot simultaneously exceed the load-four threshold and sit inside
+a core of size at most sixteen. -/
+theorem InclusionMinimalUnsatisfiableCore.not_widthTwo_fiveSupport_density_failure
+    {n G : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried)
+    (hwidth : ∀ p ∈ core, p.2.lits.length ≤ 2)
+    (hqueried : queried.card = 5) (s : Finset ↥core)
+    (hfive : (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card = 5) :
+    ¬ 2 ^ 2 * (s.biUnion fun p =>
+      incidentQueriedVars target queried p.1).card < s.card := by
+  intro hfail
+  have hcore : core.card ≤ 16 :=
+    hminimal.card_le_sixteen_of_widthTwo_fiveSupport
+      hsupport hwidth hqueried
+  have hsCore : s.card ≤ core.card := by
+    simpa using Finset.card_le_card (Finset.subset_univ s)
+  norm_num [hfive] at hfail
+  omega
+
+
+/-- A load budget `L` is represented by `L` distinct slots at every incident queried
+coordinate.  An injective representative in these slot neighborhoods produces a bounded-load
+orientation. -/
+def incidentOwnerSlots {n G L : ℕ} (target : Fin G → Clause n)
+    (queried : Finset (Fin n)) (p : Fin G × Clause n) : Finset (Fin n × Fin L) :=
+  incidentQueriedVars target queried p ×ˢ Finset.univ
+
+/-- Capacitated Hall reduction for polarity ownership.  To orient every core clause toward an
+incident queried coordinate with load at most `L`, it is enough to prove the local density
+inequality for every subfamily: the number of clauses is at most `L` times the number of queried
+coordinates touched by that subfamily.
+
+This is the precise combinatorial interface left after semantic-signature normalization.  In
+particular, a bound only for the whole core is insufficient; deletion witnesses must control all
+subfamilies in order to invoke Hall. -/
+theorem exists_incidentCoordinateOwner_load_le_of_localDensity
+    {n G L : ℕ} {target : Fin G → Clause n}
+    {core : Finset (Fin G × Clause n)} {queried : Finset (Fin n)}
+    (hcore : core.Nonempty)
+    (hincident : ∀ p ∈ core, (incidentQueriedVars target queried p).Nonempty)
+    (hdensity : ∀ s : Finset ↥core,
+      s.card ≤ L * (s.biUnion fun p => incidentQueriedVars target queried p.1).card) :
+    ∃ owner : (Fin G × Clause n) → Fin n,
+      IncidentCoordinateOwner target core queried owner ∧
+        ∀ v, (core.filter fun p => owner p = v).card ≤ L := by
+  classical
+  let slots : ↥core → Finset (Fin n × Fin L) := fun p =>
+    incidentOwnerSlots target queried p.1
+  have hslotsUnion (s : Finset ↥core) :
+      s.biUnion slots =
+        (s.biUnion fun p => incidentQueriedVars target queried p.1) ×ˢ Finset.univ := by
+    ext z
+    simp [slots, incidentOwnerSlots]
+  have hhall : ∀ s : Finset ↥core, s.card ≤ (s.biUnion slots).card := by
+    intro s
+    rw [hslotsUnion, Finset.card_product, Finset.card_univ, Fintype.card_fin]
+    simpa [Nat.mul_comm] using hdensity s
+  obtain ⟨slot, hslotInjective, hslotMem⟩ :=
+    (Finset.all_card_le_biUnion_card_iff_existsInjective' slots).mp hhall
+  obtain ⟨p0, hp0⟩ := hcore
+  obtain ⟨v0, hv0⟩ := hincident p0 hp0
+  let owner : (Fin G × Clause n) → Fin n := fun p =>
+    if hp : p ∈ core then (slot ⟨p, hp⟩).1 else v0
+  refine ⟨owner, ?_, ?_⟩
+  · intro p hp
+    have hmem := hslotMem ⟨p, hp⟩
+    rw [show owner p = (slot ⟨p, hp⟩).1 by simp [owner, hp]]
+    have hfirst : (slot ⟨p, hp⟩).1 ∈ incidentQueriedVars target queried p :=
+      (Finset.mem_product.mp hmem).1
+    exact ⟨(Finset.mem_inter.mp hfirst).2, (Finset.mem_inter.mp hfirst).1⟩
+  · intro v
+    let fiber := core.filter fun p => owner p = v
+    let label : ↥fiber → Fin L := fun p => slot ⟨p.1, (Finset.mem_filter.mp p.2).1⟩ |>.2
+    have hlabelInjective : Function.Injective label := by
+      intro p q heq
+      apply Subtype.ext
+      have hpCore : p.1 ∈ core := (Finset.mem_filter.mp p.2).1
+      have hqCore : q.1 ∈ core := (Finset.mem_filter.mp q.2).1
+      have hpOwner : owner p.1 = v := (Finset.mem_filter.mp p.2).2
+      have hqOwner : owner q.1 = v := (Finset.mem_filter.mp q.2).2
+      have hfirst : (slot ⟨p.1, hpCore⟩).1 = (slot ⟨q.1, hqCore⟩).1 := by
+        simpa [owner, hpCore, hqCore] using hpOwner.trans hqOwner.symm
+      have hslotEq : slot ⟨p.1, hpCore⟩ = slot ⟨q.1, hqCore⟩ := by
+        apply Prod.ext hfirst
+        exact heq
+      have hpq : (⟨p.1, hpCore⟩ : ↥core) = ⟨q.1, hqCore⟩ :=
+        hslotInjective hslotEq
+      exact congrArg (fun z : ↥core => z.1) hpq
+    calc
+      fiber.card = Fintype.card ↥fiber := by simp
+      _ ≤ Fintype.card (Fin L) := Fintype.card_le_of_injective label hlabelInjective
+      _ = L := Fintype.card_fin L
+
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_incidentCoordinateOwner_load_le_of_localDensity
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_two_pow_incidentUnion
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_smallSupport
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.width_add_two_le_incidentUnion_of_density_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_support_le_add_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.width_add_three_le_incidentUnion_of_density_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_widthBudget_of_pow_sub_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.pow_sub_gt_incidentUnion_of_density_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.widthTwo_fiveSupport_card_window_of_density_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.outsideTermIndicators_linearIndependent
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_of_outsideTermIndicators_mem_span
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.outsideCompetitorTermFires_congr_of_eqOn
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.outsideCompetitorTermFires_eq_localized_restrict
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.localizedOutsideTermFires_cover
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedDegreeTwoMonomialBasis_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedSquarefreeMonomial_mem_degreeTwo_span
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedLiteralFiringFactor_mul_mem_degreeTwo_span
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedOutsideCompetitorTermIndicator_mem_degreeTwo_span
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.localizedOutsideTermIndicators_linearIndependent
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_of_localizedOutsideTermIndicators_mem_span
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_localizedOutsideTermIndicators_linearIndependent
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sum_eq_one_of_privatePoints_of_finrank_le_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_indicators_partition_of_degreeTwo_full
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.boolAssignment_card_le_four_mul_firingFiber_of_twoCoordinateRetraction
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedOutsideCompetitorTermFires_dependsOn_twoCoordinates
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedOutsideCompetitorTermFires_cube_card_le_four_mul_fiber
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_le_four_of_partition_and_quarter_fibers
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_degreeTwo_binomialBudget
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_lt_degreeTwo_binomialBudget
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.subfamily_card_le_degreeTwo_incidentUnion
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_five
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_six
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.widthTwo_subfamily_card_le_twentyEight_of_seven
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_seven
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.contains_iff_trueSupport_interval
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.fixedTrueVars_subset_privateSupport_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.fixedTrueVars_disjoint_privateComplement_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_sdiff_trueSupport_of_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.allBefore_events_pairwiseExclusive
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.fixedTrueVars_allBefore_events_pairwiseExclusive
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.allFirstPatterns_fraction
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.allBefore_iff_inducedRankPattern_eq_firstPositions
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.numbering_isPrefix_leftBlock_allBefore
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.numbering_isPrefix_leftBlock_iff_allBefore
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.allBeforeNumberings_eq_prefixed
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_prefixed_leftBlock
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_allBeforeNumberings
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.dens_allBeforeNumberings
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.ambientRelativeNumbering_lt_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.allBefore_ambientRelativeNumbering_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.numbering_ext_of_lt_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.ambientRelativeNumbering_ambientRelabel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_ambientRelativeFiber_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_ambientRelativeFiber
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.mem_ambientAllBeforeNumberings_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_ambientAllBeforeNumberings
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.dens_ambientAllBeforeNumberings
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.weighted_bollobas
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.card_powersetCard_filter_superset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privateToEndSlice_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.endVars_card_eq_fixedTrueVars_card_add
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privateToEndSlice_card_of_dimension
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.finite_weighted_cover_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.finite_reciprocal_cover_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privateToEndSlice_local_reciprocal_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privateToEndSliceAsAmbient_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privatePoint_family_card_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.fixedVars_translateSubcube
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.contains_translateSubcube_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.trueSupport_translatePoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.exists_codimensionTwo_refinement_preserving_privatePoints
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.localizedOutsideCompetitorTermFires_iff_subcubeContains
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.exists_subfamily_booleanSubcubes
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.exists_subfamily_codimensionTwo_refinement
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.finiteRelation_card_mul_le_card_mul
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.booleanHammingBall_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.privatePoint_hammingBall_occupancy_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulam_global_of_local_ball_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulam_global_fin_of_local_ball_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.meshulam_global_fin
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.booleanHammingBall_card_fintype
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.BooleanSubcube.meshulam_global
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsEight_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsEight_private
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulamEightCodimensionTwo_arithmetic
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulamEightCodimensionTwo_twentyNine_compatible
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulamNineCodimensionTwo_arithmetic
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_widthTwo_subfamily_density_failure_eight_of_meshulam
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_widthTwo_subfamily_density_failure_nine_of_meshulam
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_eight
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_subfamily_density_failure_nine
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulamTenCodimensionTwo_arithmetic
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.meshulamTenCodimensionTwo_fortyFive_compatible
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsTen_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSubcubeTen_fixedVars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsTen_subcube_private
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsTen_not_cover
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsTen_deletionRedundant
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.positivePairSupportsTen_localOccupancy_eq_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_subset_loadFour_deletionMinimalFailure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.biUnion_erase_eq_of_loadFour_deletionMinimalFailure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.widthTwo_tenSupport_card_window_of_density_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.widthTwo_tenSupport_deletionMinimalFailure_structure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.exists_tenSupport_deletionMinimalFailure_structure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_degreeTwo_binomialBudget
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.not_widthTwo_fiveSupport_density_failure
 
 /-! ### Joint target choice is not generically sufficient -/
 
@@ -6963,6 +10965,8 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_fullOutsideCompetitorCore
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_inclusionMinimalUnsatisfiableCore_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.outsideLiteralSet_injectiveOn
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_image_outsideLiteralSet
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_two_pow
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_two_pow_queried
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_iff_fullCore_satisfiable
@@ -7231,11 +11235,11 @@ def exhaustiveVectorTarget (Q : ℕ) : Fin 1 → Clause (Q + 1) :=
 listed without duplication, followed by the protected target.  The eventual canonical-query
 argument is deliberately separated from this representation theorem: the semantic core and its
 incidence counts do not depend on the implementation order of `Finset.toList`. -/
-def exhaustiveVectorGate (Q : ℕ) : List (Clause (Q + 1)) :=
+noncomputable def exhaustiveVectorGate (Q : ℕ) : List (Clause (Q + 1)) :=
   ((Finset.univ : Finset (Fin Q → Bool)).toList.map exhaustiveVectorClause) ++
     [exhaustiveVectorTarget Q 0]
 
-def exhaustiveVectorFamily (Q : ℕ) : Fin 1 → List (Clause (Q + 1)) :=
+noncomputable def exhaustiveVectorFamily (Q : ℕ) : Fin 1 → List (Clause (Q + 1)) :=
   fun _ => exhaustiveVectorGate Q
 
 theorem mem_exhaustiveVectorGate (Q : ℕ) (U : Clause (Q + 1)) :
@@ -7243,6 +11247,24 @@ theorem mem_exhaustiveVectorGate (Q : ℕ) (U : Clause (Q + 1)) :
       (∃ a : Fin Q → Bool, exhaustiveVectorClause a = U) ∨
         U = exhaustiveVectorTarget Q 0 := by
   simp [exhaustiveVectorGate]
+
+theorem mem_exhaustiveVectorClause {Q : ℕ} (a : Fin Q → Bool)
+    (ell : Rung4Literal (Q + 1)) :
+    ell ∈ (exhaustiveVectorClause a).lits ↔
+      ∃ i, exhaustiveVectorLiteral a i = ell := by
+  simp [exhaustiveVectorClause]
+
+theorem exhaustiveVectorClause_ne_target {Q : ℕ} (a : Fin Q → Bool) :
+    exhaustiveVectorClause a ≠ exhaustiveVectorTarget Q 0 := by
+  intro h
+  have hmem : Rung4Literal.pos (Fin.last Q) ∈ (exhaustiveVectorClause a).lits := by
+    rw [h]
+    simp [exhaustiveVectorTarget]
+  obtain ⟨i, hi⟩ := (mem_exhaustiveVectorClause a _).mp hmem
+  have hv := congrArg litVar hi
+  rw [litVar_exhaustiveVectorLiteral] at hv
+  simp only [litVar] at hv
+  exact Fin.castSucc_ne_last i hv
 
 /-- The abstract Boolean-vector core is exactly the full proper-competitor core of its concrete
 protected gate. -/
@@ -7264,8 +11286,7 @@ theorem exhaustiveVectorCore_eq_full (Q : ℕ) :
     have hU : exhaustiveVectorClause a = U := congrArg Prod.snd hpa
     refine ⟨Or.inl ⟨a, hU⟩, ?_⟩
     intro hut
-    have hlits := congrArg Clause.lits (hU.trans hut)
-    simp [exhaustiveVectorClause, exhaustiveVectorTarget] at hlits
+    exact exhaustiveVectorClause_ne_target a (hU.trans hut)
   · rintro ⟨hmem, hne⟩
     rcases hmem with ⟨a, rfl⟩ | htarget
     · simp [exhaustiveVectorCore, exhaustiveVectorCoreEmbedding]
@@ -7276,16 +11297,27 @@ theorem exhaustiveVectorCore_card (Q : ℕ) :
     (exhaustiveVectorCore Q).card = 2 ^ Q := by
   simp [exhaustiveVectorCore]
 
+/-- Every Boolean-vector competitor has width exactly its outside-support size.  Thus the
+arbitrary-support obstruction is simultaneously a growing-width construction. -/
+theorem exhaustiveVectorClause_length {Q : ℕ} (a : Fin Q → Bool) :
+    (exhaustiveVectorClause a).lits.length = Q := by
+  simp [exhaustiveVectorClause]
+
+/-- Any uniform width bound on the concrete exhaustive gate bounds the support parameter `Q`.
+This is the quantitative interface needed before importing the ownership lower bound into a
+bounded-width switching round. -/
+theorem exhaustiveVectorGate_width_forces_support_le {Q w : ℕ}
+    (hwidth : ∀ T ∈ exhaustiveVectorGate Q, T.lits.length ≤ w) :
+    Q ≤ w := by
+  let a : Fin Q → Bool := fun _ => false
+  have hmem : exhaustiveVectorClause a ∈ exhaustiveVectorGate Q :=
+    (mem_exhaustiveVectorGate Q _).2 (Or.inl ⟨a, rfl⟩)
+  simpa [exhaustiveVectorClause_length] using hwidth (exhaustiveVectorClause a) hmem
+
 theorem compatibleIsolationTargetVars_exhaustiveVectorTarget (Q : ℕ) :
     compatibleIsolationTargetVars (exhaustiveVectorTarget Q) = {Fin.last Q} := by
   ext i
   simp [compatibleIsolationTargetVars, exhaustiveVectorTarget, litVar]
-
-theorem mem_exhaustiveVectorClause {Q : ℕ} (a : Fin Q → Bool)
-    (ell : Rung4Literal (Q + 1)) :
-    ell ∈ (exhaustiveVectorClause a).lits ↔
-      ∃ i, exhaustiveVectorLiteral a i = ell := by
-  simp [exhaustiveVectorClause]
 
 /-- Every exhaustive competitor uses every outside coordinate and avoids the protected final
 coordinate.  Thus its available outside edge is the complete embedded `Fin Q` support. -/
@@ -7351,17 +11383,176 @@ theorem exists_exhaustiveVectorClause_live_of_free
     apply List.any_eq_false.mpr
     intro ell hell
     obtain ⟨i, rfl⟩ := (mem_exhaustiveVectorClause a ell).mp hell
-    simp only [litFalse, a, exhaustiveVectorLiteral]
+    dsimp [a] at hell ⊢
+    clear hell a
     cases hs : sigma i.castSucc with
-    | none => simp [hs, Depth3.litFixedVal]
-    | some b => cases b <;> simp [hs, Depth3.litFixedVal]
+    | none => simp [hs, exhaustiveVectorLiteral, litFalse, Depth3.litFixedVal]
+    | some b => cases b <;> simp [hs, exhaustiveVectorLiteral, litFalse, Depth3.litFixedVal]
   · obtain ⟨i, hi⟩ := hfree
-    apply List.length_pos.mpr
-    refine ⟨exhaustiveVectorLiteral a i, ?_⟩
+    apply List.length_pos_of_mem (a := exhaustiveVectorLiteral a i)
     rw [freeLits, List.mem_filter]
     refine ⟨(mem_exhaustiveVectorClause a _).2 ⟨i, rfl⟩, ?_⟩
-    rw [Depth3.litFree, litVar_exhaustiveVectorLiteral]
-    cases exhaustiveVectorLiteral a i <;> simp_all [Depth3.litFixedVal, litVar]
+    rw [litFree_var, litVar_exhaustiveVectorLiteral, hi]
+    rfl
+
+/-- While an outside coordinate and the protected coordinate are free, the canonical selector
+cannot fall through to the appended protected target.  Some exhaustive clause in the preceding
+prefix is live, so the first live term is itself an exhaustive Boolean-vector clause.  This is
+independent of the enumeration order inside `Finset.toList`. -/
+theorem activeTerm_exhaustiveVectorClause_of_free
+    {Q : ℕ} (sigma : Restriction (Q + 1))
+    (hlast : sigma (Fin.last Q) = none)
+    (hfree : ∃ i : Fin Q, sigma i.castSucc = none) :
+    ∃ a : Fin Q → Bool,
+      activeTerm (exhaustiveVectorGate Q) sigma = some (exhaustiveVectorClause a) := by
+  let clausesPrefix := (Finset.univ : Finset (Fin Q → Bool)).toList.map exhaustiveVectorClause
+  let livePred := fun T : Clause (Q + 1) =>
+    !termFalsified sigma T && decide (0 < (freeLits sigma T).length)
+  obtain ⟨a, -, haFalse, haFree⟩ :=
+    exists_exhaustiveVectorClause_live_of_free sigma hfree
+  have haPrefix : exhaustiveVectorClause a ∈ clausesPrefix := by
+    simp [clausesPrefix]
+  have haPred : livePred (exhaustiveVectorClause a) = true := by
+    simp [livePred, haFalse, haFree]
+  have hfindPrefix : clausesPrefix.find? livePred ≠ none := by
+    intro hnone
+    have := (List.find?_eq_none.mp hnone) (exhaustiveVectorClause a) haPrefix
+    rw [haPred] at this
+    contradiction
+  obtain ⟨T, hfindPrefix⟩ := Option.ne_none_iff_exists'.mp hfindPrefix
+  have hsat := anyTermSat_exhaustiveVectorGate_eq_false_of_free sigma hlast hfree
+  have hactive : activeTerm (exhaustiveVectorGate Q) sigma = some T := by
+    rw [activeTerm_eq_find hsat]
+    simp [exhaustiveVectorGate, clausesPrefix, livePred, hfindPrefix]
+  have hTmem : T ∈ clausesPrefix := List.mem_of_find?_eq_some hfindPrefix
+  simp only [clausesPrefix, List.mem_map] at hTmem
+  obtain ⟨b, -, rfl⟩ := hTmem
+  exact ⟨b, hactive⟩
+
+/-- The corresponding one-step canonical-tree invariant: with some outside coordinate still
+free, the root query is a fresh outside coordinate, never the protected final coordinate. -/
+theorem canonicalDT_exhaustiveVectorGate_root_query_of_free
+    {Q fuel : ℕ} (sigma : Restriction (Q + 1))
+    (hlast : sigma (Fin.last Q) = none)
+    (hfree : ∃ i : Fin Q, sigma i.castSucc = none) :
+    ∃ i : Fin Q,
+      canonicalDT (exhaustiveVectorGate Q) (fuel + 1) sigma =
+        BoolDecisionTree.query i.castSucc
+          (canonicalDT (exhaustiveVectorGate Q) fuel (fixVar sigma i.castSucc false))
+          (canonicalDT (exhaustiveVectorGate Q) fuel (fixVar sigma i.castSucc true)) := by
+  obtain ⟨a, hactive⟩ :=
+    activeTerm_exhaustiveVectorClause_of_free sigma hlast hfree
+  obtain ⟨ell, hhead, -⟩ := activeTerm_first_free hactive
+  have hellFree : ell ∈ freeLits sigma (exhaustiveVectorClause a) :=
+    List.mem_of_mem_head? hhead
+  have hellClause : ell ∈ (exhaustiveVectorClause a).lits :=
+    List.mem_of_mem_filter hellFree
+  obtain ⟨i, rfl⟩ := (mem_exhaustiveVectorClause a ell).mp hellClause
+  refine ⟨i, ?_⟩
+  simp [canonicalDT,
+    anyTermSat_exhaustiveVectorGate_eq_false_of_free sigma hlast hfree,
+    hactive, hhead, litVar_exhaustiveVectorLiteral]
+
+/-- The outside coordinates that remain free under a partial restriction.  Keeping this support
+in `Fin Q`, rather than in the ambient `Fin (Q + 1)`, makes the protected final coordinate
+structurally unavailable to the cardinality induction. -/
+def exhaustiveVectorFreeSupport {Q : ℕ} (sigma : Restriction (Q + 1)) : Finset (Fin Q) :=
+  Finset.univ.filter fun i => sigma i.castSucc = none
+
+theorem mem_exhaustiveVectorFreeSupport {Q : ℕ} {sigma : Restriction (Q + 1)}
+    {i : Fin Q} :
+    i ∈ exhaustiveVectorFreeSupport sigma ↔ sigma i.castSucc = none := by
+  simp [exhaustiveVectorFreeSupport]
+
+/-- Fixing an outside coordinate cannot touch the protected final coordinate. -/
+theorem fixVar_castSucc_last {Q : ℕ} (sigma : Restriction (Q + 1))
+    (i : Fin Q) (b : Bool) :
+    fixVar sigma i.castSucc b (Fin.last Q) = sigma (Fin.last Q) := by
+  rw [fixVar, Function.update_of_ne (Fin.castSucc_ne_last i).symm]
+
+/-- Fixing an outside coordinate removes exactly that coordinate from the remaining outside
+support, independently of the assigned Boolean value. -/
+theorem exhaustiveVectorFreeSupport_fixVar {Q : ℕ} (sigma : Restriction (Q + 1))
+    (i : Fin Q) (b : Bool) :
+    exhaustiveVectorFreeSupport (fixVar sigma i.castSucc b) =
+      (exhaustiveVectorFreeSupport sigma).erase i := by
+  ext j
+  rw [mem_exhaustiveVectorFreeSupport, Finset.mem_erase,
+    mem_exhaustiveVectorFreeSupport]
+  by_cases hji : j = i
+  · subst j
+    simp [fixVar]
+  · have hcast : j.castSucc ≠ i.castSucc :=
+      fun h => hji (Fin.castSucc_injective Q h)
+    simp [fixVar, Function.update_of_ne hcast, hji]
+
+/-- With fuel equal to the number of remaining outside coordinates, the protected exhaustive
+gate queries exactly those coordinates and never queries the protected target coordinate.  The
+proof is by support cardinality, so it is independent of the `Finset.toList` clause order. -/
+theorem exhaustiveVectorGate_queriedVars_eq_freeSupport {Q : ℕ}
+    (sigma : Restriction (Q + 1))
+    (hlast : sigma (Fin.last Q) = none) :
+    queriedVars
+        (canonicalDT (exhaustiveVectorGate Q)
+          (exhaustiveVectorFreeSupport sigma).card sigma) =
+      (exhaustiveVectorFreeSupport sigma).map Fin.castSuccEmb := by
+  generalize hk : (exhaustiveVectorFreeSupport sigma).card = k
+  induction k using Nat.strong_induction_on generalizing sigma with
+  | h k ih =>
+      cases k with
+      | zero =>
+          have hs : exhaustiveVectorFreeSupport sigma = ∅ :=
+            Finset.card_eq_zero.mp hk
+          rw [hs]
+          simp only [Finset.map_empty]
+          rw [canonicalDT]
+          split <;> rfl
+      | succ k =>
+          have hsne : (exhaustiveVectorFreeSupport sigma).Nonempty :=
+            Finset.card_pos.mp (by omega)
+          obtain ⟨j, hj⟩ := hsne
+          have hfree : ∃ j : Fin Q, sigma j.castSucc = none :=
+            ⟨j, mem_exhaustiveVectorFreeSupport.mp hj⟩
+          obtain ⟨i, htree⟩ :=
+            canonicalDT_exhaustiveVectorGate_root_query_of_free
+              (fuel := k) sigma hlast hfree
+          have hiQuery : i.castSucc ∈ queriedVars
+              (canonicalDT (exhaustiveVectorGate Q) (k + 1) sigma) := by
+            rw [htree]
+            simp [queriedVars]
+          have hiFree : sigma i.castSucc = none :=
+            SwitchingCounting.mem_freeVars.mp
+              (canonicalDT_queriedVars_subset_free
+                (exhaustiveVectorGate Q) (k + 1) sigma hiQuery)
+          have hiSupport : i ∈ exhaustiveVectorFreeSupport sigma :=
+            mem_exhaustiveVectorFreeSupport.mpr hiFree
+          have hlastFix (b : Bool) :
+              fixVar sigma i.castSucc b (Fin.last Q) = none := by
+            rw [fixVar_castSucc_last, hlast]
+          have hcardFix (b : Bool) :
+              (exhaustiveVectorFreeSupport (fixVar sigma i.castSucc b)).card = k := by
+            rw [exhaustiveVectorFreeSupport_fixVar,
+              Finset.card_erase_of_mem hiSupport, hk]
+            omega
+          have hfalse := ih k (Nat.lt_succ_self k)
+            (fixVar sigma i.castSucc false) (hlastFix false) (hcardFix false)
+          have htrue := ih k (Nat.lt_succ_self k)
+            (fixVar sigma i.castSucc true) (hlastFix true) (hcardFix true)
+          rw [htree, queriedVars, hfalse, htrue,
+            exhaustiveVectorFreeSupport_fixVar,
+            exhaustiveVectorFreeSupport_fixVar, Finset.union_self]
+          change insert (Fin.castSuccEmb i)
+              (((exhaustiveVectorFreeSupport sigma).erase i).map Fin.castSuccEmb) = _
+          rw [← Finset.map_insert, Finset.insert_erase hiSupport]
+
+/-- At the all-free root and exact fuel `Q`, the canonical tree queries the complete embedded
+outside support. -/
+theorem exhaustiveVectorGate_queriedVars_eq_univ (Q : ℕ) :
+    queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none)) =
+      Finset.univ.map Fin.castSuccEmb := by
+  simpa [exhaustiveVectorFreeSupport] using
+    (exhaustiveVectorGate_queriedVars_eq_freeSupport
+      (Q := Q) (fun _ => none) (by rfl))
 
 /-- No assignment hits all Boolean-vector competitors: the pointwise opposite vector indexes a
 clause with no falsified literal.  This proof works uniformly, including the empty-support case. -/
@@ -7455,7 +11646,16 @@ theorem exhaustiveVectorCore_queryIncidences_coordinate_fiber_card
           fun p => p.2 = i.castSucc) =
         exhaustiveVectorCore Q ×ˢ {i.castSucc} := by
     ext p
-    simp
+    rcases p with ⟨⟨g, U⟩, v⟩
+    have hg : g = 0 := Subsingleton.elim _ _
+    subst g
+    simp only [Finset.mem_filter, Finset.mem_product, Finset.mem_map,
+      Finset.mem_univ, true_and, Finset.mem_singleton]
+    constructor
+    · rintro ⟨⟨hcore, ⟨a, ha⟩⟩, hv⟩
+      exact ⟨hcore, hv⟩
+    · rintro ⟨hcore, hv⟩
+      exact ⟨⟨hcore, ⟨i, hv.symm⟩⟩, hv⟩
   rw [heq, Finset.card_product, exhaustiveVectorCore_card]
   simp
 
@@ -7466,9 +11666,7 @@ theorem exhaustiveVectorCore_polarityCycleValid (Q : ℕ) (hQ : 0 < Q) :
     PolarityCycleValid (exhaustiveVectorFamily Q) (exhaustiveVectorTarget Q) (fun g => g)
       (Finset.univ.map Fin.castSuccEmb) (exhaustiveVectorCore Q) := by
   refine ⟨?_, ?_, exhaustiveVectorCore_unsatisfiable Q⟩
-  · rw [Finset.nonempty_iff_ne_empty, ← Finset.card_ne_zero]
-    rw [exhaustiveVectorCore_card]
-    exact pow_ne_zero _ (by omega)
+  · simp [exhaustiveVectorCore]
   · intro p hp
     rw [exhaustiveVectorCore, Finset.mem_map] at hp
     obtain ⟨a, -, hpa⟩ := hp
@@ -7476,12 +11674,89 @@ theorem exhaustiveVectorCore_polarityCycleValid (Q : ℕ) (hQ : 0 < Q) :
     subst p
     refine ⟨?_, ?_, ?_, ?_⟩
     · simp [exhaustiveVectorFamily, exhaustiveVectorGate]
-    · intro hut
-      have hlits := congrArg Clause.lits hut
-      simp [exhaustiveVectorClause, exhaustiveVectorTarget] at hlits
-    · rw [competitorOutsideTargetVars_exhaustiveVectorClause]
-      simpa using (Finset.univ_nonempty.mpr ⟨⟨0, hQ⟩⟩)
-    · rw [competitorOutsideTargetVars_exhaustiveVectorClause]
+    · change exhaustiveVectorClause a ≠ exhaustiveVectorTarget Q 0
+      exact exhaustiveVectorClause_ne_target a
+    · change (competitorOutsideTargetVars (exhaustiveVectorTarget Q)
+        (exhaustiveVectorClause a)).Nonempty
+      rw [competitorOutsideTargetVars_exhaustiveVectorClause]
+      simpa using (show (Finset.univ : Finset (Fin Q)).Nonempty from
+        ⟨⟨0, hQ⟩, Finset.mem_univ _⟩)
+    · change competitorOutsideTargetVars (exhaustiveVectorTarget Q)
+          (exhaustiveVectorClause a) ⊆ Finset.univ.map Fin.castSuccEmb
+      rw [competitorOutsideTargetVars_exhaustiveVectorClause]
+
+/-- The arbitrary-support certificate is valid over the concrete gate's actual canonical query
+set, rather than merely over an externally supplied support. -/
+theorem exhaustiveVectorCore_polarityCycleValid_canonical (Q : ℕ) (hQ : 0 < Q) :
+    PolarityCycleValid (exhaustiveVectorFamily Q) (exhaustiveVectorTarget Q) (fun g => g)
+      (queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none)))
+      (exhaustiveVectorCore Q) := by
+  rw [exhaustiveVectorGate_queriedVars_eq_univ]
+  exact exhaustiveVectorCore_polarityCycleValid Q hQ
+
+/-- The exact incidence count is therefore an exact statement about the concrete canonical
+tree's queried coordinates. -/
+theorem exhaustiveVectorCore_canonicalQueryIncidences_card (Q : ℕ) :
+    (polarityCoreQueryIncidences (exhaustiveVectorTarget Q)
+      (exhaustiveVectorCore Q)
+      (queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none)))).card =
+        2 ^ Q * Q := by
+  rw [exhaustiveVectorGate_queriedVars_eq_univ]
+  exact exhaustiveVectorCore_queryIncidences_card Q
+
+/-- A concrete incident ownership rule for positive exhaustive support: assign every retained
+clause to the first outside coordinate.  Since every exhaustive competitor contains every
+outside coordinate, this deliberately maximally concentrated rule is valid. -/
+def exhaustiveVectorFirstOwner (Q : ℕ) (hQ : 0 < Q) :
+    (Fin 1 × Clause (Q + 1)) → Fin (Q + 1) :=
+  fun _ => (⟨0, hQ⟩ : Fin Q).castSucc
+
+theorem exhaustiveVectorFirstOwner_incident (Q : ℕ) (hQ : 0 < Q) :
+    IncidentCoordinateOwner (exhaustiveVectorTarget Q) (exhaustiveVectorCore Q)
+      (queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none)))
+      (exhaustiveVectorFirstOwner Q hQ) := by
+  intro p hp
+  constructor
+  · rw [exhaustiveVectorGate_queriedVars_eq_univ]
+    exact Finset.mem_map.mpr ⟨⟨0, hQ⟩, Finset.mem_univ _, rfl⟩
+  · have hpCore := hp
+    rw [exhaustiveVectorCore, Finset.mem_map] at hpCore
+    obtain ⟨a, -, hpa⟩ := hpCore
+    have hclause : exhaustiveVectorClause a = p.2 := congrArg Prod.snd hpa
+    rw [← hclause, competitorOutsideTargetVars_exhaustiveVectorClause]
+    exact Finset.mem_map.mpr ⟨⟨0, hQ⟩, Finset.mem_univ _, rfl⟩
+
+/-- No incident-coordinate ownership rule can spread the exhaustive core below its average
+load.  For every positive support size, some actual canonical query owns at least
+`⌈2^Q / Q⌉` of the `2^Q` retained clauses. -/
+theorem exhaustiveVectorCore_incidentOwner_exists_load
+    (Q : ℕ)
+    (owner : (Fin 1 × Clause (Q + 1)) → Fin (Q + 1))
+    (howner : IncidentCoordinateOwner (exhaustiveVectorTarget Q)
+      (exhaustiveVectorCore Q)
+      (queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none))) owner) :
+    ∃ v ∈ queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none)),
+      (2 ^ Q) ⌈/⌉ Q ≤
+        ((exhaustiveVectorCore Q).filter fun p => owner p = v).card := by
+  have hcore : (exhaustiveVectorCore Q).Nonempty := by
+    rw [← Finset.card_pos, exhaustiveVectorCore_card]
+    positivity
+  obtain ⟨v, hv, hload⟩ := howner.exists_ceilDiv_le_load hcore
+  refine ⟨v, hv, ?_⟩
+  rw [exhaustiveVectorCore_card,
+    exhaustiveVectorGate_queriedVars_eq_univ, Finset.card_map] at hload
+  simpa using hload
+
+/-- In a positive-support exhaustive example, the unavoidable average ownership load is no
+larger than the exponential width factor already paid by a residual-width-`s+1` layered round.
+Consequently this construction alone cannot refute the actual bounded-width schedule. -/
+theorem exhaustiveVectorOwnerLoad_le_residualWidthFactor
+    {Q s : ℕ} (hQ : 0 < Q) (hwidth : Q ≤ s + 1) :
+    (2 ^ Q) ⌈/⌉ Q ≤ 2 ^ (s + 1) := by
+  calc
+    (2 ^ Q) ⌈/⌉ Q ≤ 2 ^ Q :=
+      (ceilDiv_le_iff_le_mul hQ).2 (Nat.le_mul_of_pos_left _ hQ)
+    _ ≤ 2 ^ (s + 1) := Nat.pow_le_pow_right (by norm_num) hwidth
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_normalized
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_queriedVars
@@ -7494,12 +11769,24 @@ theorem exhaustiveVectorCore_polarityCycleValid (Q : ℕ) (hQ : 0 < Q) :
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_queryIncidences_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_queryIncidences_coordinate_fiber_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorClause_length
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorGate_width_forces_support_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.activeTerm_exhaustiveVectorClause_of_free
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_exhaustiveVectorGate_root_query_of_free
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorGate_queriedVars_eq_freeSupport
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorGate_queriedVars_eq_univ
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_unsatisfiable
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_inclusionMinimal
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_eq_full
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_queryIncidences_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_queryIncidences_coordinate_fiber_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_polarityCycleValid
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_polarityCycleValid_canonical
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_canonicalQueryIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.IncidentCoordinateOwner.exists_ceilDiv_le_load
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorFirstOwner_incident
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_incidentOwner_exists_load
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorOwnerLoad_le_residualWidthFactor
 
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
