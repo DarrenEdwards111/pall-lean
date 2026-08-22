@@ -2636,3 +2636,137 @@ compatible with `choose(K,R) / choose(B,R)`, or construct a canonical normalized
 minimal-core incidence saturates a superlinear or exponential lower bound.  Generic rectangle
 counting and minimality alone cannot decide between these routes, and no P-versus-NP conclusion
 follows.
+
+### The fixed exhaustive-core route is now source-audited
+
+The latent `exhaustiveThreeProtectedGate` block had been appended after the namespace carrying
+the required `Depth3` and `SwitchingCounting` opens had closed.  More seriously, its claimed
+minimality theorem used `by decide` on a proposition for which Lean could not synthesize a
+`Decidable` instance.  A clean source compilation therefore exposed `sorryAx` in the reported
+capstone.  The invalid minimality and polarity-validity declarations have been removed rather
+than treated as evidence; the concrete construction itself is preserved.
+
+What remains kernel-checked is still useful.  The gate contains all eight polarity patterns on
+three outside coordinates and a protected singleton target on a fourth coordinate.  It is
+duplicate-free, has no repeated coordinate within a clause, has width three, and its canonical
+tree queries exactly the three outside coordinates.  Its displayed eight-element core is exactly
+the full proper-competitor core.  The full unweighted incidence relation has size `2^3 * 3`, and
+`exhaustiveThreeProtectedCore_queryIncidences_coordinate_fiber_card` proves that each actually
+queried coordinate has exactly `2^3` incident full-core clauses.
+
+These full-core counts show that normalization and canonical querying do not make the raw
+incidence rectangle sparse.  They do **not** yet refute a low-multiplicity ownership map on a
+reduced valid core: source-checked unsatisfiability and inclusion-minimality of this concrete core
+are precisely the missing facts.  Nor can one fixed `Q = 3` instance establish asymptotic
+exponential growth.
+
+The precise next frontier is first to prove the eight-clause core's unsatisfiability and
+one-deletion satisfiability without computational shortcuts that introduce forbidden axioms.
+Only then should the construction be parameterized over arbitrary `Q`, with separate proofs that
+the canonical tree queries all `Q` outside coordinates and that every coordinate fiber has
+cardinality `2^Q`.  No P-versus-NP conclusion follows.
+
+### The fixed exhaustive core is constructively inclusion-minimal
+
+The missing semantic facts for the normalized three-coordinate obstruction are now
+source-checked.  `exhaustiveThreeProtectedCore_unsatisfiable` splits directly on the three
+outside Boolean values and shows that the matching exhaustive competitor has no falsified
+literal.  It does not invoke `decide` on the higher-order satisfiability proposition.
+
+`exhaustiveThreeProtectedCore_inclusionMinimal` supplies all eight deletion witnesses explicitly:
+after removing a polarity pattern, the corresponding satisfying assignment hits every other
+competitor.  Thus the earlier failed `by decide` route has been replaced by a constructive proof,
+not reinstated as an opaque computational claim.
+
+The result is connected to the quantitative interface in two ways.
+`exhaustiveThreeProtectedCore_polarityCycleValid` proves that this same core is a valid polarity
+certificate for the normalized canonical gate, and
+`exhaustiveThreeProtectedCore_card_eq_two_pow_queried` proves the exact equality
+
+```text
+core.card = 2^(queried.card) = 2^3.
+```
+
+Together with the existing incidence theorems, the fixed example now genuinely realizes an
+inclusion-minimal valid core with 24 clause-coordinate incidences and eight clauses in every
+queried-coordinate fiber.  This closes the logical gap in the fixed obstruction.  It still does
+not establish an asymptotic lower bound: one instance at `Q = 3` cannot rule out a different
+uniform ownership theorem or prove exponential growth over arbitrary support sizes.
+
+The precise next frontier is to parameterize the exhaustive competitor family over arbitrary
+`Q`.  The most informative order is: define clauses from Boolean vectors on `Fin Q`; prove
+unsatisfiability and one-deletion satisfiability by the matching-vector argument; then prove the
+chosen list ordering makes the canonical tree query every outside coordinate and derive exact
+core and coordinate-fiber cardinalities `2^Q`.  No P-versus-NP conclusion follows.
+
+### The exhaustive minimal core is now parameterized over arbitrary support
+
+`exhaustiveVectorClause` encodes each Boolean vector `a : Fin Q → Bool` as the ordered width-`Q`
+clause whose literal on coordinate `i` has falsifying value `a i`.  The final coordinate is
+reserved for the disjoint protected target.  Clause injectivity is proved from the ordered
+`List.ofFn` representation, so `exhaustiveVectorCore` contains exactly one indexed competitor per
+Boolean vector and
+
+```text
+exhaustiveVectorCore Q |>.card = 2^Q.
+```
+
+The semantic obstruction is uniform in `Q`.  Given any proposed hitting assignment, its
+pointwise opposite vector indexes a clause with no falsified literal, proving unsatisfiability.
+After deleting the clause indexed by `a`, the pointwise complement of `a` hits every remaining
+clause at a coordinate where its index differs from `a`.  Consequently
+`exhaustiveVectorCore_inclusionMinimal` proves inclusion-minimal unsatisfiability for every `Q`,
+including the empty-support boundary case.
+
+This establishes the asymptotic combinatorial lower-bound family that the fixed `Q = 3` audit
+could not supply: inclusion-minimal outside-competitor cores can genuinely attain `2^Q` clauses
+for arbitrarily large outside support.  It does not yet establish the stronger canonical-gate claim.
+The new core is represented by valid depth-3 clauses and a protected target, but no theorem yet
+shows that one uniform enumeration of those clauses makes `canonicalDT` query exactly all `Q`
+outside coordinates, nor that its canonical query-incidence fibers have size `2^Q`.
+
+The precise next frontier is to define a recursion-compatible ordering of the Boolean-vector
+clauses, prove by induction on `Q` that its canonical tree queries the entire embedded `Fin Q`
+support, and then connect `exhaustiveVectorCore` to that gate's full competitor core.  The exact
+per-coordinate incidence theorem should follow once that support equality is available.  No
+P-versus-NP conclusion follows.
+
+### The arbitrary-support core is now realized by a concrete full competitor gate
+
+`exhaustiveVectorGate Q` lists every Boolean-vector clause once and then appends the protected
+target; `exhaustiveVectorFamily Q` packages it as the one-gate family required by the polarity
+interface.  The representation theorem `exhaustiveVectorCore_eq_full` proves that the previously
+constructed abstract core is exactly this gate's full proper-competitor core.  Thus the
+asymptotic obstruction is no longer merely a collection of valid clauses detached from a gate.
+
+The outside-edge and incidence calculations are also exact without assuming anything about the
+canonical walk.  For every vector clause, `competitorOutsideTargetVars` is precisely the embedded
+copy of `Fin Q`.  Consequently `exhaustiveVectorCore_queryIncidences_eq_product` identifies the
+incidence relation with the complete core-by-support rectangle and proves
+
+```text
+|incidences| = 2^Q * Q,
+|coordinate fiber i| = 2^Q.
+```
+
+For `Q > 0`, `exhaustiveVectorCore_polarityCycleValid` further proves that the same exponential
+inclusion-minimal core is a valid polarity certificate relative to the complete outside support.
+The positivity hypothesis is real: at `Q = 0` the unique competitor has an empty outside edge,
+so it cannot satisfy the nonempty-edge clause of `PolarityCycleValid` (although it remains the
+one-clause unsatisfiable minimal core).
+
+This separates the final canonical obligation cleanly.  It is no longer necessary to make the
+combinatorial core or incidence proof depend on a fragile enumeration order.  What remains is to
+prove
+
+```text
+queriedVars (canonicalDT (exhaustiveVectorGate Q) Q (fun _ => none))
+  = Finset.univ.map Fin.castSuccEmb.
+```
+
+The most promising proof is order-independent: under any partial assignment fixing fewer than
+`Q` outside coordinates, no exhaustive term is satisfied, while at least one compatible vector
+clause remains active and its first free literal is a fresh outside coordinate.  Formalize that
+invariant and induct on remaining fuel; the exact canonical incidence and support-exponential
+validity statements will then follow by rewriting the theorems already proved here.  No
+P-versus-NP conclusion follows.

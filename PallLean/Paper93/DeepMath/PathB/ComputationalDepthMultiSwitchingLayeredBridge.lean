@@ -7026,6 +7026,9 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 namespace PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
+open PallLean.Paper93.DeepMath.PathB.Depth3
+open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
+
 /-- A protected target on a fourth coordinate, kept separate from the three coordinates used by
 the exhaustive competitor clauses below. -/
 def exhaustiveThreeTarget : Fin 1 → Clause 4 :=
@@ -7080,16 +7083,80 @@ theorem exhaustiveThreeProtectedCore_eq_full :
         exhaustiveThreeTarget (fun g => g) := by
   decide
 
-/-- Every one of the eight Boolean orientations is excluded by one exhaustive competitor, and
-deleting that competitor restores precisely its complementary orientation.  Hence the generic
-`2^Q` minimal-core bound is attained already by a normalized canonical gate. -/
-theorem exhaustiveThreeProtectedCore_minimal :
-    InclusionMinimalUnsatisfiableCore exhaustiveThreeTarget
-      exhaustiveThreeProtectedCore := by
-  decide
-
 theorem exhaustiveThreeProtectedCore_card :
     exhaustiveThreeProtectedCore.card = 2 ^ 3 := by
+  decide
+
+/-- No Boolean orientation hits all eight exhaustive competitors.  For any assignment on the
+three outside coordinates, the competitor carrying exactly its satisfying polarity has no
+falsified literal.  The proof exposes the eight Boolean cases directly instead of asking a
+decision procedure to solve the higher-order satisfiability proposition. -/
+theorem exhaustiveThreeProtectedCore_unsatisfiable :
+    ¬ ∃ assignment,
+      HitsOutsideCompetitorCore exhaustiveThreeTarget
+        exhaustiveThreeProtectedCore assignment := by
+  rintro ⟨assignment, hhit⟩
+  simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+    exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] at hhit
+  cases h₀ : assignment 0 <;>
+    cases h₁ : assignment 1 <;>
+      cases h₂ : assignment 2 <;> simp_all
+
+/-- The exhaustive core is inclusion-minimal: after deleting one polarity pattern, assigning the
+three outside coordinates to satisfy precisely that pattern hits every remaining competitor.
+The eight witnesses are given explicitly, so this semantic minimality result does not rely on
+`decide`. -/
+theorem exhaustiveThreeProtectedCore_inclusionMinimal :
+    InclusionMinimalUnsatisfiableCore exhaustiveThreeTarget
+      exhaustiveThreeProtectedCore := by
+  refine ⟨exhaustiveThreeProtectedCore_unsatisfiable, ?_⟩
+  intro p hp
+  simp only [exhaustiveThreeProtectedCore, Finset.mem_insert,
+    Finset.mem_singleton] at hp
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · refine ⟨![true, true, true, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![true, true, false, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![true, false, true, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![true, false, false, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![false, true, true, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![false, true, false, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![false, false, true, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+  · refine ⟨![false, false, false, false], ?_⟩
+    simp [HitsOutsideCompetitorCore, exhaustiveThreeProtectedCore,
+      exhaustiveThreeTarget, compatibleIsolationTargetVars, litVar, falValue] <;> aesop
+
+/-- The now source-checked minimal core is a valid polarity certificate for the normalized gate.
+Its outside edges are nonempty and contained in the three coordinates queried by the canonical
+tree. -/
+theorem exhaustiveThreeProtectedCore_polarityCycleValid :
+    PolarityCycleValid exhaustiveThreeProtectedFamily exhaustiveThreeTarget (fun g => g)
+      (queriedVars (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none)))
+      exhaustiveThreeProtectedCore := by
+  refine ⟨by decide, ?_, exhaustiveThreeProtectedCore_unsatisfiable⟩
+  rw [exhaustiveThreeProtectedGate_queriedVars]
+  decide
+
+/-- At support size three, the concrete inclusion-minimal core attains the generic
+support-exponential cardinality bound exactly. -/
+theorem exhaustiveThreeProtectedCore_card_eq_two_pow_queried :
+    exhaustiveThreeProtectedCore.card =
+      2 ^ (queriedVars
+        (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none))).card := by
+  rw [exhaustiveThreeProtectedGate_queriedVars]
   decide
 
 /-- Every retained clause is incident to all three actually queried outside coordinates, so the
@@ -7100,12 +7167,339 @@ theorem exhaustiveThreeProtectedCore_queryIncidences_card :
         2 ^ 3 * 3 := by
   decide
 
+/-- Every queried coordinate is owned by all eight retained competitors.  In particular, even
+inside the normalized canonical validity class, no ownership rule that charges every incidence
+to its coordinate can have coordinate multiplicity one (or any bound below eight) on this
+example. -/
+theorem exhaustiveThreeProtectedCore_queryIncidences_coordinate_fiber_card
+    (v : Fin 4)
+    (hv : v ∈ queriedVars
+      (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none))) :
+    ((polarityCoreQueryIncidences exhaustiveThreeTarget exhaustiveThreeProtectedCore
+      (queriedVars (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none)))).filter
+        fun p => p.2 = v).card = 2 ^ 3 := by
+  rw [exhaustiveThreeProtectedGate_queriedVars] at hv ⊢
+  fin_cases v <;> simp at hv <;> decide
+
+/-! ### Arbitrary-support exhaustive minimal cores -/
+
+/-- The literal on outside coordinate `i` whose falsifying value is the Boolean-vector entry
+`a i`.  The coordinate is embedded below the final protected-target coordinate. -/
+def exhaustiveVectorLiteral {Q : ℕ} (a : Fin Q → Bool) (i : Fin Q) :
+    Rung4Literal (Q + 1) :=
+  if a i then Rung4Literal.neg i.castSucc else Rung4Literal.pos i.castSucc
+
+/-- The exhaustive competitor indexed by a Boolean vector on `Q` outside coordinates. -/
+def exhaustiveVectorClause {Q : ℕ} (a : Fin Q → Bool) : Clause (Q + 1) :=
+  ⟨List.ofFn fun i => exhaustiveVectorLiteral a i⟩
+
+theorem falValue_exhaustiveVectorLiteral {Q : ℕ} (a : Fin Q → Bool) (i : Fin Q) :
+    falValue (exhaustiveVectorLiteral a i) = a i := by
+  by_cases h : a i <;> simp [exhaustiveVectorLiteral, h, falValue]
+
+theorem litVar_exhaustiveVectorLiteral {Q : ℕ} (a : Fin Q → Bool) (i : Fin Q) :
+    litVar (exhaustiveVectorLiteral a i) = i.castSucc := by
+  by_cases h : a i <;> simp [exhaustiveVectorLiteral, h, litVar]
+
+/-- Different Boolean vectors give different ordered clauses. -/
+theorem exhaustiveVectorClause_injective {Q : ℕ} :
+    Function.Injective (exhaustiveVectorClause (Q := Q)) := by
+  intro a b hab
+  funext i
+  have hlits := congrArg Clause.lits hab
+  simp only [exhaustiveVectorClause] at hlits
+  rw [List.ofFn_inj] at hlits
+  have hget := congrFun hlits i
+  simp [exhaustiveVectorLiteral] at hget
+  by_cases hai : a i <;> by_cases hbi : b i <;> simp_all
+
+/-- An embedding retains the Boolean-vector index while fixing the unique target index. -/
+def exhaustiveVectorCoreEmbedding (Q : ℕ) :
+    (Fin Q → Bool) ↪ (Fin 1 × Clause (Q + 1)) where
+  toFun a := (0, exhaustiveVectorClause a)
+  inj' := fun _ _ h => exhaustiveVectorClause_injective (congrArg Prod.snd h)
+
+/-- The competitor core containing one clause for every Boolean vector on `Fin Q`. -/
+def exhaustiveVectorCore (Q : ℕ) : Finset (Fin 1 × Clause (Q + 1)) :=
+  Finset.univ.map (exhaustiveVectorCoreEmbedding Q)
+
+/-- A singleton target on the final coordinate, disjoint from all exhaustive competitors. -/
+def exhaustiveVectorTarget (Q : ℕ) : Fin 1 → Clause (Q + 1) :=
+  fun _ => ⟨[Rung4Literal.pos (Fin.last Q)]⟩
+
+/-- A concrete gate realizing the arbitrary-support core.  The exhaustive competitors are
+listed without duplication, followed by the protected target.  The eventual canonical-query
+argument is deliberately separated from this representation theorem: the semantic core and its
+incidence counts do not depend on the implementation order of `Finset.toList`. -/
+def exhaustiveVectorGate (Q : ℕ) : List (Clause (Q + 1)) :=
+  ((Finset.univ : Finset (Fin Q → Bool)).toList.map exhaustiveVectorClause) ++
+    [exhaustiveVectorTarget Q 0]
+
+def exhaustiveVectorFamily (Q : ℕ) : Fin 1 → List (Clause (Q + 1)) :=
+  fun _ => exhaustiveVectorGate Q
+
+theorem mem_exhaustiveVectorGate (Q : ℕ) (U : Clause (Q + 1)) :
+    U ∈ exhaustiveVectorGate Q ↔
+      (∃ a : Fin Q → Bool, exhaustiveVectorClause a = U) ∨
+        U = exhaustiveVectorTarget Q 0 := by
+  simp [exhaustiveVectorGate]
+
+/-- The abstract Boolean-vector core is exactly the full proper-competitor core of its concrete
+protected gate. -/
+theorem exhaustiveVectorCore_eq_full (Q : ℕ) :
+    exhaustiveVectorCore Q =
+      fullOutsideCompetitorCore (exhaustiveVectorFamily Q)
+        (exhaustiveVectorTarget Q) (fun g => g) := by
+  ext p
+  rcases p with ⟨g, U⟩
+  have hg : g = 0 := Subsingleton.elim _ _
+  subst g
+  simp only [mem_fullOutsideCompetitorCore, exhaustiveVectorFamily,
+    mem_exhaustiveVectorGate]
+  constructor
+  · intro hp
+    rw [exhaustiveVectorCore, Finset.mem_map] at hp
+    obtain ⟨a, -, hpa⟩ := hp
+    simp only [exhaustiveVectorCoreEmbedding] at hpa
+    have hU : exhaustiveVectorClause a = U := congrArg Prod.snd hpa
+    refine ⟨Or.inl ⟨a, hU⟩, ?_⟩
+    intro hut
+    have hlits := congrArg Clause.lits (hU.trans hut)
+    simp [exhaustiveVectorClause, exhaustiveVectorTarget] at hlits
+  · rintro ⟨hmem, hne⟩
+    rcases hmem with ⟨a, rfl⟩ | htarget
+    · simp [exhaustiveVectorCore, exhaustiveVectorCoreEmbedding]
+    · exact False.elim (hne htarget)
+
+/-- The arbitrary-support exhaustive core has exactly `2^Q` clauses. -/
+theorem exhaustiveVectorCore_card (Q : ℕ) :
+    (exhaustiveVectorCore Q).card = 2 ^ Q := by
+  simp [exhaustiveVectorCore]
+
+theorem compatibleIsolationTargetVars_exhaustiveVectorTarget (Q : ℕ) :
+    compatibleIsolationTargetVars (exhaustiveVectorTarget Q) = {Fin.last Q} := by
+  ext i
+  simp [compatibleIsolationTargetVars, exhaustiveVectorTarget, litVar]
+
+theorem mem_exhaustiveVectorClause {Q : ℕ} (a : Fin Q → Bool)
+    (ell : Rung4Literal (Q + 1)) :
+    ell ∈ (exhaustiveVectorClause a).lits ↔
+      ∃ i, exhaustiveVectorLiteral a i = ell := by
+  simp [exhaustiveVectorClause]
+
+/-- Every exhaustive competitor uses every outside coordinate and avoids the protected final
+coordinate.  Thus its available outside edge is the complete embedded `Fin Q` support. -/
+theorem competitorOutsideTargetVars_exhaustiveVectorClause {Q : ℕ}
+    (a : Fin Q → Bool) :
+    competitorOutsideTargetVars (exhaustiveVectorTarget Q)
+        (exhaustiveVectorClause a) =
+      Finset.univ.map Fin.castSuccEmb := by
+  ext j
+  rw [mem_competitorOutsideTargetVars,
+    compatibleIsolationTargetVars_exhaustiveVectorTarget]
+  simp only [Finset.mem_singleton, Finset.mem_map, Finset.mem_univ, true_and]
+  constructor
+  · rintro ⟨⟨ell, hell, rfl⟩, hlast⟩
+    rw [mem_exhaustiveVectorClause] at hell
+    obtain ⟨i, rfl⟩ := hell
+    rw [litVar_exhaustiveVectorLiteral]
+    exact ⟨i, rfl⟩
+  · rintro ⟨i, rfl⟩
+    refine ⟨⟨exhaustiveVectorLiteral a i,
+      (mem_exhaustiveVectorClause a _).2 ⟨i, rfl⟩,
+      litVar_exhaustiveVectorLiteral a i⟩, Fin.castSucc_ne_last i⟩
+
+/-- As long as one outside coordinate and the protected final coordinate are both free, no term
+of the exhaustive protected gate is already satisfied.  This is the first order-independent
+canonical-walk invariant: it uses only membership in the exhaustive family, not the ordering
+chosen by `Finset.toList`. -/
+theorem anyTermSat_exhaustiveVectorGate_eq_false_of_free
+    {Q : ℕ} (sigma : Restriction (Q + 1))
+    (hlast : sigma (Fin.last Q) = none)
+    (hfree : ∃ i : Fin Q, sigma i.castSucc = none) :
+    anyTermSat (exhaustiveVectorGate Q) sigma = false := by
+  by_contra hsat
+  rw [Bool.not_eq_false, anyTermSat, List.any_eq_true] at hsat
+  obtain ⟨T, hT, hTsat⟩ := hsat
+  rw [mem_exhaustiveVectorGate] at hT
+  rcases hT with ⟨a, rfl⟩ | rfl
+  · obtain ⟨i, hi⟩ := hfree
+    rw [termSat, List.all_eq_true] at hTsat
+    have hlit := hTsat (exhaustiveVectorLiteral a i)
+      ((mem_exhaustiveVectorClause a _).2 ⟨i, rfl⟩)
+    exact (litTrue_litVar_fixed hlit) (by
+      rw [litVar_exhaustiveVectorLiteral, hi])
+  · rw [termSat, List.all_eq_true] at hTsat
+    have hlit := hTsat (Rung4Literal.pos (Fin.last Q)) (by
+      simp [exhaustiveVectorTarget])
+    exact (litTrue_litVar_fixed hlit) hlast
+
+/-- Under the same partial-assignment invariant there is a live exhaustive competitor with a
+free literal.  Its Boolean vector is chosen pointwise opposite every already fixed outside bit,
+so no one of its literals is forced false; the assumed free coordinate supplies progress. -/
+theorem exists_exhaustiveVectorClause_live_of_free
+    {Q : ℕ} (sigma : Restriction (Q + 1))
+    (hfree : ∃ i : Fin Q, sigma i.castSucc = none) :
+    ∃ a : Fin Q → Bool,
+      exhaustiveVectorClause a ∈ exhaustiveVectorGate Q ∧
+      termFalsified sigma (exhaustiveVectorClause a) = false ∧
+      0 < (freeLits sigma (exhaustiveVectorClause a)).length := by
+  let a : Fin Q → Bool := fun i => !(sigma i.castSucc).getD false
+  refine ⟨a, ?_, ?_, ?_⟩
+  · exact (mem_exhaustiveVectorGate Q _).2 (Or.inl ⟨a, rfl⟩)
+  · rw [termFalsified]
+    apply List.any_eq_false.mpr
+    intro ell hell
+    obtain ⟨i, rfl⟩ := (mem_exhaustiveVectorClause a ell).mp hell
+    simp only [litFalse, a, exhaustiveVectorLiteral]
+    cases hs : sigma i.castSucc with
+    | none => simp [hs, Depth3.litFixedVal]
+    | some b => cases b <;> simp [hs, Depth3.litFixedVal]
+  · obtain ⟨i, hi⟩ := hfree
+    apply List.length_pos.mpr
+    refine ⟨exhaustiveVectorLiteral a i, ?_⟩
+    rw [freeLits, List.mem_filter]
+    refine ⟨(mem_exhaustiveVectorClause a _).2 ⟨i, rfl⟩, ?_⟩
+    rw [Depth3.litFree, litVar_exhaustiveVectorLiteral]
+    cases exhaustiveVectorLiteral a i <;> simp_all [Depth3.litFixedVal, litVar]
+
+/-- No assignment hits all Boolean-vector competitors: the pointwise opposite vector indexes a
+clause with no falsified literal.  This proof works uniformly, including the empty-support case. -/
+theorem exhaustiveVectorCore_unsatisfiable (Q : ℕ) :
+    ¬ ∃ assignment,
+      HitsOutsideCompetitorCore (exhaustiveVectorTarget Q)
+        (exhaustiveVectorCore Q) assignment := by
+  rintro ⟨assignment, hhit⟩
+  let opposite : Fin Q → Bool := fun i => !(assignment i.castSucc)
+  have hmem : ((0 : Fin 1), exhaustiveVectorClause opposite) ∈ exhaustiveVectorCore Q := by
+    simp [exhaustiveVectorCore, exhaustiveVectorCoreEmbedding]
+  obtain ⟨ell, hell, -, hvalue⟩ := hhit _ hmem
+  obtain ⟨i, rfl⟩ := (mem_exhaustiveVectorClause opposite ell).mp hell
+  rw [falValue_exhaustiveVectorLiteral, litVar_exhaustiveVectorLiteral] at hvalue
+  simp [opposite] at hvalue
+
+/-- The exponential core is inclusion-minimal for every support size.  After deleting the clause
+indexed by `a`, use the pointwise complement of `a`; every other vector differs somewhere, and
+at that coordinate its literal is falsified. -/
+theorem exhaustiveVectorCore_inclusionMinimal (Q : ℕ) :
+    InclusionMinimalUnsatisfiableCore (exhaustiveVectorTarget Q)
+      (exhaustiveVectorCore Q) := by
+  refine ⟨exhaustiveVectorCore_unsatisfiable Q, ?_⟩
+  rintro ⟨g, U⟩ hp
+  rw [exhaustiveVectorCore, Finset.mem_map] at hp
+  obtain ⟨a, -, hpa⟩ := hp
+  simp only [exhaustiveVectorCoreEmbedding] at hpa
+  have hg : g = 0 := Subsingleton.elim _ _
+  have hU : exhaustiveVectorClause a = U := congrArg Prod.snd hpa
+  subst g
+  subst U
+  let witness : Fin (Q + 1) → Bool := fun j =>
+    if h : j.val < Q then !(a ⟨j.val, h⟩) else false
+  refine ⟨witness, ?_⟩
+  intro p hpErase
+  have hpCore := (Finset.mem_erase.mp hpErase).2
+  rw [exhaustiveVectorCore, Finset.mem_map] at hpCore
+  obtain ⟨b, -, hpb⟩ := hpCore
+  simp only [exhaustiveVectorCoreEmbedding] at hpb
+  subst p
+  have hba : b ≠ a := by
+    intro hba
+    subst b
+    exact (Finset.mem_erase.mp hpErase).1 rfl
+  have hex : ∃ i, b i ≠ a i := by
+    simpa only [Function.ne_iff] using hba
+  obtain ⟨i, hi⟩ := hex
+  refine ⟨exhaustiveVectorLiteral b i, ?_, ?_, ?_⟩
+  · exact (mem_exhaustiveVectorClause b _).2 ⟨i, rfl⟩
+  · rw [compatibleIsolationTargetVars_exhaustiveVectorTarget]
+    simp [litVar_exhaustiveVectorLiteral, Fin.castSucc_ne_last]
+  · rw [falValue_exhaustiveVectorLiteral, litVar_exhaustiveVectorLiteral]
+    simp only [witness, Fin.val_castSucc, i.isLt, dite_true]
+    cases hai : a i <;> cases hbi : b i <;> simp_all
+
+/-- On the full embedded outside support, the core incidence relation is the complete rectangle:
+every Boolean-vector clause contains every outside coordinate. -/
+theorem exhaustiveVectorCore_queryIncidences_eq_product (Q : ℕ) :
+    polarityCoreQueryIncidences (exhaustiveVectorTarget Q)
+        (exhaustiveVectorCore Q) (Finset.univ.map Fin.castSuccEmb) =
+      exhaustiveVectorCore Q ×ˢ (Finset.univ.map Fin.castSuccEmb) := by
+  apply Finset.filter_eq_self.2
+  rintro ⟨p, v⟩ hp
+  have hpCore := (Finset.mem_product.mp hp).1
+  have hv := (Finset.mem_product.mp hp).2
+  rw [exhaustiveVectorCore, Finset.mem_map] at hpCore
+  obtain ⟨a, -, hpa⟩ := hpCore
+  simp only [exhaustiveVectorCoreEmbedding] at hpa
+  have hclause : exhaustiveVectorClause a = p.2 := congrArg Prod.snd hpa
+  rw [← hclause, competitorOutsideTargetVars_exhaustiveVectorClause]
+  exact hv
+
+/-- The aggregate arbitrary-support incidence count is exactly `2^Q * Q`. -/
+theorem exhaustiveVectorCore_queryIncidences_card (Q : ℕ) :
+    (polarityCoreQueryIncidences (exhaustiveVectorTarget Q)
+      (exhaustiveVectorCore Q) (Finset.univ.map Fin.castSuccEmb)).card =
+        2 ^ Q * Q := by
+  rw [exhaustiveVectorCore_queryIncidences_eq_product, Finset.card_product,
+    exhaustiveVectorCore_card, Finset.card_map]
+  simp
+
+/-- Every outside coordinate is incident to all `2^Q` clauses. -/
+theorem exhaustiveVectorCore_queryIncidences_coordinate_fiber_card
+    {Q : ℕ} (i : Fin Q) :
+    ((polarityCoreQueryIncidences (exhaustiveVectorTarget Q)
+      (exhaustiveVectorCore Q) (Finset.univ.map Fin.castSuccEmb)).filter
+        fun p => p.2 = i.castSucc).card = 2 ^ Q := by
+  rw [exhaustiveVectorCore_queryIncidences_eq_product]
+  have heq :
+      ((exhaustiveVectorCore Q ×ˢ (Finset.univ.map Fin.castSuccEmb)).filter
+          fun p => p.2 = i.castSucc) =
+        exhaustiveVectorCore Q ×ˢ {i.castSucc} := by
+    ext p
+    simp
+  rw [heq, Finset.card_product, exhaustiveVectorCore_card]
+  simp
+
+/-- For positive support, the concrete protected gate and its exponential minimal core already
+form a valid polarity certificate relative to the complete outside support.  The only remaining
+canonical-gate obligation is to identify this support with the gate's actual `queriedVars`. -/
+theorem exhaustiveVectorCore_polarityCycleValid (Q : ℕ) (hQ : 0 < Q) :
+    PolarityCycleValid (exhaustiveVectorFamily Q) (exhaustiveVectorTarget Q) (fun g => g)
+      (Finset.univ.map Fin.castSuccEmb) (exhaustiveVectorCore Q) := by
+  refine ⟨?_, ?_, exhaustiveVectorCore_unsatisfiable Q⟩
+  · rw [Finset.nonempty_iff_ne_empty, ← Finset.card_ne_zero]
+    rw [exhaustiveVectorCore_card]
+    exact pow_ne_zero _ (by omega)
+  · intro p hp
+    rw [exhaustiveVectorCore, Finset.mem_map] at hp
+    obtain ⟨a, -, hpa⟩ := hp
+    simp only [exhaustiveVectorCoreEmbedding] at hpa
+    subst p
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · simp [exhaustiveVectorFamily, exhaustiveVectorGate]
+    · intro hut
+      have hlits := congrArg Clause.lits hut
+      simp [exhaustiveVectorClause, exhaustiveVectorTarget] at hlits
+    · rw [competitorOutsideTargetVars_exhaustiveVectorClause]
+      simpa using (Finset.univ_nonempty.mpr ⟨⟨0, hQ⟩⟩)
+    · rw [competitorOutsideTargetVars_exhaustiveVectorClause]
+
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_normalized
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_queriedVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_eq_full
-#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_minimal
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_unsatisfiable
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_inclusionMinimal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_polarityCycleValid
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_card_eq_two_pow_queried
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_queryIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_queryIncidences_coordinate_fiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_unsatisfiable
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_inclusionMinimal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_eq_full
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_queryIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_queryIncidences_coordinate_fiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveVectorCore_polarityCycleValid
 
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
