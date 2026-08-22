@@ -2287,3 +2287,352 @@ opposite-polarity support conflicts (or to stratify and charge gates exhibiting 
 then test an averaged target-choice bound on that restricted class.  Any positive theorem must
 state this extra structure explicitly before bounding matched-variable support and invoking the
 exact shell-extension fiber.  No P-versus-NP conclusion follows.
+
+### The minimal isolation obstruction is already residual-depth one
+
+The semantic status of the preserved counterexample is now kernel-checked rather than inferred
+from its syntax.  `complementarySingleton_canonicalDT_depth_le` proves, for every variable in every
+ambient dimension, every restriction, and every fuel budget, that the canonical tree of
+
+```text
+[x_i], [¬x_i]
+```
+
+has depth at most one.  If the variable is fixed, one singleton is already satisfied; if it is
+live, the canonical procedure queries it once and both children terminate immediately.
+
+The capstone `oppositeSingletonFamily_commonShallowAt_one` upgrades this pointwise fact to the exact
+multi-switching interface: for every root restriction and every allowed trunk budget, the
+one-gate counterexample has a zero-query common trunk with residual depth one.  Consequently the
+same family simultaneously has no joint target/isolation selection and is never in the
+residual-depth-one bad event.  Isolation failure is therefore strictly stronger than failure of
+the switching conclusion, and charging all conflict gates as bad would overcount even at the
+smallest instance.
+
+The precise next frontier is to stratify the conflict analysis by actual residual canonical depth:
+remove gates already at the target depth, then ask whether every genuinely deep normalized gate
+admits a target avoiding unavoidable support conflicts, or whether a deep conflict certificate can
+be quantitatively charged to the canonical path that witnesses depth.  Only such a depth-sensitive
+dichotomy should be combined with averaged target choice and the exact target-preserving shell
+fiber.  No P-versus-NP conclusion follows.
+
+### Genuine residual depth does not restore target isolation
+
+The positive half of the proposed depth-sensitive dichotomy has now been tested and falsified at
+the smallest next dimension.  `exhaustiveTwoBitGate` consists of the four width-two minterms on two
+variables.  The kernel-checked theorem `exhaustiveTwoBitGate_nodup_width_two` records that its term
+list is duplicate-free and every term uses two distinct variables.  At full freedom and fuel two,
+`exhaustiveTwoBitGate_canonicalDT_depth_eq_two` proves that its canonical tree has depth exactly
+two.
+
+This is genuine switching badness at the target cutoff, not just root depth in isolation:
+`exhaustiveTwoBitFamily_not_commonShallowAt_one` proves that no zero-query common trunk can leave
+residual depth at most one, and `allFreeTwo_mem_exhaustiveTwoBit_commonShallowBad_one` places the
+fully live restriction in the exact two-star bad event.  Nevertheless,
+`exhaustiveTwoBit_no_joint_target_isolation` proves that no member target admits a globally
+compatible isolation selection.  Every possible target protects both variables, while every
+distinct competitor is supported on those same protected variables.
+
+Thus deleting gates already shallow at the target depth still does not make target isolation a
+generic positive branch.  The surviving route is the other half of the dichotomy: define a
+canonical-path charge for deep support-conflict certificates.  The exhaustive square suggests the
+right first local statement: a depth-two witness supplies an ordered pair of queried coordinates
+that covers its four target-conflict patterns.  The precise next frontier is to formalize the
+query-path/support-conflict incidence map and prove a bounded-fiber charge (or find a deeper
+counterexample where conflicts cannot be assigned to the witnessing path).  Only after that local
+map exists should its multiplicity be compared with the exact target-preserving shell fiber.  No
+P-versus-NP conclusion follows.
+
+### The first conflict-to-query incidence fiber is exact but already term-quadratic
+
+The proposed local charge has now been instantiated and counted on the exhaustive square.
+`exhaustiveTwoBitGate_queriedVars_eq_univ` proves that the canonical tree queries exactly the two
+coordinates used by its four minterms.  `exhaustiveTwoBitConflictIncidences` records an ordered
+target--competitor pair together with a coordinate occurring in both terms and in that queried set.
+
+The exact counts expose the multiplicity rather than hiding it in a qualitative charge.
+`exhaustiveTwoBitConflictIncidences_card` gives 24 incidences: there are 12 distinct ordered term
+pairs and both coordinates witness every pair.  More sharply,
+`exhaustiveTwoBitConflictIncidences_coordinate_fiber_card` proves that each queried coordinate has
+fiber exactly 12.  Thus a canonical-query charge exists for this deep obstruction, but its naive
+coordinate projection already pays the full `m*(m-1)` ordered-pair factor at `m = 4`; depth alone
+does not force a constant fiber.
+
+The precise next frontier is to generalize this audit to the `d`-variable exhaustive-minterm gate
+and prove the expected coordinate fiber `2^d * (2^d - 1)`, or find a more selective conflict
+certificate whose fiber is only linear (or better) in the term count while still certifying every
+isolation failure.  Only the latter kind of compression could improve on charging all ordered
+competitors before comparison with the existing term-key and shell-extension factors.  No
+P-versus-NP conclusion follows.
+
+### The complete incidence fiber is generically quadratic
+
+The dimension-free combinatorial core of the proposed generalization is now kernel-checked.
+`offDiagonalTermPairs_card` proves that an `M`-term gate has exactly `M*(M-1)` distinct ordered
+target--competitor pairs.  `completeConflictQueryIncidences_card` forms the complete relation with
+`d` queried coordinates and proves its size is `M*(M-1)*d`.  More sharply,
+`completeConflictQueryIncidences_coordinate_fiber_card` proves that projection to every individual
+coordinate has fiber exactly `M*(M-1)`.
+
+The specialization `exhaustiveMinterm_completeConflict_coordinate_fiber_card` sets `M = 2^d` and
+obtains the expected `2^d*(2^d-1)` coordinate fiber.  This theorem isolates the exact counting
+content of the exhaustive-minterm example: once every ordered competitor and every queried
+coordinate are retained, the quadratic loss is forced for every dimension, rather than being an
+artifact of the four-term square.  The existing concrete two-bit construction supplies the
+semantic realization at `d = 2`; a generic exhaustive-gate/canonical-tree realization has not been
+claimed here.
+
+The precise next frontier is therefore certificate compression, not another count of the complete
+relation.  Define a selective conflict certificate that still witnesses every failed isolation
+target but retains only one canonical competitor or one canonical conflicting coordinate per
+target, then test whether its coordinate fibers are `O(M)` on exhaustive minterms and whether the
+selection remains sound for arbitrary genuinely deep normalized gates.  If no such sound selector
+exists, preserve the smallest counterexample and quantify its unavoidable multiplicity.  No
+P-versus-NP conclusion follows.
+
+### One-witness certificate counting is linear; semantic selection is the remaining gap
+
+The counting half of certificate compression is now kernel-checked independently of any
+unproved selector.  `selectiveConflictQueryIncidences` retains one chosen competitor and one chosen
+queried coordinate for each of `M` targets.  Because the target index remains in the certificate,
+`selectiveConflictQueryIncidences_card` proves that the resulting relation has exactly `M`
+elements, and `selectiveConflictQueryIncidences_coordinate_fiber_card_le` proves that every
+coordinate fiber has size at most `M`.  Finally,
+`selectiveConflictQueryIncidences_subset_complete` proves that distinct chosen competitors make
+this a genuine subrelation of the complete quadratic incidence relation.
+
+Thus the quadratic fiber is not an unavoidable consequence of recording a conflict witness: it
+comes from retaining every ordered competitor.  A one-witness-per-target representation has the
+desired linear multiplicity even before using exhaustive-minterm structure.  This does **not** yet
+give a sound switching charge.  The missing semantic theorem must construct the two selector
+functions from a genuinely deep normalized gate and prove that each chosen coordinate lies on the
+relevant canonical query path and witnesses the failed isolation target.  Global incompatibility
+may also require a certificate richer than independent local choices, as the preserved polarity
+counterexamples warn.
+
+The precise next frontier is to formulate that selector-validity predicate against the existing
+`GloballyCompatibleIsolationSelection` failure condition, then prove existence for exhaustive
+minterms as the first semantic model.  After that, test whether arbitrary genuinely deep
+normalized gates admit the same selector or preserve the smallest obstruction showing that a
+cycle/global certificate is necessary.  No P-versus-NP conclusion follows.
+
+### The exhaustive obstruction has a sound linear selector
+
+The missing semantic interface is now explicit.  `SelectiveConflictSelectorValid` requires, for
+each indexed target, a distinct member competitor whose complete support lies inside that target's
+protected support, together with a shared coordinate that is actually queried by the canonical
+tree.  The support condition is stated as an empty `competitorOutsideTargetVars` edge, so the
+bridge theorem `SelectiveConflictSelectorValid.no_singleton_target_isolation` feeds it directly
+to the existing `GloballyCompatibleIsolationSelection` obstruction rather than treating overlap
+as a surrogate for failed isolation.
+
+The first semantic model succeeds.  `exhaustiveTwoBitSelectiveCompetitor` pairs every minterm with
+its bitwise opposite and `exhaustiveTwoBitSelectiveCoordinate` retains coordinate zero.  The
+kernel-checked theorem `exhaustiveTwoBit_selectiveConflictSelectorValid` proves membership,
+clause and index distinctness, empty outside support, shared support, and canonical-query
+incidence for all four targets.  The associated selective incidence set has exactly four elements
+by `exhaustiveTwoBit_selectiveConflictQueryIncidences_card`, versus twenty-four in the complete
+relation.  Thus certificate compression is semantically sound, not merely combinatorially
+possible, on the exhaustive depth-two gate.
+
+This predicate intentionally captures the local empty-edge obstruction, not every failure of
+global isolation.  The already preserved opposite-polarity example shows that nonempty competitor
+edges can instead fail through inconsistent orientations.  The precise next frontier is therefore
+to build the smallest genuinely deep normalized gate whose isolation failure has no empty edge,
+and test whether its polarity obstruction admits an `O(M)` cycle certificate tied to canonical
+queries.  If such a deep example does not exist at the smallest dimensions, prove the restricted
+dichotomy: a deep failed target has either a valid local selector or a bounded polarity-cycle
+selector.  No P-versus-NP conclusion follows.
+
+### A depth-two nonempty-edge obstruction has a two-incidence polarity certificate
+
+The local-selector/global-cycle split is now witnessed inside one genuinely deep normalized
+gate.  `deepPolarityCycleGate` is the ordered three-term DNF
+`x₀ ∨ (¬x₀ ∧ x₁) ∨ (¬x₀ ∧ ¬x₁)`.  It is duplicate-free, repeats no variable inside a term, has
+width at most two, and every term is inclusion-minimal in the unchanged gate.  At the all-free
+root with fuel two its canonical tree has exact depth two and queries both coordinates.
+
+Preserving the first term protects coordinate zero.  The two proper competitors then have exact
+outside-support edges `{1}` and `{1}`; in particular every competitor edge is nonempty, so the
+empty-edge `SelectiveConflictSelectorValid` branch is unavailable.  Nevertheless
+`deepPolarityCycle_no_target_isolation` proves that no globally compatible isolation selection
+exists: the two competitors force selection of `x₁` with opposite falsifying values.  This is a
+polarity obstruction at the same residual-depth threshold used by the switching bad event, not
+the previously audited depth-one complementary-singleton artifact.
+
+The concrete cycle compresses to `deepPolarityCycleIncidences = {(1,1),(2,1)}`.  Its exact card is
+two, at most the three-term gate length, and `deepPolarityCycleIncidences_valid` checks both that
+the retained coordinate is canonically queried and that the two outside literals demand opposite
+values.  Thus the first deep nonempty-edge test admits an `O(M)` semantic cycle certificate.
+
+The precise next frontier is to replace this concrete two-edge witness by a general
+polarity-cycle validity predicate over nonempty outside-target clauses, prove that any valid cycle
+rules out `GloballyCompatibleIsolationSelection`, and test the restricted dichotomy on arbitrary
+deep normalized gates: either an empty-edge selector exists or an unsatisfiable outside-literal
+instance yields a cycle certificate whose size can be charged linearly to canonical queries.
+General unsatisfiable clause families need not have short two-edge cores, so no global linear
+bound is claimed yet.  No P-versus-NP conclusion follows.
+
+### Polarity-cycle soundness is now abstract and kernel-checked
+
+The concrete two-edge calculation has been lifted to a reusable semantic interface.
+`HitsOutsideCompetitorCore` states that one Boolean orientation hits every retained competitor
+through a literal outside the complete preserved-target support.  `PolarityCycleValid` packages a
+finite nonempty core of genuine proper competitors, requires each outside edge to be nonempty and
+contained in a recorded canonical-query support, and requires the retained outside-clause system
+to be unsatisfiable.  The query-support field is deliberately quantitative bookkeeping; the
+soundness argument itself uses only the exact unsatisfiability condition.
+
+The theorem
+`PolarityCycleValid.not_exists_globallyCompatibleIsolationSelection` proves that every such core
+blocks the existing compatible-isolation interface.  Its proof factors through the already exact
+selection--orientation equivalence: a compatible literal selection would extend to a total
+orientation hitting all competitors, hence the retained core, contradicting validity.  This is a
+general obstruction theorem, not a restatement specialized to opposite singleton clauses.
+
+`deepPolarityCycleCore` instantiates the predicate with the two proper competitors of the
+three-term depth-two gate.  `deepPolarityCycle_polarityCycleValid` checks that both nonempty
+outside edges lie on the canonical query support and that their opposite demands make the core
+unsatisfiable.  The core has exact cardinality two, bounded by the gate's three terms, and
+`deepPolarityCycle_no_target_isolation_via_cycle` recovers the earlier hand proof through the new
+generic theorem.  The hand proof and concrete incidence audit remain preserved as independent
+checks.
+
+The remaining issue is now cleanly quantitative rather than semantic soundness.  The precise next
+frontier is to define the full finite outside-competitor core for an arbitrary packed target family
+and prove a completeness theorem: when all outside edges are nonempty, failure of compatible
+isolation yields an unsatisfiable core.  Then audit its cardinality and, crucially, whether a core
+can be reduced or charged so that its outside variables lie on the relevant canonical query paths
+with only linear multiplicity across all packed targets.  A short two-clause core is not assumed in
+general, and no P-versus-NP conclusion follows.
+
+### The target-preserving extension fiber has an exact shell balance
+
+The shell-extension feasibility argument has now been upgraded to an exact finite count.
+`targetPreservingShellExtensions_card` proves that if a compatible isolation base has `B` live
+coordinates, the union of protected target supports has size `R`, and `R ≤ K ≤ B`, then the
+number of `K`-star extensions that keep every protected coordinate live is exactly
+
+```text
+choose(B - R, K - R) * 2^(B - K).
+```
+
+The new capstone `targetPreservingShellExtensions_exact_balance` relates that fiber to the full
+base-extension shell without division:
+
+```text
+choose(B,R) * fiber = choose(B,K) * choose(K,R) * 2^(B-K).
+```
+
+Thus the exact target-preservation density inside the `K`-live extension shell is the binomial
+ratio `choose(K,R) / choose(B,R)`.  This replaces the previous existence-only extension with the
+sharp stars-and-bars multiplicity and shows precisely how total distinct target support, rather
+than the raw number of target terms, consumes shell mass.  It does not yet show that enough packed
+targets admit compatible isolation, nor that polarity cores have a linear canonical-path charge.
+
+The precise next frontier is to combine this density with a complete full outside-competitor core:
+prove that nonempty-edge isolation failure is exactly unsatisfiability of the full finite clause
+system, then compare the smallest sound core/charge multiplicity against the newly exact
+`choose(K,R) / choose(B,R)` preservation factor.  No short-core or linear-charge theorem is
+assumed, and no P-versus-NP conclusion follows.
+
+### Isolation failure is exactly full-core unsatisfiability
+
+The full finite clause system is now explicit and kernel-checked. `fullOutsideCompetitorCore`
+contains exactly the indexed pairs `(g,U)` for which `U` is a proper competitor of the preserved
+target `target g` in gate `large (e g)`; duplicate occurrences inside a gate are erased because
+they do not change satisfiability, while the target index remains part of the clause identity.
+`mem_fullOutsideCompetitorCore` proves this membership characterization exactly.
+
+`hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors` proves that a Boolean orientation hits
+this finite core exactly when it hits every proper competitor in the earlier quantified
+interface.  Composing with the existing selection--orientation equivalence gives both
+`exists_globallyCompatibleIsolationSelection_iff_fullCore_satisfiable` and its failure form
+`not_exists_globallyCompatibleIsolationSelection_iff_fullCore_unsatisfiable`.  The logical
+equivalence is stronger than the requested nonempty-edge statement: no edge hypothesis is needed,
+because an empty outside edge is already a one-clause unsatisfiable obstruction.
+
+Finally, `fullOutsideCompetitorCore_polarityCycleValid_of_failure` proves completeness for the
+existing polarity-cycle interface.  If every proper competitor edge is nonempty, every such edge
+lies in the recorded canonical-query support, and isolation fails, then the full competitor core
+is a valid `PolarityCycleValid` certificate.  The theorem explicitly retains all competitors and
+therefore makes no short-core or linear-charge claim.
+
+The precise next frontier is quantitative core reduction.  Define an inclusion-minimal
+unsatisfiable subcore of the full system, prove the best unconditional cardinality bound available
+from its outside-variable support (the generic finite-variable bound may already be exponential),
+and audit coordinate incidence multiplicity against the exact preservation density
+`choose(K,R) / choose(B,R)`.  A linear canonical-path charge must be proved rather than inferred
+from finiteness or minimality.  No P-versus-NP conclusion follows.
+
+### Minimal polarity cores have only an exponential generic support bound
+
+`InclusionMinimalUnsatisfiableCore` now records exactly the finite minimality needed here: the core
+is unsatisfiable, but deleting any one indexed competitor leaves a satisfiable system.
+`exists_inclusionMinimalUnsatisfiableCore_subset` proves by strict finite-set descent that every
+unsatisfiable full core contains such a subcore.
+
+Minimality supplies a canonical counting argument, but not a linear one.  Choose for every retained
+competitor an assignment satisfying the core with that competitor deleted.  Witness assignments
+for two distinct competitors cannot agree: agreement would make either witness also hit its one
+missing competitor and hence satisfy the entire core.  The resulting injection proves
+`InclusionMinimalUnsatisfiableCore.card_le_two_pow`, namely
+
+```text
+core.card <= 2^n.
+```
+
+More importantly for the canonical-query interface,
+`InclusionMinimalUnsatisfiableCore.card_le_two_pow_queried` restricts each witness to the recorded
+query support.  If every outside edge is contained in `queried`, the restricted witnesses remain
+injective, giving the sharper exact-support bound
+
+```text
+core.card <= 2^(queried.card).
+```
+
+Finally, `exists_minimalPolarityCycleValid_card_le_two_pow_queried` composes finite descent with the
+full-core completeness theorem.  Under the established nonempty-edge and query-support hypotheses,
+every isolation failure has a valid inclusion-minimal polarity certificate contained in the full
+core and satisfying the support-exponential bound.
+
+This resolves the best immediate consequence of minimality and exposes a quantitative mismatch:
+the preservation benefit is the binomial ratio `choose(K,R) / choose(B,R)`, while generic core
+reduction still permits `2^Q` retained clauses for `Q = queried.card`.  Thus neither finiteness nor
+inclusion-minimality justifies a linear canonical-query charge.
+
+The precise next frontier is to define the minimal core's query-incidence relation and test whether
+the canonical construction supplies structure absent from arbitrary minimally unsatisfiable CNFs:
+either prove a per-coordinate or aggregate incidence bound strong enough to coexist with
+`choose(K,R) / choose(B,R)`, or construct a canonical-gate family realizing exponential minimal-core
+multiplicity and record that obstruction.  No P-versus-NP conclusion follows.
+
+### Minimal-core query incidence remains exponential in the generic audit
+
+`polarityCoreQueryIncidences` now records the exact retained-clause--coordinate relation of a
+polarity core: a pair is present only when the clause belongs to the reduced core, the coordinate
+belongs to the canonical query support, and the coordinate occurs in that clause's outside-target
+edge.  This is the incidence object requested by the preceding frontier, rather than the earlier
+complete all-target/all-competitor relation.
+
+The generic rectangle bounds are now kernel-checked.  The aggregate incidence cardinality is at
+most `core.card * queried.card`, and every individual coordinate fiber has cardinality at most
+`core.card`.  Combining the aggregate bound with
+`InclusionMinimalUnsatisfiableCore.card_le_two_pow_queried` gives
+
+```text
+|polarityCoreQueryIncidences target core queried|
+  <= 2^(queried.card) * queried.card.
+```
+
+Thus merely passing from core cardinality to its actual query-incidence relation does not recover
+a linear charge: the best unconditional aggregate estimate still carries the exponential
+minimal-core factor.  The per-coordinate statement is useful bookkeeping, but it inherits the
+same possible `2^Q` multiplicity.
+
+The precise next frontier is structural rather than definitional.  Either prove that polarity
+cores arising from canonical gate walks admit a selector or ownership map with total multiplicity
+compatible with `choose(K,R) / choose(B,R)`, or construct a canonical normalized gate family whose
+minimal-core incidence saturates a superlinear or exponential lower bound.  Generic rectangle
+counting and minimality alone cannot decide between these routes, and no P-versus-NP conclusion
+follows.

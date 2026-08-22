@@ -4075,7 +4075,427 @@ theorem exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompet
       rw [mem_outsideTargetLiteralPool]
       exact ⟨⟨e g, U, hUmem, hellU⟩, hout⟩
 
+/-! ### Unsatisfiable polarity cores -/
+
+/-- A Boolean orientation hits a finite competitor core when it falsifies an available
+outside-target literal in every indexed competitor retained by the core.  Unlike
+`HitsOutsideCompetitors`, this predicate ranges only over the explicitly retained clauses. -/
+def HitsOutsideCompetitorCore {n G : ℕ} (target : Fin G → Clause n)
+    (core : Finset (Fin G × Clause n)) (assignment : Fin n → Bool) : Prop :=
+  ∀ p ∈ core,
+    ∃ ell ∈ p.2.lits,
+      litVar ell ∉ compatibleIsolationTargetVars target ∧
+        assignment (litVar ell) = falValue ell
+
+/-- The full finite outside-competitor clause system.  A pair `(g, U)` occurs exactly when `U`
+is a proper competitor of the preserved target `target g` in the gate selected by `e g`.
+Converting each gate list to a finset deliberately forgets duplicate occurrences: duplicates do
+not change satisfiability, while the target index remains part of the clause identity. -/
+def fullOutsideCompetitorCore {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H) : Finset (Fin G × Clause n) :=
+  Finset.univ.biUnion fun g =>
+    ((large (e g)).toFinset.erase (target g)).image fun U => (g, U)
+
+theorem mem_fullOutsideCompetitorCore {n G H : ℕ}
+    (large : Fin H → List (Clause n)) (target : Fin G → Clause n)
+    (e : Fin G → Fin H) (g : Fin G) (U : Clause n) :
+    (g, U) ∈ fullOutsideCompetitorCore large target e ↔
+      U ∈ large (e g) ∧ U ≠ target g := by
+  simpa [fullOutsideCompetitorCore, and_comm]
+
+/-- Hitting the explicit full finite core is exactly the earlier quantified condition that hits
+every proper competitor.  This is the finite clause-system bridge needed before asking for a
+small unsatisfiable subcore. -/
+theorem hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors
+    {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H)
+    (assignment : Fin n → Bool) :
+    HitsOutsideCompetitorCore target (fullOutsideCompetitorCore large target e) assignment ↔
+      HitsOutsideCompetitors large target e assignment := by
+  constructor
+  · intro hhit g U hUmem hUne
+    exact hhit (g, U) ((mem_fullOutsideCompetitorCore large target e g U).2 ⟨hUmem, hUne⟩)
+  · intro hhit p hp
+    have hmem := (mem_fullOutsideCompetitorCore large target e p.1 p.2).1 hp
+    exact hhit p.1 p.2 hmem.1 hmem.2
+
+/-- An unsatisfiable competitor core is inclusion-minimal when deleting any retained indexed
+competitor makes it satisfiable.  For a finite core this one-element deletion formulation is
+equivalent to having no proper unsatisfiable subcore, and exposes the witnesses needed for the
+sharp generic cardinality bound below. -/
+def InclusionMinimalUnsatisfiableCore {n G : ℕ} (target : Fin G → Clause n)
+    (core : Finset (Fin G × Clause n)) : Prop :=
+  (¬ ∃ assignment, HitsOutsideCompetitorCore target core assignment) ∧
+    ∀ p ∈ core, ∃ assignment,
+      HitsOutsideCompetitorCore target (core.erase p) assignment
+
+/-- Every finite unsatisfiable competitor system contains an inclusion-minimal unsatisfiable
+subcore.  This is purely a finite descent statement and makes no quantitative small-core claim. -/
+theorem exists_inclusionMinimalUnsatisfiableCore_subset {n G : ℕ}
+    (target : Fin G → Clause n) (full : Finset (Fin G × Clause n))
+    (hunsat : ¬ ∃ assignment, HitsOutsideCompetitorCore target full assignment) :
+    ∃ core ⊆ full, InclusionMinimalUnsatisfiableCore target core := by
+  classical
+  induction full using Finset.strongInductionOn with
+  | _ full ih =>
+      by_cases hminimal : ∀ p ∈ full, ∃ assignment,
+          HitsOutsideCompetitorCore target (full.erase p) assignment
+      · exact ⟨full, Finset.Subset.rfl, hunsat, hminimal⟩
+      · push_neg at hminimal
+        obtain ⟨p, hp, heraseUnsat⟩ := hminimal
+        have heraseUnsat' : ¬ ∃ assignment,
+            HitsOutsideCompetitorCore target (full.erase p) assignment := by
+          rintro ⟨assignment, hhit⟩
+          exact heraseUnsat assignment hhit
+        obtain ⟨core, hcoreErase, hcoreMinimal⟩ :=
+          ih (full.erase p) (Finset.erase_ssubset hp) heraseUnsat'
+        exact ⟨core, hcoreErase.trans (Finset.erase_subset _ _), hcoreMinimal⟩
+
+/-- The best generic bound supplied by inclusion-minimality alone is exponential in the ambient
+Boolean support.  Each retained competitor has a satisfying assignment for the core with that
+competitor deleted.  Two different competitors cannot share such a witness, since the witness for
+either deletion would then also hit the missing competitor and satisfy the whole core. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_two_pow {n G : ℕ}
+    {target : Fin G → Clause n} {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core) :
+    core.card ≤ 2 ^ n := by
+  classical
+  let witness : ↥core → (Fin n → Bool) := fun p =>
+    Classical.choose (hminimal.2 p p.property)
+  have hwitness (p : ↥core) :
+      HitsOutsideCompetitorCore target (core.erase p.1) (witness p) :=
+    Classical.choose_spec (hminimal.2 p p.property)
+  have hinjective : Function.Injective witness := by
+    intro p q hw
+    apply Subtype.ext
+    by_contra hpq
+    apply hminimal.1
+    refine ⟨witness p, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1
+    · subst r
+      have hpneqq : p.1 ≠ q.1 := by
+        intro heq
+        exact hpq heq
+      have hhit := hwitness q p.1 (Finset.mem_erase.mpr ⟨hpneqq, p.property⟩)
+      simpa [hw] using hhit
+    · exact hwitness p r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  calc
+    core.card = Fintype.card ↥core := by simp
+    _ ≤ Fintype.card (Fin n → Bool) :=
+      Fintype.card_le_of_injective witness hinjective
+    _ = 2 ^ n := by
+      rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_fin]
+
+/-- When every outside edge is carried by the recorded canonical-query support, the same witness
+injection compresses to assignments on that support.  Thus the unconditional core bound is
+`2 ^ queried.card`, not `2 ^ n`; it is nevertheless exponential, so minimality alone does not
+provide the desired linear canonical-path charge. -/
+theorem InclusionMinimalUnsatisfiableCore.card_le_two_pow_queried {n G : ℕ}
+    {target : Fin G → Clause n} {queried : Finset (Fin n)}
+    {core : Finset (Fin G × Clause n)}
+    (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hsupport : ∀ p ∈ core,
+      competitorOutsideTargetVars target p.2 ⊆ queried) :
+    core.card ≤ 2 ^ queried.card := by
+  classical
+  let fullWitness : ↥core → (Fin n → Bool) := fun p =>
+    Classical.choose (hminimal.2 p p.property)
+  have hfullWitness (p : ↥core) :
+      HitsOutsideCompetitorCore target (core.erase p.1) (fullWitness p) :=
+    Classical.choose_spec (hminimal.2 p p.property)
+  let witness : ↥core → (↥queried → Bool) := fun p i => fullWitness p i.1
+  have hinjective : Function.Injective witness := by
+    intro p q hw
+    apply Subtype.ext
+    by_contra hpq
+    apply hminimal.1
+    refine ⟨fullWitness p, ?_⟩
+    intro r hr
+    by_cases hrp : r = p.1
+    · subst r
+      have hpneqq : p.1 ≠ q.1 := by
+        intro heq
+        exact hpq heq
+      obtain ⟨ell, hell, hout, hvalue⟩ :=
+        hfullWitness q p.1 (Finset.mem_erase.mpr ⟨hpneqq, p.property⟩)
+      have hedge : litVar ell ∈ competitorOutsideTargetVars target p.1.2 :=
+        (mem_competitorOutsideTargetVars target p.1.2 (litVar ell)).2
+          ⟨⟨ell, hell, rfl⟩, hout⟩
+      have hqueried : litVar ell ∈ queried := hsupport p.1 p.property hedge
+      refine ⟨ell, hell, hout, ?_⟩
+      have hcoordinate := congrFun hw ⟨litVar ell, hqueried⟩
+      exact hcoordinate.trans hvalue
+    · exact hfullWitness p r (Finset.mem_erase.mpr ⟨hrp, hr⟩)
+  calc
+    core.card = Fintype.card ↥core := by simp
+    _ ≤ Fintype.card (↥queried → Bool) :=
+      Fintype.card_le_of_injective witness hinjective
+    _ = 2 ^ queried.card := by
+      rw [Fintype.card_fun, Fintype.card_bool, Fintype.card_coe]
+
+/-- Compatible isolation exists exactly when the full finite outside-competitor clause system is
+satisfiable.  Consequently isolation failure is literally unsatisfiability of this full core;
+the equivalence itself does not need the additional hypothesis that every outside edge is
+nonempty (an empty edge is simply a one-clause unsatisfiable core). -/
+theorem exists_globallyCompatibleIsolationSelection_iff_fullCore_satisfiable
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H} :
+    (∃ selected, GloballyCompatibleIsolationSelection large target e selected) ↔
+      ∃ assignment,
+        HitsOutsideCompetitorCore target
+          (fullOutsideCompetitorCore large target e) assignment := by
+  rw [exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors]
+  constructor
+  · rintro ⟨assignment, hhit⟩
+    exact ⟨assignment,
+      (hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors
+        large target e assignment).2 hhit⟩
+  · rintro ⟨assignment, hhit⟩
+    exact ⟨assignment,
+      (hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors
+        large target e assignment).1 hhit⟩
+
+theorem not_exists_globallyCompatibleIsolationSelection_iff_fullCore_unsatisfiable
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H} :
+    (¬ ∃ selected, GloballyCompatibleIsolationSelection large target e selected) ↔
+      ¬ ∃ assignment,
+        HitsOutsideCompetitorCore target
+          (fullOutsideCompetitorCore large target e) assignment := by
+  rw [exists_globallyCompatibleIsolationSelection_iff_fullCore_satisfiable]
+
+/-- A polarity-cycle certificate is a finite unsatisfiable core of genuine competitors whose
+outside-target variable edges are nonempty and lie on the recorded canonical-query support.
+
+The name "cycle" describes the intended small certificates (such as two clauses forcing opposite
+orientations), while the definition deliberately permits an arbitrary finite unsatisfiable core.
+This keeps soundness separate from the still-open quantitative claim that a core can always be
+chosen linearly small. -/
+def PolarityCycleValid {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H)
+    (queried : Finset (Fin n)) (core : Finset (Fin G × Clause n)) : Prop :=
+  core.Nonempty ∧
+    (∀ p ∈ core,
+      p.2 ∈ large (e p.1) ∧
+        p.2 ≠ target p.1 ∧
+        (competitorOutsideTargetVars target p.2).Nonempty ∧
+        competitorOutsideTargetVars target p.2 ⊆ queried) ∧
+    ¬ ∃ assignment, HitsOutsideCompetitorCore target core assignment
+
+/-- Every valid polarity cycle blocks a globally compatible isolation selection.  The proof uses
+the exact selection--orientation equivalence: a selection would induce a total assignment hitting
+all competitors and therefore the retained core, contradicting its unsatisfiability. -/
+theorem PolarityCycleValid.not_exists_globallyCompatibleIsolationSelection
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {queried : Finset (Fin n)} {core : Finset (Fin G × Clause n)}
+    (hvalid : PolarityCycleValid large target e queried core) :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection large target e selected := by
+  intro hselection
+  obtain ⟨assignment, hhit⟩ :=
+    exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors.mp hselection
+  apply hvalid.2.2
+  refine ⟨assignment, ?_⟩
+  intro p hp
+  exact hhit p.1 p.2 (hvalid.2.1 p hp).1 (hvalid.2.1 p hp).2.1
+
+/-- If every proper competitor has a nonempty outside edge, all of those edges lie in the
+recorded query support, and compatible isolation fails, then the full finite competitor system
+is itself a valid polarity-cycle core.  This is a completeness theorem for the certificate
+interface.  It deliberately makes no small-core claim: the full core may retain every indexed
+proper competitor. -/
+theorem fullOutsideCompetitorCore_polarityCycleValid_of_failure
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {queried : Finset (Fin n)}
+    (hedge : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      (competitorOutsideTargetVars target U).Nonempty)
+    (hqueried : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      competitorOutsideTargetVars target U ⊆ queried)
+    (hfailure : ¬ ∃ selected,
+      GloballyCompatibleIsolationSelection large target e selected) :
+    PolarityCycleValid large target e queried
+      (fullOutsideCompetitorCore large target e) := by
+  have hunsat : ¬ ∃ assignment,
+      HitsOutsideCompetitorCore target
+        (fullOutsideCompetitorCore large target e) assignment :=
+    not_exists_globallyCompatibleIsolationSelection_iff_fullCore_unsatisfiable.mp hfailure
+  refine ⟨?_, ?_, hunsat⟩
+  · by_contra hnonempty
+    rw [Finset.not_nonempty_iff_eq_empty.mp hnonempty] at hunsat
+    apply hunsat
+    exact ⟨fun _ => false, by simp [HitsOutsideCompetitorCore]⟩
+  · intro p hp
+    have hmem :=
+      (mem_fullOutsideCompetitorCore large target e p.1 p.2).1 hp
+    exact ⟨hmem.1, hmem.2,
+      hedge p.1 p.2 hmem.1 hmem.2,
+      hqueried p.1 p.2 hmem.1 hmem.2⟩
+
+/-- Isolation failure admits an inclusion-minimal valid polarity core whose size is bounded by
+the full Boolean assignment space on the recorded query support.  This is the strongest generic
+consequence of finite minimality established here: the bound is exponential in query support and
+therefore does not by itself yield the linear charge needed by the switching recurrence. -/
+theorem exists_minimalPolarityCycleValid_card_le_two_pow_queried
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {queried : Finset (Fin n)}
+    (hedge : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      (competitorOutsideTargetVars target U).Nonempty)
+    (hqueried : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      competitorOutsideTargetVars target U ⊆ queried)
+    (hfailure : ¬ ∃ selected,
+      GloballyCompatibleIsolationSelection large target e selected) :
+    ∃ core,
+      core ⊆ fullOutsideCompetitorCore large target e ∧
+      InclusionMinimalUnsatisfiableCore target core ∧
+      PolarityCycleValid large target e queried core ∧
+      core.card ≤ 2 ^ queried.card := by
+  classical
+  have hfullUnsat : ¬ ∃ assignment,
+      HitsOutsideCompetitorCore target
+        (fullOutsideCompetitorCore large target e) assignment :=
+    not_exists_globallyCompatibleIsolationSelection_iff_fullCore_unsatisfiable.mp hfailure
+  obtain ⟨core, hcoreFull, hminimal⟩ :=
+    exists_inclusionMinimalUnsatisfiableCore_subset target
+      (fullOutsideCompetitorCore large target e) hfullUnsat
+  have hcoreNonempty : core.Nonempty := by
+    by_contra hnonempty
+    rw [Finset.not_nonempty_iff_eq_empty.mp hnonempty] at hminimal
+    apply hminimal.1
+    exact ⟨fun _ => false, by simp [HitsOutsideCompetitorCore]⟩
+  have hproperties : ∀ p ∈ core,
+      p.2 ∈ large (e p.1) ∧
+        p.2 ≠ target p.1 ∧
+        (competitorOutsideTargetVars target p.2).Nonempty ∧
+        competitorOutsideTargetVars target p.2 ⊆ queried := by
+    intro p hp
+    have hmem := (mem_fullOutsideCompetitorCore large target e p.1 p.2).1
+      (hcoreFull hp)
+    exact ⟨hmem.1, hmem.2,
+      hedge p.1 p.2 hmem.1 hmem.2,
+      hqueried p.1 p.2 hmem.1 hmem.2⟩
+  have hcard : core.card ≤ 2 ^ queried.card :=
+    hminimal.card_le_two_pow_queried fun p hp => (hproperties p hp).2.2.2
+  exact ⟨core, hcoreFull, hminimal,
+    ⟨hcoreNonempty, hproperties, hminimal.1⟩, hcard⟩
+
+/-! ### Query incidence of a reduced polarity core -/
+
+/-- The exact clause--coordinate incidence relation of a retained polarity core, restricted to
+the recorded canonical-query support.  Unlike the earlier complete target--competitor relation,
+this relation keeps only coordinates that actually occur in the retained outside edge. -/
+def polarityCoreQueryIncidences {n G : ℕ} (target : Fin G → Clause n)
+    (core : Finset (Fin G × Clause n)) (queried : Finset (Fin n)) :
+    Finset ((Fin G × Clause n) × Fin n) :=
+  (core ×ˢ queried).filter fun p =>
+    p.2 ∈ competitorOutsideTargetVars target p.1.2
+
+/-- The incidence relation is contained in the evident core-by-query rectangle. -/
+theorem polarityCoreQueryIncidences_subset_product {n G : ℕ}
+    (target : Fin G → Clause n) (core : Finset (Fin G × Clause n))
+    (queried : Finset (Fin n)) :
+    polarityCoreQueryIncidences target core queried ⊆ core ×ˢ queried := by
+  exact Finset.filter_subset _ _
+
+/-- Consequently its aggregate size is at most `core.card * queried.card`. -/
+theorem polarityCoreQueryIncidences_card_le_mul {n G : ℕ}
+    (target : Fin G → Clause n) (core : Finset (Fin G × Clause n))
+    (queried : Finset (Fin n)) :
+    (polarityCoreQueryIncidences target core queried).card ≤
+      core.card * queried.card := by
+  exact (Finset.card_le_card
+    (polarityCoreQueryIncidences_subset_product target core queried)).trans_eq
+      (Finset.card_product _ _)
+
+/-- Every single queried coordinate receives at most one incidence from each retained clause. -/
+theorem polarityCoreQueryIncidences_coordinate_fiber_card_le {n G : ℕ}
+    (target : Fin G → Clause n) (core : Finset (Fin G × Clause n))
+    (queried : Finset (Fin n)) (v : Fin n) :
+    ((polarityCoreQueryIncidences target core queried).filter fun p => p.2 = v).card ≤
+      core.card := by
+  have hsubset :
+      (polarityCoreQueryIncidences target core queried).filter (fun p => p.2 = v) ⊆
+        core ×ˢ {v} := by
+    intro p hp
+    have hproduct := polarityCoreQueryIncidences_subset_product target core queried
+      (Finset.mem_filter.mp hp).1
+    have hv : p.2 = v := (Finset.mem_filter.mp hp).2
+    exact Finset.mem_product.mpr ⟨(Finset.mem_product.mp hproduct).1,
+      Finset.mem_singleton.mpr hv⟩
+  exact (Finset.card_le_card hsubset).trans_eq (by simp)
+
+/-- Minimal-core reduction plus query support gives only an exponential-times-support aggregate
+incidence bound.  This is the precise unconditional output of the current incidence audit; it is
+not the sought linear canonical-path charge. -/
+theorem InclusionMinimalUnsatisfiableCore.polarityCoreQueryIncidences_card_le
+    {n G : ℕ} {target : Fin G → Clause n} {core : Finset (Fin G × Clause n)}
+    {queried : Finset (Fin n)} (hminimal : InclusionMinimalUnsatisfiableCore target core)
+    (hedges : ∀ p ∈ core, competitorOutsideTargetVars target p.2 ⊆ queried) :
+    (polarityCoreQueryIncidences target core queried).card ≤
+      2 ^ queried.card * queried.card := by
+  exact (polarityCoreQueryIncidences_card_le_mul target core queried).trans
+    (Nat.mul_le_mul_right queried.card
+      (hminimal.card_le_two_pow_queried hedges))
+
 /-! ### Joint target choice is not generically sufficient -/
+
+/-- Once a DNF already contains a satisfied term, its canonical tree is the true leaf for every
+fuel budget.  This local helper keeps the complementary-singleton calculation below independent
+of the remaining fuel after its only possible query. -/
+private theorem canonicalDT_eq_leaf_true_of_anyTermSat {n : ℕ}
+    (cs : List (Clause n)) (fuel : ℕ) (sigma : Restriction n)
+    (hsat : SwitchingCounting.anyTermSat cs sigma = true) :
+    canonicalDT cs fuel sigma = BoolDecisionTree.leaf true := by
+  cases fuel <;> simp [canonicalDT, hsat]
+
+/-- A complementary pair of singleton terms is always canonically shallow.  If its variable is
+fixed, one singleton is already satisfied.  If it is live, the canonical procedure queries it
+once and both children immediately satisfy one of the two terms. -/
+theorem complementarySingleton_canonicalDT_depth_le {n : ℕ} (i : Fin n)
+    (fuel : ℕ) (sigma : Restriction n) :
+    (canonicalDT [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩]
+      fuel sigma).depth ≤ 1 := by
+  cases h : sigma i with
+  | none =>
+      cases fuel with
+      | zero => exact (canonicalDT_depth_le _ 0 _).trans (by omega)
+      | succ fuel =>
+          have hfalse : SwitchingCounting.anyTermSat
+              [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩]
+              (fixVar sigma i false) = true := by
+            simp [SwitchingCounting.anyTermSat, SwitchingCounting.termSat,
+              Depth3.litTrue, Depth3.litFixedVal, fixVar]
+          have htrue : SwitchingCounting.anyTermSat
+              [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩]
+              (fixVar sigma i true) = true := by
+            simp [SwitchingCounting.anyTermSat, SwitchingCounting.termSat,
+              Depth3.litTrue, Depth3.litFixedVal, fixVar]
+          have hleafFalse := canonicalDT_eq_leaf_true_of_anyTermSat
+            [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩] fuel _ hfalse
+          have hleafTrue := canonicalDT_eq_leaf_true_of_anyTermSat
+            [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩] fuel _ htrue
+          simp [canonicalDT, SwitchingCounting.anyTermSat,
+            SwitchingCounting.termSat, SwitchingCounting.activeTerm,
+            SwitchingCounting.termFalsified, SwitchingCounting.freeLits,
+            Depth3.litFree, Depth3.litTrue, Depth3.litFixedVal,
+            SwitchingCounting.litFalse, litVar, fixVar, h]
+          simp only [BoolDecisionTree.depth]
+          change max
+            (canonicalDT [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩]
+              fuel (fixVar sigma i false)).depth
+            (canonicalDT [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩]
+              fuel (fixVar sigma i true)).depth + 1 ≤ 1
+          rw [hleafFalse, hleafTrue]
+          simp
+  | some b =>
+      apply (congrArg BoolDecisionTree.depth
+        (canonicalDT_eq_leaf_true_of_anyTermSat
+          [⟨[Rung4Literal.pos i]⟩, ⟨[Rung4Literal.neg i]⟩] fuel _ (by
+            cases b <;> simp [SwitchingCounting.anyTermSat,
+              SwitchingCounting.termSat, Depth3.litTrue, Depth3.litFixedVal, h]))).le.trans
+      simp
 
 /-- The smallest clean gate exhibiting an unavoidable target-support conflict: whichever
 singleton is preserved, the opposite-polarity singleton competitor uses the same variable. -/
@@ -4120,6 +4540,505 @@ theorem oppositeSingleton_no_joint_target_isolation :
     exact hselection.2.1 (Rung4Literal.pos 0) hellSelected 0
       (Rung4Literal.neg 0) (by simpa [ht]) rfl
 
+/-- The isolation counterexample is nevertheless not a bad multi-switching instance at residual
+depth one.  The root restriction itself is a zero-query common trunk, and the sole gate is already
+shallow by `complementarySingleton_canonicalDT_depth_le`.  Thus isolation failure must be
+stratified by residual canonical depth before it can obstruct the switching conclusion. -/
+theorem oppositeSingletonFamily_commonShallowAt_one (fuel trunkDepth : ℕ)
+    (sigma : Restriction 1) :
+    CommonShallowAt oppositeSingletonFamily fuel sigma trunkDepth 1 := by
+  refine ⟨CommonTree.leaf sigma, by simp [CommonTree.depth], ?_⟩
+  intro x hx
+  refine ⟨?_, hx, ?_⟩
+  · intro v b hv
+    exact hv
+  · intro g
+    fin_cases g
+    change (canonicalDT oppositeSingletonGate fuel sigma).depth ≤ 1
+    simpa [oppositeSingletonGate] using
+      (show (canonicalDT
+        [⟨[Rung4Literal.pos (0 : Fin 1)]⟩, ⟨[Rung4Literal.neg 0]⟩]
+        fuel sigma).depth ≤ 1 from by
+          exact complementarySingleton_canonicalDT_depth_le 0 fuel sigma)
+
+/-! ### A genuinely deep nonempty-edge polarity obstruction -/
+
+/-- A three-term normalized gate in which the first term protects coordinate zero, while the
+two remaining terms expose opposite singleton outside edges on coordinate one.  Semantically it
+is the expansion `x₀ ∨ (¬x₀ ∧ x₁) ∨ (¬x₀ ∧ ¬x₁)`. -/
+def deepPolarityCycleGate : List (Clause 2) :=
+  [⟨[Rung4Literal.pos 0]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩]
+
+def deepPolarityCycleFamily : Fin 1 → List (Clause 2) :=
+  fun _ => deepPolarityCycleGate
+
+def deepPolarityCycleTarget : Fin 1 → Clause 2 :=
+  fun _ => ⟨[Rung4Literal.pos 0]⟩
+
+/-- The example is duplicate-free, has no repeated variable inside a term, and has width at most
+two. -/
+theorem deepPolarityCycleGate_normalized :
+    deepPolarityCycleGate.Nodup ∧
+      ∀ T ∈ deepPolarityCycleGate,
+        (T.lits.map litVar).Nodup ∧ T.lits.length ≤ 2 := by
+  decide
+
+/-- No term is removed by inclusion-minimal normalization. -/
+theorem deepPolarityCycleGate_inclusionMinimal :
+    ∀ T ∈ deepPolarityCycleGate, InclusionMinimalIn deepPolarityCycleGate T := by
+  simp [deepPolarityCycleGate, InclusionMinimalIn]
+
+/-- The two proper competitors have exact nonempty outside-support edges.  Thus this example
+cannot be charged to the empty-edge selector used by the exhaustive square. -/
+theorem deepPolarityCycle_exact_outside_edges :
+    competitorOutsideTargetVars deepPolarityCycleTarget
+        ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩ = {1} ∧
+      competitorOutsideTargetVars deepPolarityCycleTarget
+        ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ = {1} := by
+  decide
+
+/-- Every proper competitor edge is nonempty for the displayed preserved target. -/
+theorem deepPolarityCycle_all_competitor_edges_nonempty :
+    ∀ U ∈ deepPolarityCycleGate, U ≠ deepPolarityCycleTarget 0 →
+      (competitorOutsideTargetVars deepPolarityCycleTarget U).Nonempty := by
+  intro U hU hne
+  simp [deepPolarityCycleGate] at hU
+  rcases hU with hU | hU | hU
+  · exact (hne hU).elim
+  · subst U
+    rw [deepPolarityCycle_exact_outside_edges.1]
+    simp
+  · subst U
+    rw [deepPolarityCycle_exact_outside_edges.2]
+    simp
+
+/-- Despite having no empty competitor edge, the family has no compatible isolation selection
+for the displayed target: the two outside singleton edges force opposite falsifying values on
+coordinate one. -/
+theorem deepPolarityCycle_no_target_isolation :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection deepPolarityCycleFamily
+      deepPolarityCycleTarget (fun g => g) selected := by
+  rintro ⟨selected, hselection⟩
+  have hpos := hselection.2.2 (0 : Fin 1)
+    ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩
+    (by simp [deepPolarityCycleFamily, deepPolarityCycleGate])
+    (by simp [deepPolarityCycleTarget])
+  have hneg := hselection.2.2 (0 : Fin 1)
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩
+    (by simp [deepPolarityCycleFamily, deepPolarityCycleGate])
+    (by simp [deepPolarityCycleTarget])
+  obtain ⟨ellPos, hellPosSelected, hellPosMem⟩ := hpos
+  obtain ⟨ellNeg, hellNegSelected, hellNegMem⟩ := hneg
+  have hposOne : Rung4Literal.pos (1 : Fin 2) ∈ selected := by
+    have hell : ellPos = Rung4Literal.neg 0 ∨ ellPos = Rung4Literal.pos 1 := by
+      simpa using hellPosMem
+    rcases hell with rfl | rfl
+    · exact (hselection.2.1 (Rung4Literal.neg 0) hellPosSelected 0
+        (Rung4Literal.pos 0) (by simp [deepPolarityCycleTarget]) rfl).elim
+    · exact hellPosSelected
+  have hnegOne : Rung4Literal.neg (1 : Fin 2) ∈ selected := by
+    have hell : ellNeg = Rung4Literal.neg 0 ∨ ellNeg = Rung4Literal.neg 1 := by
+      simpa using hellNegMem
+    rcases hell with rfl | rfl
+    · exact (hselection.2.1 (Rung4Literal.neg 0) hellNegSelected 0
+        (Rung4Literal.pos 0) (by simp [deepPolarityCycleTarget]) rfl).elim
+    · exact hellNegSelected
+  have hpol := hselection.1 (Rung4Literal.pos 1) hposOne
+    (Rung4Literal.neg 1) hnegOne rfl
+  simpa [falValue] using hpol
+
+/-- The canonical procedure queries both coordinates at the all-free root.  Hence the polarity
+obstruction is genuinely beyond residual depth one rather than another shallow singleton pair. -/
+theorem deepPolarityCycleGate_canonicalDT_depth_eq_two :
+    (canonicalDT deepPolarityCycleGate 2 (fun _ => none)).depth = 2 := by
+  decide
+
+theorem deepPolarityCycleGate_queriedVars_eq_univ :
+    queriedVars (canonicalDT deepPolarityCycleGate 2 (fun _ => none)) = Finset.univ := by
+  decide
+
+/-- The two proper terms, indexed by the sole preserved target, form the polarity core of the
+depth-two example. -/
+def deepPolarityCycleCore : Finset (Fin 1 × Clause 2) :=
+  {(0, ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩),
+   (0, ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩)}
+
+theorem deepPolarityCycleCore_card : deepPolarityCycleCore.card = 2 := by
+  decide
+
+theorem deepPolarityCycleCore_card_le_gate_length :
+    deepPolarityCycleCore.card ≤ deepPolarityCycleGate.length := by
+  decide
+
+/-- The concrete two-clause obstruction satisfies the general polarity-cycle interface.  Both
+outside edges are the nonempty singleton `{1}`, that coordinate is canonically queried, and no
+Boolean orientation can hit both clauses because they demand opposite values there. -/
+theorem deepPolarityCycle_polarityCycleValid :
+    PolarityCycleValid deepPolarityCycleFamily deepPolarityCycleTarget (fun g => g)
+      (queriedVars (canonicalDT deepPolarityCycleGate 2 (fun _ => none)))
+      deepPolarityCycleCore := by
+  rw [deepPolarityCycleGate_queriedVars_eq_univ]
+  refine ⟨by decide, by decide, ?_⟩
+  simp [HitsOutsideCompetitorCore, deepPolarityCycleCore,
+    deepPolarityCycleTarget, compatibleIsolationTargetVars, falValue, litVar]
+
+/-- The reusable soundness theorem recovers the concrete isolation obstruction from its finite
+unsatisfiable polarity core. -/
+theorem deepPolarityCycle_no_target_isolation_via_cycle :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection deepPolarityCycleFamily
+      deepPolarityCycleTarget (fun g => g) selected :=
+  deepPolarityCycle_polarityCycleValid.not_exists_globallyCompatibleIsolationSelection
+
+/-- The compressed cycle certificate records the two conflicting competitors at their shared
+queried coordinate. -/
+def deepPolarityCycleIncidences : Finset (Fin 3 × Fin 2) :=
+  {(1, 1), (2, 1)}
+
+/-- The polarity-cycle certificate has exactly two incidences, hence is already linear in the
+three-term gate size. -/
+theorem deepPolarityCycleIncidences_card : deepPolarityCycleIncidences.card = 2 := by
+  decide
+
+theorem deepPolarityCycleIncidences_card_le_gate_length :
+    deepPolarityCycleIncidences.card ≤ deepPolarityCycleGate.length := by
+  decide
+
+/-- Every retained incidence uses an actually queried coordinate, and the two retained outside
+literals demand opposite falsifying values there.  This is the semantic validity check missing
+from the bare cardinality bound. -/
+theorem deepPolarityCycleIncidences_valid :
+    (∀ p ∈ deepPolarityCycleIncidences,
+        p.2 ∈ queriedVars (canonicalDT deepPolarityCycleGate 2 (fun _ => none))) ∧
+      falValue (Rung4Literal.pos (1 : Fin 2)) ≠
+        falValue (Rung4Literal.neg (1 : Fin 2)) := by
+  decide
+
+/-! ### Isolation failure persists for a genuinely deep gate -/
+
+/-- The exhaustive two-bit DNF, in canonical lexicographic term order.  Every target term uses
+both variables, while the four terms collectively realize every polarity pattern. -/
+def exhaustiveTwoBitGate : List (Clause 2) :=
+  [⟨[Rung4Literal.pos 0, Rung4Literal.pos 1]⟩,
+   ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩]
+
+def exhaustiveTwoBitFamily : Fin 1 → List (Clause 2) :=
+  fun _ => exhaustiveTwoBitGate
+
+/-- The deep conflict example has no duplicate terms, and every term uses two distinct
+variables. -/
+theorem exhaustiveTwoBitGate_nodup_width_two :
+    exhaustiveTwoBitGate.Nodup ∧
+      ∀ T ∈ exhaustiveTwoBitGate,
+        (T.lits.map litVar).Nodup ∧ T.lits.length = 2 := by
+  decide
+
+/-- On the fully live square with enough fuel, the exhaustive gate's canonical tree really has
+depth two.  Thus it lies beyond the residual-depth-one cutoff at the root. -/
+theorem exhaustiveTwoBitGate_canonicalDT_depth_eq_two :
+    (canonicalDT exhaustiveTwoBitGate 2 (fun _ => none)).depth = 2 := by
+  decide
+
+/-- With no common-trunk query available, the fully live square is genuinely bad at residual
+depth one.  This connects the depth computation to the exact `CommonShallowAt` interface. -/
+theorem exhaustiveTwoBitFamily_not_commonShallowAt_one :
+    ¬ CommonShallowAt exhaustiveTwoBitFamily 2 (fun _ => none) 0 1 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  cases trunk with
+  | query i lo hi => simp [CommonTree.depth] at hdepth
+  | leaf tau =>
+      have htau : tau = fun _ => none := by
+        funext i
+        cases htaui : tau i with
+        | none => rfl
+        | some b =>
+            let x : Fin 2 → Bool := Function.update (fun _ => false) i (!b)
+            have hx : Rung4Restriction.Extends (fun _ => none) x := by
+              intro j v hj
+              simp at hj
+            obtain ⟨_, hagree, _⟩ := hleaf x hx
+            have hib := hagree i b htaui
+            simp [x] at hib
+      let x : Fin 2 → Bool := fun _ => false
+      have hx : Rung4Restriction.Extends (fun _ => none) x := by
+        intro i b hi
+        simp at hi
+      obtain ⟨_, _, hshallow⟩ := hleaf x hx
+      have hgate := hshallow 0
+      rw [htau] at hgate
+      change (canonicalDT exhaustiveTwoBitGate 2 (fun _ => none)).depth ≤ 1 at hgate
+      rw [exhaustiveTwoBitGate_canonicalDT_depth_eq_two] at hgate
+      omega
+
+/-- Fixed-shell form: the fully live two-variable restriction belongs to the exact bad event with
+zero trunk budget and residual depth one. -/
+theorem allFreeTwo_mem_exhaustiveTwoBit_commonShallowBad_one :
+    (fun _ => none) ∈ commonShallowBad exhaustiveTwoBitFamily 2 2 0 1 := by
+  rw [mem_commonShallowBad]
+  refine ⟨?_, exhaustiveTwoBitFamily_not_commonShallowAt_one⟩
+  decide
+
+/-- Removing gates already shallow at depth one does not rescue generic target isolation.  Every
+possible target in the exhaustive square protects both coordinates, whereas isolating it would
+have to falsify a distinct competitor using one of those same coordinates. -/
+theorem exhaustiveTwoBit_no_joint_target_isolation :
+    ¬ ∃ target : Fin 1 → Clause 2,
+      (∀ g, target g ∈ exhaustiveTwoBitFamily g) ∧
+        ∃ selected, GloballyCompatibleIsolationSelection
+          exhaustiveTwoBitFamily target (fun g => g) selected := by
+  rintro ⟨target, hmem, selected, hselection⟩
+  have ht : target 0 = ⟨[Rung4Literal.pos 0, Rung4Literal.pos 1]⟩ ∨
+      target 0 = ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩ ∨
+      target 0 = ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩ ∨
+      target 0 = ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ := by
+    simpa [exhaustiveTwoBitFamily, exhaustiveTwoBitGate] using hmem 0
+  rcases ht with ht | ht | ht | ht
+  · have hbad := hselection.2.2 (0 : Fin 1)
+      ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩
+      (by simp [exhaustiveTwoBitFamily, exhaustiveTwoBitGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp at hellMem
+    rcases hellMem with rfl | rfl
+    · exact hselection.2.1 (Rung4Literal.neg 0) hellSelected 0
+        (Rung4Literal.pos 0) (by simp [ht]) rfl
+    · exact hselection.2.1 (Rung4Literal.neg 1) hellSelected 0
+        (Rung4Literal.pos 1) (by simp [ht]) rfl
+  · have hbad := hselection.2.2 (0 : Fin 1)
+      ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩
+      (by simp [exhaustiveTwoBitFamily, exhaustiveTwoBitGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp at hellMem
+    rcases hellMem with rfl | rfl
+    · exact hselection.2.1 (Rung4Literal.neg 0) hellSelected 0
+        (Rung4Literal.pos 0) (by simp [ht]) rfl
+    · exact hselection.2.1 (Rung4Literal.pos 1) hellSelected 0
+        (Rung4Literal.neg 1) (by simp [ht]) rfl
+  · have hbad := hselection.2.2 (0 : Fin 1)
+      ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩
+      (by simp [exhaustiveTwoBitFamily, exhaustiveTwoBitGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp at hellMem
+    rcases hellMem with rfl | rfl
+    · exact hselection.2.1 (Rung4Literal.pos 0) hellSelected 0
+        (Rung4Literal.neg 0) (by simp [ht]) rfl
+    · exact hselection.2.1 (Rung4Literal.neg 1) hellSelected 0
+        (Rung4Literal.pos 1) (by simp [ht]) rfl
+  · have hbad := hselection.2.2 (0 : Fin 1)
+      ⟨[Rung4Literal.pos 0, Rung4Literal.pos 1]⟩
+      (by simp [exhaustiveTwoBitFamily, exhaustiveTwoBitGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp at hellMem
+    rcases hellMem with rfl | rfl
+    · exact hselection.2.1 (Rung4Literal.pos 0) hellSelected 0
+        (Rung4Literal.neg 0) (by simp [ht]) rfl
+    · exact hselection.2.1 (Rung4Literal.pos 1) hellSelected 0
+        (Rung4Literal.neg 1) (by simp [ht]) rfl
+
+/-! ### Exact local incidence count for the deep isolation obstruction -/
+
+/-- Canonical indexing of the four exhaustive-square terms. -/
+def exhaustiveTwoBitTerm (j : Fin 4) : Clause 2 :=
+  exhaustiveTwoBitGate.get (Fin.cast (by decide) j)
+
+/-- Target--competitor--query incidences in the exhaustive square.  An incidence records a
+distinct ordered pair of terms and a variable that occurs in both terms and in the canonical
+tree's queried-variable set. -/
+def exhaustiveTwoBitConflictIncidences : Finset ((Fin 4 × Fin 4) × Fin 2) :=
+  Finset.univ.filter fun p =>
+    p.1.1 ≠ p.1.2 ∧
+      p.2 ∈ SwitchingCounting.clauseVars (exhaustiveTwoBitTerm p.1.1) ∧
+      p.2 ∈ SwitchingCounting.clauseVars (exhaustiveTwoBitTerm p.1.2) ∧
+      p.2 ∈ queriedVars (canonicalDT exhaustiveTwoBitGate 2 (fun _ => none))
+
+/-- The canonical tree queries exactly the two coordinates appearing in every exhaustive
+minterm. -/
+theorem exhaustiveTwoBitGate_queriedVars_eq_univ :
+    queriedVars (canonicalDT exhaustiveTwoBitGate 2 (fun _ => none)) = Finset.univ := by
+  decide
+
+/-- The local conflict-to-query incidence relation has exactly twenty-four elements: twelve
+ordered target--competitor pairs, each incident to both queried coordinates. -/
+theorem exhaustiveTwoBitConflictIncidences_card :
+    exhaustiveTwoBitConflictIncidences.card = 24 := by
+  decide
+
+/-- Each queried coordinate receives exactly twelve conflict incidences.  This is the first exact
+fiber audit for the proposed canonical-path charge: the charge exists locally, but it has already
+lost the full ordered-pair multiplicity rather than a constant independent of the gate's term
+count. -/
+theorem exhaustiveTwoBitConflictIncidences_coordinate_fiber_card (v : Fin 2) :
+    (exhaustiveTwoBitConflictIncidences.filter fun p => p.2 = v).card = 12 := by
+  fin_cases v <;> decide
+
+/-! ### Dimension-free complete-incidence multiplicity -/
+
+/-- The off-diagonal ordered pairs from an `M`-element term index. -/
+def offDiagonalTermPairs (M : ℕ) : Finset (Fin M × Fin M) :=
+  Finset.univ.filter fun p => p.1 ≠ p.2
+
+/-- There are exactly `M * (M - 1)` ordered target--competitor pairs. -/
+theorem offDiagonalTermPairs_card (M : ℕ) :
+    (offDiagonalTermPairs M).card = M * (M - 1) := by
+  have hdiag : (Finset.univ.filter fun p : Fin M × Fin M => ¬p.1 ≠ p.2) =
+      Finset.univ.image fun i : Fin M => (i, i) := by
+    ext p
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, not_ne_iff,
+      Finset.mem_image]
+    constructor
+    · intro h
+      exact ⟨p.1, Prod.ext rfl h⟩
+    · rintro ⟨i, rfl⟩
+      rfl
+  have hsplit := Finset.card_filter_add_card_filter_not
+      (s := (Finset.univ : Finset (Fin M × Fin M))) (fun p => p.1 ≠ p.2)
+  rw [hdiag] at hsplit
+  have hinj : Function.Injective (fun i : Fin M => (i, i)) := fun _ _ h =>
+    congrArg Prod.fst h
+  rw [Finset.card_image_of_injective _ hinj] at hsplit
+  simp only [Finset.card_univ, Fintype.card_prod, Fintype.card_fin] at hsplit
+  have hcard : (offDiagonalTermPairs M).card = M * M - M := by
+    unfold offDiagonalTermPairs
+    omega
+  rw [hcard, Nat.mul_sub_left_distrib]
+  simp
+
+/-- The complete conflict-to-query relation on `M` terms and `d` queried coordinates.  This is
+the combinatorial core realized by an exhaustive-minterm gate once every term contains every
+queried coordinate: it deliberately retains every distinct ordered target--competitor pair. -/
+def completeConflictQueryIncidences (M d : ℕ) :
+    Finset ((Fin M × Fin M) × Fin d) :=
+  Finset.univ.filter fun p => p.1.1 ≠ p.1.2
+
+theorem completeConflictQueryIncidences_eq_product (M d : ℕ) :
+    completeConflictQueryIncidences M d =
+      (offDiagonalTermPairs M) ×ˢ Finset.univ := by
+  ext p
+  simp [completeConflictQueryIncidences, offDiagonalTermPairs]
+
+/-- The complete relation has `d` copies of the full ordered-pair multiplicity. -/
+theorem completeConflictQueryIncidences_card (M d : ℕ) :
+    (completeConflictQueryIncidences M d).card = M * (M - 1) * d := by
+  rw [completeConflictQueryIncidences_eq_product, Finset.card_product,
+    offDiagonalTermPairs_card]
+  simp
+
+/-- Projecting the complete relation to any one queried coordinate has the exact quadratic fiber
+`M * (M - 1)`.  The multiplicity is therefore caused by retaining all ordered competitors, not
+by the special choice `M = 4` in the exhaustive square. -/
+theorem completeConflictQueryIncidences_coordinate_fiber_card
+    (M d : ℕ) (v : Fin d) :
+    ((completeConflictQueryIncidences M d).filter fun p => p.2 = v).card =
+      M * (M - 1) := by
+  have hfiber : (completeConflictQueryIncidences M d).filter (fun p => p.2 = v) =
+      (offDiagonalTermPairs M) ×ˢ {v} := by
+    ext p
+    simp only [completeConflictQueryIncidences, offDiagonalTermPairs, Finset.mem_filter,
+      Finset.mem_univ, true_and, Finset.mem_product, Finset.mem_singleton]
+  rw [hfiber, Finset.card_product, offDiagonalTermPairs_card]
+  simp
+
+/-- At the `2^d` term count of a `d`-variable exhaustive-minterm gate, every coordinate fiber of
+the complete incidence relation has the expected size `2^d * (2^d - 1)`. -/
+theorem exhaustiveMinterm_completeConflict_coordinate_fiber_card
+    (d : ℕ) (v : Fin d) :
+    ((completeConflictQueryIncidences (2 ^ d) d).filter fun p => p.2 = v).card =
+      2 ^ d * (2 ^ d - 1) := by
+  exact completeConflictQueryIncidences_coordinate_fiber_card (2 ^ d) d v
+
+/-! ### One-witness-per-target certificate compression -/
+
+/-- A selective conflict certificate retains exactly one chosen competitor and one chosen queried
+coordinate for each target.  Semantic validity is deliberately kept separate: the two functions
+below are the payload of a selector, while later hypotheses must prove that the chosen competitor
+and coordinate really witness the relevant conflict. -/
+def selectiveConflictQueryIncidences (M d : ℕ)
+    (competitor : Fin M → Fin M) (coordinate : Fin M → Fin d) :
+    Finset ((Fin M × Fin M) × Fin d) :=
+  Finset.univ.image fun i => ((i, competitor i), coordinate i)
+
+/-- Retaining one certificate per target has exactly `M` incidences.  Injectivity is free because
+the target remains the first component of every certificate. -/
+theorem selectiveConflictQueryIncidences_card (M d : ℕ)
+    (competitor : Fin M → Fin M) (coordinate : Fin M → Fin d) :
+    (selectiveConflictQueryIncidences M d competitor coordinate).card = M := by
+  rw [selectiveConflictQueryIncidences, Finset.card_image_of_injective]
+  · simp
+  · intro i j h
+    exact congrArg (fun p => p.1.1) h
+
+/-- Consequently every coordinate fiber of a one-witness-per-target certificate is at most
+linear in the term count, independently of the number of queried coordinates. -/
+theorem selectiveConflictQueryIncidences_coordinate_fiber_card_le
+    (M d : ℕ) (competitor : Fin M → Fin M) (coordinate : Fin M → Fin d)
+    (v : Fin d) :
+    ((selectiveConflictQueryIncidences M d competitor coordinate).filter
+      fun p => p.2 = v).card ≤ M := by
+  exact (Finset.card_filter_le _ _).trans_eq
+    (selectiveConflictQueryIncidences_card M d competitor coordinate)
+
+/-- If every selected competitor is distinct from its target, the selective certificate is a
+subrelation of the complete conflict-query relation.  Thus the linear count is genuine
+compression of the previously audited quadratic relation; what remains is to justify semantic
+conflict validity for a selector arising from a gate. -/
+theorem selectiveConflictQueryIncidences_subset_complete
+    (M d : ℕ) (competitor : Fin M → Fin M) (coordinate : Fin M → Fin d)
+    (hne : ∀ i, competitor i ≠ i) :
+    selectiveConflictQueryIncidences M d competitor coordinate ⊆
+      completeConflictQueryIncidences M d := by
+  intro p hp
+  rw [selectiveConflictQueryIncidences, Finset.mem_image] at hp
+  obtain ⟨i, -, rfl⟩ := hp
+  rw [completeConflictQueryIncidences, Finset.mem_filter]
+  exact ⟨Finset.mem_univ _, (hne i).symm⟩
+
+/-- Semantic validity for a one-witness-per-target conflict selector.  Besides membership and
+index distinctness, the chosen competitor must be a genuinely different clause whose entire
+support is protected by the target.  The chosen coordinate records an actual shared support
+coordinate queried by the canonical tree.  The empty outside-support edge is phrased using the
+same definition as `GloballyCompatibleIsolationSelection`, so it gives an exact isolation
+obstruction rather than merely a syntactic overlap. -/
+def SelectiveConflictSelectorValid {n M : ℕ} (gate : List (Clause n))
+    (term : Fin M → Clause n) (fuel : ℕ) (sigma : Restriction n)
+    (competitor : Fin M → Fin M) (coordinate : Fin M → Fin n) : Prop :=
+  (∀ i, term i ∈ gate) ∧
+    ∀ i,
+      competitor i ≠ i ∧
+      term (competitor i) ≠ term i ∧
+      competitorOutsideTargetVars (fun _ : Fin 1 => term i)
+        (term (competitor i)) = ∅ ∧
+      coordinate i ∈ SwitchingCounting.clauseVars (term i) ∧
+      coordinate i ∈ SwitchingCounting.clauseVars (term (competitor i)) ∧
+      coordinate i ∈ queriedVars (canonicalDT gate fuel sigma)
+
+/-- On the exhaustive square, choose the bitwise-opposite minterm as competitor. -/
+def exhaustiveTwoBitSelectiveCompetitor (i : Fin 4) : Fin 4 :=
+  ⟨3 - i.val, by omega⟩
+
+/-- One shared queried coordinate suffices for every target in the exhaustive square. -/
+def exhaustiveTwoBitSelectiveCoordinate (_ : Fin 4) : Fin 2 := 0
+
+/-- The exhaustive deep obstruction admits the desired sound linear certificate.  Hence the
+semantic predicate is inhabited in the first genuinely deep model, not only countable in the
+abstract. -/
+theorem exhaustiveTwoBit_selectiveConflictSelectorValid :
+    SelectiveConflictSelectorValid exhaustiveTwoBitGate exhaustiveTwoBitTerm 2
+      (fun _ => none) exhaustiveTwoBitSelectiveCompetitor
+      exhaustiveTwoBitSelectiveCoordinate := by
+  constructor
+  · intro i
+    fin_cases i <;> decide
+  · intro i
+    fin_cases i <;> decide
+
+/-- The selected exhaustive-square incidences retain exactly four witnesses. -/
+theorem exhaustiveTwoBit_selectiveConflictQueryIncidences_card :
+    (selectiveConflictQueryIncidences 4 2 exhaustiveTwoBitSelectiveCompetitor
+      exhaustiveTwoBitSelectiveCoordinate).card = 4 := by
+  exact selectiveConflictQueryIncidences_card 4 2 _ _
+
 /-- An empty competitor edge is a complete failure certificate for the compatible-selection
 branch: hitting that competitor would require selecting a variable used by a preserved target. -/
 theorem not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_empty
@@ -4140,6 +5059,23 @@ theorem not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_
   rw [mem_compatibleIsolationTargetVars] at hvarTarget
   obtain ⟨g', t, ht, heq⟩ := hvarTarget
   exact hselection.2.1 ell hellSelected g' t ht heq.symm
+
+/-- A valid selector certifies failure of the existing compatible-isolation interface separately
+for every possible target.  This is the semantic bridge missing from the bare linear incidence
+count: its empty outside-support edge is consumed directly by the established obstruction lemma. -/
+theorem SelectiveConflictSelectorValid.no_singleton_target_isolation
+    {n M : ℕ} {gate : List (Clause n)} {term : Fin M → Clause n}
+    {fuel : ℕ} {sigma : Restriction n} {competitor : Fin M → Fin M}
+    {coordinate : Fin M → Fin n}
+    (hvalid : SelectiveConflictSelectorValid gate term fuel sigma competitor coordinate)
+    (i : Fin M) :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection
+      (fun _ : Fin 1 => gate) (fun _ : Fin 1 => term i) (fun g => g) selected := by
+  apply not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_empty
+    (g := (0 : Fin 1)) (U := term (competitor i))
+  · exact hvalid.1 (competitor i)
+  · exact hvalid.2 i |>.2.1
+  · exact hvalid.2 i |>.2.2.1
 
 /-- Local inclusion-minimality does not prevent the empty-edge obstruction.  When it occurs,
 some literal outside the chosen target is forced to share its variable with (possibly another)
@@ -4552,6 +5488,24 @@ theorem targetPreservingShellExtensions_card {n K : ℕ} (base : Restriction n)
       | none => rfl
       | some b => rw [hrho.1 i b hbase] at hi; simp at hi
     · simpa [stars] using hrho.2.1
+
+/-- Sharp balance against the unrestricted extension shell.  If `B` coordinates are live in the
+base and a prescribed `R`-set must remain live, then summing the corresponding fiber size over all
+`R`-subsets counts each `K`-live extension exactly `choose K R` times.  Equivalently, the exact
+target-preservation density inside the base-extension shell is `choose K R / choose B R`; the
+identity is kept division-free over `ℕ`. -/
+theorem targetPreservingShellExtensions_exact_balance {n K : ℕ}
+    (base : Restriction n) (required : Finset (Fin n))
+    (hrequired : required ⊆ freeVars base) (hrequiredK : required.card ≤ K)
+    (hKbase : K ≤ stars base) :
+    Nat.choose (stars base) required.card *
+        (targetPreservingShellExtensions base required K).card =
+      Nat.choose (stars base) K * Nat.choose K required.card *
+        2 ^ (stars base - K) := by
+  rw [targetPreservingShellExtensions_card base required hrequired hrequiredK hKbase]
+  simp only [stars]
+  rw [← Nat.mul_assoc]
+  rw [← Nat.choose_mul hrequiredK]
 
 /-- A globally compatible outside-literal selection discharges the entire semantic isolation
 interface in one step.  The remaining frontier is purely combinatorial: find a large selection
@@ -5926,6 +6880,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_restrictionExtends_freeVars_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_targetSuperset_freeSets
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.targetPreservingShellExtensions_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.targetPreservingShellExtensions_exact_balance
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_bottomSlotCount_lt_live_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_bottomSlotCount_margin_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.aggregateSemanticBaselineExcess_independentLiveLiteralFamily
@@ -6005,7 +6960,53 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_of_nonempty_edges_of_pool_consistent
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_exists_globallyCompatibleIsolationSelection_of_singleton_polarity_conflict
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_fullOutsideCompetitorCore
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.hitsOutsideCompetitorCore_full_iff_hitsOutsideCompetitors
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_inclusionMinimalUnsatisfiableCore_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_two_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.card_le_two_pow_queried
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_iff_fullCore_satisfiable
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_exists_globallyCompatibleIsolationSelection_iff_fullCore_unsatisfiable
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.PolarityCycleValid.not_exists_globallyCompatibleIsolationSelection
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.fullOutsideCompetitorCore_polarityCycleValid_of_failure
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_minimalPolarityCycleValid_card_le_two_pow_queried
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.polarityCoreQueryIncidences_card_le_mul
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.polarityCoreQueryIncidences_coordinate_fiber_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.InclusionMinimalUnsatisfiableCore.polarityCoreQueryIncidences_card_le
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.oppositeSingleton_no_joint_target_isolation
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleGate_normalized
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleGate_inclusionMinimal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycle_exact_outside_edges
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycle_all_competitor_edges_nonempty
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycle_no_target_isolation
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleGate_canonicalDT_depth_eq_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleGate_queriedVars_eq_univ
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleCore_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleCore_card_le_gate_length
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycle_polarityCycleValid
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycle_no_target_isolation_via_cycle
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleIncidences_card_le_gate_length
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.deepPolarityCycleIncidences_valid
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.complementarySingleton_canonicalDT_depth_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.oppositeSingletonFamily_commonShallowAt_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBitGate_canonicalDT_depth_eq_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBitFamily_not_commonShallowAt_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFreeTwo_mem_exhaustiveTwoBit_commonShallowBad_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBit_no_joint_target_isolation
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBitGate_queriedVars_eq_univ
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBitConflictIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBitConflictIncidences_coordinate_fiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.offDiagonalTermPairs_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.completeConflictQueryIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.completeConflictQueryIncidences_coordinate_fiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveMinterm_completeConflict_coordinate_fiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.selectiveConflictQueryIncidences_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.selectiveConflictQueryIncidences_coordinate_fiber_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.selectiveConflictQueryIncidences_subset_complete
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.SelectiveConflictSelectorValid.no_singleton_target_isolation
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBit_selectiveConflictSelectorValid
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveTwoBit_selectiveConflictQueryIncidences_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_commonShallowBad_of_globallyCompatibleIsolationSelection
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionMinimal_lits_subset_redundant
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionRedundantGate_anyTermSat
@@ -6021,6 +7022,93 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_taggedRawVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedPrefixVars_eq_take
+/-! ### A normalized core saturating the support-exponential bound -/
+
+namespace PallLean.Paper93.DeepMath.PathB.MultiSwitching
+
+/-- A protected target on a fourth coordinate, kept separate from the three coordinates used by
+the exhaustive competitor clauses below. -/
+def exhaustiveThreeTarget : Fin 1 → Clause 4 :=
+  fun _ => ⟨[Rung4Literal.pos 3]⟩
+
+/-- All eight polarity patterns on coordinates `0,1,2`, followed by the protected target.  The
+competitors are ordered as an ordinary exhaustive three-variable DNF, so its canonical tree
+really queries all three outside coordinates before the final target can matter. -/
+def exhaustiveThreeProtectedGate : List (Clause 4) :=
+  [⟨[Rung4Literal.pos 0, Rung4Literal.pos 1, Rung4Literal.pos 2]⟩,
+   ⟨[Rung4Literal.pos 0, Rung4Literal.pos 1, Rung4Literal.neg 2]⟩,
+   ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1, Rung4Literal.pos 2]⟩,
+   ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1, Rung4Literal.neg 2]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1, Rung4Literal.pos 2]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1, Rung4Literal.neg 2]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1, Rung4Literal.pos 2]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1, Rung4Literal.neg 2]⟩,
+   exhaustiveThreeTarget 0]
+
+def exhaustiveThreeProtectedFamily : Fin 1 → List (Clause 4) :=
+  fun _ => exhaustiveThreeProtectedGate
+
+/-- The eight indexed proper competitors of the protected target. -/
+def exhaustiveThreeProtectedCore : Finset (Fin 1 × Clause 4) :=
+  {(0, ⟨[Rung4Literal.pos 0, Rung4Literal.pos 1, Rung4Literal.pos 2]⟩),
+   (0, ⟨[Rung4Literal.pos 0, Rung4Literal.pos 1, Rung4Literal.neg 2]⟩),
+   (0, ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1, Rung4Literal.pos 2]⟩),
+   (0, ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1, Rung4Literal.neg 2]⟩),
+   (0, ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1, Rung4Literal.pos 2]⟩),
+   (0, ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1, Rung4Literal.neg 2]⟩),
+   (0, ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1, Rung4Literal.pos 2]⟩),
+   (0, ⟨[Rung4Literal.neg 0, Rung4Literal.neg 1, Rung4Literal.neg 2]⟩)}
+
+/-- The example meets the normalization hypotheses used by the circuit bridge: no repeated
+clauses, and no repeated coordinate inside any clause. -/
+theorem exhaustiveThreeProtectedGate_normalized :
+    exhaustiveThreeProtectedGate.Nodup ∧
+      ∀ T ∈ exhaustiveThreeProtectedGate,
+        (T.lits.map litVar).Nodup ∧ T.lits.length ≤ 3 := by
+  decide
+
+/-- The canonical walk records exactly the three outside coordinates. -/
+theorem exhaustiveThreeProtectedGate_queriedVars :
+    queriedVars (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none)) =
+      ({0, 1, 2} : Finset (Fin 4)) := by
+  decide
+
+/-- The displayed core is exactly the full proper-competitor core of the normalized gate. -/
+theorem exhaustiveThreeProtectedCore_eq_full :
+    exhaustiveThreeProtectedCore =
+      fullOutsideCompetitorCore exhaustiveThreeProtectedFamily
+        exhaustiveThreeTarget (fun g => g) := by
+  decide
+
+/-- Every one of the eight Boolean orientations is excluded by one exhaustive competitor, and
+deleting that competitor restores precisely its complementary orientation.  Hence the generic
+`2^Q` minimal-core bound is attained already by a normalized canonical gate. -/
+theorem exhaustiveThreeProtectedCore_minimal :
+    InclusionMinimalUnsatisfiableCore exhaustiveThreeTarget
+      exhaustiveThreeProtectedCore := by
+  decide
+
+theorem exhaustiveThreeProtectedCore_card :
+    exhaustiveThreeProtectedCore.card = 2 ^ 3 := by
+  decide
+
+/-- Every retained clause is incident to all three actually queried outside coordinates, so the
+minimal-core incidence rectangle is also attained exactly. -/
+theorem exhaustiveThreeProtectedCore_queryIncidences_card :
+    (polarityCoreQueryIncidences exhaustiveThreeTarget exhaustiveThreeProtectedCore
+      (queriedVars (canonicalDT exhaustiveThreeProtectedGate 3 (fun _ => none)))).card =
+        2 ^ 3 * 3 := by
+  decide
+
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_normalized
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedGate_queriedVars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_eq_full
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_minimal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exhaustiveThreeProtectedCore_queryIncidences_card
+
+end PallLean.Paper93.DeepMath.PathB.MultiSwitching
+
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedPrefixEndpoint_eq_sdiff
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_prefixEndpoint_stars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedPrefixVars
