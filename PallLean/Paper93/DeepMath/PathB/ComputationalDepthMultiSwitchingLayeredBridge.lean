@@ -1255,6 +1255,666 @@ theorem independentRoot_mem_commonShallowBad_zero {n K d : ℕ}
 
 /-! ### A positive-residual disjoint-block obstruction -/
 
+/-- More pairwise-disjoint support blocks than queried coordinates force one whole block to be
+missed.  This is the exact finite packing premise needed by the semantic obstruction below.
+
+The proof chooses one queried coordinate from every allegedly hit block.  Pairwise disjointness
+makes those choices injective into `path`, contradicting `path.card < G`. -/
+theorem exists_disjoint_support_of_pairwiseDisjoint
+    {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (path : Finset (Fin n)) (hpath : path.card < G) :
+    ∃ g, Disjoint (support g) path := by
+  by_contra hmiss
+  push_neg at hmiss
+  have hmeet (g : Fin G) : ∃ i, i ∈ support g ∧ i ∈ path :=
+    Finset.not_disjoint_iff.mp (hmiss g)
+  let hit : Fin G → {i // i ∈ path} := fun g ↦
+    ⟨Classical.choose (hmeet g), (Classical.choose_spec (hmeet g)).2⟩
+  have hit_mem (g : Fin G) : (hit g).1 ∈ support g :=
+    (Classical.choose_spec (hmeet g)).1
+  have hinj : Function.Injective hit := by
+    intro g h heq
+    by_contra hne
+    have hdisj := hpair g h hne
+    apply (Finset.not_disjoint_iff.mpr ⟨(hit g).1, hit_mem g, ?_⟩) hdisj
+    simpa [heq] using hit_mem h
+  have hcard : G ≤ path.card := by
+    simpa using Fintype.card_le_of_injective hit hinj
+  omega
+
+/-- A pairwise-disjoint family with more blocks than the trunk depth automatically satisfies the
+support-missing premise used by `supportedGates_not_commonShallowAt_allFree`. -/
+theorem pairwiseDisjoint_support_miss
+    {n G trunkDepth : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hblocks : trunkDepth < G) :
+    ∀ path : Finset (Fin n), path.card ≤ trunkDepth →
+      ∃ g, Disjoint (support g) path := by
+  intro path hpath
+  exact exists_disjoint_support_of_pairwiseDisjoint support hpair path
+    (lt_of_le_of_lt hpath hblocks)
+
+/-- The indices of support blocks that remain completely live under a restriction. -/
+def intactSupportBlocks {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (σ : Restriction n) : Finset (Fin G) :=
+  Finset.univ.filter fun g => support g ⊆ freeVars σ
+
+/-- The explicit fixed-shell event whose roots retain more whole support blocks than a trunk of
+depth `trunkDepth` can query. -/
+def manyIntactShell {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (K trunkDepth : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧ trunkDepth < (intactSupportBlocks support σ).card
+
+/-- The free-set occupancy event underlying `manyIntactShell`.  Separating it from restrictions
+removes the irrelevant Boolean values on fixed coordinates. -/
+def manyIntactFreeSets {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (K trunkDepth : ℕ) : Finset (Finset (Fin n)) :=
+  (Finset.univ : Finset (Fin n)).powersetCard K |>.filter fun S =>
+    trunkDepth < (Finset.univ.filter fun g => support g ⊆ S).card
+
+/-- All coordinates belonging to at least one support block. -/
+def supportUnion {n G : ℕ} (support : Fin G → Finset (Fin n)) : Finset (Fin n) :=
+  Finset.univ.biUnion support
+
+/-- The lossless occupancy record of a free set: its selected coordinates inside every support
+block, together with its selected coordinates outside the union of all blocks.  Retaining the
+actual intersections (rather than only their cardinalities) makes the no-double-counting step
+independent of any ordering convention. -/
+def freeSetOccupancyCode {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (S : Finset (Fin n)) : (Fin G → Finset (Fin n)) × Finset (Fin n) :=
+  (fun g => S ∩ support g, S \ supportUnion support)
+
+/-- Reconstruction identity underlying the occupancy code. -/
+theorem freeSetOccupancyCode_reconstruct {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (S : Finset (Fin n)) :
+    S = (Finset.univ.biUnion fun g => (freeSetOccupancyCode support S).1 g) ∪
+      (freeSetOccupancyCode support S).2 := by
+  classical
+  ext i
+  simp only [freeSetOccupancyCode, supportUnion, Finset.mem_union, Finset.mem_biUnion,
+    Finset.mem_univ, true_and, Finset.mem_inter, Finset.mem_sdiff]
+  constructor
+  · intro hiS
+    by_cases hblock : ∃ g, i ∈ support g
+    · left
+      obtain ⟨g, hig⟩ := hblock
+      exact ⟨g, hiS, hig⟩
+    · exact Or.inr ⟨hiS, hblock⟩
+  · rintro (⟨_, hiS, _⟩ | ⟨hiS, _⟩) <;> exact hiS
+
+/-- The full block-intersection profile plus the outside reservoir reconstructs the free set.
+This is the exact no-double-counting interface needed before assigning binomial weights to
+partial occupancies.  Pairwise disjointness is not needed for injectivity; it enters only when
+the cardinality of a profile is factored across blocks. -/
+theorem freeSetOccupancyCode_injective {n G : ℕ} (support : Fin G → Finset (Fin n)) :
+    Function.Injective (freeSetOccupancyCode support) := by
+  classical
+  intro S T hcode
+  have hblocks : (fun g => S ∩ support g) = (fun g => T ∩ support g) :=
+    congrArg Prod.fst hcode
+  have houtside : S \ supportUnion support = T \ supportUnion support :=
+    congrArg Prod.snd hcode
+  ext i
+  by_cases hi : i ∈ supportUnion support
+  · rw [supportUnion, Finset.mem_biUnion] at hi
+    obtain ⟨g, _, hig⟩ := hi
+    have hg := congrFun hblocks g
+    have hmem := congrArg (fun U : Finset (Fin n) => i ∈ U) hg
+    simpa [hig] using hmem
+  · have hmem := congrArg (fun U : Finset (Fin n) => i ∈ U) houtside
+    simpa [hi] using hmem
+
+/-- For pairwise-disjoint supports, the shell size is exactly the sum of all block occupancies
+and the outside occupancy.  This is the additive constraint in the eventual hypergeometric
+coefficient; in particular partial blocks and outside coordinates are not silently discarded. -/
+theorem freeSetOccupancyCode_card {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (S : Finset (Fin n)) :
+    S.card = (∑ g, ((freeSetOccupancyCode support S).1 g).card) +
+      (freeSetOccupancyCode support S).2.card := by
+  classical
+  let inside := Finset.univ.biUnion fun g => (freeSetOccupancyCode support S).1 g
+  let outside := (freeSetOccupancyCode support S).2
+  have hinsidePair : ((Finset.univ : Finset (Fin G)) : Set (Fin G)).PairwiseDisjoint
+      (fun g => (freeSetOccupancyCode support S).1 g) := by
+    intro g _ h _ hne
+    exact (hpair g h hne).mono Finset.inter_subset_right Finset.inter_subset_right
+  have hio : Disjoint inside outside := by
+    rw [Finset.disjoint_left]
+    intro i hiInside hiOutside
+    change i ∈ Finset.univ.biUnion
+      (fun g => (freeSetOccupancyCode support S).1 g) at hiInside
+    rw [Finset.mem_biUnion] at hiInside
+    obtain ⟨g, _, hig⟩ := hiInside
+    have hiSupport : i ∈ supportUnion support := by
+      rw [supportUnion, Finset.mem_biUnion]
+      exact ⟨g, Finset.mem_univ g, (Finset.mem_inter.mp hig).2⟩
+    exact (Finset.mem_sdiff.mp hiOutside).2 hiSupport
+  calc
+    S.card = (inside ∪ outside).card :=
+      congrArg Finset.card (freeSetOccupancyCode_reconstruct support S)
+    _ = inside.card + outside.card := Finset.card_union_of_disjoint hio
+    _ = (∑ g, ((freeSetOccupancyCode support S).1 g).card) + outside.card := by
+      congr 1
+      change (Finset.univ.biUnion
+        (fun g => (freeSetOccupancyCode support S).1 g)).card = _
+      exact Finset.card_biUnion hinsidePair
+
+/-- A support is wholly intact exactly when its occupancy-code component is the full support.
+Thus the threshold in `manyIntactFreeSets` can be read directly from the lossless profile. -/
+theorem support_subset_iff_occupancy_eq {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (S : Finset (Fin n)) (g : Fin G) :
+    support g ⊆ S ↔ (freeSetOccupancyCode support S).1 g = support g := by
+  simp [freeSetOccupancyCode, Finset.inter_eq_right]
+
+/-- Exact profile-level membership description of the many-intact event.  It records both the
+fixed shell size and the number of full block components, while leaving partial components and
+outside coordinates explicit rather than merging them into overlapping cases. -/
+theorem mem_manyIntactFreeSets_iff_occupancy {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K trunkDepth : ℕ) (S : Finset (Fin n)) :
+    S ∈ manyIntactFreeSets support K trunkDepth ↔
+      S.card = K ∧ trunkDepth <
+        (Finset.univ.filter fun g =>
+          (freeSetOccupancyCode support S).1 g = support g).card := by
+  rw [manyIntactFreeSets, Finset.mem_filter, Finset.mem_powersetCard]
+  simp only [Finset.subset_univ, true_and]
+  simp_rw [support_subset_iff_occupancy_eq support S]
+
+/-- The fiber of free sets having prescribed cardinality in every support block and in the
+outside-coordinate reservoir. -/
+def occupancySizeFiber {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (a : Fin G → ℕ) (r : ℕ) : Finset (Finset (Fin n)) :=
+  Finset.univ.filter fun S =>
+    (∀ g, (S ∩ support g).card = a g) ∧
+      (S \ supportUnion support).card = r
+
+/-- Independent choices of an `a g`-element subset from each support block and an `r`-element
+subset from outside all blocks. -/
+def occupancySlotChoices {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (a : Fin G → ℕ) (r : ℕ) :
+    Finset ((Fin G → Finset (Fin n)) × Finset (Fin n)) :=
+  (Fintype.piFinset fun g => (support g).powersetCard (a g)).product
+    ((Finset.univ \ supportUnion support).powersetCard r)
+
+/-- The raw slot choices have the expected product-of-binomial-coefficients cardinality. -/
+theorem occupancySlotChoices_card {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (a : Fin G → ℕ) (r : ℕ) :
+    (occupancySlotChoices support a r).card =
+      (∏ g, (support g).card.choose (a g)) *
+        ((Finset.univ \ supportUnion support).card.choose r) := by
+  classical
+  simp [occupancySlotChoices, Finset.card_powersetCard]
+
+theorem mem_occupancySizeFiber {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (a : Fin G → ℕ) (r : ℕ) (S : Finset (Fin n)) :
+    S ∈ occupancySizeFiber support a r ↔
+      (∀ g, (S ∩ support g).card = a g) ∧
+        (S \ supportUnion support).card = r := by
+  simp [occupancySizeFiber]
+
+theorem mem_occupancySlotChoices {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (a : Fin G → ℕ) (r : ℕ)
+    (c : (Fin G → Finset (Fin n)) × Finset (Fin n)) :
+    c ∈ occupancySlotChoices support a r ↔
+      (∀ g, c.1 g ⊆ support g ∧ (c.1 g).card = a g) ∧
+        c.2 ⊆ Finset.univ \ supportUnion support ∧ c.2.card = r := by
+  classical
+  simp [occupancySlotChoices, Finset.mem_powersetCard]
+
+/-- Reassemble a free set from independently selected block and outside slots. -/
+def reconstructOccupancyChoice {n G : ℕ}
+    (c : (Fin G → Finset (Fin n)) × Finset (Fin n)) : Finset (Fin n) :=
+  Finset.univ.biUnion c.1 ∪ c.2
+
+/-- Pairwise disjointness makes slot reconstruction a right inverse to the lossless occupancy
+code.  This is the point at which independent binomial factors become legitimate. -/
+theorem freeSetOccupancyCode_reconstructChoice {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (a : Fin G → ℕ) (r : ℕ)
+    (c : (Fin G → Finset (Fin n)) × Finset (Fin n))
+    (hc : c ∈ occupancySlotChoices support a r) :
+    freeSetOccupancyCode support (reconstructOccupancyChoice c) = c := by
+  classical
+  rw [mem_occupancySlotChoices] at hc
+  apply Prod.ext
+  · funext g
+    ext i
+    simp only [freeSetOccupancyCode, reconstructOccupancyChoice, Finset.mem_inter,
+      Finset.mem_union, Finset.mem_biUnion, Finset.mem_univ, true_and]
+    constructor
+    · rintro ⟨(⟨h, hih⟩ | hiout), hig⟩
+      · by_cases heq : h = g
+        · simpa [heq] using hih
+        · exact False.elim <| Finset.disjoint_left.mp (hpair h g heq)
+            ((hc.1 h).1 hih) hig
+      · exact False.elim <| (Finset.mem_sdiff.mp (hc.2.1 hiout)).2 <| by
+          rw [supportUnion, Finset.mem_biUnion]
+          exact ⟨g, Finset.mem_univ g, hig⟩
+    · intro hig
+      exact ⟨Or.inl ⟨g, hig⟩, (hc.1 g).1 hig⟩
+  · ext i
+    simp only [freeSetOccupancyCode, reconstructOccupancyChoice, supportUnion, Finset.mem_sdiff,
+      Finset.mem_union, Finset.mem_biUnion, Finset.mem_univ, true_and]
+    constructor
+    · rintro ⟨hin, hout⟩
+      rcases hin with ⟨g, hig⟩ | hiout
+      · exact False.elim <| hout ⟨g, (hc.1 g).1 hig⟩
+      · exact hiout
+    · intro hiout
+      refine ⟨Or.inr hiout, ?_⟩
+      simpa only [supportUnion, Finset.mem_biUnion, Finset.mem_univ, true_and] using
+        (Finset.mem_sdiff.mp (hc.2.1 hiout)).2
+
+/-- Exact cardinality of every occupancy-size fiber.  Each block contributes one binomial factor,
+and the coordinates outside all supports contribute the final factor. -/
+theorem occupancySizeFiber_card {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (a : Fin G → ℕ) (r : ℕ) :
+    (occupancySizeFiber support a r).card =
+      (∏ g, (support g).card.choose (a g)) *
+        ((Finset.univ \ supportUnion support).card.choose r) := by
+  classical
+  rw [← occupancySlotChoices_card support a r]
+  apply Finset.card_nbij' (freeSetOccupancyCode support) reconstructOccupancyChoice
+  · intro S hS
+    change S ∈ occupancySizeFiber support a r at hS
+    change freeSetOccupancyCode support S ∈ occupancySlotChoices support a r
+    rw [mem_occupancySizeFiber] at hS
+    rw [mem_occupancySlotChoices]
+    refine ⟨fun g => ⟨Finset.inter_subset_right, hS.1 g⟩, ?_, hS.2⟩
+    exact Finset.sdiff_subset_sdiff (Finset.subset_univ _) (by rfl)
+  · intro c hc
+    change c ∈ occupancySlotChoices support a r at hc
+    change reconstructOccupancyChoice c ∈ occupancySizeFiber support a r
+    rw [mem_occupancySizeFiber]
+    have hcode := freeSetOccupancyCode_reconstructChoice support hpair a r c hc
+    rw [mem_occupancySlotChoices] at hc
+    constructor
+    · intro g
+      calc
+        (reconstructOccupancyChoice c ∩ support g).card
+            = (c.1 g).card := congrArg (fun x => (x.1 g).card) hcode
+        _ = a g := (hc.1 g).2
+    · calc
+        (reconstructOccupancyChoice c \ supportUnion support).card
+            = c.2.card := congrArg (fun x => x.2.card) hcode
+        _ = r := hc.2.2
+  · intro S hS
+    exact (freeSetOccupancyCode_reconstruct support S).symm
+  · intro c hc
+    exact freeSetOccupancyCode_reconstructChoice support hpair a r c hc
+
+/-- Equal pairwise-disjoint width-`w` blocks occupy exactly `G*w` ambient coordinates. -/
+theorem supportUnion_card_of_pairwiseDisjoint_uniform {n G w : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = w) :
+    (supportUnion support).card = G * w := by
+  classical
+  have hpair' : ((Finset.univ : Finset (Fin G)) : Set (Fin G)).PairwiseDisjoint support := by
+    intro g _ h _ hne
+    exact hpair g h hne
+  rw [supportUnion, Finset.card_biUnion hpair']
+  simp_rw [hcard]
+  simp
+
+/-- Uniform-width specialization of the exact occupancy fiber formula.  This is the advertised
+hypergeometric summand: one `choose w (a g)` factor per block and an outside reservoir of size
+`n-G*w`. -/
+theorem occupancySizeFiber_card_uniform {n G w : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = w)
+    (a : Fin G → ℕ) (r : ℕ) :
+    (occupancySizeFiber support a r).card =
+      (∏ g, w.choose (a g)) * (n - G * w).choose r := by
+  rw [occupancySizeFiber_card support hpair a r]
+  congr 1
+  · apply Finset.prod_congr rfl
+    intro g _
+    rw [hcard]
+  · rw [Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
+      Fintype.card_fin, supportUnion_card_of_pairwiseDisjoint_uniform support hpair hcard]
+
+/-- The bounded size profile used to index the exact occupancy partition.  The ambient `n+1`
+bound is deliberately independent of the block widths, so the definition also handles ragged
+families without choosing width-dependent finite types. -/
+def occupancySizeIndex {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (S : Finset (Fin n)) : (Fin G → Fin (n + 1)) × Fin (n + 1) :=
+  (fun g => ⟨(S ∩ support g).card, Nat.lt_succ_of_le <|
+      (Finset.card_le_card (Finset.inter_subset_left)).trans <| by
+        simpa only [Finset.card_univ, Fintype.card_fin] using
+          Finset.card_le_card (Finset.subset_univ S)⟩,
+    ⟨(S \ supportUnion support).card, Nat.lt_succ_of_le <|
+      (Finset.card_le_card (Finset.sdiff_subset)).trans <| by
+        simpa only [Finset.card_univ, Fintype.card_fin] using
+          Finset.card_le_card (Finset.subset_univ S)⟩)
+
+/-- The finite stars-and-bars index set for a ragged family: every block occupancy fits in its
+block, the block and outside occupancies add to `K`, and more than `trunkDepth` blocks are full. -/
+def admissibleOccupancyIndices {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (K trunkDepth : ℕ) : Finset ((Fin G → Fin (n + 1)) × Fin (n + 1)) :=
+  Finset.univ.filter fun p =>
+    (∀ g, (p.1 g).val ≤ (support g).card) ∧
+      (∑ g, (p.1 g).val) + p.2.val = K ∧
+      trunkDepth < (Finset.univ.filter fun g => (p.1 g).val = (support g).card).card
+
+theorem mem_admissibleOccupancyIndices {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K trunkDepth : ℕ)
+    (p : (Fin G → Fin (n + 1)) × Fin (n + 1)) :
+    p ∈ admissibleOccupancyIndices support K trunkDepth ↔
+      (∀ g, (p.1 g).val ≤ (support g).card) ∧
+        (∑ g, (p.1 g).val) + p.2.val = K ∧
+        trunkDepth <
+          (Finset.univ.filter fun g => (p.1 g).val = (support g).card).card := by
+  simp [admissibleOccupancyIndices]
+
+/-- A free set belongs to the many-intact event exactly when its bounded size profile is an
+admissible index.  Pairwise disjointness is used only for the additive size constraint. -/
+theorem occupancySizeIndex_mem_admissible_iff {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (K trunkDepth : ℕ) (S : Finset (Fin n)) :
+    occupancySizeIndex support S ∈ admissibleOccupancyIndices support K trunkDepth ↔
+      S ∈ manyIntactFreeSets support K trunkDepth := by
+  classical
+  rw [mem_admissibleOccupancyIndices, mem_manyIntactFreeSets_iff_occupancy]
+  change
+    (∀ g, (S ∩ support g).card ≤ (support g).card) ∧
+        (∑ g, (S ∩ support g).card) + (S \ supportUnion support).card = K ∧
+        trunkDepth <
+          (Finset.univ.filter fun g => (S ∩ support g).card = (support g).card).card ↔
+      S.card = K ∧ trunkDepth <
+        (Finset.univ.filter fun g => S ∩ support g = support g).card
+  have hbound : ∀ g, (S ∩ support g).card ≤ (support g).card :=
+    fun g => Finset.card_le_card Finset.inter_subset_right
+  have hsize := freeSetOccupancyCode_card support hpair S
+  change S.card = (∑ g, (S ∩ support g).card) +
+    (S \ supportUnion support).card at hsize
+  have hfull : (Finset.univ.filter fun g => (S ∩ support g).card = (support g).card) =
+      Finset.univ.filter fun g => S ∩ support g = support g := by
+    apply Finset.filter_congr
+    intro g _
+    constructor
+    · intro hcard
+      exact Finset.eq_of_subset_of_card_le Finset.inter_subset_right (by omega)
+    · intro heq
+      exact congrArg Finset.card heq
+  rw [hfull, ← hsize]
+  simp [hbound]
+
+/-- An admissible profile fiber inside the event is exactly the unrestricted occupancy-size
+fiber.  This is the disjoint-partition statement at the level of individual parts. -/
+theorem manyIntactFreeSets_filter_sizeIndex_eq {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (K trunkDepth : ℕ) (p : (Fin G → Fin (n + 1)) × Fin (n + 1))
+    (hp : p ∈ admissibleOccupancyIndices support K trunkDepth) :
+    (manyIntactFreeSets support K trunkDepth).filter
+        (fun S => occupancySizeIndex support S = p) =
+      occupancySizeFiber support (fun g => (p.1 g).val) p.2.val := by
+  classical
+  ext S
+  simp only [Finset.mem_filter, mem_occupancySizeFiber]
+  constructor
+  · rintro ⟨_, hindex⟩
+    have hfirst := congrArg Prod.fst hindex
+    have hsecond := congrArg Prod.snd hindex
+    constructor
+    · intro g
+      exact congrArg Fin.val (congrFun hfirst g)
+    · exact congrArg Fin.val hsecond
+  · rintro ⟨hblocks, houtside⟩
+    have hindex : occupancySizeIndex support S = p := by
+      apply Prod.ext
+      · funext g
+        apply Fin.ext
+        exact hblocks g
+      · apply Fin.ext
+        exact houtside
+    refine ⟨?_, hindex⟩
+    rw [← occupancySizeIndex_mem_admissible_iff support hpair K trunkDepth]
+    exact hindex.symm ▸ hp
+
+/-- Exact finite-sum enumeration of the many-intact free-set event.  The admissible profiles are
+disjoint because `occupancySizeIndex` is a function, and every summand has its independent
+product-of-binomial weight. -/
+theorem manyIntactFreeSets_card_eq_sum_occupancy {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (K trunkDepth : ℕ) :
+    (manyIntactFreeSets support K trunkDepth).card =
+      ∑ p ∈ admissibleOccupancyIndices support K trunkDepth,
+        (∏ g, (support g).card.choose (p.1 g).val) *
+          ((Finset.univ \ supportUnion support).card.choose p.2.val) := by
+  classical
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := occupancySizeIndex support)
+    (t := admissibleOccupancyIndices support K trunkDepth)]
+  · apply Finset.sum_congr rfl
+    intro p hp
+    rw [manyIntactFreeSets_filter_sizeIndex_eq support hpair K trunkDepth p hp,
+      occupancySizeFiber_card support hpair]
+  · intro S hS
+    exact (occupancySizeIndex_mem_admissible_iff support hpair K trunkDepth S).2 hS
+
+/-- Uniform disjoint blocks cannot contribute to the many-intact event when the requested number
+of complete blocks already needs more than the entire live-coordinate budget.  This is the sharp
+support-volume cutoff: more than `trunkDepth` intact width-`width` blocks require at least
+`(trunkDepth + 1) * width` live coordinates. -/
+theorem manyIntactFreeSets_eq_empty_of_uniform_volume
+    {n G K trunkDepth width : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = width)
+    (hvolume : K < (trunkDepth + 1) * width) :
+    manyIntactFreeSets support K trunkDepth = ∅ := by
+  classical
+  rw [Finset.eq_empty_iff_forall_notMem]
+  intro S hS
+  simp only [manyIntactFreeSets, Finset.mem_filter, Finset.mem_powersetCard] at hS
+  let intact : Finset (Fin G) :=
+    Finset.univ.filter fun g => support g ⊆ S
+  have hintact : trunkDepth < intact.card := hS.2
+  have hdisj : ((intact : Finset (Fin G)) : Set (Fin G)).PairwiseDisjoint support := by
+    intro g _ h _ hne
+    exact hpair g h hne
+  have hunionCard : (intact.biUnion support).card = intact.card * width := by
+    rw [Finset.card_biUnion hdisj]
+    simp [hcard]
+  have hunionSubset : intact.biUnion support ⊆ S := by
+    intro i hi
+    rw [Finset.mem_biUnion] at hi
+    obtain ⟨g, hg, hig⟩ := hi
+    exact (Finset.mem_filter.mp hg).2 hig
+  have hcapacity : intact.card * width ≤ K := by
+    rw [← hS.1.2, ← hunionCard]
+    exact Finset.card_le_card hunionSubset
+  have hcount : trunkDepth + 1 ≤ intact.card := by omega
+  have hrequired : (trunkDepth + 1) * width ≤ intact.card * width :=
+    Nat.mul_le_mul_right width hcount
+  exact (Nat.not_lt_of_ge (hrequired.trans hcapacity)) hvolume
+
+/-- At the intended half-shell schedule with width two, the many-intact-block obstruction is
+empty: `10*r + 1` complete blocks would consume `20*r + 2` coordinates in a `20*r` shell. -/
+theorem manyIntactFreeSets_eq_empty_width_two_half_shell
+    {n G r : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 2) :
+    manyIntactFreeSets support (20 * r) (10 * r) = ∅ := by
+  apply manyIntactFreeSets_eq_empty_of_uniform_volume support hpair hcard
+  omega
+
+/-- Exact shell factorization for the many-intact-block event.  Every qualifying `K`-element
+free set has exactly `2^(n-K)` restrictions above it, independently of its block occupancy.
+Thus the remaining equal-block calculation is purely a hypergeometric count of free sets. -/
+theorem manyIntactShell_card {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (K trunkDepth : ℕ) :
+    (manyIntactShell support K trunkDepth).card =
+      (manyIntactFreeSets support K trunkDepth).card * 2 ^ (n - K) := by
+  classical
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun σ : Restriction n => freeVars σ)
+    (t := manyIntactFreeSets support K trunkDepth)]
+  · have hterm : ∀ S ∈ manyIntactFreeSets support K trunkDepth,
+        ((manyIntactShell support K trunkDepth).filter
+          (fun σ => freeVars σ = S)).card = 2 ^ (n - K) := by
+      intro S hS
+      have hSparts := Finset.mem_filter.mp hS
+      have hScard : S.card = K := (Finset.mem_powersetCard.mp hSparts.1).2
+      have heq :
+          (manyIntactShell support K trunkDepth).filter
+              (fun σ => freeVars σ = S) =
+            Finset.univ.filter (fun σ : Restriction n => freeVars σ = S) := by
+        ext σ
+        simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+        constructor
+        · exact fun h => h.2
+        · intro hfree
+          refine ⟨?_, hfree⟩
+          rw [manyIntactShell, Finset.mem_filter]
+          refine ⟨Finset.mem_univ _, ?_, ?_⟩
+          · rw [stars, hfree, hScard]
+          · simpa [intactSupportBlocks, hfree] using hSparts.2
+      rw [heq, card_freeVars_eq, hScard]
+    rw [Finset.sum_congr rfl hterm, Finset.sum_const, smul_eq_mul]
+  · intro σ hσ
+    have hσ' : σ ∈ manyIntactShell support K trunkDepth := hσ
+    rw [manyIntactShell, Finset.mem_filter] at hσ'
+    change freeVars σ ∈ manyIntactFreeSets support K trunkDepth
+    rw [manyIntactFreeSets, Finset.mem_filter]
+    refine ⟨Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, ?_⟩, ?_⟩
+    · simpa [stars] using hσ'.2.1
+    · simpa [intactSupportBlocks] using hσ'.2.2
+
+/-- The restriction-valued obstruction is also empty at the intended width-two half-shell
+schedule; fixed Boolean values cannot revive an impossible free-coordinate occupancy profile. -/
+theorem manyIntactShell_eq_empty_width_two_half_shell
+    {n G r : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 2) :
+    manyIntactShell support (20 * r) (10 * r) = ∅ := by
+  rw [← Finset.card_eq_zero, manyIntactShell_card,
+    manyIntactFreeSets_eq_empty_width_two_half_shell support hpair hcard]
+  simp
+
+/-- If more pairwise-disjoint blocks remain intact than there are queried coordinates, one intact
+block is missed completely.  This is the shell-level version of the fully-live packing lemma. -/
+theorem exists_intact_support_disjoint_of_pairwiseDisjoint
+    {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n) (path : Finset (Fin n))
+    (hpath : path.card < (intactSupportBlocks support σ).card) :
+    ∃ g ∈ intactSupportBlocks support σ, Disjoint (support g) path := by
+  by_contra hmiss
+  push_neg at hmiss
+  have hmeet (g : {g // g ∈ intactSupportBlocks support σ}) :
+      ∃ i, i ∈ support g.1 ∧ i ∈ path :=
+    Finset.not_disjoint_iff.mp (hmiss g.1 g.2)
+  let hit : {g // g ∈ intactSupportBlocks support σ} → {i // i ∈ path} := fun g ↦
+    ⟨Classical.choose (hmeet g), (Classical.choose_spec (hmeet g)).2⟩
+  have hit_mem (g : {g // g ∈ intactSupportBlocks support σ}) :
+      (hit g).1 ∈ support g.1 :=
+    (Classical.choose_spec (hmeet g)).1
+  have hinj : Function.Injective hit := by
+    intro g h heq
+    apply Subtype.ext
+    by_contra hne
+    have hdisj := hpair g.1 h.1 hne
+    apply (Finset.not_disjoint_iff.mpr ⟨(hit g).1, hit_mem g, ?_⟩) hdisj
+    simpa [heq] using hit_mem h
+  have hcard : (intactSupportBlocks support σ).card ≤ path.card := by
+    simpa using Fintype.card_le_of_injective hit hinj
+  omega
+
+/-- General semantic core at an arbitrary restriction.  It is enough that every shallow path
+misses one block which was wholly free at the root; toggling an unqueried free coordinate shows
+that the reached restriction must leave that coordinate free as well. -/
+theorem supportedGates_not_commonShallowAt_of_intact_miss
+    {n G fuel trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (σ : Restriction n)
+    (hmiss : ∀ path : Finset (Fin n), path.card ≤ trunkDepth →
+      ∃ g, support g ⊆ freeVars σ ∧ Disjoint (support g) path)
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i = none) →
+        residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    ¬ CommonShallowAt gates fuel σ trunkDepth residualDepth := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let x : Fin n → Bool := fun i => (σ i).getD false
+  have hx : Rung4Restriction.Extends σ x := by
+    intro i b hi
+    simp [x, hi]
+  let path : Finset (Fin n) := (CommonTree.queryVars trunk x).toFinset
+  have hpathCard : path.card ≤ trunkDepth := by
+    calc
+      path.card ≤ (CommonTree.queryVars trunk x).length := List.toFinset_card_le _
+      _ ≤ CommonTree.depth trunk := CommonTree.queryVars_length_le_depth trunk x
+      _ ≤ trunkDepth := hdepth
+  obtain ⟨g, hgfree, hgdisj⟩ := hmiss path hpathCard
+  have hfree (i : Fin n) (hiσ : σ i = none) (hi : i ∉ path) :
+      CommonTree.run trunk x i = none := by
+    let y : Fin n → Bool := Function.update x i (!x i)
+    have hy : Rung4Restriction.Extends σ y := by
+      intro j b hj
+      have hji : j ≠ i := by
+        intro h
+        subst j
+        rw [hiσ] at hj
+        simp at hj
+      simpa [y, Function.update_of_ne hji] using hx j b hj
+    obtain ⟨_, htx, _⟩ := hleaf x hx
+    obtain ⟨_, hty, _⟩ := hleaf y hy
+    have hrun : CommonTree.run trunk y = CommonTree.run trunk x := by
+      exact CommonTree.run_update_of_not_mem_queryVars trunk x i
+        (by simpa [path] using hi)
+    cases ht : CommonTree.run trunk x i with
+    | none => rfl
+    | some b =>
+        have hbx : x i = b := htx i b ht
+        have hby : y i = b := by
+          apply hty i b
+          simpa [hrun] using ht
+        cases hxi : x i with
+        | false =>
+            have hbfalse : b = false := by simpa [hxi] using hbx.symm
+            have hbtrue : b = true := by simpa [y, hxi] using hby.symm
+            exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+        | true =>
+            have hbtrue : b = true := by simpa [hxi] using hbx.symm
+            have hbfalse : b = false := by simpa [y, hxi] using hby.symm
+            exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+  obtain ⟨_, _, hshallow⟩ := hleaf x hx
+  have hgateDeep : residualDepth <
+      (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth := by
+    apply hdeep (CommonTree.run trunk x) g
+    intro i hiSupport
+    apply hfree i (mem_freeVars.mp (hgfree hiSupport))
+    exact Finset.disjoint_left.mp hgdisj hiSupport
+  exact (Nat.not_lt_of_ge (hshallow g)) hgateDeep
+
+/-- Pairwise-disjoint supports lift the arbitrary-root semantic obstruction exactly when the
+number of intact blocks exceeds the common-trunk depth. -/
+theorem pairwiseDisjoint_supportedGates_not_commonShallowAt_of_intact
+    {n G fuel trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n)
+    (hintact : trunkDepth < (intactSupportBlocks support σ).card)
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i = none) →
+        residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    ¬ CommonShallowAt gates fuel σ trunkDepth residualDepth := by
+  apply supportedGates_not_commonShallowAt_of_intact_miss gates support σ
+  · intro path hpath
+    obtain ⟨g, hgintact, hgdisj⟩ :=
+      exists_intact_support_disjoint_of_pairwiseDisjoint support hpair σ path
+        (lt_of_le_of_lt hpath hintact)
+    exact ⟨g, (Finset.mem_filter.mp hgintact).2, hgdisj⟩
+  · exact hdeep
+
 /-- General semantic core of the disjoint-block obstruction.  If every set of at most
 `trunkDepth` queried coordinates misses the whole support of some indexed gate, and that gate's
 canonical tree remains deeper than `residualDepth` whenever its support is free, then no common
@@ -1326,6 +1986,279 @@ theorem allFree_mem_commonShallowBad_of_supportedGates
   constructor
   · simp [stars, freeVars]
   · exact supportedGates_not_commonShallowAt_allFree gates support hmiss hdeep
+
+/-- Pairwise-disjoint deep blocks instantiate the complete semantic obstruction: if the family
+contains more blocks than a common trunk can query, the fully live root is bad.  The only
+gate-specific premise left is the canonical depth of a block whose entire support remains free. -/
+theorem allFree_mem_commonShallowBad_of_pairwiseDisjoint
+    {n G fuel trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hblocks : trunkDepth < G)
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i = none) →
+        residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    (fun _ : Fin n ↦ none) ∈
+      commonShallowBad gates fuel n trunkDepth residualDepth := by
+  exact allFree_mem_commonShallowBad_of_supportedGates gates support
+    (pairwiseDisjoint_support_miss support hpair hblocks) hdeep
+
+/-- A single ordered positive conjunction block. -/
+def orderedConjunctionBlock {n : ℕ} (xs : List (Fin n)) : List (Clause n) :=
+  [⟨xs.map Rung4Literal.pos⟩]
+
+/-- Structural form used to compute the exact depth of an ordered conjunction:
+`done` records the distinct coordinates already fixed to true and `todo` the still-free suffix. -/
+theorem orderedConjunctionBlock_depth_aux {n : ℕ} (done todo : List (Fin n))
+    (hdup : (done ++ todo).Nodup)
+    (rho : Restriction n)
+    (hdone : ∀ i ∈ done, rho i = some true)
+    (htodo : ∀ i ∈ todo, rho i = none) :
+    (canonicalDT (orderedConjunctionBlock (done ++ todo)) todo.length rho).depth =
+      todo.length := by
+  induction todo generalizing done rho with
+  | nil =>
+      simp only [List.append_nil, List.length_nil]
+      rw [canonicalDT]
+      split <;> rfl
+  | cons i todo ih =>
+      have hiFree : rho i = none := htodo i (by simp)
+      have hiDone : i ∉ done := by
+        intro hi
+        have hparts := List.nodup_append.mp hdup
+        exact (hparts.2.2 i hi i (by simp)) rfl
+      have hiTodo : i ∉ todo := by
+        have hparts := List.nodup_append.mp hdup
+        exact (List.nodup_cons.mp hparts.2.1).1
+      let T : Clause n := ⟨(done ++ i :: todo).map Rung4Literal.pos⟩
+      have hany : anyTermSat [T] rho = false := by
+        simp [T, anyTermSat, termSat, List.all_append, Depth3.litTrue,
+          litFixedVal, hiFree]
+      have hnotFalse : termFalsified rho T = false := by
+        rw [termFalsified, List.any_eq_false]
+        intro l hl
+        obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hl
+        rcases List.mem_append.mp hj with hj | hj
+        · simp [litFalse, litFixedVal, hdone j hj]
+        · rcases List.mem_cons.mp hj with rfl | hj
+          · simp [litFalse, litFixedVal, hiFree]
+          · simp [litFalse, litFixedVal, htodo j (by simp [hj])]
+      have hfreeExact : freeLits rho T =
+          Rung4Literal.pos i :: todo.map Rung4Literal.pos := by
+        have hdoneFilter : (done.map Rung4Literal.pos).filter (litFree rho) = [] := by
+          apply List.filter_eq_nil_iff.mpr
+          intro l hl
+          obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hl
+          simp [litFree, litFixedVal, hdone j hj]
+        have htodoFilter : (todo.map Rung4Literal.pos).filter (litFree rho) =
+            todo.map Rung4Literal.pos := by
+          apply List.filter_eq_self.mpr
+          intro l hl
+          obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hl
+          simp [litFree, litFixedVal, htodo j (by simp [hj])]
+        simp [freeLits, T, List.filter_append, hdoneFilter, htodoFilter,
+          litFree, litFixedVal, hiFree]
+      have hactive : activeTerm [T] rho = some T := by
+        rw [activeTerm_eq_find hany]
+        simp [hnotFalse, hfreeExact]
+      have hhead : (freeLits rho T).head? = some (Rung4Literal.pos i) := by
+        rw [hfreeExact]
+        rfl
+      rw [show orderedConjunctionBlock (done ++ i :: todo) = [T] by rfl]
+      change (canonicalDT [T] (todo.length + 1) rho).depth = todo.length + 1
+      rw [canonicalDT]
+      simp only [hany, Bool.false_eq_true, if_false, hactive, hhead]
+      simp only [litVar, BoolDecisionTree.depth]
+      have hfalse : (canonicalDT [T] todo.length (fixVar rho i false)).depth ≤
+          todo.length := canonicalDT_depth_le [T] todo.length _
+      have hdup' : ((done ++ [i]) ++ todo).Nodup := by
+        simpa [List.append_assoc] using hdup
+      have hdone' : ∀ j ∈ done ++ [i], fixVar rho i true j = some true := by
+        intro j hj
+        rcases List.mem_append.mp hj with hj | hj
+        · have hji : j ≠ i := by
+            intro h
+            subst j
+            exact hiDone hj
+          rw [fixVar, Function.update_of_ne hji]
+          exact hdone j hj
+        · simp only [List.mem_singleton] at hj
+          subst j
+          simp [fixVar]
+      have htodo' : ∀ j ∈ todo, fixVar rho i true j = none := by
+        intro j hj
+        have hji : j ≠ i := fun h => hiTodo (h ▸ hj)
+        simp [fixVar, Function.update_of_ne hji, htodo j (by simp [hj])]
+      have htrue :
+          (canonicalDT [T] todo.length (fixVar rho i true)).depth = todo.length := by
+        simpa [orderedConjunctionBlock, List.append_assoc, T] using
+          ih (done ++ [i]) hdup' (fixVar rho i true) hdone' htodo'
+      omega
+
+/-- A duplicate-free ordered conjunction whose coordinates are all free has canonical depth
+exactly its length when given that much fuel.  Coordinates outside the block may be arbitrary. -/
+theorem orderedConjunctionBlock_depth {n : ℕ} (xs : List (Fin n)) (hdup : xs.Nodup)
+    (rho : Restriction n) (hfree : ∀ i ∈ xs, rho i = none) :
+    (canonicalDT (orderedConjunctionBlock xs) xs.length rho).depth = xs.length := by
+  simpa using orderedConjunctionBlock_depth_aux ([] : List (Fin n)) xs
+    (by simpa using hdup) rho (by simp) hfree
+
+/-- With enough fuel for the ambient restriction, an ordered positive conjunction has depth at
+least the number of its distinct coordinates that remain free, provided none of its coordinates
+is fixed false.  Unlike `orderedConjunctionBlock_depth`, fixed-true coordinates may occur anywhere
+in the ordered clause.
+
+The proof is semantic and therefore does not need `Nodup`: on the all-true extension, every free
+support coordinate must occur on the decision-tree path, since flipping any missing coordinate
+makes the conjunction false while off-path invariance would keep the tree's value unchanged. -/
+theorem orderedConjunctionBlock_freeSupport_card_le_depth {n fuel : ℕ}
+    (xs : List (Fin n)) (rho : Restriction n) (hfuel : stars rho ≤ fuel)
+    (hnotFalse : ∀ i ∈ xs, rho i ≠ some false) :
+    (xs.toFinset ∩ freeVars rho).card ≤
+      (canonicalDT (orderedConjunctionBlock xs) fuel rho).depth := by
+  classical
+  let tree := canonicalDT (orderedConjunctionBlock xs) fuel rho
+  let x : Fin n → Bool := fun i => (rho i).getD true
+  have hxext : Rung4Restriction.Extends rho x := by
+    intro i b hi
+    simp [x, hi]
+  have hxtrue (i : Fin n) (hi : i ∈ xs) : x i = true := by
+    cases hri : rho i with
+    | none => simp [x, hri]
+    | some b =>
+        cases b with
+        | false => exact False.elim (hnotFalse i hi hri)
+        | true => simp [x, hri]
+  let path := DTree.pathVars (toDTree tree) x
+  have hpathCard : path.card ≤ tree.depth := by
+    rw [← toDTree_depth]
+    exact DTree.pathVars_card_le_depth (toDTree tree) x
+  by_contra hdepth
+  have hdepth' : ¬(xs.toFinset ∩ freeVars rho).card ≤ tree.depth := by
+    simpa [tree] using hdepth
+  have hlt : path.card < (xs.toFinset ∩ freeVars rho).card := by omega
+  have hnsub : ¬ xs.toFinset ∩ freeVars rho ⊆ path := fun hsub => by
+    have := Finset.card_le_card hsub
+    omega
+  obtain ⟨j, hjSupport, hjPath⟩ := Finset.not_subset.mp hnsub
+  have hjxs : j ∈ xs := List.mem_toFinset.mp (Finset.mem_inter.mp hjSupport).1
+  have hjrho : rho j = none := mem_freeVars.mp (Finset.mem_inter.mp hjSupport).2
+  let y : Fin n → Bool := Function.update x j false
+  have hyext : Rung4Restriction.Extends rho y := by
+    intro i b hi
+    have hij : i ≠ j := by
+      intro h
+      subst i
+      rw [hjrho] at hi
+      simp at hi
+    simpa [y, Function.update_of_ne hij] using hxext i b hi
+  have hinvariant : tree.eval y = tree.eval x := by
+    rw [← toDTree_eval, ← toDTree_eval]
+    exact DTree.eval_invariant_off_path (toDTree tree) x j false hjPath
+  have hxeval : tree.eval x = dnfEval (orderedConjunctionBlock xs) x := by
+    exact canonicalDT_eval fuel rho x hfuel hxext
+  have hyeval : tree.eval y = dnfEval (orderedConjunctionBlock xs) y := by
+    exact canonicalDT_eval fuel rho y hfuel hyext
+  have hdnfx : dnfEval (orderedConjunctionBlock xs) x = true := by
+    have hall : Rung4DNFTerm.evalLits (xs.map Rung4Literal.pos) x = true :=
+      evalLits_eq_true_of_all _ <| by
+        intro l hl
+        obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hl
+        simpa [Rung4Literal.eval] using hxtrue i hi
+    simpa [orderedConjunctionBlock, dnfEval] using hall
+  have hdnfy : dnfEval (orderedConjunctionBlock xs) y = false := by
+    have hjmem : Rung4Literal.pos j ∈ xs.map Rung4Literal.pos :=
+      List.mem_map.mpr ⟨j, hjxs, rfl⟩
+    have hfalse : Rung4DNFTerm.evalLits (xs.map Rung4Literal.pos) y = false :=
+      evalLits_eq_false_of_mem _ _ hjmem (by simp [Rung4Literal.eval, y])
+    simpa [orderedConjunctionBlock, dnfEval] using hfalse
+  rw [hyeval, hdnfy, hxeval, hdnfx] at hinvariant
+  exact Bool.false_ne_true hinvariant
+
+/-- The parameterized disjoint-block obstruction with its gate-specific premise discharged.
+For `G` pairwise-disjoint, duplicate-free ordered conjunctions of common length `width`, every
+trunk shallower than `G` leaves one entire block untouched; if `residualDepth < width`, the fully
+live root is therefore in the actual semantic bad event. -/
+theorem allFree_mem_commonShallowBad_of_orderedConjunctionBlocks
+    {n G width trunkDepth residualDepth : ℕ}
+    (blocks : Fin G → List (Fin n))
+    (hdup : ∀ g, (blocks g).Nodup)
+    (hwidth : ∀ g, (blocks g).length = width)
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (hblocks : trunkDepth < G) (hresidual : residualDepth < width) :
+    (fun _ : Fin n ↦ none) ∈
+      commonShallowBad (fun g ↦ orderedConjunctionBlock (blocks g)) width n
+        trunkDepth residualDepth := by
+  apply allFree_mem_commonShallowBad_of_pairwiseDisjoint
+    (fun g ↦ orderedConjunctionBlock (blocks g)) (fun g ↦ (blocks g).toFinset)
+    hpair hblocks
+  intro rho g hfree
+  have hdepth := orderedConjunctionBlock_depth (blocks g) (hdup g) rho
+    (fun i hi ↦ hfree i (List.mem_toFinset.mpr hi))
+  rw [hwidth g] at hdepth
+  omega
+
+/-- Exact shell-level semantic lift for ordered conjunction blocks.  Every fixed-`K` restriction
+retaining more intact blocks than the trunk can query belongs to the actual common-shallow bad
+event.  The remaining problem is purely to count this explicitly defined intact-block event. -/
+theorem mem_commonShallowBad_of_orderedConjunctionBlocks_of_many_intact
+    {n G width K trunkDepth residualDepth : ℕ}
+    (blocks : Fin G → List (Fin n))
+    (hdup : ∀ g, (blocks g).Nodup)
+    (hwidth : ∀ g, (blocks g).length = width)
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (σ : Restriction n) (hstars : stars σ = K)
+    (hintact : trunkDepth <
+      (intactSupportBlocks (fun g => (blocks g).toFinset) σ).card)
+    (hresidual : residualDepth < width) :
+    σ ∈ commonShallowBad (fun g ↦ orderedConjunctionBlock (blocks g)) width K
+      trunkDepth residualDepth := by
+  rw [mem_commonShallowBad]
+  refine ⟨hstars, ?_⟩
+  apply pairwiseDisjoint_supportedGates_not_commonShallowAt_of_intact
+    (fun g ↦ orderedConjunctionBlock (blocks g))
+    (fun g ↦ (blocks g).toFinset) hpair σ hintact
+  intro rho g hfree
+  have hdepth := orderedConjunctionBlock_depth (blocks g) (hdup g) rho
+    (fun i hi ↦ hfree i (List.mem_toFinset.mpr hi))
+  rw [hwidth g] at hdepth
+  omega
+
+/-- The entire explicit many-intact shell event embeds into the semantic bad event for disjoint
+ordered conjunction blocks. -/
+theorem manyIntactShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+    {n G width K trunkDepth residualDepth : ℕ}
+    (blocks : Fin G → List (Fin n))
+    (hdup : ∀ g, (blocks g).Nodup)
+    (hwidth : ∀ g, (blocks g).length = width)
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (hresidual : residualDepth < width) :
+    manyIntactShell (fun g ↦ (blocks g).toFinset) K trunkDepth ⊆
+      commonShallowBad (fun g ↦ orderedConjunctionBlock (blocks g)) width K
+        trunkDepth residualDepth := by
+  intro σ hσ
+  rw [manyIntactShell, Finset.mem_filter] at hσ
+  exact mem_commonShallowBad_of_orderedConjunctionBlocks_of_many_intact
+    blocks hdup hwidth hpair σ hσ.2.1 hσ.2.2 hresidual
+
+/-- Exact occupancy-to-semantics lower bound.  The number of bad restrictions is at least the
+number of qualifying `K`-element free sets times the common fixed-value multiplicity
+`2^(n-K)`. -/
+theorem manyIntactFreeSets_mul_pow_le_commonShallowBad_card
+    {n G width K trunkDepth residualDepth : ℕ}
+    (blocks : Fin G → List (Fin n))
+    (hdup : ∀ g, (blocks g).Nodup)
+    (hwidth : ∀ g, (blocks g).length = width)
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (hresidual : residualDepth < width) :
+    (manyIntactFreeSets (fun g ↦ (blocks g).toFinset) K trunkDepth).card *
+        2 ^ (n - K) ≤
+      (commonShallowBad (fun g ↦ orderedConjunctionBlock (blocks g)) width K
+        trunkDepth residualDepth).card := by
+  rw [← manyIntactShell_card]
+  exact Finset.card_le_card
+    (manyIntactShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+      blocks hdup hwidth hpair hresidual)
 
 /-- Two disjoint ordered conjunction blocks.  This is the smallest positive-residual analogue of
 the independent-singleton family: each gate has canonical depth two while the target residual
@@ -1453,6 +2386,2521 @@ theorem allFreeFour_mem_commonShallowBad_one :
   constructor
   · decide
   · exact independentPairs_not_commonShallowAt_one
+
+/-- Querying one coordinate from each live pair is the exact boundary certificate.  This
+two-query trunk fixes coordinates `0` and `2`, leaving at most one free coordinate in each
+ordered conjunction block. -/
+def independentPairBoundaryTrunk : CommonTree 4 (Restriction 4) :=
+  .query 0
+    (.query 2
+      (.leaf (fixVar (fixVar (fun _ => none) 0 false) 2 false))
+      (.leaf (fixVar (fixVar (fun _ => none) 0 false) 2 true)))
+    (.query 2
+      (.leaf (fixVar (fixVar (fun _ => none) 0 true) 2 false))
+      (.leaf (fixVar (fixVar (fun _ => none) 0 true) 2 true)))
+
+/-- The smallest disjoint width-two example is shallow exactly at the block-count boundary:
+although no depth-one trunk works, a depth-two trunk makes both gates residual-depth one. -/
+theorem independentPairs_commonShallowAt_two :
+    CommonShallowAt independentPairGates 2 (fun _ : Fin 4 => none) 2 1 := by
+  refine ⟨independentPairBoundaryTrunk, by decide, ?_⟩
+  intro x hx
+  constructor
+  · intro i b hi
+    simp at hi
+  constructor
+  · cases h0 : x 0 <;> cases h2 : x 2 <;>
+      simpa [independentPairBoundaryTrunk, CommonTree.run, h0, h2] using
+        (extends_fixVar (extends_fixVar hx h0) h2)
+  · intro g
+    fin_cases g <;> cases h0 : x 0 <;> cases h2 : x 2 <;>
+      simp [independentPairBoundaryTrunk, CommonTree.run, independentPairGates,
+        canonicalDT, anyTermSat, termSat, activeTerm, termFalsified, freeLits,
+        Depth3.litTrue, litVar, litFixedVal, litFalse, litFree, fixVar,
+        BoolDecisionTree.depth, h0, h2]
+
+/-- Consequently the exact two-intact-block boundary is not in the semantic bad event when the
+trunk is allowed two queries. -/
+theorem allFreeFour_not_mem_commonShallowBad_two :
+    (fun _ : Fin 4 => none) ∉ commonShallowBad independentPairGates 2 4 2 1 := by
+  rw [mem_commonShallowBad]
+  intro hbad
+  exact hbad.2 independentPairs_commonShallowAt_two
+
+/-! ### Width-three boundary obstruction -/
+
+/-! ### Weighted live-support deficit -/
+
+/-- The coordinates of a support block that are live at the root restriction. -/
+def liveSupport {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (σ : Restriction n) (g : Fin G) : Finset (Fin n) :=
+  support g ∩ freeVars σ
+
+/-- The minimum number of distinct true-path queries that block `g` needs before at most
+`residualDepth` of its root-live coordinates remain unqueried. -/
+def residualQueryDeficit {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (σ : Restriction n) (residualDepth : ℕ) (g : Fin G) : ℕ :=
+  (liveSupport support σ g).card - residualDepth
+
+/-- A positive-conjunction support is compatible with the all-true branch when none of its
+coordinates is already fixed false at the root. -/
+def supportTrueCompatible {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (σ : Restriction n) (g : Fin G) : Prop :=
+  ∀ i ∈ support g, σ i ≠ some false
+
+/-- The sound weighted deficit for positive conjunctions.  Blocks already killed by a fixed
+false coordinate contribute zero, even if several other coordinates remain live. -/
+noncomputable def compatibleResidualQueryDeficit {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (σ : Restriction n)
+    (residualDepth : ℕ) (g : Fin G) : ℕ :=
+  by
+    classical
+    exact if supportTrueCompatible support σ g then
+      residualQueryDeficit support σ residualDepth g
+    else 0
+
+/-- The fixed-shell event whose total truth-compatible residual query demand exceeds the common
+trunk budget.  Unlike `manyIntactShell`, its membership depends on fixed Boolean values as well as
+the free set: a partially live positive block contributes only when all its other coordinates are
+fixed true. -/
+noncomputable def compatibleDeficitShell {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K trunkDepth residualDepth : ℕ) :
+    Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧ trunkDepth <
+      ∑ g, compatibleResidualQueryDeficit support σ residualDepth g
+
+/-! ### Exact local width-three state enumerator -/
+
+/-- Number of live coordinates in one abstract width-three block.  Isolating the block as
+`Fin 3 → Option Bool` makes the local coefficient calculation independent of an ambient support
+embedding; the later product count only has to transport restrictions along three-element support
+bijections. -/
+def tripleLocalStars (rho : Fin 3 → Option Bool) : ℕ :=
+  (Finset.univ.filter fun i => rho i = none).card
+
+/-- Truth-compatible residual query deficit of one width-three positive conjunction at residual
+depth one.  A fixed false coordinate kills the block; otherwise its contribution is the number of
+live coordinates minus one. -/
+def tripleLocalDeficit (rho : Fin 3 → Option Bool) : ℕ :=
+  if (∀ i, rho i ≠ some false) then tripleLocalStars rho - 1 else 0
+
+/-- The local fiber with prescribed star count and compatible deficit. -/
+def tripleLocalFiber (starCount deficit : ℕ) : Finset (Fin 3 → Option Bool) :=
+  Finset.univ.filter fun rho =>
+    tripleLocalStars rho = starCount ∧ tripleLocalDeficit rho = deficit
+
+/-- Exact constant term of the local bivariate enumerator: all eight fully fixed assignments have
+zero compatible deficit. -/
+theorem tripleLocalFiber_card_zero_zero : (tripleLocalFiber 0 0).card = 8 := by
+  decide
+
+/-- Exact one-star coefficient: choose the live coordinate and freely fix the other two. -/
+theorem tripleLocalFiber_card_one_zero : (tripleLocalFiber 1 0).card = 12 := by
+  decide
+
+/-- Of the six two-star restrictions, three fix their remaining coordinate false and therefore
+contribute no compatible deficit. -/
+theorem tripleLocalFiber_card_two_zero : (tripleLocalFiber 2 0).card = 3 := by
+  decide
+
+/-- The other three two-star restrictions fix their remaining coordinate true and contribute one
+unit of compatible deficit. -/
+theorem tripleLocalFiber_card_two_one : (tripleLocalFiber 2 1).card = 3 := by
+  decide
+
+/-- The unique fully live restriction contributes two compatible-deficit units. -/
+theorem tripleLocalFiber_card_three_two : (tripleLocalFiber 3 2).card = 1 := by
+  decide
+
+/-- The five displayed fibers exhaust all local restrictions.  Together with the five exact
+cardinalities above, this is the machine-checked coefficient table
+`8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2`. -/
+theorem tripleLocalFibers_exhaustive :
+    (Finset.univ : Finset (Fin 3 → Option Bool)) =
+      tripleLocalFiber 0 0 ∪ tripleLocalFiber 1 0 ∪
+        tripleLocalFiber 2 0 ∪ tripleLocalFiber 2 1 ∪ tripleLocalFiber 3 2 := by
+  decide
+
+/-! ### Product decomposition of ambient restrictions -/
+
+/-- The independent restriction data carried by every support block, together with the
+coordinates outside all support blocks.  This is the semantic product whose local factors will
+be transported to `Fin 3 → Option Bool` in the width-three coefficient calculation. -/
+def restrictionProductSpace {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) : Type :=
+  ((g : Fin G) → ({i : Fin n // i ∈ support g} → Option Bool)) ×
+    ({i : Fin n // i ∈ Finset.univ \ supportUnion support} → Option Bool)
+
+/-- Restrict an ambient assignment independently to each support block and to the outside
+reservoir. -/
+def restrictionProductCode {n G : ℕ} (support : Fin G → Finset (Fin n))
+    (rho : Restriction n) : restrictionProductSpace support :=
+  (⟨fun _g i ↦ rho i.1, fun i ↦ rho i.1⟩)
+
+/-- The block restrictions and outside restriction determine the ambient restriction.  Pairwise
+disjointness is not needed for injectivity; it is needed below to show that the displayed target
+contains no inconsistent duplicate block data. -/
+theorem restrictionProductCode_injective {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) :
+    Function.Injective (restrictionProductCode support) := by
+  intro rho tau hcode
+  funext i
+  by_cases hi : i ∈ supportUnion support
+  · rw [supportUnion, Finset.mem_biUnion] at hi
+    obtain ⟨g, _, hig⟩ := hi
+    have hg := congrFun (congrArg Prod.fst hcode) g
+    exact congrFun hg ⟨i, hig⟩
+  · have hout := congrArg Prod.snd hcode
+    exact congrFun hout ⟨i, by simp [hi]⟩
+
+/-- For disjoint uniform triples, the product code has exactly the same finite cardinality as
+the ambient restriction space.  Thus every independently chosen collection of local triple
+states and outside states is globally realizable. -/
+theorem restrictionProductCode_bijective_triples {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    Function.Bijective (restrictionProductCode support) := by
+  classical
+  letI : Fintype (restrictionProductSpace support) := by
+    unfold restrictionProductSpace
+    infer_instance
+  rw [Fintype.bijective_iff_injective_and_card]
+  refine ⟨restrictionProductCode_injective support, ?_⟩
+  have hunion := supportUnion_card_of_pairwiseDisjoint_uniform support hpair hcard
+  have hvolume : G * 3 ≤ n := by
+    rw [← hunion]
+    simpa [Finset.card_univ, Fintype.card_fin] using
+      (Finset.card_le_card (Finset.subset_univ (supportUnion support)))
+  simp only [restrictionProductSpace, Fintype.card_prod, Fintype.card_pi,
+    Fintype.card_option, Fintype.card_bool]
+  simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin, Fintype.card_coe]
+  simp_rw [hcard]
+  rw [Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
+    Fintype.card_fin, hunion]
+  simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+  rw [← pow_mul, ← pow_add]
+  congr 1
+  omega
+
+/-- The resulting actual equivalence is the lossless block/outside factorization needed for the
+generating-function count. -/
+noncomputable def restrictionProductEquiv_triples {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    Restriction n ≃ restrictionProductSpace support :=
+  Equiv.ofBijective (restrictionProductCode support)
+    (restrictionProductCode_bijective_triples support hpair hcard)
+
+/-- A chosen three-coordinate numbering of one uniform support block.  The downstream local
+statistics are permutation-invariant, so the coefficient count does not depend on which
+equivalence `equivOfCardEq` chooses. -/
+noncomputable def tripleSupportEquiv {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3)
+    (g : Fin G) : {i : Fin n // i ∈ support g} ≃ Fin 3 :=
+  Fintype.equivOfCardEq (by
+    rw [Fintype.card_coe, hcard g, Fintype.card_fin])
+
+/-- Reindex all block-local restrictions by `Fin 3`, leaving the outside reservoir unchanged. -/
+noncomputable def restrictionProductToTripleEquiv {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3) :
+    restrictionProductSpace support ≃
+      ((Fin G → Fin 3 → Option Bool) ×
+        ({i : Fin n // i ∈ Finset.univ \ supportUnion support} → Option Bool)) :=
+  Equiv.prodCongr
+    (Equiv.piCongr (Equiv.refl (Fin G)) fun g =>
+      Equiv.arrowCongr (tripleSupportEquiv support hcard g) (Equiv.refl (Option Bool)))
+    (Equiv.refl _)
+
+/-- Full ambient product decomposition used by the target generating function: one abstract
+27-state restriction per disjoint triple and one independent three-state choice per outside
+coordinate. -/
+noncomputable def ambientRestrictionTripleProductEquiv {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    Restriction n ≃
+      ((Fin G → Fin 3 → Option Bool) ×
+        ({i : Fin n // i ∈ Finset.univ \ supportUnion support} → Option Bool)) :=
+  (restrictionProductEquiv_triples support hpair hcard).trans
+    (restrictionProductToTripleEquiv support hcard)
+
+/-- The abstract `Fin 3` state obtained by restricting an ambient assignment to one support
+triple and transporting along the chosen support numbering. -/
+noncomputable def ambientTripleState {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3)
+    (σ : Restriction n) (g : Fin G) : Fin 3 → Option Bool :=
+  (Equiv.arrowCongr (tripleSupportEquiv support hcard g) (Equiv.refl (Option Bool)))
+    (fun i => σ i.1)
+
+/-- Reindexing a three-element type preserves its number of free coordinates. -/
+theorem tripleLocalStars_arrowCongr {α : Type} [Fintype α] [DecidableEq α]
+    (e : α ≃ Fin 3) (rho : α → Option Bool) :
+    tripleLocalStars ((Equiv.arrowCongr e (Equiv.refl (Option Bool))) rho) =
+      (Finset.univ.filter fun i => rho i = none).card := by
+  classical
+  unfold tripleLocalStars
+  apply Finset.card_bij (fun i _ => e.symm i)
+  · intro i hi
+    simpa [Equiv.arrowCongr_apply] using hi
+  · intro i hi j hj hij
+    exact e.symm.injective hij
+  · intro i hi
+    refine ⟨e i, ?_, ?_⟩
+    · simpa [Equiv.arrowCongr_apply] using (Finset.mem_filter.mp hi).2
+    · exact e.symm_apply_apply i
+
+/-- Counting free coordinates on a support subtype agrees with intersecting the ambient free set
+with that support. -/
+theorem restrictedStars_eq_liveSupport_card {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (σ : Restriction n) (g : Fin G) :
+    (Finset.univ.filter fun i : {i : Fin n // i ∈ support g} => σ i.1 = none).card =
+      (liveSupport support σ g).card := by
+  classical
+  apply Finset.card_bij (fun i _ => i.1)
+  · intro i hi
+    rw [Finset.mem_filter] at hi
+    rw [liveSupport, Finset.mem_inter]
+    exact ⟨i.2, mem_freeVars.mpr hi.2⟩
+  · intro i hi j hj hij
+    exact Subtype.ext hij
+  · intro i hi
+    rw [liveSupport, Finset.mem_inter] at hi
+    refine ⟨⟨i, hi.1⟩, ?_, rfl⟩
+    rw [Finset.mem_filter]
+    exact ⟨Finset.mem_univ _, mem_freeVars.mp hi.2⟩
+
+/-- Each transported local star statistic is exactly the root-live cardinality of its ambient
+support block. -/
+theorem ambientTripleState_stars {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3)
+    (σ : Restriction n) (g : Fin G) :
+    tripleLocalStars (ambientTripleState support hcard σ g) =
+      (liveSupport support σ g).card := by
+  rw [ambientTripleState, tripleLocalStars_arrowCongr]
+  exact restrictedStars_eq_liveSupport_card support σ g
+
+/-- The transported local deficit is exactly the ambient truth-compatible residual query
+deficit at residual depth one. -/
+theorem ambientTripleState_deficit {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3)
+    (σ : Restriction n) (g : Fin G) :
+    tripleLocalDeficit (ambientTripleState support hcard σ g) =
+      compatibleResidualQueryDeficit support σ 1 g := by
+  classical
+  have hcompat :
+      (∀ i, ambientTripleState support hcard σ g i ≠ some false) ↔
+        supportTrueCompatible support σ g := by
+    constructor
+    · intro h i hi
+      let x : {i : Fin n // i ∈ support g} := ⟨i, hi⟩
+      have hx := h ((tripleSupportEquiv support hcard g) x)
+      simpa [ambientTripleState, Equiv.arrowCongr_apply] using hx
+    · intro h i
+      have hx := h ((tripleSupportEquiv support hcard g).symm i).1
+        ((tripleSupportEquiv support hcard g).symm i).2
+      simpa [ambientTripleState, Equiv.arrowCongr_apply] using hx
+  by_cases hambient : supportTrueCompatible support σ g
+  · have hlocal := hcompat.mpr hambient
+    simp [tripleLocalDeficit, compatibleResidualQueryDeficit, hambient, hlocal,
+      residualQueryDeficit, ambientTripleState_stars]
+  · have hlocal : ¬(∀ i, ambientTripleState support hcard σ g i ≠ some false) :=
+      fun h => hambient (hcompat.mp h)
+    simp [tripleLocalDeficit, compatibleResidualQueryDeficit, hambient, hlocal]
+
+/-- The ambient star count is the sum of the transported local triple star counts and the free
+outside-coordinate count.  This is the `z`-weight preservation law for the product encoding. -/
+theorem ambient_stars_eq_triple_sum_add_outside {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) (σ : Restriction n) :
+    stars σ = (∑ g, tripleLocalStars (ambientTripleState support hcard σ g)) +
+      (Finset.univ.filter fun i : ↥(Finset.univ \ supportUnion support) =>
+        σ i.1 = none).card := by
+  rw [stars, freeSetOccupancyCode_card support hpair (freeVars σ)]
+  congr 1
+  · apply Finset.sum_congr rfl
+    intro g _
+    rw [ambientTripleState_stars]
+    simp only [freeSetOccupancyCode, liveSupport, Finset.inter_comm]
+  · change (freeVars σ \ supportUnion support).card = _
+    apply Finset.card_bij (fun (i : Fin n) hi =>
+        (⟨i, Finset.mem_sdiff.mpr
+          ⟨Finset.mem_univ _, (Finset.mem_sdiff.mp hi).2⟩⟩ :
+            {i : Fin n // i ∈ Finset.univ \ supportUnion support}))
+    · intro i hi
+      simpa only [Finset.mem_filter, Finset.mem_univ, true_and] using
+        mem_freeVars.mp (Finset.mem_sdiff.mp hi).1
+    · intro i hi j hj hij
+      exact congrArg Subtype.val hij
+    · intro i hi
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hi
+      refine ⟨i.1, ?_, Subtype.ext rfl⟩
+      exact Finset.mem_sdiff.mpr ⟨mem_freeVars.mpr hi, (Finset.mem_sdiff.mp i.2).2⟩
+
+/-- The total compatible residual deficit is exactly the sum of the transported local deficit
+weights.  This is the `y`-weight preservation law for the product encoding. -/
+theorem compatible_deficit_eq_triple_sum {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (hcard : ∀ g, (support g).card = 3)
+    (σ : Restriction n) :
+    (∑ g, compatibleResidualQueryDeficit support σ 1 g) =
+      ∑ g, tripleLocalDeficit (ambientTripleState support hcard σ g) := by
+  apply Finset.sum_congr rfl
+  intro g _
+  exact (ambientTripleState_deficit support hcard σ g).symm
+
+/-- The concrete product equivalence exposes exactly the transported triple states and the
+unchanged outside restriction used in the weight laws above. -/
+theorem ambientRestrictionTripleProductEquiv_apply {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) (σ : Restriction n) :
+    ambientRestrictionTripleProductEquiv support hpair hcard σ =
+      (fun g => ambientTripleState support hcard σ g, fun i => σ i.1) := by
+  rfl
+
+/-- Combined weight preservation stated directly on the output of the ambient product
+equivalence.  The first component is the generating function's total `z`-degree and the second is
+its total `y`-degree. -/
+theorem ambientRestrictionTripleProductEquiv_preserves_weights {n G : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) (σ : Restriction n) :
+    let data := ambientRestrictionTripleProductEquiv support hpair hcard σ
+    stars σ = (∑ g, tripleLocalStars (data.1 g)) +
+        (Finset.univ.filter fun i => data.2 i = none).card ∧
+      (∑ g, compatibleResidualQueryDeficit support σ 1 g) =
+        ∑ g, tripleLocalDeficit (data.1 g) := by
+  rw [ambientRestrictionTripleProductEquiv_apply]
+  exact ⟨ambient_stars_eq_triple_sum_add_outside support hpair hcard σ,
+    compatible_deficit_eq_triple_sum support hcard σ⟩
+
+/-! ### Exact bivariate fibers on the product space -/
+
+/-- Ambient restrictions with exactly `K` live coordinates and exactly `D` units of compatible
+residual deficit.  These are the individual coefficients whose union over `D > trunkDepth` is
+`compatibleDeficitShell` at residual depth one. -/
+noncomputable def compatibleDeficitFiber {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K D : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧ (∑ g, compatibleResidualQueryDeficit support σ 1 g) = D
+
+/-- The corresponding `(K,D)` fiber after splitting an ambient restriction into independent
+width-three block states and its outside-coordinate state. -/
+noncomputable def tripleProductWeightFiber {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K D : ℕ) :
+    Finset ((Fin G → (Fin 3 → Option Bool)) ×
+      ({i : Fin n // i ∈ Finset.univ \ supportUnion support} → Option Bool)) :=
+  Finset.univ.filter fun data =>
+    (∑ g, tripleLocalStars (data.1 g)) +
+        (Finset.univ.filter fun i => data.2 i = none).card = K ∧
+      (∑ g, tripleLocalDeficit (data.1 g)) = D
+
+theorem mem_compatibleDeficitFiber {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K D : ℕ) (σ : Restriction n) :
+    σ ∈ compatibleDeficitFiber support K D ↔
+      stars σ = K ∧ (∑ g, compatibleResidualQueryDeficit support σ 1 g) = D := by
+  simp [compatibleDeficitFiber]
+
+theorem mem_tripleProductWeightFiber {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (K D : ℕ)
+    (data : (Fin G → (Fin 3 → Option Bool)) ×
+      ({i : Fin n // i ∈ Finset.univ \ supportUnion support} → Option Bool)) :
+    data ∈ tripleProductWeightFiber support K D ↔
+      (∑ g, tripleLocalStars (data.1 g)) +
+          (Finset.univ.filter fun i => data.2 i = none).card = K ∧
+        (∑ g, tripleLocalDeficit (data.1 g)) = D := by
+  simp [tripleProductWeightFiber]
+
+/-- The weight-preserving ambient product equivalence identifies every exact bivariate fiber.
+This is the semantic coefficient theorem: no restrictions are lost or duplicated when the
+`(K,D)` coefficient is computed on the product state space. -/
+theorem compatibleDeficitFiber_card_eq_tripleProductWeightFiber_card {n G K D : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    (compatibleDeficitFiber support K D).card =
+      (tripleProductWeightFiber support K D).card := by
+  classical
+  let e := ambientRestrictionTripleProductEquiv support hpair hcard
+  apply Finset.card_bij (fun σ _ => e σ)
+  · intro σ hσ
+    rw [mem_compatibleDeficitFiber] at hσ
+    rw [mem_tripleProductWeightFiber]
+    have hw := ambientRestrictionTripleProductEquiv_preserves_weights
+      support hpair hcard σ
+    change stars σ =
+        (∑ g, tripleLocalStars ((e σ).1 g)) +
+          (Finset.univ.filter fun i => (e σ).2 i = none).card ∧
+      (∑ g, compatibleResidualQueryDeficit support σ 1 g) =
+        ∑ g, tripleLocalDeficit ((e σ).1 g) at hw
+    exact ⟨hw.1.symm.trans hσ.1, hw.2.symm.trans hσ.2⟩
+  · intro σ hσ τ hτ heq
+    exact e.injective heq
+  · intro data hdata
+    rw [mem_tripleProductWeightFiber] at hdata
+    refine ⟨e.symm data, ?_, e.apply_symm_apply data⟩
+    rw [mem_compatibleDeficitFiber]
+    have hw := ambientRestrictionTripleProductEquiv_preserves_weights
+      support hpair hcard (e.symm data)
+    change stars (e.symm data) =
+        (∑ g, tripleLocalStars ((e (e.symm data)).1 g)) +
+          (Finset.univ.filter fun i => (e (e.symm data)).2 i = none).card ∧
+      (∑ g, compatibleResidualQueryDeficit support (e.symm data) 1 g) =
+        ∑ g, tripleLocalDeficit ((e (e.symm data)).1 g) at hw
+    rw [e.apply_symm_apply] at hw
+    exact ⟨hw.1.trans hdata.1, hw.2.trans hdata.2⟩
+
+/-! ### Algebraic factorization of the product enumerator -/
+
+/-- Bivariate polynomials with natural-number coefficients.  Coordinate `0` records the live
+count (`z`) and coordinate `1` records the compatible deficit (`y`). -/
+abbrev BivariateEnumerator := MvPolynomial (Fin 2) ℕ
+
+/-- The monomial `z^K y^D` used to record one weighted state. -/
+noncomputable def bivariateWeightMonomial (K D : ℕ) : BivariateEnumerator :=
+  MvPolynomial.monomial (Finsupp.single 0 K + Finsupp.single 1 D) 1
+
+theorem bivariateWeightMonomial_eq (K D : ℕ) :
+    bivariateWeightMonomial K D = MvPolynomial.X 0 ^ K * MvPolynomial.X 1 ^ D := by
+  rw [bivariateWeightMonomial, MvPolynomial.X_pow_eq_monomial,
+    MvPolynomial.X_pow_eq_monomial, MvPolynomial.monomial_mul]
+  simp
+
+theorem bivariateWeightMonomial_mul (K₁ D₁ K₂ D₂ : ℕ) :
+    bivariateWeightMonomial K₁ D₁ * bivariateWeightMonomial K₂ D₂ =
+      bivariateWeightMonomial (K₁ + K₂) (D₁ + D₂) := by
+  simp only [bivariateWeightMonomial, MvPolynomial.monomial_mul, one_mul]
+  apply congrArg (fun s : Fin 2 →₀ ℕ => MvPolynomial.monomial s 1)
+  ext i
+  fin_cases i <;> simp [add_assoc, add_comm, add_left_comm]
+
+theorem prod_bivariateWeightMonomial {α : Type} [DecidableEq α]
+    (s : Finset α) (K D : α → ℕ) :
+    ∏ i ∈ s, bivariateWeightMonomial (K i) (D i) =
+      bivariateWeightMonomial (∑ i ∈ s, K i) (∑ i ∈ s, D i) := by
+  induction s using Finset.induction_on with
+  | empty => simp [bivariateWeightMonomial]
+  | @insert a s ha ih =>
+      simp only [Finset.prod_insert ha, Finset.sum_insert ha, ih]
+      exact bivariateWeightMonomial_mul _ _ _ _
+
+theorem bivariateWeightExponent_eq_iff (K₁ D₁ K₂ D₂ : ℕ) :
+    Finsupp.single (0 : Fin 2) K₁ + Finsupp.single (1 : Fin 2) D₁ =
+        Finsupp.single 0 K₂ + Finsupp.single 1 D₂ ↔
+      K₁ = K₂ ∧ D₁ = D₂ := by
+  constructor
+  · intro h
+    constructor
+    · simpa using congrArg (fun s : Fin 2 →₀ ℕ => s 0) h
+    · simpa using congrArg (fun s : Fin 2 →₀ ℕ => s 1) h
+  · rintro ⟨rfl, rfl⟩
+    rfl
+
+theorem bivariateSplitWeightExponent_eq_iff (K₁ K₂ D₁ K D : ℕ) :
+    (Finsupp.single (0 : Fin 2) K₁ + Finsupp.single 0 K₂) +
+        Finsupp.single (1 : Fin 2) D₁ =
+        Finsupp.single 0 K + Finsupp.single 1 D ↔
+      K₁ + K₂ = K ∧ D₁ = D := by
+  constructor
+  · intro h
+    constructor
+    · simpa using congrArg (fun s : Fin 2 →₀ ℕ => s 0) h
+    · simpa using congrArg (fun s : Fin 2 →₀ ℕ => s 1) h
+  · rintro ⟨hK, hD⟩
+    ext i
+    fin_cases i <;> simp [hK, hD]
+
+/-- The polynomial inventory of all 27 abstract states of one support triple. -/
+noncomputable def tripleLocalEnumerator : BivariateEnumerator :=
+  ∑ rho : Fin 3 → Option Bool,
+    bivariateWeightMonomial (tripleLocalStars rho) (tripleLocalDeficit rho)
+
+/-- The five checked local fibers give the advertised width-three bivariate factor exactly. -/
+theorem tripleLocalEnumerator_eq :
+    tripleLocalEnumerator =
+      8 + 12 * MvPolynomial.X 0 + 3 * MvPolynomial.X 0 ^ 2 +
+        3 * MvPolynomial.X 0 ^ 2 * MvPolynomial.X 1 +
+          MvPolynomial.X 0 ^ 3 * MvPolynomial.X 1 ^ 2 := by
+  classical
+  unfold tripleLocalEnumerator
+  rw [show (Finset.univ : Finset (Fin 3 → Option Bool)) =
+      tripleLocalFiber 0 0 ∪ tripleLocalFiber 1 0 ∪ tripleLocalFiber 2 0 ∪
+        tripleLocalFiber 2 1 ∪ tripleLocalFiber 3 2 from tripleLocalFibers_exhaustive]
+  have hf (K D : ℕ) :
+      ∑ rho ∈ tripleLocalFiber K D,
+          bivariateWeightMonomial (tripleLocalStars rho) (tripleLocalDeficit rho) =
+        (tripleLocalFiber K D).card • bivariateWeightMonomial K D := by
+    apply Finset.sum_eq_card_nsmul
+    intro rho hrho
+    simp only [tripleLocalFiber, Finset.mem_filter] at hrho
+    rw [hrho.2.1, hrho.2.2]
+  rw [Finset.sum_union (by decide), Finset.sum_union (by decide),
+    Finset.sum_union (by decide), Finset.sum_union (by decide)]
+  simp only [hf, tripleLocalFiber_card_zero_zero, tripleLocalFiber_card_one_zero,
+    tripleLocalFiber_card_two_zero, tripleLocalFiber_card_two_one,
+    tripleLocalFiber_card_three_two, nsmul_eq_mul]
+  simp [bivariateWeightMonomial_eq]
+  ring
+
+/-- The multiplicative weight enumerator of `G` independent triple states and a canonically
+reindexed reservoir of `outsideCount` outside states.  Writing each state's weight as a product
+makes independence explicit; coefficient extraction will next identify its `z^K y^D` coefficient
+with `tripleProductWeightFiber` after reindexing the outside subtype by its cardinality. -/
+noncomputable def tripleProductEnumerator (G outsideCount : ℕ) : BivariateEnumerator :=
+  ∑ data : (Fin G → (Fin 3 → Option Bool)) × (Fin outsideCount → Option Bool),
+    (∏ g, bivariateWeightMonomial
+      (tripleLocalStars (data.1 g)) (tripleLocalDeficit (data.1 g))) *
+      ∏ i, bivariateWeightMonomial (if data.2 i = none then 1 else 0) 0
+
+/-- The exact `(K,D)` fiber on the canonically indexed product space used by
+`tripleProductEnumerator`. -/
+noncomputable def tripleProductIndexWeightFiber (G outsideCount K D : ℕ) :
+    Finset ((Fin G → (Fin 3 → Option Bool)) × (Fin outsideCount → Option Bool)) :=
+  Finset.univ.filter fun data =>
+    (∑ g, tripleLocalStars (data.1 g)) +
+        (Finset.univ.filter fun i => data.2 i = none).card = K ∧
+      (∑ g, tripleLocalDeficit (data.1 g)) = D
+
+theorem tripleProductEnumerator_summand_eq {G outsideCount : ℕ}
+    (data : (Fin G → (Fin 3 → Option Bool)) × (Fin outsideCount → Option Bool)) :
+    (∏ g, bivariateWeightMonomial
+        (tripleLocalStars (data.1 g)) (tripleLocalDeficit (data.1 g))) *
+      ∏ i, bivariateWeightMonomial (if data.2 i = none then 1 else 0) 0 =
+    bivariateWeightMonomial
+      ((∑ g, tripleLocalStars (data.1 g)) +
+        (Finset.univ.filter fun i => data.2 i = none).card)
+      (∑ g, tripleLocalDeficit (data.1 g)) := by
+  classical
+  rw [show (∏ g, bivariateWeightMonomial
+        (tripleLocalStars (data.1 g)) (tripleLocalDeficit (data.1 g))) =
+      bivariateWeightMonomial (∑ g, tripleLocalStars (data.1 g))
+        (∑ g, tripleLocalDeficit (data.1 g)) by
+        simpa using prod_bivariateWeightMonomial Finset.univ
+          (fun g => tripleLocalStars (data.1 g))
+          (fun g => tripleLocalDeficit (data.1 g))]
+  rw [show (∏ i, bivariateWeightMonomial (if data.2 i = none then 1 else 0) 0) =
+      bivariateWeightMonomial
+        (Finset.univ.filter fun i => data.2 i = none).card 0 by
+        rw [prod_bivariateWeightMonomial Finset.univ]
+        congr 2
+        · simp
+        · simp]
+  simpa using bivariateWeightMonomial_mul
+    (∑ g, tripleLocalStars (data.1 g))
+    (∑ g, tripleLocalDeficit (data.1 g))
+    (Finset.univ.filter fun i => data.2 i = none).card 0
+
+/-- Coefficient extraction on the canonically indexed product space counts exactly the states
+with the requested live and deficit weights. -/
+theorem tripleProductEnumerator_coeff (G outsideCount K D : ℕ) :
+    MvPolynomial.coeff
+        (Finsupp.single (0 : Fin 2) K + Finsupp.single (1 : Fin 2) D)
+        (tripleProductEnumerator G outsideCount) =
+      (tripleProductIndexWeightFiber G outsideCount K D).card := by
+  classical
+  unfold tripleProductEnumerator tripleProductIndexWeightFiber
+  simp_rw [tripleProductEnumerator_summand_eq]
+  simp only [MvPolynomial.coeff_sum, bivariateWeightMonomial,
+    MvPolynomial.coeff_monomial]
+  simp [bivariateSplitWeightExponent_eq_iff]
+
+theorem filter_card_comp_equiv {α β γ : Type} [Fintype α] [Fintype β]
+    (e : α ≃ β) (f : α → γ) (p : γ → Prop) [DecidablePred p] :
+    (Finset.univ.filter fun a => p (f a)).card =
+      (Finset.univ.filter fun b => p (f (e.symm b))).card := by
+  classical
+  apply Finset.card_bij (fun a _ => e a)
+  · intro a ha
+    simpa using ha
+  · intro a ha b hb hab
+    exact e.injective hab
+  · intro b hb
+    exact ⟨e.symm b, by simpa using hb, e.apply_symm_apply b⟩
+
+/-- Reindexing the ambient outside subtype by its exact cardinality identifies its weight fiber
+with the canonical `Fin (n-3*G)` fiber used in the algebraic enumerator. -/
+theorem tripleProductWeightFiber_card_eq_indexWeightFiber_card {n G K D : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    (tripleProductWeightFiber support K D).card =
+      (tripleProductIndexWeightFiber G (n - 3 * G) K D).card := by
+  classical
+  have houtside : (Finset.univ \ supportUnion support).card = n - 3 * G := by
+    rw [Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
+      Fintype.card_fin, supportUnion_card_of_pairwiseDisjoint_uniform support hpair hcard]
+    omega
+  let e : {i : Fin n // i ∈ Finset.univ \ supportUnion support} ≃
+      Fin (n - 3 * G) := (Finset.orderIsoOfFin _ houtside).symm.toEquiv
+  apply Finset.card_bij (fun data _ => (data.1, fun i => data.2 (e.symm i)))
+  · intro data hdata
+    rw [mem_tripleProductWeightFiber] at hdata
+    simp only [tripleProductIndexWeightFiber, Finset.mem_filter, Finset.mem_univ, true_and]
+    have hout := filter_card_comp_equiv e data.2 (fun x => x = none)
+    exact ⟨by simpa only using (congrArg
+        (fun q => (∑ g, tripleLocalStars (data.1 g)) + q) hout).symm.trans hdata.1,
+      hdata.2⟩
+  · intro data hdata data' hdata' heq
+    cases data with
+    | mk x y =>
+      cases data' with
+      | mk x' y' =>
+        simp only [Prod.mk.injEq] at heq ⊢
+        refine ⟨heq.1, ?_⟩
+        funext i
+        simpa using congrFun heq.2 (e i)
+  · intro data hdata
+    refine ⟨(data.1, fun i => data.2 (e i)), ?_, ?_⟩
+    · rw [mem_tripleProductWeightFiber]
+      simp only [tripleProductIndexWeightFiber, Finset.mem_filter, Finset.mem_univ, true_and]
+        at hdata
+      have hout := filter_card_comp_equiv e (fun i => data.2 (e i)) (fun x => x = none)
+      simp only [e.apply_symm_apply] at hout
+      exact ⟨by simpa only using (congrArg
+          (fun q => (∑ g, tripleLocalStars (data.1 g)) + q) hout).trans hdata.1,
+        hdata.2⟩
+    · apply Prod.ext
+      · rfl
+      · funext i
+        simp
+
+/-- The advertised coefficient theorem: the `z^K y^D` coefficient of the factored canonical
+enumerator is exactly the cardinality of the semantic product fiber for any disjoint family of
+three-element supports. -/
+theorem tripleProductEnumerator_coeff_eq_weightFiber_card {n G K D : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    MvPolynomial.coeff
+        (Finsupp.single (0 : Fin 2) K + Finsupp.single (1 : Fin 2) D)
+        (tripleProductEnumerator G (n - 3 * G)) =
+      (tripleProductWeightFiber support K D).card := by
+  rw [tripleProductEnumerator_coeff,
+    tripleProductWeightFiber_card_eq_indexWeightFiber_card support hpair hcard]
+
+/-- End-to-end exact coefficient extraction back on ambient restrictions. -/
+theorem tripleProductEnumerator_coeff_eq_compatibleDeficitFiber_card {n G K D : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    MvPolynomial.coeff
+        (Finsupp.single (0 : Fin 2) K + Finsupp.single (1 : Fin 2) D)
+        (tripleProductEnumerator G (n - 3 * G)) =
+      (compatibleDeficitFiber support K D).card := by
+  rw [tripleProductEnumerator_coeff_eq_weightFiber_card support hpair hcard,
+    compatibleDeficitFiber_card_eq_tripleProductWeightFiber_card support hpair hcard]
+
+/-! ### Finite coefficient tails -/
+
+/-- A width-three block contributes at most two units in the deficit grading. -/
+theorem tripleLocalDeficit_le_two (rho : Fin 3 → Option Bool) :
+    tripleLocalDeficit rho ≤ 2 := by
+  classical
+  unfold tripleLocalDeficit
+  split
+  · have hstars : tripleLocalStars rho ≤ 3 := by
+      unfold tripleLocalStars
+      calc
+        (Finset.univ.filter fun i => rho i = none).card ≤ Finset.univ.card :=
+          Finset.card_filter_le _ _
+        _ = 3 := by simp
+    omega
+  · omega
+
+/-- The finite set of deficit degrees strictly above the trunk budget.  The upper endpoint `2*G`
+is exact for `G` independent width-three blocks and makes the coefficient tail manifestly finite. -/
+def compatibleDeficitTailIndices (G trunkDepth : ℕ) : Finset ℕ :=
+  (Finset.range (2 * G + 1)).filter fun D => trunkDepth < D
+
+theorem mem_compatibleDeficitTailIndices {G trunkDepth D : ℕ} :
+    D ∈ compatibleDeficitTailIndices G trunkDepth ↔ trunkDepth < D ∧ D ≤ 2 * G := by
+  simp [compatibleDeficitTailIndices]
+  omega
+
+/-- On disjoint width-three supports, the total compatible deficit has no mass above degree
+`2*G`. -/
+theorem compatible_deficit_sum_le_two_mul {n G : ℕ}
+    (support : Fin G → Finset (Fin n)) (σ : Restriction n)
+    (hcard : ∀ g, (support g).card = 3) :
+    (∑ g, compatibleResidualQueryDeficit support σ 1 g) ≤ 2 * G := by
+  rw [compatible_deficit_eq_triple_sum support hcard σ]
+  calc
+    (∑ g, tripleLocalDeficit (ambientTripleState support hcard σ g)) ≤
+        ∑ _g : Fin G, 2 :=
+      Finset.sum_le_sum fun g _ => tripleLocalDeficit_le_two _
+    _ = 2 * G := by simp [Nat.mul_comm]
+
+/-- Exact finite deficit-tail extraction on the semantic restriction shell.  Fiberwise counting
+partitions the shell by its unique deficit degree, and the width-three local bound cuts the sum off
+at `2*G`. -/
+theorem compatibleDeficitShell_card_eq_sum_fibers {n G K trunkDepth : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hcard : ∀ g, (support g).card = 3) :
+    (compatibleDeficitShell support K trunkDepth 1).card =
+      ∑ D ∈ compatibleDeficitTailIndices G trunkDepth,
+        (compatibleDeficitFiber support K D).card := by
+  classical
+  let deficit : Restriction n → ℕ := fun σ =>
+    ∑ g, compatibleResidualQueryDeficit support σ 1 g
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := deficit) (t := compatibleDeficitTailIndices G trunkDepth)]
+  · apply Finset.sum_congr rfl
+    intro D hD
+    congr 1
+    ext σ
+    rw [Finset.mem_filter, mem_compatibleDeficitFiber]
+    simp only [compatibleDeficitShell, Finset.mem_filter, Finset.mem_univ, true_and]
+    have htail := (mem_compatibleDeficitTailIndices.mp hD).1
+    change (stars σ = K ∧ trunkDepth < deficit σ) ∧ deficit σ = D ↔
+      stars σ = K ∧ deficit σ = D
+    omega
+  · intro σ hσ
+    change deficit σ ∈ compatibleDeficitTailIndices G trunkDepth
+    rw [mem_compatibleDeficitTailIndices]
+    have hshell := (Finset.mem_filter.mp hσ).2
+    exact ⟨hshell.2, compatible_deficit_sum_le_two_mul support σ hcard⟩
+
+/-- The exact shell mass is the finite coefficient tail of the factored bivariate enumerator. -/
+theorem compatibleDeficitShell_card_eq_coefficient_tail {n G K trunkDepth : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    (compatibleDeficitShell support K trunkDepth 1).card =
+      ∑ D ∈ compatibleDeficitTailIndices G trunkDepth,
+        MvPolynomial.coeff
+          (Finsupp.single (0 : Fin 2) K + Finsupp.single (1 : Fin 2) D)
+          (tripleProductEnumerator G (n - 3 * G)) := by
+  rw [compatibleDeficitShell_card_eq_sum_fibers support hcard]
+  apply Finset.sum_congr rfl
+  intro D _hD
+  exact (tripleProductEnumerator_coeff_eq_compatibleDeficitFiber_card
+    support hpair hcard).symm
+
+/-- The first parameter specialization requested by the frontier audit: at `K = 20*r`, the
+semantic event with deficit above `10*r` is exactly the corresponding finite coefficient tail. -/
+theorem compatibleDeficitShell_twenty_card_eq_coefficient_tail {n G r : ℕ}
+    (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    (compatibleDeficitShell support (20 * r) (10 * r) 1).card =
+      ∑ D ∈ compatibleDeficitTailIndices G (10 * r),
+        MvPolynomial.coeff
+          (Finsupp.single (0 : Fin 2) (20 * r) + Finsupp.single (1 : Fin 2) D)
+          (tripleProductEnumerator G (n - 3 * G)) :=
+  compatibleDeficitShell_card_eq_coefficient_tail support hpair hcard
+
+/-- A finite reservoir of independent outside coordinates contributes one `2 + z` factor per
+coordinate.  Keeping this lemma polymorphic avoids exposing a large support-subtype expression to
+the finite-product elaborator in the main factorization proof. -/
+theorem outsideStateEnumerator_eq (α : Type) [Fintype α] [DecidableEq α] :
+    (∑ y : α → Option Bool,
+      ∏ i, bivariateWeightMonomial (if y i = none then 1 else 0) 0) =
+        (2 + MvPolynomial.X 0) ^ Fintype.card α := by
+  classical
+  have hlocal :
+      (∑ x : Option Bool,
+        bivariateWeightMonomial (if x = none then 1 else 0) 0) =
+          2 + MvPolynomial.X 0 := by
+    simp [bivariateWeightMonomial_eq]
+    ring
+  calc
+    (∑ y : α → Option Bool,
+        ∏ i, bivariateWeightMonomial (if y i = none then 1 else 0) 0) =
+        ∏ _i : α, ∑ x : Option Bool,
+          bivariateWeightMonomial (if x = none then 1 else 0) 0 :=
+      (Fintype.prod_sum (fun (_i : α) (x : Option Bool) =>
+        bivariateWeightMonomial (if x = none then 1 else 0) 0)).symm
+    _ = _ := by
+      rw [show (∑ x : Option Bool,
+          bivariateWeightMonomial (if x = none then 1 else 0) 0) =
+            2 + MvPolynomial.X 0 from hlocal]
+      simp only [Finset.prod_const, Finset.card_univ]
+
+/-- Exact algebraic factorization of the product-space enumerator for the outside cardinality
+forced by `G` disjoint triples in `n` coordinates.  Every triple contributes the verified
+five-term local polynomial, and every outside coordinate contributes `2 + z` (two fixed values or
+one live value). -/
+theorem tripleProductEnumerator_factorization (n G : ℕ) :
+    tripleProductEnumerator G (n - 3 * G) =
+      (8 + 12 * MvPolynomial.X 0 + 3 * MvPolynomial.X 0 ^ 2 +
+        3 * MvPolynomial.X 0 ^ 2 * MvPolynomial.X 1 +
+          MvPolynomial.X 0 ^ 3 * MvPolynomial.X 1 ^ 2) ^ G *
+        (2 + MvPolynomial.X 0) ^ (n - 3 * G) := by
+  classical
+  unfold tripleProductEnumerator
+  rw [Fintype.sum_prod_type]
+  simp_rw [← Finset.mul_sum]
+  have hfactor :
+      (∑ x : Fin G → (Fin 3 → Option Bool),
+        (∏ g, bivariateWeightMonomial
+          (tripleLocalStars (x g)) (tripleLocalDeficit (x g))) *
+          (∑ y : Fin (n - 3 * G) → Option Bool,
+            ∏ i, bivariateWeightMonomial (if y i = none then 1 else 0) 0)) =
+        (∑ x : Fin G → (Fin 3 → Option Bool),
+          ∏ g, bivariateWeightMonomial
+            (tripleLocalStars (x g)) (tripleLocalDeficit (x g))) *
+          (∑ y : Fin (n - 3 * G) → Option Bool,
+            ∏ i, bivariateWeightMonomial (if y i = none then 1 else 0) 0) := by
+    exact (Finset.sum_mul Finset.univ _ _).symm
+  rw [hfactor]
+  congr 1
+  · calc
+      (∑ x : Fin G → (Fin 3 → Option Bool),
+          ∏ g, bivariateWeightMonomial
+            (tripleLocalStars (x g)) (tripleLocalDeficit (x g))) =
+          ∏ _g : Fin G, tripleLocalEnumerator := by
+        rw [tripleLocalEnumerator]
+        exact (Fintype.prod_sum (fun (_g : Fin G) (rho : Fin 3 → Option Bool) =>
+          bivariateWeightMonomial
+            (tripleLocalStars rho) (tripleLocalDeficit rho))).symm
+      _ = _ := by
+        simp only [Finset.prod_const, Finset.card_univ, Fintype.card_fin,
+          tripleLocalEnumerator_eq]
+  · calc
+      (∑ y : Fin (n - 3 * G) → Option Bool,
+          ∏ i, bivariateWeightMonomial (if y i = none then 1 else 0) 0) =
+          (2 + MvPolynomial.X 0) ^ Fintype.card (Fin (n - 3 * G)) :=
+        outsideStateEnumerator_eq (Fin (n - 3 * G))
+      _ = _ := by
+        simp only [Fintype.card_fin]
+
+/-- A completely live width-three support contributes exactly two units to the compatible
+residual query deficit at residual depth one.  In particular, fixed-value compatibility costs
+nothing on this subevent: every support coordinate is free. -/
+theorem compatibleResidualQueryDeficit_eq_two_of_intact_triple
+    {n G : ℕ} (support : Fin G → Finset (Fin n)) (σ : Restriction n) (g : Fin G)
+    (hcard : (support g).card = 3) (hintact : g ∈ intactSupportBlocks support σ) :
+    compatibleResidualQueryDeficit support σ 1 g = 2 := by
+  have hsub : support g ⊆ freeVars σ := (Finset.mem_filter.mp hintact).2
+  have hcompat : supportTrueCompatible support σ g := by
+    intro i hi hfalse
+    have hfree : σ i = none := mem_freeVars.mp (hsub hi)
+    rw [hfree] at hfalse
+    simp at hfalse
+  simp [compatibleResidualQueryDeficit, hcompat, residualQueryDeficit, liveSupport,
+    Finset.inter_eq_left.mpr hsub, hcard]
+
+/-- The older whole-block event gives a rigorous lower-bound subevent for the weighted width-three
+shell.  More than `5*r` intact triples contribute more than `10*r` total compatible deficit.
+Partially live truth-compatible triples may enlarge the target event, but are not needed for this
+inclusion. -/
+theorem manyIntactShell_subset_compatibleDeficitShell_triples
+    {n G r : ℕ} (support : Fin G → Finset (Fin n))
+    (hcard : ∀ g, (support g).card = 3) :
+    manyIntactShell support (20 * r) (5 * r) ⊆
+      compatibleDeficitShell support (20 * r) (10 * r) 1 := by
+  intro σ hσ
+  have hmem := (Finset.mem_filter.mp hσ).2
+  rw [compatibleDeficitShell, Finset.mem_filter]
+  refine ⟨Finset.mem_univ _, hmem.1, ?_⟩
+  have hpartial :
+      (∑ g ∈ intactSupportBlocks support σ,
+          compatibleResidualQueryDeficit support σ 1 g) ≤
+        ∑ g, compatibleResidualQueryDeficit support σ 1 g :=
+    Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ _)
+      (fun _ _ _ => Nat.zero_le _)
+  have heq :
+      (∑ g ∈ intactSupportBlocks support σ,
+          compatibleResidualQueryDeficit support σ 1 g) =
+        2 * (intactSupportBlocks support σ).card := by
+    calc
+      _ = ∑ _g ∈ intactSupportBlocks support σ, 2 := by
+        apply Finset.sum_congr rfl
+        intro g hg
+        exact compatibleResidualQueryDeficit_eq_two_of_intact_triple
+          support σ g (hcard g) hg
+      _ = 2 * (intactSupportBlocks support σ).card := by simp [Nat.mul_comm]
+  rw [heq] at hpartial
+  omega
+
+/-- Cardinal form of the intact-triple lower bound.  The left side already has the exact
+occupancy-sum enumeration and the uniform fixed-value factor proved above. -/
+theorem manyIntactShell_card_le_compatibleDeficitShell_triples
+    {n G r : ℕ} (support : Fin G → Finset (Fin n))
+    (hcard : ∀ g, (support g).card = 3) :
+    (manyIntactShell support (20 * r) (5 * r)).card ≤
+      (compatibleDeficitShell support (20 * r) (10 * r) 1).card :=
+  Finset.card_le_card
+    (manyIntactShell_subset_compatibleDeficitShell_triples support hcard)
+
+/-- Explicit stars-and-bars lower bound for the weighted triple event.  It is the exact occupancy
+sum for more than `5*r` fully live triples, including the common `2^(n-20*r)` fixed-value factor.
+The full compatible event can additionally contain deficit-one partially live triples. -/
+theorem compatibleDeficitShell_triples_occupancy_lower_bound
+    {n G r : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hcard : ∀ g, (support g).card = 3) :
+    (∑ p ∈ admissibleOccupancyIndices support (20 * r) (5 * r),
+        (∏ g, (support g).card.choose (p.1 g).val) *
+          ((Finset.univ \ supportUnion support).card.choose p.2.val)) *
+        2 ^ (n - 20 * r) ≤
+      (compatibleDeficitShell support (20 * r) (10 * r) 1).card := by
+  rw [← manyIntactFreeSets_card_eq_sum_occupancy support hpair,
+    ← manyIntactShell_card]
+  exact manyIntactShell_card_le_compatibleDeficitShell_triples support hcard
+
+/-- If the sum of the blockwise live-coordinate deficits exceeds the number of distinct queried
+coordinates, some block retains more than `residualDepth` root-live coordinates outside the
+query path.  Pairwise disjointness is exactly what prevents one query from paying two deficits.
+
+This is the weighted replacement for the earlier whole-block pigeonhole argument.  It is purely
+combinatorial: the semantic use for conjunction gates must additionally exclude a root-fixed
+false literal, since such a literal makes the gate constant regardless of its live deficit. -/
+theorem exists_liveSupport_sdiff_card_gt_of_sum_deficit
+    {n G residualDepth : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n) (path : Finset (Fin n))
+    (hdeficit : path.card < ∑ g, residualQueryDeficit support σ residualDepth g) :
+    ∃ g, residualDepth < ((liveSupport support σ g) \ path).card := by
+  by_contra hnone
+  push_neg at hnone
+  have hpoint (g : Fin G) :
+      residualQueryDeficit support σ residualDepth g ≤
+        ((liveSupport support σ g) ∩ path).card := by
+    have hsplit := Finset.card_sdiff_add_card_inter
+      (liveSupport support σ g) path
+    have hremain := hnone g
+    simp only [residualQueryDeficit]
+    apply Nat.sub_le_iff_le_add.mpr
+    omega
+  have hhits :
+      (∑ g, ((liveSupport support σ g) ∩ path).card) ≤ path.card := by
+    have hdisj : ((Finset.univ : Finset (Fin G)) : Set (Fin G)).PairwiseDisjoint
+        (fun g => (liveSupport support σ g) ∩ path) := by
+      intro g _ h _ hne
+      apply (hpair g h hne).mono
+      · intro i hi
+        exact (Finset.mem_inter.mp (Finset.mem_inter.mp hi).1).1
+      · intro i hi
+        exact (Finset.mem_inter.mp (Finset.mem_inter.mp hi).1).1
+    calc
+      (∑ g, ((liveSupport support σ g) ∩ path).card) =
+          (Finset.univ.biUnion fun g => (liveSupport support σ g) ∩ path).card :=
+        (Finset.card_biUnion hdisj).symm
+      _ ≤ path.card := Finset.card_le_card <| by
+        intro i hi
+        rw [Finset.mem_biUnion] at hi
+        obtain ⟨g, _, hig⟩ := hi
+        exact (Finset.mem_inter.mp hig).2
+  have hsum :
+      (∑ g, residualQueryDeficit support σ residualDepth g) ≤
+        ∑ g, ((liveSupport support σ g) ∩ path).card :=
+    Finset.sum_le_sum fun g _ => hpoint g
+  exact (Nat.not_lt_of_ge (hsum.trans hhits)) hdeficit
+
+/-- Sound weighted pigeonhole principle for positive conjunctions: if compatible deficits exceed
+the path budget, one compatible block retains too many live unqueried coordinates. -/
+theorem exists_compatible_liveSupport_sdiff_card_gt_of_sum_deficit
+    {n G residualDepth : ℕ} (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n) (path : Finset (Fin n))
+    (hdeficit : path.card <
+      ∑ g, compatibleResidualQueryDeficit support σ residualDepth g) :
+    ∃ g, supportTrueCompatible support σ g ∧
+      residualDepth < ((liveSupport support σ g) \ path).card := by
+  classical
+  let eligible : Fin G → Finset (Fin n) := fun g =>
+    if supportTrueCompatible support σ g then support g else ∅
+  have heligiblePair : ∀ g h, g ≠ h → Disjoint (eligible g) (eligible h) := by
+    intro g h hne
+    by_cases hg : supportTrueCompatible support σ g <;>
+      by_cases hh : supportTrueCompatible support σ h <;>
+      simp [eligible, hg, hh, hpair g h hne]
+  have hsum :
+      (∑ g, residualQueryDeficit eligible σ residualDepth g) =
+        ∑ g, compatibleResidualQueryDeficit support σ residualDepth g := by
+    apply Finset.sum_congr rfl
+    intro g _
+    by_cases hg : supportTrueCompatible support σ g <;>
+      simp [eligible, compatibleResidualQueryDeficit, residualQueryDeficit, liveSupport, hg]
+  obtain ⟨g, hg⟩ := exists_liveSupport_sdiff_card_gt_of_sum_deficit
+    eligible heligiblePair σ path (by rw [hsum]; exact hdeficit)
+  have hcompat : supportTrueCompatible support σ g := by
+    by_contra hnot
+    simp [eligible, liveSupport, hnot] at hg
+  refine ⟨g, hcompat, ?_⟩
+  simpa [eligible, liveSupport, hcompat] using hg
+
+/-- Semantic lift of the compatible weighted deficit.  Follow the assignment which sets every
+root-live coordinate to true.  A depth-`trunkDepth` common trunk has at most that many distinct
+queries on this path, so an excess compatible deficit leaves more than `residualDepth` live
+coordinates of one block unqueried.  Toggling each such coordinate shows that it remains free at
+the reached leaf; truth compatibility and leaf agreement show that no coordinate of the selected
+support is fixed false there.
+
+The final premise is deliberately local and gate-specific.  For ordered positive conjunctions it
+is exactly the remaining canonical-depth lemma: more than `residualDepth` free support
+coordinates, with no support coordinate false, force depth greater than `residualDepth`. -/
+theorem supportedGates_not_commonShallowAt_of_compatible_sum_deficit
+    {n G fuel trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n)
+    (hdeficit : trunkDepth <
+      ∑ g, compatibleResidualQueryDeficit support σ residualDepth g)
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i ≠ some false) →
+      residualDepth < (support g ∩ freeVars rho).card →
+      residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    ¬ CommonShallowAt gates fuel σ trunkDepth residualDepth := by
+  rintro ⟨trunk, htrunkDepth, hleaf⟩
+  let x : Fin n → Bool := fun i => (σ i).getD true
+  have hx : Rung4Restriction.Extends σ x := by
+    intro i b hi
+    simp [x, hi]
+  let path : Finset (Fin n) := (CommonTree.queryVars trunk x).toFinset
+  have hpathCard : path.card ≤ trunkDepth := by
+    calc
+      path.card ≤ (CommonTree.queryVars trunk x).length := List.toFinset_card_le _
+      _ ≤ CommonTree.depth trunk := CommonTree.queryVars_length_le_depth trunk x
+      _ ≤ trunkDepth := htrunkDepth
+  obtain ⟨g, hcompat, hremain⟩ :=
+    exists_compatible_liveSupport_sdiff_card_gt_of_sum_deficit
+      support hpair σ path (lt_of_le_of_lt hpathCard hdeficit)
+  have hfree (i : Fin n) (hiσ : σ i = none) (hi : i ∉ path) :
+      CommonTree.run trunk x i = none := by
+    let y : Fin n → Bool := Function.update x i (!x i)
+    have hy : Rung4Restriction.Extends σ y := by
+      intro j b hj
+      have hji : j ≠ i := by
+        intro h
+        subst j
+        rw [hiσ] at hj
+        simp at hj
+      simpa [y, Function.update_of_ne hji] using hx j b hj
+    obtain ⟨_, htx, _⟩ := hleaf x hx
+    obtain ⟨_, hty, _⟩ := hleaf y hy
+    have hrun : CommonTree.run trunk y = CommonTree.run trunk x := by
+      exact CommonTree.run_update_of_not_mem_queryVars trunk x i
+        (by simpa [path] using hi)
+    cases ht : CommonTree.run trunk x i with
+    | none => rfl
+    | some b =>
+        have hbx : x i = b := htx i b ht
+        have hby : y i = b := by
+          apply hty i b
+          simpa [hrun] using ht
+        cases hxi : x i with
+        | false =>
+            have hbfalse : b = false := by simpa [hxi] using hbx.symm
+            have hbtrue : b = true := by simpa [y, hxi] using hby.symm
+            exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+        | true =>
+            have hbtrue : b = true := by simpa [hxi] using hbx.symm
+            have hbfalse : b = false := by simpa [y, hxi] using hby.symm
+            exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+  obtain ⟨_, hagree, hshallow⟩ := hleaf x hx
+  have hsupportNotFalse (i : Fin n) (hi : i ∈ support g) :
+      CommonTree.run trunk x i ≠ some false := by
+    intro hfalse
+    have hxi : x i = false := hagree i false hfalse
+    cases hσi : σ i with
+    | none => simp [x, hσi] at hxi
+    | some b =>
+        cases b
+        · exact hcompat i hi hσi
+        · simp [x, hσi] at hxi
+  have hremainingSubset : (liveSupport support σ g \ path) ⊆
+      support g ∩ freeVars (CommonTree.run trunk x) := by
+    intro i hi
+    have hilive := (Finset.mem_sdiff.mp hi).1
+    have hipath := (Finset.mem_sdiff.mp hi).2
+    have hisupport := (Finset.mem_inter.mp hilive).1
+    have hiσ := mem_freeVars.mp (Finset.mem_inter.mp hilive).2
+    exact Finset.mem_inter.mpr ⟨hisupport, mem_freeVars.mpr (hfree i hiσ hipath)⟩
+  have hfreeCard : residualDepth <
+      (support g ∩ freeVars (CommonTree.run trunk x)).card :=
+    lt_of_lt_of_le hremain (Finset.card_le_card hremainingSubset)
+  have hgateDeep : residualDepth <
+      (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth :=
+    hdeep (CommonTree.run trunk x) g hsupportNotFalse hfreeCard
+  exact (Nat.not_lt_of_ge (hshallow g)) hgateDeep
+
+/-- Fixed-shell form of the weighted semantic lift. -/
+theorem mem_commonShallowBad_of_compatible_sum_deficit
+    {n G fuel K trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (σ : Restriction n) (hstars : stars σ = K)
+    (hdeficit : trunkDepth <
+      ∑ g, compatibleResidualQueryDeficit support σ residualDepth g)
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i ≠ some false) →
+      residualDepth < (support g ∩ freeVars rho).card →
+      residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    σ ∈ commonShallowBad gates fuel K trunkDepth residualDepth := by
+  rw [mem_commonShallowBad]
+  exact ⟨hstars,
+    supportedGates_not_commonShallowAt_of_compatible_sum_deficit
+      gates support hpair σ hdeficit hdeep⟩
+
+/-- Once the local canonical-depth premise is available, the entire compatible weighted shell
+event embeds in semantic common-shallow badness.  This is the set-level interface needed by the
+remaining width-three counting problem. -/
+theorem compatibleDeficitShell_subset_commonShallowBad
+    {n G fuel K trunkDepth residualDepth : ℕ}
+    (gates : Fin G → List (Clause n)) (support : Fin G → Finset (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (support g) (support h))
+    (hdeep : ∀ (rho : Restriction n) (g : Fin G),
+      (∀ i ∈ support g, rho i ≠ some false) →
+      residualDepth < (support g ∩ freeVars rho).card →
+      residualDepth < (canonicalDT (gates g) fuel rho).depth) :
+    compatibleDeficitShell support K trunkDepth residualDepth ⊆
+      commonShallowBad gates fuel K trunkDepth residualDepth := by
+  intro σ hσ
+  have hmem := (Finset.mem_filter.mp hσ).2
+  exact mem_commonShallowBad_of_compatible_sum_deficit
+    gates support hpair σ hmem.1 hmem.2 hdeep
+
+/-- The compatible weighted shell has unconditional semantic badness for pairwise-disjoint
+ordered positive conjunctions when the canonical tree receives ambient fuel `n`.  The ambient
+fuel bound is sufficient for every restriction, and
+`orderedConjunctionBlock_freeSupport_card_le_depth` discharges the gate-local premise of the
+generic weighted lift. -/
+theorem compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+    {n G K trunkDepth residualDepth : ℕ}
+    (blocks : Fin G → List (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset) :
+    compatibleDeficitShell (fun g => (blocks g).toFinset) K trunkDepth residualDepth ⊆
+      commonShallowBad (fun g => orderedConjunctionBlock (blocks g)) n K
+        trunkDepth residualDepth := by
+  apply compatibleDeficitShell_subset_commonShallowBad
+    (fun g => orderedConjunctionBlock (blocks g)) (fun g => (blocks g).toFinset) hpair
+  intro rho g hnotFalse hfree
+  have hfuel : stars rho ≤ n := by
+    exact le_trans (Finset.card_le_univ (freeVars rho)) (by simp)
+  exact lt_of_lt_of_le hfree
+    (orderedConjunctionBlock_freeSupport_card_le_depth (blocks g) rho hfuel <| by
+      intro i hi
+      exact hnotFalse i (List.mem_toFinset.mpr hi))
+
+/-- The exact intact-triple occupancy subevent is already semantic common-shallow badness for
+disjoint ordered conjunctions.  This composes the quantitative lower-bound interface with the
+assumption-free ordered-conjunction depth theorem. -/
+theorem manyIntactShell_card_le_commonShallowBad_of_orderedTriples
+    {n G r : ℕ} (blocks : Fin G → List (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (hcard : ∀ g, (blocks g).toFinset.card = 3) :
+    (manyIntactShell (fun g => (blocks g).toFinset) (20 * r) (5 * r)).card ≤
+      (commonShallowBad (fun g => orderedConjunctionBlock (blocks g)) n
+        (20 * r) (10 * r) 1).card := by
+  calc
+    _ ≤ (compatibleDeficitShell (fun g => (blocks g).toFinset)
+        (20 * r) (10 * r) 1).card :=
+      manyIntactShell_card_le_compatibleDeficitShell_triples
+        (fun g => (blocks g).toFinset) hcard
+    _ ≤ _ := Finset.card_le_card
+      (compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+        blocks hpair)
+
+/-- In the verified linear-gap regime, the newly extracted exact width-three coefficient tail
+inherits the common-shallow `2^(10*r)` contraction.  This is the first direct quantitative
+comparison between the factored polynomial mass and the switching upper bound. -/
+theorem orderedTriples_coefficient_tail_scaled_le_linearGap
+    {G r : ℕ}
+    (blocks : Fin G → List (Fin (1000 * (G * 3) * r)))
+    (hG : 0 < G) (hr : 0 < r)
+    (hnd : ∀ g, (blocks g).Nodup)
+    (hlen : ∀ g, (blocks g).length = 3)
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset) :
+    (∑ D ∈ compatibleDeficitTailIndices G (10 * r),
+        MvPolynomial.coeff
+          (Finsupp.single (0 : Fin 2) (20 * r) + Finsupp.single (1 : Fin 2) D)
+          (tripleProductEnumerator G (1000 * (G * 3) * r - 3 * G))) *
+        2 ^ (10 * r) ≤
+      (Finset.univ.filter fun σ : Restriction (1000 * (G * 3) * r) =>
+        stars σ = 20 * r).card := by
+  let support : Fin G → Finset (Fin (1000 * (G * 3) * r)) :=
+    fun g => (blocks g).toFinset
+  have hcard : ∀ g, (support g).card = 3 := by
+    intro g
+    simp only [support, List.toFinset_card_of_nodup (hnd g), hlen g]
+  have htail := compatibleDeficitShell_twenty_card_eq_coefficient_tail
+    (r := r) support hpair hcard
+  have hsubset := compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+    blocks hpair (K := 20 * r) (trunkDepth := 10 * r) (residualDepth := 1)
+  have hupper := commonShallowBad_scaled_le_of_realized_density
+    (gates := fun g => orderedConjunctionBlock (blocks g))
+    (G := G) (w := 3) (d := 10 * r) (m := 1)
+    (fuel := 1000 * (G * 3) * r) (K := 20 * r)
+    (residualDepth := 1) (savingNum := 1) (savingDen := 2)
+    (fun g => by simp [orderedConjunctionBlock])
+    (fun g T hT => by
+      simp only [orderedConjunctionBlock, List.mem_singleton] at hT
+      subst T
+      simpa using Nat.le_of_eq (hlen g))
+    (fun g => by simp [orderedConjunctionBlock])
+    (by
+      have : 20 ≤ 1000 * (G * 3) := by nlinarith
+      exact Nat.mul_le_mul_right r this)
+    (by omega)
+    (by omega)
+    (by
+      have : 20 ≤ 1000 * (G * 3) := by nlinarith
+      exact Nat.mul_le_mul_right r this)
+    (by omega)
+    (by
+      have hrG : r ≤ G * r := by
+        calc
+          r = 1 * r := by simp
+          _ ≤ G * r := Nat.mul_le_mul_right r hG
+      nlinarith)
+  have hsaveEq : 20 * r / 2 = 10 * r := by omega
+  calc
+    (∑ D ∈ compatibleDeficitTailIndices G (10 * r),
+        MvPolynomial.coeff
+          (Finsupp.single (0 : Fin 2) (20 * r) + Finsupp.single (1 : Fin 2) D)
+          (tripleProductEnumerator G (1000 * (G * 3) * r - 3 * G))) *
+        2 ^ (10 * r) =
+        (compatibleDeficitShell support (20 * r) (10 * r) 1).card *
+          2 ^ (10 * r) := by rw [htail]
+    _ ≤ (commonShallowBad (fun g => orderedConjunctionBlock (blocks g))
+          (1000 * (G * 3) * r) (20 * r) (10 * r) 1).card * 2 ^ (10 * r) :=
+      Nat.mul_le_mul_right _ (Finset.card_le_card hsubset)
+    _ ≤ _ := by simpa [hsaveEq] using hupper
+
+/-! ### Exact subfamily transfer and the clause-packing obstruction -/
+
+/-- A common trunk for a larger indexed family is also a common trunk for every exactly reindexed
+subfamily.  Injectivity of the index map is deliberately unnecessary: the semantic certificate
+only needs every small gate to occur among the large gates. -/
+theorem CommonShallowAt.of_reindex
+    {n G H fuel trunkDepth residualDepth : ℕ}
+    {small : Fin G → List (Clause n)} {large : Fin H → List (Clause n)}
+    (e : Fin G → Fin H) (hgate : ∀ g, small g = large (e g))
+    {sigma : Restriction n}
+    (h : CommonShallowAt large fuel sigma trunkDepth residualDepth) :
+    CommonShallowAt small fuel sigma trunkDepth residualDepth := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  refine ⟨trunk, hdepth, ?_⟩
+  intro x hx
+  obtain ⟨hroot, hext, hshallow⟩ := hleaf x hx
+  exact ⟨hroot, hext, fun g => by simpa [hgate g] using hshallow (e g)⟩
+
+/-- A duplicate-free gate whose target term is live and whose every other term is already
+falsified has exactly that target as its root-live sublist.  This packages the precise condition
+missing from bare clause inclusion: competing terms must be killed, not merely ignored. -/
+theorem liveTermFilter_eq_singleton {n : ℕ} (sigma : Restriction n) :
+    ∀ (cs : List (Clause n)) (T : Clause n), cs.Nodup → T ∈ cs →
+      termFalsified sigma T = false →
+      (∀ U ∈ cs, U ≠ T → termFalsified sigma U = true) →
+      cs.filter (fun U => !termFalsified sigma U) = [T] := by
+  intro cs
+  induction cs with
+  | nil => simp
+  | cons U cs ih =>
+      intro T hnodup hTmem hTlive hcompetitors
+      rw [List.nodup_cons] at hnodup
+      simp only [List.mem_cons] at hTmem
+      by_cases hUT : U = T
+      · subst U
+        rw [List.filter_cons_of_pos (by simp [hTlive])]
+        have htail : cs.filter (fun V => !termFalsified sigma V) = [] := by
+          rw [List.filter_eq_nil_iff]
+          intro V hV
+          have hVT : V ≠ T := by
+            intro h
+            subst V
+            exact hnodup.1 hV
+          have hfalse := hcompetitors V (by simp [hV]) hVT
+          simp [hfalse]
+        rw [htail]
+      · have hUfalse := hcompetitors U (by simp) hUT
+        rw [List.filter_cons_of_neg (by simp [hUfalse])]
+        apply ih T hnodup.2
+        · rcases hTmem with h | h
+          · exact False.elim (hUT h.symm)
+          · exact h
+        · exact hTlive
+        · intro V hV hVT
+          exact hcompetitors V (by simp [hV]) hVT
+
+/-- Restriction-dependent isolation is enough for exact subfamily transfer.  At every reached
+leaf, root-falsified competitors remain falsified, so the full gate's canonical tree equals the
+canonical tree of its root-live filter.  Unlike `of_reindex`, this permits the packed gate to
+appear only after restricting the larger gate. -/
+theorem CommonShallowAt.of_reindex_liveFilter
+    {n G H fuel trunkDepth residualDepth : ℕ}
+    {small : Fin G → List (Clause n)} {large : Fin H → List (Clause n)}
+    (e : Fin G → Fin H) {sigma : Restriction n}
+    (hgate : ∀ g, small g = (large (e g)).filter
+      (fun T => !termFalsified sigma T))
+    (h : CommonShallowAt large fuel sigma trunkDepth residualDepth) :
+    CommonShallowAt small fuel sigma trunkDepth residualDepth := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  refine ⟨trunk, hdepth, ?_⟩
+  intro x hx
+  obtain ⟨hroot, hext, hshallow⟩ := hleaf x hx
+  refine ⟨hroot, hext, fun g => ?_⟩
+  have htree := canonicalDT_eq_filter (large (e g)) sigma fuel
+    (CommonTree.run trunk x)
+    (fun T hT => termFalsified_mono (by exact hroot) hT)
+  rw [← hgate g] at htree
+  rw [← htree]
+  exact hshallow (e g)
+
+/-- Pointwise semantic transfer for restriction-isolated singleton gates.  This is the positive
+replacement for the false clause-sublist shortcut: a bad root for the packed singleton family is
+bad for the full family whenever each selected target survives and every competing term in its
+selected full gate is falsified at that root. -/
+theorem mem_commonShallowBad_of_isolatedSingleton_reindex
+    {n G H fuel K trunkDepth residualDepth : ℕ}
+    (large : Fin H → List (Clause n)) (target : Fin G → Clause n)
+    (e : Fin G → Fin H) {sigma : Restriction n}
+    (hnodup : ∀ g, (large (e g)).Nodup)
+    (hmem : ∀ g, target g ∈ large (e g))
+    (hlive : ∀ g, termFalsified sigma (target g) = false)
+    (hcompetitors : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      termFalsified sigma U = true)
+    (hsigma : sigma ∈ commonShallowBad (fun g => [target g]) fuel K
+      trunkDepth residualDepth) :
+    sigma ∈ commonShallowBad large fuel K trunkDepth residualDepth := by
+  rw [mem_commonShallowBad] at hsigma ⊢
+  refine ⟨hsigma.1, ?_⟩
+  intro hlarge
+  apply hsigma.2
+  apply hlarge.of_reindex_liveFilter e
+  intro g
+  exact (liveTermFilter_eq_singleton sigma (large (e g)) (target g)
+    (hnodup g) (hmem g) (hlive g) (hcompetitors g)).symm
+
+/-! ### A necessary antichain condition for restriction isolation -/
+
+/-- Falsification is monotone with respect to literal-list inclusion: if every literal of `U`
+also occurs in `T`, then falsifying the weaker conjunction `U` also falsifies `T`.  No
+consistency or duplicate-variable premise is needed for this one-way implication. -/
+theorem termFalsified_true_of_lits_subset {n : ℕ} {sigma : Restriction n}
+    {U T : Clause n} (hsub : ∀ ell ∈ U.lits, ell ∈ T.lits)
+    (hU : termFalsified sigma U = true) :
+    termFalsified sigma T = true := by
+  rw [termFalsified, List.any_eq_true] at hU ⊢
+  obtain ⟨ell, hellU, hfalse⟩ := hU
+  exact ⟨ell, hsub ell hellU, hfalse⟩
+
+/-- Contrapositively, a target conjunction that survives a restriction forces every conjunction
+whose literals are contained in the target's literals to survive as well. -/
+theorem termFalsified_false_of_lits_subset {n : ℕ} {sigma : Restriction n}
+    {U T : Clause n} (hsub : ∀ ell ∈ U.lits, ell ∈ T.lits)
+    (hT : termFalsified sigma T = false) :
+    termFalsified sigma U = false := by
+  cases hU : termFalsified sigma U with
+  | false => rfl
+  | true =>
+      have hTtrue := termFalsified_true_of_lits_subset hsub hU
+      rw [hT] at hTtrue
+      simp at hTtrue
+
+/-- Any target isolated as the unique live term must be inclusion-minimal among the other terms
+of its gate.  In particular, `eraseDups` alone is insufficient: it removes equal competitors but
+does not remove a distinct weaker term whose literals are contained in the target. -/
+theorem not_lits_subset_of_isolatedSingleton {n : ℕ} {sigma : Restriction n}
+    {cs : List (Clause n)} {T U : Clause n}
+    (hlive : termFalsified sigma T = false)
+    (hcompetitors : ∀ V ∈ cs, V ≠ T → termFalsified sigma V = true)
+    (hUmem : U ∈ cs) (hUne : U ≠ T) :
+    ¬ (∀ ell ∈ U.lits, ell ∈ T.lits) := by
+  intro hsub
+  have hUfalse := termFalsified_false_of_lits_subset hsub hlive
+  have hUtrue := hcompetitors U hUmem hUne
+  rw [hUfalse] at hUtrue
+  simp at hUtrue
+
+/-- A term is inclusion-minimal inside its original ordered gate when every gate term whose
+literal list is contained in it is equal to it.  This definition deliberately does not reorder
+or delete any term, so it is compatible with the canonical-tree interface. -/
+def InclusionMinimalIn {n : ℕ} (cs : List (Clause n)) (T : Clause n) : Prop :=
+  T ∈ cs ∧ ∀ U ∈ cs, (∀ ell ∈ U.lits, ell ∈ T.lits) → U = T
+
+/-- Every competitor of an inclusion-minimal target contains a literal outside the target.  This
+is the exact local resource needed by a future isolation construction: making that literal false
+can kill the competitor without making an identical target literal false. -/
+theorem exists_outside_literal_of_inclusionMinimal {n : ℕ} {cs : List (Clause n)}
+    {T U : Clause n} (hmin : InclusionMinimalIn cs T) (hUmem : U ∈ cs) (hUne : U ≠ T) :
+    ∃ ell ∈ U.lits, ell ∉ T.lits := by
+  by_contra hout
+  push_neg at hout
+  exact hUne (hmin.2 U hUmem hout)
+
+/-- Unique liveness implies inclusion-minimality in the unchanged ordered gate.  Thus the
+outside-literal conclusion above is not merely sufficient bookkeeping: every target accepted by
+the existing exact isolation interface necessarily has it. -/
+theorem inclusionMinimal_of_isolatedSingleton {n : ℕ} {sigma : Restriction n}
+    {cs : List (Clause n)} {T : Clause n} (hTmem : T ∈ cs)
+    (hlive : termFalsified sigma T = false)
+    (hcompetitors : ∀ U ∈ cs, U ≠ T → termFalsified sigma U = true) :
+    InclusionMinimalIn cs T := by
+  refine ⟨hTmem, ?_⟩
+  intro U hUmem hsub
+  by_contra hUne
+  exact not_lits_subset_of_isolatedSingleton hlive hcompetitors hUmem hUne hsub
+
+/-! ### Globally compatible outside-literal selections -/
+
+/-- A finite literal selection simultaneously isolates the chosen targets when selected
+literals agree on every shared variable, no selected variable occurs in any target, and every
+competitor contains a selected literal.  The variable-disjointness premise is deliberately
+stronger than literal non-membership: selecting `x` to be false would also kill a target
+containing `¬x`. -/
+def GloballyCompatibleIsolationSelection {n G H : ℕ}
+    (large : Fin H → List (Clause n)) (target : Fin G → Clause n)
+    (e : Fin G → Fin H) (selected : List (Rung4Literal n)) : Prop :=
+  (∀ ell₁ ∈ selected, ∀ ell₂ ∈ selected,
+      litVar ell₁ = litVar ell₂ → falValue ell₁ = falValue ell₂) ∧
+    (∀ ell ∈ selected, ∀ g, ∀ t ∈ (target g).lits, litVar ell ≠ litVar t) ∧
+    (∀ g U, U ∈ large (e g) → U ≠ target g →
+      ∃ ell ∈ selected, ell ∈ U.lits)
+
+/-- The restriction induced by a compatible selection fixes exactly the variables represented
+in the selection, using the falsifying value of an arbitrary representative.  Compatibility
+makes that arbitrary choice harmless. -/
+noncomputable def compatibleIsolationRestriction {n : ℕ}
+    (selected : List (Rung4Literal n)) : Restriction n := fun i =>
+  if h : ∃ ell ∈ selected, litVar ell = i then
+    some (falValue (Classical.choose h))
+  else none
+
+/-- The coordinate set fixed by a compatible isolation selection.  Polarity and repeated
+occurrences are deliberately forgotten here: shell accounting pays once per selected variable. -/
+def compatibleIsolationSelectedVars {n : ℕ}
+    (selected : List (Rung4Literal n)) : Finset (Fin n) :=
+  (selected.map litVar).toFinset
+
+/-- The induced isolation restriction leaves exactly the coordinates absent from the selected
+variable set free.  This fact does not require consistency: consistency controls which value is
+chosen, whereas the free/fixed pattern depends only on existence of a selected representative. -/
+theorem freeVars_compatibleIsolationRestriction {n : ℕ}
+    (selected : List (Rung4Literal n)) :
+    freeVars (compatibleIsolationRestriction selected) =
+      Finset.univ \ compatibleIsolationSelectedVars selected := by
+  ext i
+  simp [mem_freeVars, compatibleIsolationRestriction,
+    compatibleIsolationSelectedVars]
+
+/-- Exact shell location of the restriction constructed from a literal selection. -/
+theorem stars_compatibleIsolationRestriction {n : ℕ}
+    (selected : List (Rung4Literal n)) :
+    stars (compatibleIsolationRestriction selected) =
+      n - (compatibleIsolationSelectedVars selected).card := by
+  rw [stars, freeVars_compatibleIsolationRestriction,
+    Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ]
+  simp
+
+/-- A selection fixes no more variables than it has literal occurrences. -/
+theorem compatibleIsolationSelectedVars_card_le {n : ℕ}
+    (selected : List (Rung4Literal n)) :
+    (compatibleIsolationSelectedVars selected).card ≤ selected.length := by
+  simpa [compatibleIsolationSelectedVars] using
+    (List.toFinset_card_le (selected.map litVar))
+
+/-- Consequently a compatible isolation selection of length at most `q` lands at or above the
+`(n-q)`-star shell.  This is the fixed-shell expenditure bound needed by the positive branch. -/
+theorem sub_le_stars_compatibleIsolationRestriction {n q : ℕ}
+    {selected : List (Rung4Literal n)} (hlen : selected.length ≤ q) :
+    n - q ≤ stars (compatibleIsolationRestriction selected) := by
+  rw [stars_compatibleIsolationRestriction]
+  exact Nat.sub_le_sub_left
+    ((compatibleIsolationSelectedVars_card_le selected).trans hlen) n
+
+/-- With no repeated selected variable, literal count is the exact number of fixed coordinates. -/
+theorem stars_compatibleIsolationRestriction_eq_sub_length {n : ℕ}
+    {selected : List (Rung4Literal n)} (hvars : (selected.map litVar).Nodup) :
+    stars (compatibleIsolationRestriction selected) = n - selected.length := by
+  rw [stars_compatibleIsolationRestriction, compatibleIsolationSelectedVars,
+    List.toFinset_card_of_nodup hvars, List.length_map]
+
+/-! ### Target-preserving extension to a prescribed shell -/
+
+/-- The distinct variables used by the complete packed target family. -/
+def compatibleIsolationTargetVars {n G : ℕ} (target : Fin G → Clause n) :
+    Finset (Fin n) :=
+  Finset.univ.biUnion fun g => ((target g).lits.map litVar).toFinset
+
+theorem mem_compatibleIsolationTargetVars {n G : ℕ} (target : Fin G → Clause n)
+    (i : Fin n) :
+    i ∈ compatibleIsolationTargetVars target ↔
+      ∃ g t, t ∈ (target g).lits ∧ litVar t = i := by
+  simp [compatibleIsolationTargetVars]
+
+/-! ### Competitor--target-support conflict edges -/
+
+/-- The variables of one competitor that remain available after excluding the support of every
+preserved target.  These are the vertices of the simplest competitor conflict edge.  Polarity is
+retained later by the literal selection; at this stage an empty edge is already a decisive
+obstruction, since global compatibility forbids fixing any target variable in either polarity. -/
+def competitorOutsideTargetVars {n G : ℕ} (target : Fin G → Clause n)
+    (U : Clause n) : Finset (Fin n) :=
+  (U.lits.map litVar).toFinset \ compatibleIsolationTargetVars target
+
+/-- The literal-level vertex pool underlying all nonempty competitor edges.  Unlike
+`competitorOutsideTargetVars`, this retains polarity: every literal in every full-family gate
+whose variable avoids the complete preserved-target support occurs in the pool.  Keeping all
+such literals (rather than choosing representatives yet) cleanly separates edge nonemptiness
+from the remaining polarity-consistency constraint. -/
+def outsideTargetLiteralPool {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) : List (Rung4Literal n) :=
+  (List.ofFn large).flatten.flatMap fun U =>
+    U.lits.filter fun ell => litVar ell ∉ compatibleIsolationTargetVars target
+
+theorem mem_outsideTargetLiteralPool {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (ell : Rung4Literal n) :
+    ell ∈ outsideTargetLiteralPool large target ↔
+      (∃ h, ∃ U ∈ large h, ell ∈ U.lits) ∧
+        litVar ell ∉ compatibleIsolationTargetVars target := by
+  simp [outsideTargetLiteralPool] <;> aesop
+
+theorem mem_competitorOutsideTargetVars {n G : ℕ} (target : Fin G → Clause n)
+    (U : Clause n) (i : Fin n) :
+    i ∈ competitorOutsideTargetVars target U ↔
+      (∃ ell ∈ U.lits, litVar ell = i) ∧
+        i ∉ compatibleIsolationTargetVars target := by
+  simp [competitorOutsideTargetVars]
+
+/-- Nonempty variable edges plus polarity consistency of the complete available-literal pool
+are sufficient for global isolation.  Selecting the whole pool is deliberately nonminimal: the
+theorem identifies the exact remaining obstruction without hiding a choice principle or a
+transversal-size estimate. -/
+theorem exists_globallyCompatibleIsolationSelection_of_nonempty_edges_of_pool_consistent
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    (hedge : ∀ g U, U ∈ large (e g) → U ≠ target g →
+      (competitorOutsideTargetVars target U).Nonempty)
+    (hconsistent : ∀ ell₁ ∈ outsideTargetLiteralPool large target,
+      ∀ ell₂ ∈ outsideTargetLiteralPool large target,
+        litVar ell₁ = litVar ell₂ → falValue ell₁ = falValue ell₂) :
+    ∃ selected, GloballyCompatibleIsolationSelection large target e selected := by
+  refine ⟨outsideTargetLiteralPool large target, hconsistent, ?_, ?_⟩
+  · intro ell hell g t ht heq
+    have hout := (mem_outsideTargetLiteralPool large target ell).mp hell
+    apply hout.2
+    rw [mem_compatibleIsolationTargetVars]
+    exact ⟨g, t, ht, heq.symm⟩
+  · intro g U hUmem hUne
+    obtain ⟨i, hi⟩ := hedge g U hUmem hUne
+    rw [mem_competitorOutsideTargetVars] at hi
+    obtain ⟨⟨ell, hellU, rfl⟩, hout⟩ := hi
+    refine ⟨ell, ?_, hellU⟩
+    rw [mem_outsideTargetLiteralPool]
+    exact ⟨⟨e g, U, hUmem, hellU⟩, hout⟩
+
+/-- Two singleton competitor edges that demand opposite falsifying values on one variable form a
+complete polarity-conflict certificate.  In particular, nonempty variable edges alone do not
+imply the existence of a globally compatible isolation selection. -/
+theorem not_exists_globallyCompatibleIsolationSelection_of_singleton_polarity_conflict
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {g₁ g₂ : Fin G} {U₁ U₂ : Clause n} {ell₁ ell₂ : Rung4Literal n}
+    (hU₁mem : U₁ ∈ large (e g₁)) (hU₁ne : U₁ ≠ target g₁)
+    (hU₁lits : U₁.lits = [ell₁])
+    (hU₂mem : U₂ ∈ large (e g₂)) (hU₂ne : U₂ ≠ target g₂)
+    (hU₂lits : U₂.lits = [ell₂])
+    (hvar : litVar ell₁ = litVar ell₂)
+    (hpol : falValue ell₁ ≠ falValue ell₂) :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection large target e selected := by
+  rintro ⟨selected, hselection⟩
+  obtain ⟨a, haSelected, haU₁⟩ := hselection.2.2 g₁ U₁ hU₁mem hU₁ne
+  obtain ⟨b, hbSelected, hbU₂⟩ := hselection.2.2 g₂ U₂ hU₂mem hU₂ne
+  rw [hU₁lits] at haU₁
+  rw [hU₂lits] at hbU₂
+  simp only [List.mem_singleton] at haU₁ hbU₂
+  subst a
+  subst b
+  exact hpol (hselection.1 ell₁ haSelected ell₂ hbSelected hvar)
+
+/-- A total Boolean orientation assignment hits the competitor family when every competitor
+contains an available literal whose falsifying value is the value assigned to its variable.
+This is the ordinary clause-satisfaction formulation of the polarity-aware transversal problem:
+target variables have first been deleted, and the remaining literal orientations are the clause
+literals. -/
+def HitsOutsideCompetitors {n G H : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H)
+    (assignment : Fin n → Bool) : Prop :=
+  ∀ g U, U ∈ large (e g) → U ≠ target g →
+    ∃ ell ∈ U.lits, litVar ell ∉ compatibleIsolationTargetVars target ∧
+      assignment (litVar ell) = falValue ell
+
+/-- Compatible isolation selection is exactly satisfiability of the outside-literal competitor
+clauses.  The forward direction extends the consistent partial orientation represented by a
+selection to an arbitrary total Boolean assignment.  The reverse direction selects every
+available occurrence matched by a satisfying assignment.  Thus no extra combinatorial
+tractability follows merely from calling the problem an oriented transversal. -/
+theorem exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H} :
+    (∃ selected, GloballyCompatibleIsolationSelection large target e selected) ↔
+      ∃ assignment, HitsOutsideCompetitors large target e assignment := by
+  constructor
+  · rintro ⟨selected, hconsistent, htarget, hhit⟩
+    let assignment : Fin n → Bool := fun i =>
+      if h : ∃ ell ∈ selected, litVar ell = i then
+        falValue (Classical.choose h)
+      else false
+    refine ⟨assignment, ?_⟩
+    intro g U hUmem hUne
+    obtain ⟨ell, hellSelected, hellU⟩ := hhit g U hUmem hUne
+    refine ⟨ell, hellU, ?_, ?_⟩
+    · intro hellTarget
+      rw [mem_compatibleIsolationTargetVars] at hellTarget
+      obtain ⟨g', t, ht, heq⟩ := hellTarget
+      exact htarget ell hellSelected g' t ht heq.symm
+    · have hexists : ∃ ell' ∈ selected, litVar ell' = litVar ell :=
+        ⟨ell, hellSelected, rfl⟩
+      rw [show assignment (litVar ell) =
+        falValue (Classical.choose hexists) by simp [assignment, hexists]]
+      exact hconsistent (Classical.choose hexists)
+        (Classical.choose_spec hexists).1 ell hellSelected
+        (Classical.choose_spec hexists).2
+  · rintro ⟨assignment, hhit⟩
+    let selected := (outsideTargetLiteralPool large target).filter fun ell =>
+      assignment (litVar ell) = falValue ell
+    refine ⟨selected, ?_, ?_, ?_⟩
+    · intro ell₁ hell₁ ell₂ hell₂ hvar
+      rw [List.mem_filter] at hell₁ hell₂
+      have hvalue₁ := of_decide_eq_true hell₁.2
+      have hvalue₂ := of_decide_eq_true hell₂.2
+      rw [← hvalue₁, ← hvalue₂, hvar]
+    · intro ell hellSelected g t ht heq
+      rw [List.mem_filter] at hellSelected
+      have hout := (mem_outsideTargetLiteralPool large target ell).mp hellSelected.1
+      apply hout.2
+      rw [mem_compatibleIsolationTargetVars]
+      exact ⟨g, t, ht, heq.symm⟩
+    · intro g U hUmem hUne
+      obtain ⟨ell, hellU, hout, hvalue⟩ := hhit g U hUmem hUne
+      refine ⟨ell, ?_, hellU⟩
+      rw [List.mem_filter]
+      refine ⟨?_, decide_eq_true hvalue⟩
+      rw [mem_outsideTargetLiteralPool]
+      exact ⟨⟨e g, U, hUmem, hellU⟩, hout⟩
+
+/-! ### Joint target choice is not generically sufficient -/
+
+/-- The smallest clean gate exhibiting an unavoidable target-support conflict: whichever
+singleton is preserved, the opposite-polarity singleton competitor uses the same variable. -/
+def oppositeSingletonGate : List (Clause 1) :=
+  [⟨[Rung4Literal.pos 0]⟩, ⟨[Rung4Literal.neg 0]⟩]
+
+def oppositeSingletonFamily : Fin 1 → List (Clause 1) :=
+  fun _ => oppositeSingletonGate
+
+/-- The obstruction already satisfies the local syntactic conditions available at this frontier. -/
+theorem oppositeSingletonGate_nodup_width_one :
+    oppositeSingletonGate.Nodup ∧
+      ∀ T ∈ oppositeSingletonGate, T.lits.Nodup ∧ T.lits.length = 1 := by
+  decide
+
+/-- Even choosing the target jointly with the orientation assignment does not guarantee an
+isolation selection under the current hypotheses.  This width-one, duplicate-free one-gate
+family has no admissible target: preserving either singleton protects its only variable, while
+the other singleton can be falsified only by fixing that protected variable. -/
+theorem oppositeSingleton_no_joint_target_isolation :
+    ¬ ∃ target : Fin 1 → Clause 1,
+      (∀ g, target g ∈ oppositeSingletonFamily g) ∧
+        ∃ selected, GloballyCompatibleIsolationSelection
+          oppositeSingletonFamily target (fun g => g) selected := by
+  rintro ⟨target, hmem, selected, hselection⟩
+  have ht : target 0 = ⟨[Rung4Literal.pos 0]⟩ ∨
+      target 0 = ⟨[Rung4Literal.neg 0]⟩ := by
+    simpa [oppositeSingletonFamily, oppositeSingletonGate] using hmem 0
+  rcases ht with ht | ht
+  · have hbad := hselection.2.2 (0 : Fin 1) ⟨[Rung4Literal.neg 0]⟩
+      (by simp [oppositeSingletonFamily, oppositeSingletonGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp only [List.mem_singleton] at hellMem
+    subst ell
+    exact hselection.2.1 (Rung4Literal.neg 0) hellSelected 0
+      (Rung4Literal.pos 0) (by simpa [ht]) rfl
+  · have hbad := hselection.2.2 (0 : Fin 1) ⟨[Rung4Literal.pos 0]⟩
+      (by simp [oppositeSingletonFamily, oppositeSingletonGate]) (by simp [ht])
+    obtain ⟨ell, hellSelected, hellMem⟩ := hbad
+    simp only [List.mem_singleton] at hellMem
+    subst ell
+    exact hselection.2.1 (Rung4Literal.pos 0) hellSelected 0
+      (Rung4Literal.neg 0) (by simpa [ht]) rfl
+
+/-- An empty competitor edge is a complete failure certificate for the compatible-selection
+branch: hitting that competitor would require selecting a variable used by a preserved target. -/
+theorem not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_empty
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {g : Fin G} {U : Clause n} (hUmem : U ∈ large (e g))
+    (hUne : U ≠ target g) (hempty : competitorOutsideTargetVars target U = ∅) :
+    ¬ ∃ selected, GloballyCompatibleIsolationSelection large target e selected := by
+  rintro ⟨selected, hselection⟩
+  obtain ⟨ell, hellSelected, hellU⟩ := hselection.2.2 g U hUmem hUne
+  have hvarTarget : litVar ell ∈ compatibleIsolationTargetVars target := by
+    by_contra hnot
+    have houtside : litVar ell ∈ competitorOutsideTargetVars target U := by
+      rw [mem_competitorOutsideTargetVars]
+      exact ⟨⟨ell, hellU, rfl⟩, hnot⟩
+    rw [hempty] at houtside
+    simp at houtside
+  rw [mem_compatibleIsolationTargetVars] at hvarTarget
+  obtain ⟨g', t, ht, heq⟩ := hvarTarget
+  exact hselection.2.1 ell hellSelected g' t ht heq.symm
+
+/-- Local inclusion-minimality does not prevent the empty-edge obstruction.  When it occurs,
+some literal outside the chosen target is forced to share its variable with (possibly another)
+preserved target.  This is the first explicit target-support hitting certificate in the negative
+branch of the proposed dichotomy. -/
+theorem exists_targetSupport_conflict_of_inclusionMinimal_of_outsideTargetVars_eq_empty
+    {n G H : ℕ} {large : Fin H → List (Clause n)}
+    {target : Fin G → Clause n} {e : Fin G → Fin H}
+    {g : Fin G} {U : Clause n} (hmin : InclusionMinimalIn (large (e g)) (target g))
+    (hUmem : U ∈ large (e g)) (hUne : U ≠ target g)
+    (hempty : competitorOutsideTargetVars target U = ∅) :
+    ∃ ell ∈ U.lits, ell ∉ (target g).lits ∧
+      ∃ g' t, t ∈ (target g').lits ∧ litVar t = litVar ell := by
+  obtain ⟨ell, hellU, hellOutside⟩ :=
+    exists_outside_literal_of_inclusionMinimal hmin hUmem hUne
+  refine ⟨ell, hellU, hellOutside, ?_⟩
+  have hvarTarget : litVar ell ∈ compatibleIsolationTargetVars target := by
+    by_contra hnot
+    have houtside : litVar ell ∈ competitorOutsideTargetVars target U := by
+      rw [mem_competitorOutsideTargetVars]
+      exact ⟨⟨ell, hellU, rfl⟩, hnot⟩
+    rw [hempty] at houtside
+    simp at houtside
+  rwa [mem_compatibleIsolationTargetVars] at hvarTarget
+
+/-- Global compatibility makes the complete target support live in the isolation base. -/
+theorem compatibleIsolationTargetVars_subset_freeVars {n G H : ℕ}
+    {large : Fin H → List (Clause n)} {target : Fin G → Clause n}
+    {e : Fin G → Fin H} {selected : List (Rung4Literal n)}
+    (hselection : GloballyCompatibleIsolationSelection large target e selected) :
+    compatibleIsolationTargetVars target ⊆
+      freeVars (compatibleIsolationRestriction selected) := by
+  intro i hi
+  rw [mem_compatibleIsolationTargetVars] at hi
+  obtain ⟨g, t, ht, rfl⟩ := hi
+  rw [mem_freeVars, compatibleIsolationRestriction]
+  split
+  · next h =>
+      obtain ⟨ell, hell, heq⟩ := h
+      exact False.elim (hselection.2.1 ell hell g t ht heq)
+  · rfl
+
+/-- Extend a base restriction by leaving exactly `keep` live and assigning every other formerly
+live coordinate `false`.  Existing fixed values are retained.  This deterministic representative
+is enough to separate shell feasibility from the later counting problem. -/
+def keepFreeExtension {n : ℕ} (base : Restriction n) (keep : Finset (Fin n)) :
+    Restriction n := fun i =>
+  if i ∈ keep then none else
+    match base i with
+    | some b => some b
+    | none => some false
+
+/-- The deterministic extension has precisely the requested live-coordinate set. -/
+theorem freeVars_keepFreeExtension {n : ℕ} (base : Restriction n)
+    (keep : Finset (Fin n)) :
+    freeVars (keepFreeExtension base keep) = keep := by
+  ext i
+  rw [mem_freeVars]
+  by_cases hi : i ∈ keep
+  · simp [keepFreeExtension, hi]
+  · simp only [keepFreeExtension, hi, if_false]
+    cases base i <;> simp
+
+/-- Hence its shell is exactly the cardinality of the requested live set. -/
+theorem stars_keepFreeExtension {n : ℕ} (base : Restriction n)
+    (keep : Finset (Fin n)) :
+    stars (keepFreeExtension base keep) = keep.card := by
+  rw [stars, freeVars_keepFreeExtension]
+
+/-- Choosing `keep` among the base-live coordinates makes the construction a genuine restriction
+extension. -/
+theorem restrictionExtends_keepFreeExtension {n : ℕ} (base : Restriction n)
+    {keep : Finset (Fin n)} (hkeep : keep ⊆ freeVars base) :
+    RestrictionExtends base (keepFreeExtension base keep) := by
+  intro i b hib
+  have hnot : i ∉ keep := by
+    intro hi
+    have hfree := hkeep hi
+    rw [mem_freeVars, hib] at hfree
+    simp at hfree
+  simp [keepFreeExtension, hnot, hib]
+
+/-- If every target coordinate is retained in `keep`, all targets remain live after extension. -/
+theorem keepFreeExtension_target_live {n G : ℕ} (base : Restriction n)
+    (target : Fin G → Clause n) {keep : Finset (Fin n)}
+    (htarget : ∀ g, ∀ t ∈ (target g).lits, litVar t ∈ keep) (g : Fin G) :
+    termFalsified (keepFreeExtension base keep) (target g) = false := by
+  rw [termFalsified, List.any_eq_false]
+  intro t ht
+  have hnone : keepFreeExtension base keep (litVar t) = none := by
+    simp [keepFreeExtension, htarget g t ht]
+  cases t <;> simp [litFalse, Depth3.litFixedVal, litVar] at hnone ⊢ <;> simp_all
+
+/-- Every selected literal is false under the induced restriction. -/
+theorem compatibleIsolationRestriction_litFalse {n : ℕ}
+    {selected : List (Rung4Literal n)}
+    (hconsistent : ∀ ell₁ ∈ selected, ∀ ell₂ ∈ selected,
+      litVar ell₁ = litVar ell₂ → falValue ell₁ = falValue ell₂)
+    {ell : Rung4Literal n} (hell : ell ∈ selected) :
+    litFalse (compatibleIsolationRestriction selected) ell = true := by
+  have hex : ∃ ell' ∈ selected, litVar ell' = litVar ell := ⟨ell, hell, rfl⟩
+  have hwmem : Classical.choose hex ∈ selected := (Classical.choose_spec hex).1
+  have hwvar : litVar (Classical.choose hex) = litVar ell :=
+    (Classical.choose_spec hex).2
+  have hvalue : falValue (Classical.choose hex) = falValue ell :=
+    hconsistent (Classical.choose hex) hwmem ell hell hwvar
+  have hfixed : compatibleIsolationRestriction selected (litVar ell) =
+      some (falValue ell) := by
+    rw [compatibleIsolationRestriction, dif_pos hex, hvalue]
+  cases ell <;> simp [litFalse, Depth3.litFixedVal, falValue, litVar] at hfixed ⊢ <;>
+    simp_all
+
+/-- Target variables remain free because compatibility excludes every selected variable from
+every target. -/
+theorem compatibleIsolationRestriction_target_none {n G : ℕ}
+    {target : Fin G → Clause n} {selected : List (Rung4Literal n)}
+    (havoid : ∀ ell ∈ selected, ∀ g, ∀ t ∈ (target g).lits,
+      litVar ell ≠ litVar t)
+    (g : Fin G) {t : Rung4Literal n} (ht : t ∈ (target g).lits) :
+    compatibleIsolationRestriction selected (litVar t) = none := by
+  rw [compatibleIsolationRestriction]
+  split
+  · next h =>
+      obtain ⟨ell, hell, heq⟩ := h
+      exact False.elim (havoid ell hell g t ht heq)
+  · rfl
+
+/-- Every target survives the compatible-selection restriction. -/
+theorem compatibleIsolationRestriction_target_live {n G : ℕ}
+    {target : Fin G → Clause n} {selected : List (Rung4Literal n)}
+    (havoid : ∀ ell ∈ selected, ∀ g, ∀ t ∈ (target g).lits,
+      litVar ell ≠ litVar t) (g : Fin G) :
+    termFalsified (compatibleIsolationRestriction selected) (target g) = false := by
+  rw [termFalsified, List.any_eq_false]
+  intro t ht
+  have hnone := compatibleIsolationRestriction_target_none havoid g ht
+  cases t <;> simp [litFalse, Depth3.litFixedVal, litVar] at hnone ⊢ <;> simp_all
+
+/-- Every competitor is falsified when it contains a selected literal. -/
+theorem compatibleIsolationRestriction_competitor_falsified {n : ℕ}
+    {selected : List (Rung4Literal n)}
+    (hconsistent : ∀ ell₁ ∈ selected, ∀ ell₂ ∈ selected,
+      litVar ell₁ = litVar ell₂ → falValue ell₁ = falValue ell₂)
+    {U : Clause n} (hhit : ∃ ell ∈ selected, ell ∈ U.lits) :
+    termFalsified (compatibleIsolationRestriction selected) U = true := by
+  obtain ⟨ell, hell, hellU⟩ := hhit
+  rw [termFalsified, List.any_eq_true]
+  exact ⟨ell, hellU, compatibleIsolationRestriction_litFalse hconsistent hell⟩
+
+/-- A compatible isolation base can be extended to every shell between the total target support
+and its current star count.  This proves feasibility of a target-preserving intended shell; it
+deliberately gives one canonical extension, while the exact number of such extensions remains the
+next counting obligation. -/
+theorem exists_shell_extension_of_globallyCompatibleIsolationSelection
+    {n G H K : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H)
+    (selected : List (Rung4Literal n))
+    (hselection : GloballyCompatibleIsolationSelection large target e selected)
+    (targetSupport : Finset (Fin n))
+    (htarget : ∀ g, ∀ t ∈ (target g).lits, litVar t ∈ targetSupport)
+    (hsupport : targetSupport ⊆
+      freeVars (compatibleIsolationRestriction selected))
+    (hsupportK : targetSupport.card ≤ K)
+    (hKstars : K ≤ stars (compatibleIsolationRestriction selected)) :
+    ∃ rho : Restriction n,
+      stars rho = K ∧
+      RestrictionExtends (compatibleIsolationRestriction selected) rho ∧
+      (∀ g, termFalsified rho (target g) = false) ∧
+      (∀ g U, U ∈ large (e g) → U ≠ target g →
+        termFalsified rho U = true) := by
+  obtain ⟨keep, htargetKeep, hkeep, hkeepCard⟩ :=
+    Finset.exists_subsuperset_card_eq hsupport hsupportK (by
+      simpa [stars] using hKstars)
+  let base := compatibleIsolationRestriction selected
+  let rho := keepFreeExtension base keep
+  have hext : RestrictionExtends base rho :=
+    restrictionExtends_keepFreeExtension base hkeep
+  refine ⟨rho, ?_, hext, ?_, ?_⟩
+  · simpa [rho, hkeepCard] using stars_keepFreeExtension base keep
+  · intro g
+    apply keepFreeExtension_target_live base target
+    intro g' t ht
+    exact htargetKeep (htarget g' t ht)
+  · intro g U hU hUne
+    have hbase : termFalsified base U = true :=
+      compatibleIsolationRestriction_competitor_falsified hselection.1
+        (hselection.2.2 g U hU hUne)
+    exact termFalsified_mono hext hbase
+
+/-- Usable specialization with the target support computed internally.  The only shell-side
+premises are the sharp interval bounds: the intended live count must contain every distinct target
+variable and cannot exceed the compatible base's live count. -/
+theorem exists_shell_extension_of_globallyCompatibleIsolationSelection'
+    {n G H K : ℕ} (large : Fin H → List (Clause n))
+    (target : Fin G → Clause n) (e : Fin G → Fin H)
+    (selected : List (Rung4Literal n))
+    (hselection : GloballyCompatibleIsolationSelection large target e selected)
+    (htargetK : (compatibleIsolationTargetVars target).card ≤ K)
+    (hKstars : K ≤ stars (compatibleIsolationRestriction selected)) :
+    ∃ rho : Restriction n,
+      stars rho = K ∧
+      RestrictionExtends (compatibleIsolationRestriction selected) rho ∧
+      (∀ g, termFalsified rho (target g) = false) ∧
+      (∀ g U, U ∈ large (e g) → U ≠ target g →
+        termFalsified rho U = true) := by
+  apply exists_shell_extension_of_globallyCompatibleIsolationSelection
+    large target e selected hselection (compatibleIsolationTargetVars target)
+  · intro g t ht
+    rw [mem_compatibleIsolationTargetVars]
+    exact ⟨g, t, ht, rfl⟩
+  · exact compatibleIsolationTargetVars_subset_freeVars hselection
+  · exact htargetK
+  · exact hKstars
+
+/-! ### Exact target-preserving extension fibers -/
+
+/-- The complete finite fiber of `K`-star extensions of `base` that keep every coordinate in
+`required` live.  For the compatible-isolation application, `required` is the union of all target
+supports. -/
+noncomputable def targetPreservingShellExtensions {n : ℕ} (base : Restriction n)
+    (required : Finset (Fin n)) (K : ℕ) : Finset (Restriction n) :=
+  by
+    classical
+    exact Finset.univ.filter fun rho =>
+      RestrictionExtends base rho ∧ stars rho = K ∧ required ⊆ freeVars rho
+
+/-- The fixed-free-set fiber among extensions of `base`. -/
+noncomputable def restrictionExtensionFreeSetFiber {n : ℕ} (base : Restriction n)
+    (S : Finset (Fin n)) : Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun rho => RestrictionExtends base rho ∧ freeVars rho = S
+
+/-- Once the final free set is prescribed inside the base-live coordinates, every consumed live
+coordinate has two Boolean choices and every other coordinate is forced. -/
+theorem card_restrictionExtends_freeVars_eq {n : ℕ} (base : Restriction n)
+    (S : Finset (Fin n)) (hS : S ⊆ freeVars base) :
+    (restrictionExtensionFreeSetFiber base S).card =
+      2 ^ ((freeVars base).card - S.card) := by
+  classical
+  let choices : Fin n → Finset (Option Bool) := fun i =>
+    match base i with
+    | some b => {some b}
+    | none => if i ∈ S then {none} else {some true, some false}
+  have hpi : restrictionExtensionFreeSetFiber base S = Fintype.piFinset choices := by
+    ext rho
+    rw [restrictionExtensionFreeSetFiber, Finset.mem_filter, Fintype.mem_piFinset]
+    simp only [Finset.mem_univ, true_and]
+    constructor
+    · rintro ⟨hext, hfree⟩ i
+      cases hbase : base i with
+      | none =>
+          by_cases hi : i ∈ S
+          · have hrho : rho i = none := mem_freeVars.mp (hfree.symm ▸ hi)
+            simp [choices, hbase, hi, hrho]
+          · have hrho : rho i ≠ none := fun hrho => hi (hfree ▸ mem_freeVars.mpr hrho)
+            cases hri : rho i with
+            | none => exact False.elim (hrho hri)
+            | some b => cases b <;> simp [choices, hbase, hi, hri]
+      | some b => simp [choices, hbase, hext i b hbase]
+    · intro hchoices
+      constructor
+      · intro i b hbase
+        have hi := hchoices i
+        simp [choices, hbase] at hi
+        exact hi
+      · ext i
+        rw [mem_freeVars]
+        cases hbase : base i with
+        | none =>
+            by_cases hi : i ∈ S
+            · have hri := hchoices i
+              simp [choices, hbase, hi] at hri
+              simp [hi, hri]
+            · have hri := hchoices i
+              simp only [choices, hbase, hi, if_false, Finset.mem_insert,
+                Finset.mem_singleton] at hri
+              rcases hri with hri | hri <;> simp [hi, hri]
+        | some b =>
+            have hiS : i ∉ S := by
+              intro hi
+              have hnone := mem_freeVars.mp (hS hi)
+              rw [hbase] at hnone
+              simp at hnone
+            have hri := hchoices i
+            simp [choices, hbase] at hri
+            simp [hiS, hri]
+  rw [hpi, Fintype.card_piFinset]
+  have hcard : ∀ i ∈ (Finset.univ : Finset (Fin n)),
+      (choices i).card = if i ∈ freeVars base \ S then 2 else 1 := by
+    intro i _
+    cases hbase : base i with
+    | none =>
+        have hfree : i ∈ freeVars base := mem_freeVars.mpr hbase
+        by_cases hi : i ∈ S <;> simp [choices, hbase, hi, hfree]
+    | some b =>
+        have hnot : i ∉ freeVars base := by simp [mem_freeVars, hbase]
+        simp [choices, hbase, hnot]
+  rw [Finset.prod_congr rfl hcard, Finset.prod_ite, Finset.prod_const,
+    Finset.prod_const_one, mul_one]
+  have hfilter : (Finset.univ.filter fun i : Fin n => i ∈ freeVars base \ S) =
+      freeVars base \ S := by
+    ext i
+    simp
+  rw [hfilter, Finset.card_sdiff_of_subset hS]
+
+/-- The admissible free sets are obtained uniquely by adjoining `K - |required|` coordinates
+from the base-live coordinates outside `required`. -/
+theorem card_targetSuperset_freeSets {n K : ℕ} (base : Restriction n)
+    (required : Finset (Fin n)) (hrequired : required ⊆ freeVars base)
+    (hrequiredK : required.card ≤ K) :
+    (((freeVars base).powersetCard K).filter (fun S => required ⊆ S)).card =
+      Nat.choose ((freeVars base).card - required.card) (K - required.card) := by
+  classical
+  let extras := (freeVars base \ required).powersetCard (K - required.card)
+  let addRequired : Finset (Fin n) → Finset (Fin n) := fun U => required ∪ U
+  have himage : extras.image addRequired =
+      ((freeVars base).powersetCard K).filter (fun S => required ⊆ S) := by
+    ext S
+    simp only [Finset.mem_image, Finset.mem_filter, Finset.mem_powersetCard]
+    constructor
+    · rintro ⟨U, hU, rfl⟩
+      have hU' := Finset.mem_powersetCard.mp hU
+      constructor
+      · constructor
+        · exact Finset.union_subset hrequired (hU'.1.trans Finset.sdiff_subset)
+        · rw [Finset.card_union_of_disjoint]
+          · omega
+          · exact Finset.disjoint_left.mpr fun i hi hUi =>
+              (Finset.mem_sdiff.mp (hU'.1 hUi)).2 hi
+      · exact Finset.subset_union_left
+    · rintro ⟨⟨hSbase, hScard⟩, hrequiredS⟩
+      refine ⟨S \ required, ?_, ?_⟩
+      · rw [Finset.mem_powersetCard]
+        constructor
+        · intro i hi
+          exact Finset.mem_sdiff.mpr ⟨hSbase (Finset.mem_sdiff.mp hi).1,
+            (Finset.mem_sdiff.mp hi).2⟩
+        · rw [Finset.card_sdiff_of_subset hrequiredS]
+          omega
+      · exact Finset.union_sdiff_of_subset hrequiredS
+  rw [← himage]
+  have hinj : Set.InjOn addRequired extras := by
+    intro U hU V hV hEq
+    change required ∪ U = required ∪ V at hEq
+    ext i
+    have hUsub := (Finset.mem_powersetCard.mp hU).1
+    have hVsub := (Finset.mem_powersetCard.mp hV).1
+    constructor
+    · intro hiU
+      have hiNot : i ∉ required := (Finset.mem_sdiff.mp (hUsub hiU)).2
+      have hiUnion : i ∈ required ∪ V := by
+        rw [← hEq]
+        exact Finset.mem_union_right required hiU
+      exact (Finset.mem_union.mp hiUnion).resolve_left hiNot
+    · intro hiV
+      have hiNot : i ∉ required := (Finset.mem_sdiff.mp (hVsub hiV)).2
+      have hiUnion : i ∈ required ∪ U := by
+        rw [hEq]
+        exact Finset.mem_union_right required hiV
+      exact (Finset.mem_union.mp hiUnion).resolve_left hiNot
+  rw [Finset.card_image_iff.mpr hinj, Finset.card_powersetCard,
+    Finset.card_sdiff_of_subset hrequired]
+
+/-- Exact stars-and-bars balance for the full extension fiber.  Choose the additional live
+coordinates beyond `required`, then assign a Boolean to every remaining base-live coordinate. -/
+theorem targetPreservingShellExtensions_card {n K : ℕ} (base : Restriction n)
+    (required : Finset (Fin n)) (hrequired : required ⊆ freeVars base)
+    (hrequiredK : required.card ≤ K) (hKbase : K ≤ stars base) :
+    (targetPreservingShellExtensions base required K).card =
+      Nat.choose ((freeVars base).card - required.card) (K - required.card) *
+        2 ^ ((freeVars base).card - K) := by
+  classical
+  let freeSets := ((freeVars base).powersetCard K).filter fun S => required ⊆ S
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun rho : Restriction n => freeVars rho) (t := freeSets)]
+  · have hfiber : ∀ S ∈ freeSets,
+        ((targetPreservingShellExtensions base required K).filter
+          (fun rho => freeVars rho = S)).card =
+          2 ^ ((freeVars base).card - K) := by
+      intro S hS
+      have hSdata := Finset.mem_filter.mp hS
+      have hSbase := (Finset.mem_powersetCard.mp hSdata.1).1
+      have hScard := (Finset.mem_powersetCard.mp hSdata.1).2
+      have heq : (targetPreservingShellExtensions base required K).filter
+          (fun rho => freeVars rho = S) =
+          restrictionExtensionFreeSetFiber base S := by
+        ext rho
+        simp only [targetPreservingShellExtensions, restrictionExtensionFreeSetFiber,
+          Finset.mem_filter,
+          Finset.mem_univ, true_and]
+        constructor
+        · exact fun h => ⟨h.1.1, h.2⟩
+        · rintro ⟨hext, hfree⟩
+          refine ⟨⟨hext, ?_, ?_⟩, hfree⟩
+          · simpa [stars, hfree] using hScard
+          · simpa [hfree] using hSdata.2
+      rw [heq, card_restrictionExtends_freeVars_eq base S hSbase, hScard]
+    rw [Finset.sum_congr rfl hfiber, Finset.sum_const, nsmul_eq_mul,
+      card_targetSuperset_freeSets base required hrequired hrequiredK]
+    simp
+  · intro rho hrho
+    simp only [targetPreservingShellExtensions, Finset.mem_coe, Finset.mem_filter,
+      Finset.mem_univ, true_and] at hrho
+    change freeVars rho ∈ freeSets
+    simp only [freeSets, Finset.mem_filter, Finset.mem_powersetCard]
+    refine ⟨⟨?_, ?_⟩, hrho.2.2⟩
+    · intro i hi
+      rw [mem_freeVars] at hi ⊢
+      cases hbase : base i with
+      | none => rfl
+      | some b => rw [hrho.1 i b hbase] at hi; simp at hi
+    · simpa [stars] using hrho.2.1
+
+/-- A globally compatible outside-literal selection discharges the entire semantic isolation
+interface in one step.  The remaining frontier is purely combinatorial: find a large selection
+satisfying this predicate, or charge its failure to a small support/component hitting set. -/
+theorem mem_commonShallowBad_of_globallyCompatibleIsolationSelection
+    {n G H fuel K trunkDepth residualDepth : ℕ}
+    (large : Fin H → List (Clause n)) (target : Fin G → Clause n)
+    (e : Fin G → Fin H) (selected : List (Rung4Literal n))
+    (hselection : GloballyCompatibleIsolationSelection large target e selected)
+    (hnodup : ∀ g, (large (e g)).Nodup)
+    (hmem : ∀ g, target g ∈ large (e g))
+    (hbad : compatibleIsolationRestriction selected ∈
+      commonShallowBad (fun g => [target g]) fuel K
+      trunkDepth residualDepth) :
+    compatibleIsolationRestriction selected ∈
+      commonShallowBad large fuel K trunkDepth residualDepth := by
+  apply mem_commonShallowBad_of_isolatedSingleton_reindex large target e hnodup hmem
+  · exact compatibleIsolationRestriction_target_live hselection.2.1
+  · intro g U hU hUne
+    exact compatibleIsolationRestriction_competitor_falsified hselection.1
+      (hselection.2.2 g U hU hUne)
+  · exact hbad
+
+/-! ### Subsumption deletion does not preserve the canonical tree -/
+
+/-- The inclusion-minimal gate consisting only of the weaker positive literal. -/
+def subsumptionMinimalGate : List (Clause 2) :=
+  [⟨[Rung4Literal.pos 0]⟩]
+
+/-- A semantically redundant stronger term is deliberately placed first.  Its literals are
+ordered so that the canonical procedure queries the irrelevant second coordinate before reaching
+the weaker absorbing term. -/
+def subsumptionRedundantGate : List (Clause 2) :=
+  [⟨[Rung4Literal.pos 1, Rung4Literal.pos 0]⟩, ⟨[Rung4Literal.pos 0]⟩]
+
+/-- The second term literally subsumes the first: all of the weaker term's literals occur in the
+stronger term. -/
+theorem subsumptionMinimal_lits_subset_redundant :
+    ∀ ell ∈ (subsumptionMinimalGate.get ⟨0, by decide⟩).lits,
+      ell ∈ (subsumptionRedundantGate.get ⟨0, by decide⟩).lits := by
+  simp [subsumptionMinimalGate, subsumptionRedundantGate]
+
+/-- Despite the extra term, both lists have exactly the same DNF truth value under every partial
+restriction.  Thus the counterexample below is about the canonical procedure, not semantics. -/
+theorem subsumptionRedundantGate_anyTermSat (sigma : Restriction 2) :
+    anyTermSat subsumptionRedundantGate sigma = anyTermSat subsumptionMinimalGate sigma := by
+  simp [subsumptionRedundantGate, subsumptionMinimalGate, anyTermSat, termSat,
+    Depth3.litTrue, litFixedVal]
+
+/-- The inclusion-minimal gate needs only its essential coordinate on the all-live root. -/
+theorem subsumptionMinimalGate_depth_one :
+    (canonicalDT subsumptionMinimalGate 2 (fun _ => none)).depth = 1 := by
+  simp [subsumptionMinimalGate, canonicalDT, anyTermSat, termSat, activeTerm,
+    termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal, litFalse, litFree,
+    fixVar, BoolDecisionTree.depth]
+
+/-- The redundant first term forces the canonical procedure to query both coordinates. -/
+theorem subsumptionRedundantGate_depth_two :
+    (canonicalDT subsumptionRedundantGate 2 (fun _ => none)).depth = 2 := by
+  simp [subsumptionRedundantGate, canonicalDT, anyTermSat, termSat, activeTerm,
+    termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal, litFalse, litFree,
+    fixVar, BoolDecisionTree.depth]
+
+/-- Therefore deleting a term absorbed by an inclusion-minimal witness can preserve DNF semantics
+while changing canonical depth.  Subsumption normalization cannot replace the isolation argument
+at the current canonical-tree interface. -/
+theorem canonicalDT_depth_not_preserved_by_subsumption_deletion :
+    (∀ sigma, anyTermSat subsumptionRedundantGate sigma =
+        anyTermSat subsumptionMinimalGate sigma) ∧
+      (canonicalDT subsumptionMinimalGate 2 (fun _ => none)).depth <
+        (canonicalDT subsumptionRedundantGate 2 (fun _ => none)).depth := by
+  refine ⟨subsumptionRedundantGate_anyTermSat, ?_⟩
+  rw [subsumptionMinimalGate_depth_one, subsumptionRedundantGate_depth_two]
+  omega
+
+/-- Exact gate reindexing transfers semantic badness in the useful direction: every root bad for
+the packed family is bad for the full family. -/
+theorem commonShallowBad_subset_of_reindex
+    {n G H fuel K trunkDepth residualDepth : ℕ}
+    {small : Fin G → List (Clause n)} {large : Fin H → List (Clause n)}
+    (e : Fin G → Fin H) (hgate : ∀ g, small g = large (e g)) :
+    commonShallowBad small fuel K trunkDepth residualDepth ⊆
+      commonShallowBad large fuel K trunkDepth residualDepth := by
+  intro sigma hsigma
+  rw [mem_commonShallowBad] at hsigma ⊢
+  refine ⟨hsigma.1, ?_⟩
+  intro hlarge
+  exact hsigma.2 (hlarge.of_reindex e hgate)
+
+/-- The exact width-three semantic tail transfers to any larger family containing those ordered
+singleton gates verbatim.  This is the positive packing interface that a circuit extraction lemma
+would have to discharge. -/
+theorem compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks_reindex
+    {n G H K trunkDepth residualDepth : ℕ}
+    (large : Fin H → List (Clause n)) (blocks : Fin G → List (Fin n))
+    (hpair : ∀ g h, g ≠ h → Disjoint (blocks g).toFinset (blocks h).toFinset)
+    (e : Fin G → Fin H)
+    (hgate : ∀ g, orderedConjunctionBlock (blocks g) = large (e g)) :
+    compatibleDeficitShell (fun g => (blocks g).toFinset) K trunkDepth residualDepth ⊆
+      commonShallowBad large n K trunkDepth residualDepth := by
+  exact Finset.Subset.trans
+    (compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks blocks hpair)
+    (commonShallowBad_subset_of_reindex e hgate)
+
+/-- A one-literal conjunction used to audit whether merely finding a clause inside a bottom gate
+is sufficient for exact subfamily transfer. -/
+def packedPositiveSingleton : List (Clause 1) :=
+  [⟨[Rung4Literal.pos 0]⟩]
+
+/-- Adding an always-true empty term preserves the packed clause as a list member but makes the
+whole DNF constant. -/
+def packedPositiveWithTrueTerm : List (Clause 1) :=
+  [⟨[]⟩, ⟨[Rung4Literal.pos 0]⟩]
+
+theorem packedPositiveSingleton_sublist_withTrueTerm :
+    packedPositiveSingleton.Sublist packedPositiveWithTrueTerm := by
+  simp [packedPositiveSingleton, packedPositiveWithTrueTerm]
+
+/-- On the all-live one-variable root, the packed singleton really needs one query. -/
+theorem packedPositiveSingleton_depth_one :
+    (canonicalDT packedPositiveSingleton 1 (fun _ => none)).depth = 1 := by
+  simp [packedPositiveSingleton, canonicalDT, anyTermSat, termSat, activeTerm,
+    termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal, litFalse, litFree,
+    fixVar, BoolDecisionTree.depth]
+
+/-- The containing gate has depth zero because its first empty term is already satisfied.  Hence
+clause-list inclusion does not provide the depth monotonicity needed to embed the exact triple
+tail into a general normalized bottom family. -/
+theorem packedPositiveWithTrueTerm_depth_zero :
+    (canonicalDT packedPositiveWithTrueTerm 1 (fun _ => none)).depth = 0 := by
+  simp [packedPositiveWithTrueTerm, canonicalDT, anyTermSat, termSat]
+
+theorem canonicalDT_depth_not_monotone_of_sublist :
+    packedPositiveSingleton.Sublist packedPositiveWithTrueTerm ∧
+      (canonicalDT packedPositiveWithTrueTerm 1 (fun _ => none)).depth <
+        (canonicalDT packedPositiveSingleton 1 (fun _ => none)).depth := by
+  exact ⟨packedPositiveSingleton_sublist_withTrueTerm, by
+    rw [packedPositiveWithTrueTerm_depth_zero, packedPositiveSingleton_depth_one]
+    omega⟩
+
+private def triple3 : Fin 6 := ⟨3, by omega⟩
+private def triple4 : Fin 6 := ⟨4, by omega⟩
+private def triple5 : Fin 6 := ⟨5, by omega⟩
+
+/-- Two disjoint width-three ordered conjunctions.  Their six live coordinates exactly fill the
+proportional shell `K = 2d` at `d = 3`, while reducing both gates to residual depth one requires
+two true-path queries in each block. -/
+def independentTripleGates : Fin 2 → List (Clause 6) := fun g ↦
+  if g = 0 then
+    orderedConjunctionBlock [0, 1, 2]
+  else
+    orderedConjunctionBlock [triple3, triple4, triple5]
+
+/-- If no coordinate is fixed false and at least two coordinates of the selected triple remain
+free, its canonical tree still has depth strictly greater than one. -/
+theorem independentTripleGates_depth_gt_one {rho : Restriction 6} (g : Fin 2)
+    (hnotFalse : ∀ i, rho i ≠ some false)
+    (hfree : if g = 0 then
+        (rho 0 = none ∧ rho 1 = none) ∨ (rho 0 = none ∧ rho 2 = none) ∨
+          (rho 1 = none ∧ rho 2 = none)
+      else
+        (rho triple3 = none ∧ rho triple4 = none) ∨
+          (rho triple3 = none ∧ rho triple5 = none) ∨
+          (rho triple4 = none ∧ rho triple5 = none)) :
+    1 < (canonicalDT (independentTripleGates g) 3 rho).depth := by
+  fin_cases g
+  · simp only [Fin.isValue, Fin.zero_eta, if_pos] at hfree
+    rcases hfree with ⟨h0, h1⟩ | ⟨h0, h2⟩ | ⟨h1, h2⟩
+    · cases h2' : rho 2 with
+      | none =>
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0, h1, h2']
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse 2 h2')
+          · simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0, h1, h2']
+    · cases h1' : rho 1 with
+      | none =>
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0, h1', h2]
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse 1 h1')
+          · simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0, h1', h2]
+    · cases h0' : rho 0 with
+      | none =>
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0', h1, h2]
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse 0 h0')
+          · simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h0', h1, h2]
+  · simp only [Fin.isValue, Fin.reduceFinMk, OfNat.ofNat, if_false] at hfree
+    change 1 < (canonicalDT
+      (orderedConjunctionBlock [triple3, triple4, triple5]) 3 rho).depth
+    rcases hfree with ⟨h3, h4⟩ | ⟨h3, h5⟩ | ⟨h4, h5⟩
+    · cases h5' : rho triple5 with
+      | none =>
+          simp [triple3, triple4, triple5] at h3 h4 h5'
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3, h4, h5']
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse triple5 h5')
+          · simp [triple3, triple4, triple5] at h3 h4 h5'
+            simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3, h4, h5']
+    · cases h4' : rho triple4 with
+      | none =>
+          simp [triple3, triple4, triple5] at h3 h4' h5
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3, h4', h5]
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse triple4 h4')
+          · simp [triple3, triple4, triple5] at h3 h4' h5
+            simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3, h4', h5]
+    · cases h3' : rho triple3 with
+      | none =>
+          simp [triple3, triple4, triple5] at h3' h4 h5
+          simp [independentTripleGates, triple3, triple4, triple5,
+            orderedConjunctionBlock, canonicalDT, anyTermSat,
+            termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+            litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3', h4, h5]
+      | some b =>
+          cases b
+          · exact False.elim (hnotFalse triple3 h3')
+          · simp [triple3, triple4, triple5] at h3' h4 h5
+            simp [independentTripleGates, triple3, triple4, triple5,
+              orderedConjunctionBlock, canonicalDT, anyTermSat,
+              termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+              litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth, h3', h4, h5]
+
+/-- At the exact proportional boundary `K = 6 = 2d`, a depth-three common trunk cannot reduce
+both disjoint width-three conjunctions to residual depth one.  The all-true path contains at most
+three queried coordinates, so one triple retains at least two free coordinates. -/
+theorem independentTriples_not_commonShallowAt_three :
+    ¬ CommonShallowAt independentTripleGates 3 (fun _ : Fin 6 ↦ none) 3 1 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let x : Fin 6 → Bool := fun _ ↦ true
+  let path : Finset (Fin 6) := (CommonTree.queryVars trunk x).toFinset
+  have hpathCard : path.card ≤ 3 := by
+    calc
+      path.card ≤ (CommonTree.queryVars trunk x).length := List.toFinset_card_le _
+      _ ≤ CommonTree.depth trunk := CommonTree.queryVars_length_le_depth trunk x
+      _ ≤ 3 := hdepth
+  let A : Finset (Fin 6) := {0, 1, 2}
+  let B : Finset (Fin 6) := {triple3, triple4, triple5}
+  have hdisj : Disjoint (A ∩ path) (B ∩ path) := by
+    simp [A, B, Finset.disjoint_left, triple3, triple4, triple5]
+  have hunionSubset : (A ∩ path) ∪ (B ∩ path) ⊆ path := by
+    intro i hi
+    simp only [Finset.mem_union, Finset.mem_inter] at hi
+    exact hi.elim And.right And.right
+  have hsum : (A ∩ path).card + (B ∩ path).card ≤ 3 := by
+    calc
+      (A ∩ path).card + (B ∩ path).card =
+          ((A ∩ path) ∪ (B ∩ path)).card :=
+        (Finset.card_union_of_disjoint hdisj).symm
+      _ ≤ path.card := Finset.card_le_card hunionSubset
+      _ ≤ 3 := hpathCard
+  have hside : (A ∩ path).card ≤ 1 ∨ (B ∩ path).card ≤ 1 := by omega
+  obtain ⟨g, hgfree⟩ : ∃ g : Fin 2, if g = 0 then
+        (0 ∉ path ∧ 1 ∉ path) ∨ (0 ∉ path ∧ 2 ∉ path) ∨
+          (1 ∉ path ∧ 2 ∉ path)
+      else
+        (triple3 ∉ path ∧ triple4 ∉ path) ∨
+          (triple3 ∉ path ∧ triple5 ∉ path) ∨
+          (triple4 ∉ path ∧ triple5 ∉ path) := by
+    rcases hside with hA | hB
+    · refine ⟨0, ?_⟩
+      simp only [Fin.isValue, Fin.zero_eta, if_pos]
+      by_cases h0 : (0 : Fin 6) ∈ path <;>
+        by_cases h1 : (1 : Fin 6) ∈ path <;>
+        by_cases h2 : (2 : Fin 6) ∈ path <;>
+        simp_all [A]
+    · refine ⟨1, ?_⟩
+      simp only [Fin.isValue, Fin.reduceFinMk, OfNat.ofNat, if_false]
+      by_cases h3 : triple3 ∈ path <;>
+        by_cases h4 : triple4 ∈ path <;>
+        by_cases h5 : triple5 ∈ path <;>
+        simp_all [B, triple3, triple4, triple5]
+  have hx : Rung4Restriction.Extends (fun _ : Fin 6 ↦ none) x := by
+    intro i b hi
+    simp at hi
+  have hfree (i : Fin 6) (hi : i ∉ path) : CommonTree.run trunk x i = none := by
+    let y : Fin 6 → Bool := Function.update x i false
+    have hy : Rung4Restriction.Extends (fun _ : Fin 6 ↦ none) y := by
+      intro j b hj
+      simp at hj
+    obtain ⟨_, htx, _⟩ := hleaf x hx
+    obtain ⟨_, hty, _⟩ := hleaf y hy
+    have hrun : CommonTree.run trunk y = CommonTree.run trunk x := by
+      exact CommonTree.run_update_of_not_mem_queryVars trunk x i (by simpa [path] using hi)
+    cases ht : CommonTree.run trunk x i with
+    | none => rfl
+    | some b =>
+        have hbx : b = true := by simpa [x] using htx i b ht
+        have hby : b = false := by
+          have : CommonTree.run trunk y i = some b := by simpa [hrun] using ht
+          simpa [y, x] using hty i b this
+        exact False.elim (Bool.false_ne_true (hby.symm.trans hbx))
+  obtain ⟨_, hagree, hshallow⟩ := hleaf x hx
+  have hnotFalse (i : Fin 6) : CommonTree.run trunk x i ≠ some false := by
+    intro hi
+    have := hagree i false hi
+    simpa [x] using this
+  have hgdepth := independentTripleGates_depth_gt_one
+    (rho := CommonTree.run trunk x) g hnotFalse
+    (by
+      by_cases hg : g = 0
+      · simp only [hg, if_pos] at hgfree ⊢
+        rcases hgfree with h | h | h <;> simp_all [hfree]
+      · simp only [hg, if_false] at hgfree ⊢
+        rcases hgfree with h | h | h <;> simp_all [hfree])
+  exact (Nat.not_lt_of_ge (hshallow g)) hgdepth
+
+/-- Hence the fully live six-variable restriction is an actual member of the semantic bad event
+on the exact half-shell boundary. -/
+theorem allFreeSix_mem_commonShallowBad_three :
+    (fun _ : Fin 6 ↦ none) ∈ commonShallowBad independentTripleGates 3 6 3 1 := by
+  rw [mem_commonShallowBad]
+  constructor
+  · decide
+  · exact independentTriples_not_commonShallowAt_three
 
 /-- A singleton gate contributes its coordinate to the raw canonical path exactly when that
 coordinate belongs to the chosen free set. -/
@@ -2448,6 +5896,21 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.normalizedLayered_commonShallowBad_scaled_le_of_actual_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_normalizedLayeredBottomFamily_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_family_bounds
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactShell_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freeSetOccupancyCode_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freeSetOccupancyCode_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_manyIntactFreeSets_iff_occupancy
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.occupancySizeFiber_card_uniform
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactFreeSets_card_eq_sum_occupancy
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactFreeSets_eq_empty_of_uniform_volume
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactFreeSets_eq_empty_width_two_half_shell
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactShell_eq_empty_width_two_half_shell
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactFreeSets_mul_pow_le_commonShallowBad_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentPairs_commonShallowAt_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFreeFour_not_mem_commonShallowBad_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentTripleGates_depth_gt_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentTriples_not_commonShallowAt_three
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFreeSix_mem_commonShallowBad_three
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_actualAlphabet_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_slotAlphabet_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundShell_succ_eq_live
@@ -2459,6 +5922,10 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_gateBound_lt_live_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_gateBound_margin_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_layeredRoundActual_worstCase_density_of_polynomial_gateCap
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_shell_extension_of_globallyCompatibleIsolationSelection'
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_restrictionExtends_freeVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.card_targetSuperset_freeSets
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.targetPreservingShellExtensions_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_bottomSlotCount_lt_live_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layeredRoundActual_bottomSlotCount_margin_of_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.aggregateSemanticBaselineExcess_independentLiveLiteralFamily
@@ -2473,11 +5940,84 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_pathVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentRoot_not_commonShallowAt_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentBadEndpointFibers_aggregate_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_disjoint_support_of_pairwiseDisjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.pairwiseDisjoint_support_miss
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_intact_support_disjoint_of_pairwiseDisjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.supportedGates_not_commonShallowAt_of_intact_miss
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.pairwiseDisjoint_supportedGates_not_commonShallowAt_of_intact
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.supportedGates_not_commonShallowAt_allFree
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFree_mem_commonShallowBad_of_supportedGates
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFree_mem_commonShallowBad_of_pairwiseDisjoint
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.orderedConjunctionBlock_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.orderedConjunctionBlock_freeSupport_card_le_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFree_mem_commonShallowBad_of_orderedConjunctionBlocks
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_commonShallowBad_of_orderedConjunctionBlocks_of_many_intact
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentPairGates_depth_two
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentPairs_not_commonShallowAt_one
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.allFreeFour_mem_commonShallowBad_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_liveSupport_sdiff_card_gt_of_sum_deficit
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_compatible_liveSupport_sdiff_card_gt_of_sum_deficit
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.supportedGates_not_commonShallowAt_of_compatible_sum_deficit
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_commonShallowBad_of_compatible_sum_deficit
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_subset_commonShallowBad
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleResidualQueryDeficit_eq_two_of_intact_triple
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFiber_card_zero_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFiber_card_one_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFiber_card_two_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFiber_card_two_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFiber_card_three_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalFibers_exhaustive
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.restrictionProductCode_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.restrictionProductCode_bijective_triples
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitFiber_card_eq_tripleProductWeightFiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleLocalEnumerator_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.outsideStateEnumerator_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleProductEnumerator_factorization
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleProductEnumerator_coeff
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleProductWeightFiber_card_eq_indexWeightFiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleProductEnumerator_coeff_eq_weightFiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.tripleProductEnumerator_coeff_eq_compatibleDeficitFiber_card
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_card_eq_coefficient_tail
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_twenty_card_eq_coefficient_tail
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactShell_subset_compatibleDeficitShell_triples
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_triples_occupancy_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactShell_card_le_commonShallowBad_of_orderedTriples
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.orderedTriples_coefficient_tail_scaled_le_linearGap
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.of_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.liveTermFilter_eq_singleton
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.of_reindex_liveFilter
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_commonShallowBad_of_isolatedSingleton_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.termFalsified_true_of_lits_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.termFalsified_false_of_lits_subset
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_lits_subset_of_isolatedSingleton
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_outside_literal_of_inclusionMinimal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.inclusionMinimal_of_isolatedSingleton
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleIsolationRestriction_litFalse
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleIsolationRestriction_target_live
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleIsolationRestriction_competitor_falsified
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freeVars_compatibleIsolationRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_compatibleIsolationRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.sub_le_stars_compatibleIsolationRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_compatibleIsolationRestriction_eq_sub_length
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_targetSupport_conflict_of_inclusionMinimal_of_outsideTargetVars_eq_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_of_nonempty_edges_of_pool_consistent
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.not_exists_globallyCompatibleIsolationSelection_of_singleton_polarity_conflict
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.oppositeSingleton_no_joint_target_isolation
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.mem_commonShallowBad_of_globallyCompatibleIsolationSelection
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionMinimal_lits_subset_redundant
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionRedundantGate_anyTermSat
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionMinimalGate_depth_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.subsumptionRedundantGate_depth_two
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_not_preserved_by_subsumption_deletion
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_subset_of_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.packedPositiveSingleton_sublist_withTrueTerm
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.packedPositiveSingleton_depth_one
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.packedPositiveWithTrueTerm_depth_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_not_monotone_of_sublist
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_taggedRawVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.independentLiteral_freshTaggedPrefixVars_eq_take

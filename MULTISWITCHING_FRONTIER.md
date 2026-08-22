@@ -1182,3 +1182,1108 @@ premises for a canonical family of disjoint ordered `(s+1)`-literal conjunctions
 coordinate sets, then count which `K`-shell roots retain more intact blocks than a depth-`d` trunk
 can hit.  Coupling that count to the existing endpoint partition will decide whether the bad event
 has full-shell-scale mass or an aggregate saving.  No P-versus-NP conclusion follows.
+
+### Pairwise-disjoint blocks now discharge the trunk-packing premise
+
+The abstract support condition is now reduced to its exact finite combinatorial content.
+`exists_disjoint_support_of_pairwiseDisjoint` proves that if `G` supports are pairwise disjoint,
+then every coordinate set of cardinality below `G` misses one complete support.  Its proof chooses
+one allegedly hit coordinate per support and obtains an injection `Fin G → path`; hence it does not
+charge the block width or the ambient number of coordinates.
+
+`pairwiseDisjoint_support_miss` specializes this to every path of size at most the trunk depth when
+`trunkDepth < G`.  The capstone
+`allFree_mem_commonShallowBad_of_pairwiseDisjoint` composes that packing theorem with the existing
+semantic core: any pairwise-disjoint gate family containing more blocks than the trunk depth has a
+bad fully live root as soon as a wholly free block has canonical depth above the residual target.
+
+Thus the block-count side of the parameterized construction is complete and exact: the critical
+threshold is the number of blocks, not their total support size.  The precise next frontier is now
+the remaining gate-specific premise: define an arbitrary ordered conjunction block and prove that,
+with sufficient fuel and all of its distinct coordinates free, its canonical tree has depth equal
+to the block length.  After that, lift the fully live obstruction to `K`-shell roots by counting
+restrictions retaining more than `trunkDepth` intact blocks and couple those roots to the endpoint
+partition.  No P-versus-NP conclusion follows.
+
+### Arbitrary ordered conjunction blocks close the semantic obstruction
+
+`orderedConjunctionBlock` packages any coordinate list as one ordered positive conjunction.
+`orderedConjunctionBlock_depth` proves that if the coordinates are duplicate-free and remain free,
+then fuel equal to the list length gives canonical depth exactly that length, regardless of all
+coordinates outside the block.  The proof follows the satisfying branch, carrying the already-true
+prefix and still-free suffix as an invariant; the falsifying sibling is controlled by the general
+fuel upper bound.
+
+The capstone `allFree_mem_commonShallowBad_of_orderedConjunctionBlocks` composes this computation
+with pairwise-disjoint support packing.  For `G` pairwise-disjoint duplicate-free blocks of common
+width `w`, every trunk of depth below `G` leaves a whole block untouched, and the fully live root is
+semantically bad for every residual target below `w`.  Thus both abstract premises of the
+parameterized fully-live obstruction are now discharged by a concrete gate family.
+
+The precise next frontier is no longer gate semantics.  Count fixed-`K` restrictions that retain
+more than `trunkDepth` complete blocks, first for equal disjoint blocks, and determine their exact
+distribution across the existing canonical endpoint partition.  That count will decide whether
+positive-residual badness has full-shell-scale mass or enough aggregate decay for the layered round.
+No P-versus-NP conclusion follows.
+
+### The many-intact-block shell event now embeds in semantic badness
+
+`intactSupportBlocks support σ` is the exact set of indexed blocks whose entire support remains
+free at an arbitrary restriction `σ`.  The packing lemma
+`exists_intact_support_disjoint_of_pairwiseDisjoint` proves that, for pairwise-disjoint supports,
+any queried coordinate set smaller than this intact-block set misses one of those intact blocks
+completely.
+
+The semantic argument has also been lifted off the fully live cube.
+`supportedGates_not_commonShallowAt_of_intact_miss` starts from an arbitrary root restriction,
+follows one extending assignment, and toggles an unqueried coordinate of the missed intact block.
+Agreement of both assignments with the same trunk leaf forces that coordinate to remain free.
+Consequently `pairwiseDisjoint_supportedGates_not_commonShallowAt_of_intact` rules out every common
+trunk whose depth is below the number of intact deep blocks.
+
+The concrete capstone
+`mem_commonShallowBad_of_orderedConjunctionBlocks_of_many_intact` now states the desired shell
+inclusion: every `K`-star restriction retaining more than `trunkDepth` pairwise-disjoint,
+duplicate-free width-`w` conjunction blocks is in the actual semantic bad event for every residual
+target below `w`.  Thus no further semantic bridge is needed for these roots.
+
+The precise next frontier is an exact cardinality formula (or sharp lower bound) for this explicit
+many-intact-block event on the `K`-shell, followed by its distribution across the existing
+canonical prefix-endpoint fibers.  For equal disjoint blocks this is a finite hypergeometric
+occupancy count; formalizing that count will determine whether the obstruction has shell-scale
+mass in the intended parameter regime.  No P-versus-NP conclusion follows.
+
+### Fixed-value multiplicity is now factored out exactly
+
+`manyIntactShell support K d` is the explicit restriction event with exactly `K` live coordinates
+and more than `d` wholly live support blocks.  `manyIntactFreeSets support K d` is its underlying
+occupancy event on `K`-element coordinate sets.  The exact factorization
+`manyIntactShell_card` proves
+
+```text
+|manyIntactShell support K d|
+  = |manyIntactFreeSets support K d| * 2^(n-K).
+```
+
+The proof partitions restrictions by their exact free-variable set and applies the established
+fiber count.  It therefore loses neither fixed-coordinate assignments nor correlations between
+block occupancy and the chosen live set.
+
+For the pairwise-disjoint ordered conjunction construction,
+`manyIntactShell_subset_commonShallowBad_of_orderedConjunctionBlocks` embeds this entire event in
+semantic badness, and `manyIntactFreeSets_mul_pow_le_commonShallowBad_card` records the resulting
+cardinality lower bound.  Consequently the restriction-valued counting problem has been reduced
+exactly to a finite-set occupancy count: the Boolean values on the `n-K` fixed coordinates are a
+uniform multiplicative factor and cannot create an endpoint saving.
+
+The precise next frontier is to evaluate `manyIntactFreeSets` for `G` equal pairwise-disjoint
+width-`w` blocks (and an optional outside-coordinate reservoir).  This is the remaining
+hypergeometric coefficient: count `K`-subsets containing more than `d` complete blocks, with
+partial occupancy of the other blocks handled without double counting.  Then distribute those
+free sets, or their induced restrictions, across the canonical prefix-endpoint fibers.  No
+P-versus-NP conclusion follows.
+
+### Occupancy profiles remove the partial-block double-counting ambiguity
+
+`freeSetOccupancyCode support S` now records the actual intersection of `S` with every support
+block together with `S` outside the union of all supports.  `freeSetOccupancyCode_reconstruct` and
+`freeSetOccupancyCode_injective` prove that this record is lossless.  Injectivity does not require
+disjoint blocks; consequently it cannot hide a choice of a preferred intact block or count a free
+set more than once when several blocks are complete.
+
+For pairwise-disjoint supports, `freeSetOccupancyCode_card` proves the exact additive shell
+constraint
+
+```text
+|S| = sum_g |S ∩ support(g)| + |S \ union_g support(g)|.
+```
+
+Finally, `mem_manyIntactFreeSets_iff_occupancy` rewrites the obstruction event as the lossless
+profiles satisfying total size `K` and having more than `d` components equal to their full
+supports.  Partial occupancies and outside coordinates therefore have explicit, disjoint slots;
+the remaining enumeration is a genuine product-of-binomial-coefficients calculation rather than
+an inclusion-exclusion problem.
+
+The precise next frontier is to define the finite set of admissible occupancy-size vectors
+`a : Fin G → Fin (w+1)` and outside size `r`, prove that each fiber has cardinality
+`(product_g choose w (a g)) * choose (n-G*w) r`, and sum exactly over
+`sum_g a(g)+r=K` with more than `d` entries equal to `w`.  Only after that coefficient is proved
+should it be distributed across canonical prefix-endpoint fibers.  No P-versus-NP conclusion
+follows.
+
+### Every occupancy-size fiber now has the exact hypergeometric weight
+
+`occupancySizeFiber support a r` is the finite set of free-coordinate sets whose intersection
+with block `g` has cardinality `a(g)` and whose outside component has cardinality `r`.
+`occupancySlotChoices support a r` independently selects those block subsets and the outside
+subset.  The reconstruction theorem `freeSetOccupancyCode_reconstructChoice` proves that, for
+pairwise-disjoint supports, these independent choices are in bijection with the size fiber.  This
+is stronger than an upper or lower bound and explicitly rules out overlap between two profiles.
+
+Consequently `occupancySizeFiber_card` proves the general exact formula
+
+```text
+|fiber(a,r)|
+  = (product_g choose |support(g)| (a(g)))
+      * choose |outside| r.
+```
+
+For `G` pairwise-disjoint blocks of common width `w`,
+`supportUnion_card_of_pairwiseDisjoint_uniform` computes the occupied reservoir as `G*w`, and
+`occupancySizeFiber_card_uniform` specializes the formula to
+
+```text
+|fiber(a,r)| = (product_g choose w (a(g))) * choose (n-G*w) r.
+```
+
+Thus the individual summand advertised by the occupancy audit is now formal, including partial
+blocks and all outside coordinates.  The precise next frontier is to define the finite admissible
+index set with `a(g) ≤ w`, `sum_g a(g)+r=K`, and more than `d` entries equal to `w`; prove that its
+size fibers form an exact disjoint partition of `manyIntactFreeSets`; and rewrite the event's
+cardinality as the resulting finite sum.  After that, evaluate the coefficient in the intended
+parameter regime before distributing it across canonical prefix-endpoint fibers.  No
+P-versus-NP conclusion follows.
+
+### The admissible profiles now form an exact finite partition
+
+`occupancySizeIndex support S` packages every block-intersection cardinality and the outside
+cardinality into a finite `(Fin G → Fin (n+1)) × Fin (n+1)` index.  The ambient `n+1` bound keeps
+the construction uniform for ragged block families.  `admissibleOccupancyIndices support K d`
+filters these indices by the three exact constraints: every coordinate is at most its block size,
+the block and outside occupancies sum to `K`, and more than `d` block coordinates are full.
+
+For pairwise-disjoint supports, `occupancySizeIndex_mem_admissible_iff` proves that a set's index
+is admissible exactly when the set lies in `manyIntactFreeSets`.  Moreover,
+`manyIntactFreeSets_filter_sizeIndex_eq` identifies each admissible fiber with the previously
+counted `occupancySizeFiber`.  Applying finite fiberwise counting therefore gives the exact ragged
+formula
+
+```text
+|manyIntactFreeSets support K d|
+  = sum_(a,r admissible)
+      (product_g choose |support(g)| a(g)) * choose |outside| r.
+```
+
+This closes the disjoint-partition obligation: partial blocks and outside coordinates occur in
+one and only one summand, and the full-block threshold is enforced inside the finite index set.
+For equal width `w`, the already-proved union-cardinality lemma rewrites every summand to
+`(product_g choose w a(g)) * choose (n-G*w) r`.
+
+The precise next frontier is to evaluate or sharply bound this exact coefficient in the intended
+`K,d,G,w,n` schedule and compare its shell density against the canonical prefix-endpoint fiber
+capacity.  Only then should the coefficient be distributed across those endpoint fibers.  No
+P-versus-NP conclusion follows.
+
+### The exact support-volume cutoff makes the intended many-intact event empty
+
+The first evaluation of the exact coefficient is decisive for the currently verified schedule.
+`manyIntactFreeSets_eq_empty_of_uniform_volume` proves that pairwise-disjoint uniform width-`w`
+blocks have no `K`-element free set containing more than `d` intact blocks whenever
+
+```text
+K < (d+1)*w.
+```
+
+The proof unions the intact supports, uses pairwise disjointness to compute their exact volume,
+and embeds that union into the free set.  Thus the cutoff is structural rather than an artifact of
+bounding the occupancy sum.
+
+Specializing to the half-shell parameters used by the existing contraction theorem,
+
+```text
+K = 20*r,  d = 10*r,  w = 2,
+```
+
+`manyIntactFreeSets_eq_empty_width_two_half_shell` gives an empty event: the required `10*r+1`
+intact blocks consume `20*r+2` live coordinates.  Its restriction-valued shell lift is therefore
+empty as well.  Consequently this particular disjoint-width-two construction supplies no bad
+mass to compare with canonical endpoint capacity at the intended schedule; distributing its exact
+coefficient across endpoints would be vacuous.
+
+The precise next frontier is to audit the boundary event at exactly `d` intact width-two blocks.
+A depth-`d` trunk can in principle touch all of them, so any obstruction must prove a query-cost
+stronger than one coordinate per block (or use blocks whose residual hardness survives one trunk
+query).  If no such stronger semantic construction exists, the positive-residual obstruction
+route does not challenge the current half-shell schedule.  No P-versus-NP conclusion follows.
+
+### The smallest exact-boundary instance is common-shallow
+
+The semantic audit now confirms that the one-query-per-block upper bound is attained, not merely
+suggested by the volume calculation.  For the existing `independentPairGates` family, the fully
+live four-variable root has exactly two intact width-two blocks.  The earlier theorem
+`independentPairs_not_commonShallowAt_one` is retained: no depth-one common trunk can make both
+gates residual-depth one.
+
+The new explicit `independentPairBoundaryTrunk` queries coordinate `0` from the first block and
+coordinate `2` from the second.  Its four leaves store the corresponding restrictions.
+`independentPairs_commonShallowAt_two` proves that this depth-two trunk leaves both canonical gate
+trees with depth at most one on every extending assignment.  Consequently
+`allFreeFour_not_mem_commonShallowBad_two` proves that the same root is not semantically bad at
+trunk depth two.
+
+Thus merely changing the intact-block threshold from `d+1` to exactly `d` cannot extend this
+ordered-conjunction obstruction, even in its smallest nontrivial case: the strict threshold in
+the support-missing argument is sharp.  A viable boundary obstruction must use a gate requiring
+at least two trunk queries before its residual canonical depth drops to the target, and its shell
+volume must still fit the half-shell schedule.
+
+The precise next frontier is to test the smallest such residual-hard block (width at least three
+for target residual depth one) against the volume budget `K = 2*d`.  In particular, determine
+whether any mix of larger blocks and partially live supports can force total query cost above `d`
+without already exceeding `K`; if not, close the disjoint-block obstruction route at this
+schedule.  No P-versus-NP conclusion follows.
+
+### Width three survives the exact half-shell boundary
+
+The smallest larger-block test goes the opposite way from the width-two boundary.  The new
+`independentTripleGates` consists of two disjoint ordered conjunctions on coordinates
+`{0,1,2}` and `{3,4,5}`.  All six coordinates are live, so this is exactly the proportional
+boundary
+
+```text
+K = 6,  d = 3,  K = 2*d,
+```
+
+with target residual depth one.
+
+`independentTripleGates_depth_gt_one` proves the local residual-hardness statement needed for
+the audit: provided no block coordinate is fixed false, any two free coordinates in a triple
+force its canonical tree to have depth greater than one.  The proof covers all three possible
+free pairs in each block and retains the existing ordered canonical semantics.
+
+`independentTriples_not_commonShallowAt_three` follows the all-true branch of an arbitrary common
+trunk.  A depth-three trunk queries at most three distinct coordinates on that branch.  Since the
+two triple supports are disjoint, one support contains at most one queried coordinate and hence
+retains at least two free coordinates.  Every queried value on this branch is true, so the local
+depth lemma applies and contradicts residual depth one.  Finally,
+`allFreeSix_mem_commonShallowBad_three` places the fully live root in the actual fixed-six-star
+semantic bad event.
+
+Thus larger blocks can force query cost above `d` without exceeding `K = 2d`: here the support
+volume is six while the required all-true-path cost is four.  This refutes closure of the
+disjoint-block obstruction route based only on the width-two volume argument.  It does not yet
+refute the switching contraction: one explicit bad restriction supplies no quantitative lower
+bound on a large shell.
+
+The precise next frontier is to generalize the path argument to a weighted deficit condition
+`sum_g max(0, live_g - residualDepth) > d`, then count the corresponding partially-live
+width-three shell event at the intended scalable parameters `K = 20*r`, `d = 10*r`.  The key
+question is whether that event has enough mass, after fixed-value multiplicity, to challenge the
+verified upper bound rather than merely being nonempty.  No P-versus-NP conclusion follows.
+
+### The weighted path inequality is proved, with the necessary truth-compatibility correction
+
+`liveSupport support σ g` records the root-live coordinates of block `g`, and
+`residualQueryDeficit` is the proposed weight
+
+```text
+max(0, |liveSupport(g)| - residualDepth).
+```
+
+For pairwise-disjoint supports,
+`exists_liveSupport_sdiff_card_gt_of_sum_deficit` proves the exact weighted pigeonhole statement:
+if the sum of these deficits exceeds the number of distinct path queries, some block retains more
+than `residualDepth` root-live coordinates outside the path.  The proof partitions each block's
+live coordinates into queried and unqueried parts and uses disjointness to show that the sum of all
+queried parts is at most the path cardinality.  This strictly generalizes the previous whole-block
+packing argument and does not assume uniform widths.
+
+The audit also exposed a necessary correction before this combinatorics can be used semantically.
+A positive conjunction with a root-fixed false literal is already constant, even if several other
+coordinates remain live.  Therefore the unqualified live deficit can overcount hardness.
+`supportTrueCompatible` expresses that no support coordinate is root-fixed false, and
+`compatibleResidualQueryDeficit` assigns zero weight to incompatible blocks.  The sound capstone
+`exists_compatible_liveSupport_sdiff_card_gt_of_sum_deficit` proves that excess *compatible*
+deficit yields a compatible block with too many live unqueried coordinates.  Thus fixed Boolean
+values cannot be factored out uniformly for the partially-live event, unlike the earlier
+whole-intact event; they enter the occupancy weight itself.
+
+The precise next frontier is to prove the corresponding partial-live canonical-depth lemma for an
+ordered positive conjunction (truth-compatible root plus `q` remaining live coordinates gives
+canonical depth `q` with sufficient fuel), lift the compatible weighted event into
+`commonShallowBad`, and then count it at `K = 20*r`, `d = 10*r`, width three.  The count must weight
+each non-live coordinate inside a contributing triple by the single allowed fixed value `true`,
+rather than by the ambient two-value multiplicity.  No P-versus-NP conclusion follows.
+
+### The compatible weighted event now has a semantic badness interface
+
+`compatibleDeficitShell` is the explicit fixed-star shell event in which the sum of
+truth-compatible residual query deficits exceeds the common-trunk budget.  In contrast with the
+earlier intact-block event, its membership deliberately retains fixed Boolean values: a partially
+live positive block contributes only when every fixed coordinate in its support is true.
+
+`supportedGates_not_commonShallowAt_of_compatible_sum_deficit` lifts the weighted pigeonhole
+theorem through an arbitrary common trunk.  It follows the root-compatible all-true assignment,
+bounds the number of distinct path queries by trunk depth, and obtains a compatible block with too
+many live unqueried coordinates.  The standard toggle argument proves that those coordinates
+remain free at the reached leaf, while leaf agreement proves that no coordinate of the selected
+support is false there.
+
+The set-level capstone `compatibleDeficitShell_subset_commonShallowBad` therefore embeds the entire
+weighted shell event into actual semantic badness, under one explicit gate-local premise:
+
+```text
+no support coordinate is false
+and residualDepth < number of free support coordinates
+implies residualDepth < canonical depth.
+```
+
+This completes the generic semantic lift without assuming that canonical depth depends only on a
+free-coordinate set; that dependence remains to be proved for the ordered conjunction family.
+It also prevents the upcoming count from silently restoring the invalid two-value multiplicity on
+fixed internal coordinates.
+
+The precise next frontier is to discharge the local premise for duplicate-free ordered positive
+conjunctions with sufficient fuel, then specialize the subset theorem to uniform disjoint
+width-three blocks.  After that, count `compatibleDeficitShell` at `K = 20*r`, `d = 10*r`, keeping
+one allowed value for every fixed coordinate inside each contributing triple and two values only
+outside the constrained compatible supports.  No P-versus-NP conclusion follows.
+
+### The ordered-conjunction depth premise is discharged semantically
+
+`orderedConjunctionBlock_freeSupport_card_le_depth` proves the required partial-live statement.
+If no coordinate appearing in an ordered positive conjunction is fixed false and
+`stars rho <= fuel`, then
+
+```text
+|(xs.toFinset) ∩ freeVars rho| <= depth(canonicalDT [AND xs] fuel rho).
+```
+
+The proof follows the all-true extension of `rho`.  If a free support coordinate were absent from
+that decision-tree path, flipping only that coordinate would preserve the tree output by off-path
+invariance but change the conjunction from true to false.  Correctness of `canonicalDT` under the
+fuel premise gives the contradiction.  This argument counts distinct support coordinates, so the
+result is stronger than the anticipated duplicate-free lemma: neither `xs.Nodup` nor a particular
+placement of fixed-true coordinates is required.
+
+`compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks` then instantiates the
+generic weighted semantic lift for every pairwise-disjoint family of ordered positive
+conjunctions.  It uses ambient fuel `n`, which is sufficient for every restriction because
+`stars rho <= n`.  Consequently the specialization has no remaining local canonical-depth
+premise and already includes uniform disjoint width-three families as a special case.
+
+The precise next frontier is now purely quantitative: compute or sharply lower-bound the cardinality
+of `compatibleDeficitShell` for uniform disjoint triples at `K = 20*r`, trunk depth `d = 10*r`,
+and residual depth one.  The count must distinguish the four local triple states: three live
+coordinates contribute deficit two, two live plus one fixed-true contributes deficit one, and all
+other states contribute zero; only coordinates outside contributing compatible triples retain
+unrestricted two-value multiplicity.  Compare that weighted occupancy count against the verified
+common-shallow upper bound before attempting endpoint-fiber distribution.  No P-versus-NP
+conclusion follows.
+
+### The exact intact-triple occupancy sum is a verified weighted-shell lower bound
+
+The first quantitative bridge reuses the exact stars-and-bars infrastructure instead of rebuilding
+the full weighted count at once.  `compatibleResidualQueryDeficit_eq_two_of_intact_triple` proves
+that a completely live width-three support contributes exactly two units at residual depth one.
+Consequently `manyIntactShell_subset_compatibleDeficitShell_triples` proves the scalable inclusion
+
+```text
+manyIntactShell support (20*r) (5*r)
+  ⊆ compatibleDeficitShell support (20*r) (10*r) 1.
+```
+
+Indeed, more than `5*r` intact triples contribute more than `10*r` total deficit.  This subevent
+does not impose any Boolean-value penalty inside its selected blocks because all their coordinates
+are free.  Other blocks may be arbitrary, and any additional compatible partial triples only
+increase the deficit.
+
+`compatibleDeficitShell_triples_occupancy_lower_bound` composes this inclusion with the earlier
+exact disjoint-support enumeration and fixed-value factor.  It gives the explicit lower bound
+
+```text
+(sum over admissible occupancies with > 5*r intact triples
+   product_g choose(3,a_g) * choose(outside,r_out)) * 2^(n-20*r)
+  ≤ |compatibleDeficitShell support (20*r) (10*r) 1|.
+```
+
+Finally, `manyIntactShell_card_le_commonShallowBad_of_orderedTriples` pushes the same counted
+subevent through the ordered-conjunction semantic interface into the actual common-shallow bad
+set.  Thus the lower-bound route is no longer missing either a semantic premise or a
+restriction-multiplicity factor.
+
+This does not yet decide the balance.  The intact-only subevent omits the potentially important
+local state with two live coordinates and one fixed-true coordinate, which contributes one unit.
+For one triple the exact bivariate state enumerator (star marker `z`, deficit marker `y`) is
+
+```text
+8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2.
+```
+
+The precise next frontier is to formalize the coefficient identity obtained from the `G`th power
+of this polynomial and the outside factor `(2+z)^(n-3G)`, summing coefficients of `z^(20*r)` whose
+`y`-degree exceeds `10*r`.  Then compare that full weighted mass—and, separately, the now-verified
+intact-only lower bound—against the common-shallow upper bound in the intended growing-`G` schedule.
+Only if the aggregate balance is adverse should endpoint-fiber concentration be audited next.
+No P-versus-NP conclusion follows.
+
+### The full width-three generating function now has a verified local coefficient table
+
+The weighted-shell count has been factored at its smallest nontrivial unit.  For an abstract
+width-three restriction `rho : Fin 3 → Option Bool`, `tripleLocalStars` records the number of live
+coordinates and `tripleLocalDeficit` records the truth-compatible residual query deficit at
+residual depth one.  `tripleLocalFiber s d` is their joint fiber.
+
+Five kernel-checked cardinality theorems prove
+
+```text
+|(stars, deficit) = (0,0)| = 8
+|(stars, deficit) = (1,0)| = 12
+|(stars, deficit) = (2,0)| = 3
+|(stars, deficit) = (2,1)| = 3
+|(stars, deficit) = (3,2)| = 1.
+```
+
+`tripleLocalFibers_exhaustive` proves that the union of these five fibers is the entire
+27-element local restriction space.  Thus the local bivariate enumerator is fully verified,
+including the absence of an omitted state:
+
+```text
+8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2.
+```
+
+The proofs use ordinary `decide`, so reduction is checked by the Lean kernel; `native_decide` is
+not used.  The precise next frontier is to transport each ambient restriction on a three-element
+support to `Fin 3 → Option Bool`, prove that pairwise-disjoint support transport and the outside
+coordinates form a bijective product decomposition, and derive the coefficient identity for
+
+```text
+(8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2)^G * (2+z)^(n-3G).
+```
+
+After selecting `z^(20*r)` terms with `y`-degree greater than `10*r`, compare the resulting exact
+mass and the intact-only lower bound against the verified common-shallow upper bound.  No
+P-versus-NP conclusion follows.
+
+### Ambient restrictions now factor exactly into abstract triple states and outside states
+
+The local coefficient table is now connected to the ambient restriction space by a genuine
+finite equivalence.  `restrictionProductCode` records the restriction on each support subtype and
+on the complement of the support union.  `restrictionProductCode_injective` proves that these
+pieces determine the ambient restriction without any disjointness assumption.
+
+For pairwise-disjoint three-element supports,
+`restrictionProductCode_bijective_triples` proves surjectivity as well.  Its cardinal audit uses
+
+```text
+|supportUnion| = 3*G
+3^n = (product over G blocks of 3^3) * 3^(n-3*G).
+```
+
+Thus independently chosen block states never hide a consistency constraint.  Each support subtype
+is then reindexed by a chosen equivalence with `Fin 3`, yielding
+`ambientRestrictionTripleProductEquiv`:
+
+```text
+Restriction n
+  ≃ (Fin G → (Fin 3 → Option Bool))
+      × ({outside coordinates} → Option Bool).
+```
+
+This closes the product-decomposition part of the generating-function frontier.  The precise next
+step is to prove that, under this equivalence, ambient `stars` is the sum of the `tripleLocalStars`
+values plus the outside star count, while the compatible deficit is the sum of the
+`tripleLocalDeficit` values.  That weight-preservation theorem will justify coefficient extraction
+from
+
+```text
+(8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2)^G * (2+z)^(n-3G).
+```
+
+Only after that identity is kernel-checked should the `z^(20*r)`, `y`-degree `> 10*r` mass be
+compared with the common-shallow upper bound.  No P-versus-NP conclusion follows.
+
+### The ambient product equivalence preserves both generating-function weights
+
+The exact product decomposition now carries the intended statistics without distortion.
+`ambientTripleState` restricts an ambient assignment to one support subtype and transports it
+along the chosen equivalence with `Fin 3`.  The reindexing proof
+`tripleLocalStars_arrowCongr` shows that the arbitrary numbering does not affect the local live
+count.  `ambientTripleState_stars` and `ambientTripleState_deficit` then identify the two local
+weights with the ambient block's root-live cardinality and truth-compatible residual query
+deficit at residual depth one.
+
+For pairwise-disjoint triples, `ambient_stars_eq_triple_sum_add_outside` proves
+
+```text
+stars sigma
+  = sum_g tripleLocalStars(local_g sigma)
+      + number of live outside coordinates,
+```
+
+and `compatible_deficit_eq_triple_sum` proves
+
+```text
+sum_g compatibleResidualQueryDeficit(sigma,g,1)
+  = sum_g tripleLocalDeficit(local_g sigma).
+```
+
+Finally, `ambientRestrictionTripleProductEquiv_apply` identifies these local and outside states
+with the literal output of `ambientRestrictionTripleProductEquiv`, and
+`ambientRestrictionTripleProductEquiv_preserves_weights` packages both identities directly on
+that output.  Thus the bijection is now weight-preserving in both the `z` and `y` gradings; there
+is no hidden consistency or reindexing penalty between ambient restrictions and the proposed
+product enumerator.
+
+The precise next frontier is the finite coefficient theorem: define a bivariate coefficient
+enumerator for the product state space and prove, using the five checked local fibers and the
+outside `2+z` factor, that its `(K,D)` fiber is the coefficient of
+
+```text
+(8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2)^G * (2+z)^(n-3*G).
+```
+
+The first quantitative extraction should specialize to `K = 20*r` and sum `D > 10*r`, before
+comparing that exact mass with the existing common-shallow upper bound.  No P-versus-NP
+conclusion follows.
+
+### Exact bivariate fibers now pass through the ambient product equivalence
+
+The coefficient interface is now explicit on both sides of the product decomposition.
+`compatibleDeficitFiber support K D` is the ambient set of restrictions with exactly `K` live
+coordinates and exactly `D` units of truth-compatible residual deficit.  The corresponding
+`tripleProductWeightFiber support K D` imposes the same two totals directly on the independent
+triple states and the outside-coordinate state.
+
+`compatibleDeficitFiber_card_eq_tripleProductWeightFiber_card` proves, for pairwise-disjoint
+three-element supports,
+
+```text
+|compatibleDeficitFiber support K D|
+  = |tripleProductWeightFiber support K D|.
+```
+
+The proof restricts `ambientRestrictionTripleProductEquiv` to the exact `(K,D)` fibers and proves
+membership, injectivity, and surjectivity using the previously established two weight identities.
+Thus the coefficient to be computed on the product space is now kernel-checked to be the exact
+ambient restriction count, not merely a lower bound or an unproved generating-function proxy.
+
+The precise next frontier is algebraic factorization of the product-space enumerator: define the
+finite bivariate polynomial whose `(K,D)` coefficient is
+`|tripleProductWeightFiber support K D|`, prove that independent `Fin G` coordinates multiply the
+verified local factor
+
+```text
+8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2,
+```
+
+and prove that the outside subtype contributes `(2+z)^(n-3*G)`.  Then specialize to `K = 20*r`,
+sum coefficients with `D > 10*r`, and compare the resulting exact mass with the existing
+common-shallow upper bound.  No P-versus-NP conclusion follows.
+
+### The exact bivariate product enumerator now factors algebraically
+
+The product count is now represented in `MvPolynomial (Fin 2) ℕ`, with coordinate `0` recording
+the live count `z` and coordinate `1` recording the compatible deficit `y`.
+`tripleLocalEnumerator_eq` derives the one-block polynomial from the five previously checked local
+fibers, rather than installing the displayed formula as a definition:
+
+```text
+8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2.
+```
+
+`outsideStateEnumerator_eq` proves that any finite outside reservoir contributes one `2+z` factor
+per coordinate.  Finally, `tripleProductEnumerator_factorization` uses finite distributivity over
+function spaces to prove the exact identity
+
+```text
+(8 + 12*z + 3*z^2 + 3*z^2*y + z^3*y^2)^G * (2+z)^(n-3*G).
+```
+
+The outside coordinates are canonically reindexed by `Fin (n-3*G)` in the polynomial definition;
+the earlier disjoint-triple cardinal audit proves that this is exactly the cardinality of the
+ambient outside subtype.  Thus the algebraic factor itself no longer depends on arbitrary support
+labels.
+
+The precise next frontier is coefficient extraction: prove that the coefficient of `z^K y^D` in
+`tripleProductEnumerator G (n-3*G)` is the cardinality of
+`tripleProductWeightFiber support K D`, using multiplication of weight monomials and an outside
+subtype/`Fin (n-3*G)` reindexing.  Then specialize to `K = 20*r`, sum over `D > 10*r`, and compare
+the exact mass with the existing common-shallow upper bound.  No P-versus-NP conclusion follows.
+
+### Exact coefficient extraction now reaches ambient restriction fibers
+
+The canonical algebraic enumerator now has a proved coefficient interpretation.
+`tripleProductEnumerator_coeff` collapses each product of local weight monomials to one monomial
+whose exponents are the total live count and total compatible deficit, then shows that extracting
+`z^K y^D` counts exactly `tripleProductIndexWeightFiber G outsideCount K D`.
+
+For disjoint three-element supports,
+`tripleProductWeightFiber_card_eq_indexWeightFiber_card` explicitly reindexes the ambient outside
+subtype by the order equivalence
+
+```text
+{i // i is outside all supports} ≃ Fin (n - 3*G).
+```
+
+The proof transports outside assignments in both directions and separately proves invariance of
+the number of live outside coordinates.  Consequently,
+`tripleProductEnumerator_coeff_eq_weightFiber_card` establishes
+
+```text
+[z^K y^D] tripleProductEnumerator G (n - 3*G)
+  = |tripleProductWeightFiber support K D|,
+```
+
+and `tripleProductEnumerator_coeff_eq_compatibleDeficitFiber_card` composes this with the earlier
+ambient product equivalence to obtain the exact ambient restriction count directly.
+
+The precise next frontier is finite deficit-tail extraction: at `K = 20*r`, prove that the
+cardinality of the union of exact fibers with `D > 10*r` is the corresponding finite sum of
+coefficients of the factored polynomial.  Then compare that exact tail mass with the verified
+common-shallow upper bound.  No P-versus-NP conclusion follows.
+
+### The finite coefficient tail now meets the verified switching upper bound
+
+The deficit grading has now been audited through its endpoint.  `tripleLocalDeficit_le_two` proves
+that one width-three block contributes at most two units, and
+`compatible_deficit_sum_le_two_mul` transports this to ambient restrictions.  Hence the semantic
+tail is supported exactly on the finite degree set
+
+```text
+trunkDepth < D ≤ 2*G.
+```
+
+`compatibleDeficitShell_card_eq_sum_fibers` partitions the shell by its unique deficit degree.
+Composing this with exact coefficient extraction gives
+`compatibleDeficitShell_card_eq_coefficient_tail`, and its requested specialization proves
+
+```text
+|compatibleDeficitShell support (20*r) (10*r) 1|
+  = sum_{10*r < D ≤ 2*G}
+      [z^(20*r) y^D] tripleProductEnumerator G (n-3*G).
+```
+
+The comparison is no longer merely proposed.  For pairwise-disjoint, duplicate-free ordered
+triples in the already verified linear-gap ambient scale `n = 1000*(3*G)*r`,
+`orderedTriples_coefficient_tail_scaled_le_linearGap` proves
+
+```text
+(sum_{10*r < D ≤ 2*G} [z^(20*r) y^D] enumerator) * 2^(10*r)
+  ≤ |{sigma : Restriction n | stars sigma = 20*r}|.
+```
+
+The proof passes through semantic common-shallow badness and applies the existing realized-prefix
+density theorem with clause width three and one clause per gate.  An attempted direct use of the
+older width-two linear-gap specialization was rejected because an ordered three-variable
+conjunction is one clause of width three; the general density theorem is the sound interface.
+
+This closes the exact-tail comparison for independent ordered triples, but not for general
+overlapping circuit bottom gates.  The precise next frontier is to determine whether an arbitrary
+normalized layered bottom family admits a sufficiently large disjoint width-three positive-clause
+subfamily (or a fractional/packing replacement) whose coefficient-tail mass survives the passage
+to the actual two-polarity family and iterated round schedule.  No P-versus-NP conclusion follows.
+
+### Exact gate subfamilies transfer, but clause packings do not
+
+The first passage from the ordered-triple model to a circuit family is now separated into a sound
+interface and a false shortcut.  `CommonShallowAt.of_reindex` proves that a common trunk for a
+large indexed family is also a common trunk for any family whose gates occur verbatim under an
+arbitrary index map.  Dually, `commonShallowBad_subset_of_reindex` proves
+
+```text
+bad(exact packed gates) ⊆ bad(full family).
+```
+
+Injectivity is not required.  The specialized theorem
+`compatibleDeficitShell_subset_commonShallowBad_of_orderedConjunctionBlocks_reindex` therefore
+transfers the entire exact width-three deficit shell whenever the full normalized family contains
+the packed singleton conjunction gates exactly.
+
+The weaker condition that each packed clause merely occurs inside some larger DNF is insufficient.
+`canonicalDT_depth_not_monotone_of_sublist` gives a kernel-checked one-variable counterexample:
+the singleton positive clause has canonical depth one on the all-live root, but adjoining an empty
+always-true term produces a containing clause list of depth zero.  Thus no argument may infer the
+needed semantic lower bound from clause-list inclusion alone; extra terms can destroy it.
+
+The precise next frontier is consequently sharper than generic clause packing: either extract a
+large disjoint collection of **exact singleton width-three gates** from the normalized two-polarity
+family, or prove a new gate-local lower bound that controls competing terms (possibly after a
+restriction-dependent isolation step) and then combine that bound with a hypergraph or fractional
+packing theorem.  Only after such a semantic isolation lemma is available does it make sense to
+audit how much tail mass survives all rounds.  No P-versus-NP conclusion follows.
+
+### Canonical endpoint relabeling and semantic quotienting do not repair the balance
+
+The two most direct attempts to weaken exact gate packing have now been audited on the independent
+singleton family, where every root and canonical prefix can be computed exactly.
+`independentLiteral_prefixEndpoint_iff_existsUnique` characterizes a fixed endpoint by the unique
+consumed set of live coordinates lying strictly before the residual endpoint.  Consequently
+`independentFixedShellEndpointFiber_card` proves that its multiplicity is
+
+```text
+choose(|{i : i < every coordinate of E}|, d).
+```
+
+For the proportional shell `K = 2*d`, the maximum is exactly `choose(n-d,d)` and is attained by
+the terminal residual `d`-set.  Moreover,
+`independentBadEndpointFibers_aggregate_exact` proves that every such realized fiber is genuinely
+in `commonShallowBad` at residual depth zero and that the fibers partition the full coordinate
+shell.  The resulting exact identity in `independentOrderedFiberMaximum_exact_shell_count` shows
+that multiplying the endpoint shell, the attained fiber maximum, and the desired `2^d` saving
+exceeds the original restriction shell by
+
+```text
+choose(2*d,d) * 2^(2*d).
+```
+
+Thus endpoint-conditioned coordinate labels do not recover the missing contraction; the failure
+already occurs on an exact semantic bad event, rather than in an overcount of unrealizable labels.
+
+Semantic gate quotienting also fails at the present canonical-tree interface.
+`orderedThreeLiteral_canonicalDT_ne` and `depthSensitive_canonicalDT_depth_ne` show that
+semantically identical conjunctions with different literal orders can have different canonical
+trees and even different canonical depths.  Retaining queried coordinates repairs decoding, but
+`not_coordinateSemantic_exact_balance_half` proves that its `(n+1)^d` word alone destroys the
+same half-shell balance.  Conversely, charging distinct live support plus ideal semantic excess
+is too optimistic: `permutedThreeLiteral_no_alphabet_le_support_add_semanticExcess` gives six clean
+ordered keys on three coordinates with zero semantic excess.
+
+Finally, `distinctEssentialCoordinateBaseline_prefixEndpoint_ge_sub` isolates the structural
+content that no relabeling can remove: a trunk of budget `d` leaves at least `q-d` of `q` distinct
+live essential coordinates.  In particular,
+`distinctEssentialCoordinateBaseline_no_switchingFactor_contraction_of_twice_budget_lt` rules out
+the required switching-factor contraction whenever `2*d < q`.
+
+The precise next frontier is therefore a circuit-structural restriction lemma, not another prefix
+code: prove that a normalized layered bottom family either (i) contains enough restriction-isolated
+exact width-three singleton gates to invoke the verified coefficient-tail obstruction, or (ii) has
+its distinct live essential coordinates reduced to `O(d)` by a trunk of depth `d`, with the
+remaining semantic-replica/component charge explicitly bounded.  Any proposed isolation step must
+also control competing DNF terms, since clause inclusion alone is false.  Only after this dichotomy
+is kernel-checked should the multi-round survivor schedule be revisited.  No P-versus-NP conclusion
+follows.
+
+### Restriction-isolated singleton gates now transfer exactly
+
+The semantic isolation interface needed by the structural frontier is now kernel-checked.
+`liveTermFilter_eq_singleton` proves that a duplicate-free gate has root-live filter exactly `[T]`
+when `T` survives and every competing term is already falsified.  This is strictly stronger than
+clause occurrence and explicitly excludes the preserved empty-term counterexample above.
+
+`CommonShallowAt.of_reindex_liveFilter` then uses falsification monotonicity along every trunk leaf:
+a full-family common-shallow certificate transfers to any reindexed family equal to the selected
+gates' live filters at the root restriction.  The filter is chosen once at the root; terms killed
+there remain killed throughout the trunk, so no restriction-dependent change of canonical tree is
+hidden in the argument.
+
+Finally, `mem_commonShallowBad_of_isolatedSingleton_reindex` gives the pointwise bad-event lift
+needed for counting.  If a restriction is bad for selected singleton targets, and each target is
+the unique live term of its chosen normalized full gate at that restriction, the same restriction
+is bad for the full family.  Thus the earlier exact width-three coefficient-tail obstruction can
+now be imported under a concrete isolation predicate rather than verbatim gate equality.
+
+The precise next frontier is quantitative, not semantic: define and count a restriction shell on
+which many pairwise-disjoint width-three targets are simultaneously unique-live terms of their
+selected full gates.  This requires a packing or hitting-set bound for falsifying all competing
+terms while preserving the targets and the fixed live-coordinate budget.  If such a shell cannot
+be large, the alternative branch must turn that failure into an `O(d)` bound on distinct live
+essential support with an explicit semantic-replica/component charge.  Only after that dichotomy is
+proved should the multi-round survivor schedule be revisited.  No P-versus-NP conclusion follows.
+
+### Restriction isolation requires inclusion-minimal targets
+
+The first structural obstruction to the proposed unique-live shell is now kernel-checked.
+`termFalsified_true_of_lits_subset` proves that if every literal of a competing term `U` occurs in
+the target `T`, then any restriction falsifying `U` also falsifies `T`.  Its contrapositive,
+`termFalsified_false_of_lits_subset`, says that preserving `T` necessarily preserves every such
+weaker competitor.
+
+Consequently, `not_lits_subset_of_isolatedSingleton` proves a necessary antichain condition for
+the isolation interface: a uniquely live target cannot have a distinct competing term whose
+literal list is contained in the target's literal list.  This obstruction is independent of
+duplicate clauses and is therefore not repaired by `eraseDups`.  It also explains why a generic
+hitting-set argument cannot begin from an arbitrary selected width-three clause: some competitors
+cannot be hit without killing the target at all.
+
+The precise next frontier is to separate normalized bottom-gate terms into inclusion-minimal
+candidates and dominated targets.  For the minimal candidates, prove a quantitative packing or
+hitting-set bound that falsifies competitors using literals outside each preserved target while
+respecting the fixed-live shell budget.  If too few disjoint minimal width-three candidates exist,
+the alternative branch must charge dominated targets to their minimal witnesses and turn the
+result into the proposed `O(d)` live-essential-support/component bound.  Subsumption deletion
+cannot simply be assumed to preserve canonical trees, so that route must be audited explicitly if
+used.  No P-versus-NP conclusion follows.
+
+### Subsumption deletion preserves semantics but not canonical depth
+
+The proposed shortcut of deleting terms dominated by inclusion-minimal witnesses has now been
+audited and rejected at the current canonical-tree interface.  `subsumptionRedundantGate` is the
+ordered DNF
+
+```text
+(x₁ ∧ x₀) ∨ x₀,
+```
+
+with the stronger absorbed term placed first, while `subsumptionMinimalGate` is just `x₀`.
+`subsumptionMinimal_lits_subset_redundant` verifies the literal inclusion responsible for
+absorption.  More strongly, `subsumptionRedundantGate_anyTermSat` proves that the two gates have
+the same `anyTermSat` value under **every partial restriction**, not merely every total assignment.
+
+Nevertheless, on the all-live root with fuel two,
+`subsumptionRedundantGate_depth_two` and `subsumptionMinimalGate_depth_one` compute canonical
+depths two and one.  The combined theorem
+`canonicalDT_depth_not_preserved_by_subsumption_deletion` therefore kernel-checks a semantic
+equivalence whose canonical depth changes after subsumption deletion.  The cause is syntactic
+order: the canonical procedure begins with the first term and queries its irrelevant `x₁` before
+it can exploit the absorbing `x₀` term.
+
+Thus inclusion-minimal reduction cannot be inserted before the existing switching encoder or
+layered-collapse bridge merely from semantic equivalence.  The precise next frontier is to work
+with inclusion-minimal targets **inside the original ordered gates**: quantify the outside literals
+available in each non-dominated competitor and prove either a simultaneous restriction-isolation
+packing bound, or a charging lemma showing that failure of such a packing bounds the original
+gate's distinct live essential support/components by `O(d)`.  Any alternative normalization must
+prove canonical-tree simulation with an explicit depth overhead rather than equality.  Only after
+that dichotomy is kernel-checked should the multi-round survivor schedule be revisited.  No
+P-versus-NP conclusion follows.
+
+### Inclusion-minimal targets expose an outside literal in every competitor
+
+The local combinatorial premise for the proposed isolation packing is now explicit and
+kernel-checked without modifying the ordered gate.  `InclusionMinimalIn cs T` says that every term
+of `cs` whose literal list is contained in `T.lits` is actually `T`.
+`exists_outside_literal_of_inclusionMinimal` then proves that every distinct competitor `U`
+contains a literal absent from `T`.  This is precisely the literal-level resource an isolation
+restriction may try to falsify while preserving `T`.
+
+Conversely, `inclusionMinimal_of_isolatedSingleton` proves that the existing unique-live
+isolation predicate forces this inclusion-minimality.  Together with
+`not_lits_subset_of_isolatedSingleton`, this shows the proposed target class is exact at the local
+order-theoretic level: no uniquely live target is lost, and every remaining competitor supplies an
+outside literal.  No subsumption deletion, term reordering, or semantic-to-canonical simulation is
+assumed.
+
+The precise next frontier is global compatibility.  For a packed family of minimal targets,
+select one outside literal from every competitor and bound conflicts where a selected literal
+belongs to another preserved target (or shares its variable with incompatible polarity).  Prove
+either a large conflict-free selection whose falsifying assignments preserve all targets and fit
+the fixed-live shell, or charge every selection failure to a bounded target-support/component
+hitting set.  Only then can the verified isolated-singleton transfer and width-three coefficient
+tail be applied.  No P-versus-NP conclusion follows.
+
+### A compatible outside-literal selection now constructs simultaneous isolation
+
+The positive branch of the global-compatibility frontier is now kernel-checked.
+`GloballyCompatibleIsolationSelection` records the three exact obligations on one finite selected
+literal list: literals selected on the same variable demand the same falsifying value; no selected
+variable occurs in any preserved target (a polarity-sensitive strengthening of literal
+non-membership); and every non-target competitor contains a selected literal.
+
+`compatibleIsolationRestriction` turns such a list into a single restriction.  The proved lemmas
+`compatibleIsolationRestriction_litFalse`, `compatibleIsolationRestriction_target_live`, and
+`compatibleIsolationRestriction_competitor_falsified` show respectively that every selected
+literal is forced false, every target remains entirely live, and every competitor is killed.
+Finally, `mem_commonShallowBad_of_globallyCompatibleIsolationSelection` composes this construction
+with the previously verified isolated-singleton transfer, lifting badness of the packed singleton
+family to the unchanged full ordered family.
+
+This removes the remaining semantic ambiguity from the positive branch: no further canonical-tree
+simulation or restriction-construction lemma is needed once a compatible selection has been
+found.  The precise next frontier is the finite combinatorics of existence and size.  Build the
+competitor-versus-literal conflict hypergraph for inclusion-minimal targets and prove either a
+large hitting selection satisfying the two compatibility conditions, with an explicit bound on
+the number of fixed variables and resulting shell size, or extract from every failure a bounded
+target-support/component hitting set.  The fixed-shell accounting is essential because the
+constructed restriction itself need not lie on the intended shell without an additional free-set
+extension/counting argument.  No P-versus-NP conclusion follows.
+
+### The compatible-selection restriction now has exact shell accounting
+
+The fixed-coordinate cost of the positive isolation construction is now kernel-checked rather
+than inferred from the selected literal list.  `compatibleIsolationSelectedVars` is the finset of
+variables occurring in the selection, and `freeVars_compatibleIsolationRestriction` proves the
+exact identity
+
+```text
+freeVars(compatibleIsolationRestriction selected)
+  = univ \ compatibleIsolationSelectedVars selected.
+```
+
+Consequently `stars_compatibleIsolationRestriction` gives
+
+```text
+stars = n - |selected variables|.
+```
+
+The supporting bounds `compatibleIsolationSelectedVars_card_le` and
+`sub_le_stars_compatibleIsolationRestriction` show that a selection of length at most `q` fixes at
+most `q` coordinates and hence leaves at least `n-q` stars.  When selected variables are duplicate
+free, `stars_compatibleIsolationRestriction_eq_sub_length` identifies the shell exactly as
+`n-selected.length`.  Repeated same-variable witnesses therefore cost no additional shell mass;
+the relevant hypergraph cost is distinct selected variables, not literal occurrences.
+
+This also sharpens the remaining gap.  A short compatible selection produces one high-star base
+restriction, not by itself a large family on an arbitrary intended `K`-star shell.  The precise
+next frontier is to define the competitor--outside-literal conflict hypergraph and prove either a
+large compatible hitting selection with a bound on its **distinct-variable** support, together
+with a counted extension of the resulting base restriction to the intended shell that preserves
+target survival, or extract a bounded target-support/component hitting set from failure.  No
+P-versus-NP conclusion follows.
+
+### Target-preserving extension is feasible on the exact interval
+
+The existence half of the intended-shell extension is now kernel-checked.  `keepFreeExtension`
+retains an arbitrary chosen subset of the base-live coordinates, fixes every other formerly live
+coordinate, preserves all earlier assignments, and has exactly as many stars as the chosen subset.
+`compatibleIsolationTargetVars` records the distinct variables in all packed targets; global
+compatibility proves that this entire support is live in the compatible-selection base.
+
+The capstone
+`exists_shell_extension_of_globallyCompatibleIsolationSelection'` proves that a compatible
+selection extends to a target-preserving restriction on every `K`-star shell satisfying exactly
+
+```text
+|distinct target variables| ≤ K ≤ stars(compatible base).
+```
+
+Every target remains live and every competitor remains falsified.  Thus there is no additional
+semantic or existence obstruction to moving the positive construction down to an intended shell.
+The construction deliberately chooses one deterministic extension, so it does not yet supply the
+large family required by a density lower bound.
+
+The precise next frontier is now the exact fiber count: define all target-preserving `K`-star
+extensions of a compatible base and prove their cardinality, expected to separate into a choice of
+`K-|target support|` extra live variables and Boolean assignments to the remaining base-live
+coordinates.  In parallel, the competitor--outside-literal conflict hypergraph must still produce
+a compatible hitting selection with bounded distinct-variable support, or a bounded
+target-support/component obstruction.  No P-versus-NP conclusion follows.
+
+### The target-preserving shell-extension fiber has the exact binomial--Boolean count
+
+The counting half of the intended-shell extension is now kernel-checked.  The finite family
+`targetPreservingShellExtensions base required K` contains every restriction that extends `base`,
+has exactly `K` stars, and keeps the complete required target support live.
+`card_restrictionExtends_freeVars_eq` first proves that, for a prescribed final free set `S` inside
+the base-live coordinates, the extension fiber has exactly
+
+```text
+2^(|freeVars base| - |S|)
+```
+
+members: old fixed coordinates are forced, coordinates in `S` remain live, and every other
+base-live coordinate receives either Boolean value.  `card_targetSuperset_freeSets` separately
+counts the admissible `K`-element free sets containing `required`.  The capstone
+`targetPreservingShellExtensions_card` combines the two partitions to give the exact formula
+
+```text
+choose(|freeVars base| - |required|, K - |required|)
+  * 2^(|freeVars base| - K).
+```
+
+Thus the positive isolation branch loses no unaccounted shell mass after a compatible base is
+found: the binomial factor chooses the extra live variables beyond the targets, while the Boolean
+factor counts assignments to the remaining formerly live coordinates.  The deterministic
+`keepFreeExtension` from the preceding milestone is one member of this complete fiber.
+
+The precise next frontier is no longer extension feasibility or counting.  Construct the finite
+competitor--outside-literal conflict hypergraph for inclusion-minimal targets and prove either a
+compatible hitting selection with bounded **distinct-variable** support, so that the exact fiber
+above supplies its shell mass, or extract from selection failure a bounded target-support or
+component hitting set.  That dichotomy is the remaining structural input before the isolated
+width-three coefficient tail can be applied to general normalized bottom families.  No
+P-versus-NP conclusion follows.
+
+### Empty competitor edges give an explicit target-support obstruction
+
+The first negative branch of the competitor conflict hypergraph is now kernel-checked.
+`competitorOutsideTargetVars target U` is the finite set of variables occurring in a competitor
+`U` after deleting the union of all preserved-target supports.  The theorem
+`not_exists_globallyCompatibleIsolationSelection_of_outsideTargetVars_eq_empty` proves that if
+this edge is empty, no globally compatible isolation selection exists: hitting `U` would require
+fixing a variable that global compatibility must leave live for a target.
+
+This obstruction is not ruled out by local inclusion-minimality.
+`exists_targetSupport_conflict_of_inclusionMinimal_of_outsideTargetVars_eq_empty` combines an
+empty edge with an inclusion-minimal target to extract a literal that is outside its own target
+but shares a variable with some preserved target.  Thus the earlier local outside-literal lemma
+does not by itself feed the positive selection branch; cross-target support is a genuine failure
+mode, now retained as a proved certificate rather than an informal caveat.
+
+The precise next frontier is to form the family of all **nonempty** competitor edges after target
+support deletion and solve its remaining two constraints together: choose a bounded-size
+distinct-variable transversal, and choose polarities consistently whenever several edges use the
+same variable.  Failure should yield either many empty-edge target-support certificates (now
+formalized) or a bounded component/polarity-conflict hitting set.  Only after that dichotomy is
+quantified should the exact shell-extension fiber be combined with the isolated width-three
+coefficient tail.  No P-versus-NP conclusion follows.
+
+### Nonempty edges split cleanly at the polarity constraint
+
+The literal-level conflict pool and both sides of its first dichotomy are now kernel-checked.
+`outsideTargetLiteralPool` retains every full-family literal whose variable avoids the complete
+preserved-target support.  Its membership theorem identifies these occurrences exactly, without
+discarding their polarity as `competitorOutsideTargetVars` does.
+
+The positive capstone
+`exists_globallyCompatibleIsolationSelection_of_nonempty_edges_of_pool_consistent` proves that if
+every competitor variable edge is nonempty and all occurrences of a shared variable in this pool
+have the same falsifying value, then selecting the complete pool is a globally compatible
+isolation selection.  This construction is intentionally nonminimal: it settles existence while
+leaving the distinct-variable transversal bound visible as the quantitative task.
+
+The negative capstone
+`not_exists_globallyCompatibleIsolationSelection_of_singleton_polarity_conflict` proves that two
+singleton competitor edges demanding different falsifying values on the same variable rule out
+every globally compatible selection.  Therefore nonempty edges alone are insufficient even after
+all target-support conflicts have been deleted.  The obstruction is intrinsically polarity-aware,
+not an artifact of the restriction construction.
+
+The precise next frontier is to replace the strong whole-pool consistency condition by a bounded
+polarity-consistent transversal theorem.  Model each outside variable with its two possible
+falsifying orientations and prove either a small oriented hitting set for all competitor edges or
+extract a bounded unsatisfiable component generalizing the proved two-singleton conflict.  The
+bound must count distinct variables so it composes with the exact target-preserving shell fiber.
+No P-versus-NP conclusion follows.
+
+### The oriented-transversal existence problem is exactly Boolean clause satisfiability
+
+The proposed polarity-aware transversal has now been reduced to its exact assignment semantics.
+`HitsOutsideCompetitors` gives every variable a Boolean orientation and requires each competitor
+to contain an outside-target literal whose falsifying value matches that orientation.  The
+capstone
+`exists_globallyCompatibleIsolationSelection_iff_exists_hitsOutsideCompetitors` proves
+
+```text
+(∃ globally compatible isolation selection)
+  ↔ (∃ Boolean assignment hitting every outside-target competitor clause).
+```
+
+Forward, the consistent partial assignment carried by a selection is extended arbitrarily on
+unselected variables.  Reverse, all available literal occurrences matched by a hitting assignment
+form a compatible selection.  Target-support deletion is built into both sides.  Empty edges and
+the previously proved opposite singleton pair are therefore the first two unsatisfiable instances
+of this exact clause system, not the complete list of possible obstructions.
+
+This changes the defensible frontier.  Nonempty edges, bounded clause width, and polarity-aware
+language alone do not supply the desired positive selection or a constant-size unsatisfiable
+component; the missing statement is a satisfiability assertion and needs additional structure
+from the way targets and competitors arise.  The precise next frontier is to identify and prove
+such structure—for example by choosing the packed targets jointly with the orientation assignment,
+or by proving a quantitative lower bound on hitting assignments averaged over target choices—and
+then bound the distinct matched-variable support before applying the exact shell-extension fiber.
+A generic oriented-transversal lemma should not be assumed.  No P-versus-NP conclusion follows.
+
+### Joint target choice also fails under the current local hypotheses
+
+The first proposed source of extra structure has been tested at its smallest instance.
+`oppositeSingletonGate` is the normalized width-one gate
+
+```text
+[x], [¬x].
+```
+
+The kernel-checked theorem `oppositeSingletonGate_nodup_width_one` records that the gate is
+duplicate-free, every term is literal-duplicate-free, and every term has width exactly one.  The
+capstone `oppositeSingleton_no_joint_target_isolation` proves that there is nevertheless no choice
+of a member target together with a globally compatible isolation selection.  Preserving either
+singleton protects the only variable, while falsifying the other singleton requires fixing that
+same protected variable.  Thus choosing targets jointly with orientations is not a generic repair,
+even for one clean gate of width one; the empty-edge obstruction can persist for every target.
+
+This rules out another hypothesis-free route without weakening or deleting the counterexample.
+The precise next frontier is to characterize a circuit-derived condition that excludes unavoidable
+opposite-polarity support conflicts (or to stratify and charge gates exhibiting them), and only
+then test an averaged target-choice bound on that restricted class.  Any positive theorem must
+state this extra structure explicitly before bounding matched-variable support and invoking the
+exact shell-extension fiber.  No P-versus-NP conclusion follows.
