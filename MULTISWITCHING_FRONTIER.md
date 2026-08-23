@@ -4912,3 +4912,1376 @@ distinct realized prefix-variable sets in the bad fiber by a statistic controlle
 normalized clause-occurrence alphabet; alternatively construct a density-admissible family that
 still attains the independent-subset lower bound.  The independent family and the scheduled
 saturated singleton state remain mandatory regression tests.  No P-versus-NP conclusion follows.
+
+### The independent-subset obstruction is outside the actual-density regime
+
+The first density-aware regression boundary is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`independentLiteralGates_actualAlphabet_eq` proves that the independent-singleton family has exact
+ragged clause-occurrence alphabet
+
+```text
+∑ g, |independentLiteralGates n g| = n.
+```
+
+Thus its full `choose(n,d)` bad common-endpoint fiber is bought by one genuine key for every
+ambient coordinate; it is not a small-alphabet example hidden by rectangular padding.  The
+capstone `independentLiteralGates_not_actualDensity` proves that for every positive shell `K` and
+every declared width bound `w`, this family falsifies the exact premise used by the verified
+actual-alphabet contraction:
+
+```text
+¬(4*(w+1)*(n+1)*K + K ≤ n+1).
+```
+
+Consequently the current independent-subset lower bound is not a density-admissible
+counterexample.  Bad-event sensitivity alone remains insufficient, but the verified density
+premise genuinely removes this particular saturated fiber rather than merely changing its
+presentation.
+
+The precise next frontier is to prove a structural bad-fiber bound under the strict
+occurrence-versus-live gap forced by actual density.  The first candidate is to bound the union of
+coordinates occurring in the normalized family by width times the ragged alphabet and count
+realized `d`-prefix variable sets inside that support; then compare that support code with the
+existing occurrence-multiset-plus-position encoder.  A density-admissible counterexample would
+instead have to retain full compatible-subset multiplicity while using strictly fewer than one
+clause occurrence per ambient live coordinate.  No P-versus-NP conclusion follows.
+
+### The density-aware realized-prefix support alphabet is now bounded
+
+The proposed support statistic is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The definitions
+`clauseVariableSupport`, `gateVariableSupport`, and `familyVariableSupport` retain exactly the
+coordinates occurring in the indexed DNF family.  The theorem `familyVariableSupport_card_le`
+proves, for width bound `w` and exact ragged clause-occurrence alphabet
+
+```text
+A = ∑ g, |gates g|,
+```
+
+that the complete coordinate support has size at most `w*A`.  This bound permits arbitrary
+coordinate reuse and duplicate literals, so it does not depend on a hidden cleanliness premise.
+
+`freshTaggedPrefixVars_subset_familyVariableSupport` then proves directly from successful witness
+decoding that every selected canonical-prefix coordinate lies in this support.  Consequently
+`realizedPrefixVariableSets_card_le_choose_actualAlphabet` gives, for any collection of roots whose
+fresh prefixes really have length `d`,
+
+```text
+|distinct realized prefix-variable sets| ≤ choose(w*A,d).
+```
+
+The semantic specialization
+`commonShallowBad_realizedPrefixVariableSets_card_le` applies this bound to the actual
+`commonShallowBad` event under the same long-trace premise already consumed by the verified
+prefix encoders.  Thus density-aware bad-event sensitivity now has a concrete finite alphabet: the
+independent-singleton regression reaches `choose(n,d)` only because there `w*A = n`, while a
+small-occurrence family cannot realize arbitrary ambient `d`-subsets.
+
+This theorem counts distinct selected-variable sets rather than roots.  The precise next frontier
+is to pair this alphabet with the existing prefix-endpoint injection to obtain a complete bad-root
+count, then compare its factor `choose(w*A,d)` against the existing
+`(w+1)^d * (choose(A+d-1,d)+1)` occurrence-multiset-plus-position factor.  That comparison will
+decide whether coordinate support yields a genuine quantitative improvement or only an alternate
+presentation of the same information.  Existing endpoint/source-gate counterexamples and the
+scheduled saturated singleton audit remain mandatory regression tests.  No P-versus-NP
+conclusion follows.
+
+### The support alphabet now gives a complete bad-root count
+
+The density-aware support statistic is now paired with the existing endpoint reconstruction in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`commonShallowBadEndpointFiber_card_le_realizedPrefixVariableSets` proves that, at a fixed
+budget-`d` endpoint, the map sending a bad root to its selected prefix-variable set is injective:
+endpoint equality and selected-set equality recover the root restriction.
+
+Summing this fiber bound over the exact residual shell gives the capstone
+`commonShallowBad_card_le_shell_mul_choose_actualAlphabet`:
+
+```text
+|commonShallowBad|
+  ≤ |{ τ : Restriction n // stars τ = K-d }|
+      * choose(w * (∑g, |gates g|), d).
+```
+
+This is a complete bad-root estimate rather than only a count of distinct prefix sets.  It needs
+no duplicate-clause hypothesis and works for any extending long-path assignment.  The comparison
+is genuinely favorable in at least one fully symbolic regime:
+`support_factor_strict_lt_realizedPrefix_factor_depth_one` proves for every `w,A` that at `d=1`,
+
+```text
+choose(w*A,1) < (w+1) * (choose(A,1)+1).
+```
+
+Thus the support code is not merely an alternate presentation of the old
+occurrence-multiset-plus-position factor.  The exact comparison for arbitrary `d` remains open;
+in the intended multi-round schedule `d` grows, so the depth-one separation alone does not yet
+improve the verified contraction recurrence.
+
+The precise next frontier is to prove or refute the general factor comparison
+
+```text
+choose(w*A,d) ≤ (w+1)^d * (choose(A+d-1,d)+1),
+```
+
+preferably by an explicit injection from support subsets to occurrence multisets plus literal
+positions.  Then instantiate the smaller certified factor in the circuit-level normalized shell
+contraction and re-audit the multi-round schedule.  Existing endpoint/source-gate counterexamples,
+the independent-subset lower bound, and the scheduled saturated singleton audit remain mandatory
+regression tests.  No P-versus-NP conclusion follows.
+
+### The support factor is uniformly no larger, and is wired into the circuit interface
+
+The open general comparison is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  In fact
+`choose_mul_le_pow_mul_multichoose` proves the stronger inequality
+
+```text
+choose(w*A,d) <= w^d * choose(A+d-1,d).
+```
+
+The proof multiplies by `d!`: `d! * choose(w*A,d)` is the falling factorial of `w*A`, bounded by
+`(w*A)^d`; meanwhile `A^d` is bounded by the rising factorial
+`d! * choose(A+d-1,d)`.  Positivity of `d!` then cancels the common factor.  Thus no bespoke
+subset-to-multiset injection, optional-code symbol, or duplicate-clause premise is required.
+The requested comparison with
+
+```text
+(w+1)^d * (choose(A+d-1,d)+1)
+```
+
+follows immediately as `support_factor_le_realizedPrefix_factor`.  Combined with the already
+proved strict depth-one separation, the support factor is uniformly no worse and sometimes
+strictly better than the realized-prefix factor.
+
+The smaller count is also inserted into the normalized circuit layer.
+`commonShallowBad_card_le_shell_mul_choose_actualAlphabet_of_le_fuel` discharges the extension and
+long-trace premises using the canonical semantic bad assignment and ample fuel.
+`normalizedLayered_commonShallowBad_card_le_shell_mul_choose_actualAlphabet` specializes this to
+the exact normalized two-polarity bottom family, and
+`normalizedLayered_commonShallowBad_scaled_le_of_support_balance` exposes the exact shell-balance
+interface needed by schedule arithmetic.  These theorems require `BottomWidth` but no clause-list
+`Nodup` hypothesis.
+
+The precise next frontier is to prove the support-specific binomial shell balance at the intended
+multi-round parameters, using `A <= layeredRoundActualKeyCap M s`, and compare the resulting live
+scale against `layeredRoundActualScale`.  This will determine whether the removed optional and
+position overhead merely improves constants or weakens the gate-bound/live-dimension
+self-reference identified by the current recurrence audit.  Existing endpoint/source-gate
+counterexamples, the independent-subset lower bound, and the scheduled saturated singleton audit
+remain mandatory regression tests.  No P-versus-NP conclusion follows.
+
+### The support-specific shell balance improves constants but not the self-reference
+
+The exact binomial balance is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`supportSubset_factor_le_pow` bounds the downward-shell factor, the support-subset label, and any
+requested saving `e <= d` by
+
+```text
+2^d * choose(w*A,d) * 2^e <= (4*w*A)^d.
+```
+
+Consequently `supportSubset_balance_of_density` needs only
+
+```text
+(4*w*A)*K + K <= n+1,
+```
+
+instead of the realized-prefix premise with coefficient `4*(w+1)*(A+1)`.  The circuit theorem
+`normalizedLayered_commonShallowBad_scaled_le_of_support_density` consumes this sharper premise
+without a duplicate-clause hypothesis.
+
+At `w=s+1` and `A <= layeredRoundActualKeyCap M s`, the new definitions
+`layeredRoundSupportScale`, `layeredRoundSupportLive`, and `layeredRoundSupportShell` give a
+half-shell schedule whose backward scale is
+
+```text
+5 * ((s+1) * layeredRoundActualKeyCap M s + 1).
+```
+
+`twenty_mul_layeredRoundSupportScale_le_actualScale` proves that the previous verified scale is at
+least twenty times this one, and
+`normalizedLayered_commonShallowBad_scaled_le_support_schedule` proves the corresponding
+roundwise contraction.
+
+The qualitative obstruction remains.  Theorems
+`not_layeredRoundSupport_worstCase_density_of_live_le_gateBound` and
+`layeredRoundSupport_gateBound_lt_live_of_density` prove that every nonempty support-density round
+still requires `M < N`: a class-level gate cap that already dominates the current live dimension
+cannot satisfy the sharper premise.  Thus the support code yields a real constant improvement,
+but it does not weaken the recurrence's gate-bound/live-dimension self-reference.
+
+The precise next frontier is structural rather than another shell constant: prove a roundwise
+sublinear bound on the current circuit-owned support or bottom-slot measure after restriction and
+collapse, or exhibit a density-admissible survivor family showing that no such bound follows from
+the present invariants.  The existing saturated singleton construction is the first regression
+case for either route.  No P-versus-NP conclusion follows.
+
+### Current round invariants do not force sublinear circuit-owned support
+
+The first structural regression test is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`familyVariableSupport_rectangularDistinctSingletonGates` proves that the positive width-one
+bottom family of the existing rectangular singleton construction owns every coordinate:
+
+```text
+familyVariableSupport (rectangularDistinctSingletonGates G m) = univ.
+```
+
+More importantly, `normalizedLayeredBottomFamily_rectangularRoundOutput_support` proves the same
+statement for the exact duplicate-normalized two-polarity family consumed by the circuit shell
+theorem.  Normalization cannot remove these distinct singleton clauses, and the positive half of
+the circuit indexing already covers all `G*m` coordinates.  Combining this with the previously
+verified exact collapse computation gives
+`rectangularDistinctSingletonRoundOutput_support_saturates_live`:
+
+```text
+|familyVariableSupport (normalizedLayeredBottomFamily output)|
+  = stars allLive
+  = G*m.
+```
+
+Thus no pointwise sublinear support bound follows merely from width one, duplicate normalization,
+the two-polarity circuit interface, alternating shape, being in the range of `collapseRound`, or
+the tracked occurrence/live conservation laws.  This preserves the counterexample rather than
+assuming the desired structural gap.
+
+The precise next frontier is to seek a distributional or multi-round-history statement: prove
+that large-support survivor states have sufficiently small shell mass after conditioning on the
+actual restriction process, or construct a schedule-admissible family showing that even such an
+average support bound fails.  A pointwise support-shrink lemma under the current invariants is now
+ruled out.  The padded scheduled singleton state remains the mandatory first regression test.  No
+P-versus-NP conclusion follows.
+
+### The padded singleton obstruction survives the smaller support schedule
+
+The mandatory regression test is now instantiated at the support-specific schedule rather than
+only at the older stars-and-bars schedule.  In
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`,
+`paddedRectangular_liveSupport_subset_familyVariableSupport` proves for arbitrary padding that
+every live rectangular coordinate occurs in the exact duplicate-normalized two-polarity family.
+Consequently
+`stars_paddedRectangularRestriction_le_familyVariableSupport_card` gives
+
+```text
+stars paddedRestriction <= |familyVariableSupport normalizedRoundOutput|.
+```
+
+The capstone `paddedRectangularRoundOutput_realizes_support_schedule` specializes this at
+`M = 10`, `s = 0`, `r = 1`, and `j = 0`.  The improved schedule has ambient dimension `4100`,
+shell size `20`, and normalized key cap `40`.  One row of twenty independent singleton clauses,
+padded by `4080` fixed coordinates, is a genuine non-root `collapseRound` output; it preserves
+the bottom-occurrence/live equality, owns at least all twenty survivors, lies on the exact
+support-specific shell, and still satisfies the verified global `2^10` bad-set contraction.
+
+Thus the twenty-fold scale improvement does not itself create pointwise support shrink.  It is
+consistent with full survivor support because its contraction is distributional.  The existing
+hard-coded polarity-sensitive tail audit applies to the older `164000`-coordinate schedule, so it
+does not yet quantify this smaller `4100`-coordinate regression case.
+
+The precise next frontier is to parameterize the packed-singleton missed-coordinate and overlap
+count by the padding size, instantiate it at `pad = 4080`, and compare its certified bad mass with
+the `4100`-coordinate support shell.  This will decide whether the smaller schedule keeps the
+same singleton family negligible or makes it a genuine average-support obstruction.  No
+P-versus-NP conclusion follows.
+
+### The padding-parametric overlap mass remains negligible at the smaller schedule
+
+The packed-singleton overlap arithmetic is now parameterized by the number of fixed padding
+coordinates in `ComputationalDepthMultiSwitchingTwoSATBridge.lean`:
+
+```text
+paddedSingletonCertifiedMass pad
+  = sum_{q=11}^{20} choose(20,q) * choose(pad,20-q) * 2^(pad-20+q).
+```
+
+`scheduledSingletonCertifiedTail_card_eq_paddedMass` verifies that the previously certified bad
+tail at ambient size `164000` is exactly the `pad = 163980` instance, so this is a genuine
+generalization of the counted overlap mass rather than a disconnected estimate.
+
+At the improved support schedule, `paddedSingletonCertifiedCoefficient_4080_lt` proves the exact
+normalized coefficient inequality
+
+```text
+sum_{q=11}^{20} choose(20,q) * choose(4080,20-q) * 2^(q-10)
+  < choose(4100,20).
+```
+
+After restoring the common power of two,
+`paddedSingletonCertifiedMass_mul_two_pow_ten_lt_shell_4080` proves
+
+```text
+paddedSingletonCertifiedMass 4080 * 2^10
+  < choose(4100,20) * 2^4080.
+```
+
+Thus shrinking the padding by a factor of forty does not turn this polarity-sensitive
+packed-singleton tail into an average-support obstruction: its full parameterized overlap mass
+still fits strictly below the shell after the same `2^10` saving.  The pointwise saturated state
+remains real, but this particular tail is globally negligible at the new schedule.
+
+The precise next frontier is to parameterize the *semantic membership bridge* itself (currently
+the `scheduledSingletonSupport_not_commonShallow_of_live_false` theorem is specialized to
+`pad = 163980`) and identify the exact bad set, not just this certified sufficient tail, at
+`pad = 4080`.  If the sufficient criterion is also necessary, the singleton regression is fully
+discharged distributionally; otherwise the missing bad profiles must be counted.  No
+P-versus-NP conclusion follows.
+
+### The semantic bad-set bridge is now padding-parametric
+
+The packed support and semantic obstruction are now parameterized in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  For every `pad`,
+`paddedSingletonSupport pad` is the set of the twenty packed singleton coordinates and has
+cardinality exactly twenty.  The theorem
+`paddedSingletonSupport_not_commonShallow_of_live_false` proves that any shell restriction with
+twenty live coordinates is not common-shallow at trunk depth ten and residual depth zero whenever
+more than ten packed coordinates remain live and every other packed coordinate is fixed false.
+Its proof is semantic: a trunk path misses one live packed coordinate, and toggling that coordinate
+changes the positive singleton DNF while leaving the reached trunk leaf unchanged.
+
+`paddedSingletonBad pad` exposes the exact bad finset at ambient dimension `pad + 20`, and
+`paddedSingletonSupport_mem_bad_of_live_false` turns the same criterion into membership in that
+finset.  Thus the criterion now applies directly at `pad = 4080`; it is no longer connected to the
+new coefficient calculation merely by a hard-coded semantic theorem.  The matching numerical
+profile mass satisfies `paddedSingletonCertifiedMass_mul_two_pow_ten_lt_shell_4080`, strictly below
+the `4100`-coordinate shell after the requested `2^10` saving.  A padding-parametric overlap
+finset/cardinality theorem is still needed before identifying that numerical mass with the
+cardinality of a concrete `pad = 4080` certified subset inside Lean.
+
+This step proves sufficiency only.  It does not silently identify the certified subset with the
+whole bad event: restrictions with a fixed-true packed coordinate, or with at most ten live packed
+coordinates, have not yet been shown common-shallow.  Those profiles are preserved as the exact
+unresolved converse rather than discarded.
+
+The precise next frontier is to prove or refute the converse characterization at arbitrary
+padding: construct a depth-ten common trunk with residual depth zero whenever the polarity-sensitive
+criterion fails.  In parallel, parameterize the certified-overlap finset/cardinality bridge.  If
+the converse succeeds, these two facts give the exact bad-set cardinality; if it fails, extract and
+count the first additional bad profile at `pad = 4080`.  No P-versus-NP conclusion follows.
+
+### The one-sided converse is false; the opposite monochromatic profile is also bad
+
+The converse audit produced a concrete additional bad profile in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The static support lemmas
+`canonicalDT_queriedVars_subset_gateVariableSupport` and
+`canonicalFamily_trace_length_le_live_support` show that a normalized common-family path charges
+only coordinates that are both live and syntactically owned by the family.  The resulting generic
+bridge `commonShallowAt_zero_of_live_support_le` proves residual depth zero whenever that live
+support fits inside the trunk budget, even if many irrelevant ambient coordinates remain live.
+
+For the padded singleton circuit, `normalizedPaddedSingleton_familyVariableSupport` identifies the
+owned support exactly with `paddedSingletonSupport pad`.  Hence
+`paddedSingletonSupport_commonShallow_of_live_le` proves the valid half of the converse: at most ten
+live packed coordinates always admit the depth-ten common trunk.
+
+The remaining proposed converse is false because the indexed circuit family contains both
+polarities.  `paddedSingletonSupport_not_commonShallow_of_live_true` proves that more than ten live
+packed coordinates are also bad when every other packed coordinate is fixed **true**.  The missed
+coordinate toggles the negative singleton DNF, exactly symmetrically to the earlier positive-DNF
+argument for fixed false coordinates.  `paddedSingletonSupport_mem_bad_of_live_true` inserts this
+additional profile into the exact padding-parametric bad finset, including at `pad = 4080`.
+
+Thus the earlier certified mass is not the whole bad event.  The evidence now suggests the exact
+classification: a shell point is bad precisely when more than ten packed coordinates are live and
+the fixed packed coordinates are monochromatic (all false or all true, with the all-live case
+vacuously in both descriptions).  Mixed fixed polarities should be good because the positive and
+negative singleton DNFs are already terminal at the root, but that final sufficiency statement is
+not yet kernel checked.
+
+The precise next frontier is to prove the mixed-polarity root-terminal certificate, combine it with
+the live-support theorem and the two monochromatic obstructions into an iff characterization, and
+then parameterize/count the union of the all-false and all-true overlap finsets at `pad = 4080`
+(taking care of their all-live intersection).  No P-versus-NP conclusion follows.
+
+### The padded singleton bad event is exactly the monochromatic union
+
+The missing converse is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`paddedSingletonSupport_commonShallow_of_mixed_fixed` constructs a zero-query common trunk as soon
+as the fixed packed coordinates include both Boolean values: a fixed-true singleton makes the
+positive indexed DNF terminal at the root, while a fixed-false singleton does the same for the
+negative indexed DNF.  Duplicate normalization is transferred through the previously proved
+canonical-tree equivalence.
+
+Combining this root-terminal certificate with the live-support certificate and the two symmetric
+semantic obstructions gives `mem_paddedSingletonBad_iff`.  For every padding size and every
+restriction, membership in the exact bad finset is equivalent to
+
+```text
+stars sigma = 20
+and more than 10 packed coordinates are live
+and the fixed packed coordinates are all false or all true.
+```
+
+This closes the semantic classification without discarding the all-live corner: when all twenty
+packed coordinates are live, both monochromatic conditions hold vacuously, so it is exactly the
+intersection that must be subtracted when the two profile families are counted.
+
+The precise next frontier is now purely combinatorial: define padding-parametric all-false and
+all-true overlap finsets, prove that each has cardinality `paddedSingletonCertifiedMass pad`, prove
+their intersection has cardinality `2^pad` (the all-packed-live profile), and derive
+
+```text
+|paddedSingletonBad pad| = 2 * paddedSingletonCertifiedMass pad - 2^pad.
+```
+
+Then instantiate `pad = 4080` and test the exact union, rather than a one-sided subset, against the
+requested `2^10` shell contraction.  No P-versus-NP conclusion follows.
+
+### The exact padded singleton union still contracts at the support schedule
+
+The padding-parametric combinatorial audit is now complete in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The concrete finsets
+`paddedSingletonFalseTail pad` and `paddedSingletonTrueTail pad` record the two monochromatic
+profiles from the semantic iff.  For every `20 <= pad`, fiberwise counting proves
+
+```text
+|paddedSingletonFalseTail pad| = paddedSingletonCertifiedMass pad,
+|paddedSingletonTrueTail pad|  = paddedSingletonCertifiedMass pad.
+```
+
+The second equality is transported by the fixed-value complementation involution.  The theorem
+`paddedSingletonFalseTail_inter_trueTail` identifies their intersection exactly with the fiber
+whose free-variable set is the twenty packed coordinates, and
+`paddedSingletonAllLiveFiber_card` counts that fiber as `2^pad`.  Combining this with the semantic
+classification gives the exact formula
+
+```text
+|paddedSingletonBad pad|
+  = 2 * paddedSingletonCertifiedMass pad - 2^pad.
+```
+
+The inclusion-exclusion correction is quantitatively decisive but does not break the desired
+schedule.  At `pad = 4080`, `paddedSingletonExactCoefficient_4080_lt` verifies the normalized
+integer inequality
+
+```text
+2 * paddedSingletonCertifiedCoefficient 4080 - 2^10 < choose(4100,20),
+```
+
+and `paddedSingletonBad_mul_two_pow_ten_lt_shell_4080` restores the common power to prove the exact
+semantic bad union satisfies
+
+```text
+|paddedSingletonBad 4080| * 2^10 < choose(4100,20) * 2^4080.
+```
+
+Thus the mandatory padded-singleton regression is fully discharged distributionally at the
+support-specific schedule: the pointwise saturated state exists, but the entire exact bad event,
+including both polarities, remains below the required half-shell mass.
+
+The precise next frontier is to lift this exact distributional lesson beyond singleton rows:
+identify a structural class of normalized round outputs for which the support-shell bad event
+admits a comparable polarity/profile decomposition, or construct the smallest width-two output
+whose exact bad mass violates the `2^(10*r)` contraction.  The first regression target should be
+two-literal disjoint blocks at `M = 10`, where residual depth and polarity interactions are
+nontrivial but the support is still small enough for an exact shell count.  No P-versus-NP
+conclusion follows.
+
+### One disjoint width-two block per gate has no bad shell at all
+
+The first width-two regression target is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The reusable tree
+`queryRestrictionList` queries a prescribed coordinate list and records the resulting restriction
+at each leaf; `queryRestrictionList_spec` proves that every reached leaf extends the root and agrees
+with the followed total assignment.
+
+For ten pairwise-disjoint two-literal blocks, `paddedDisjointPairFamily pad` is the exact
+twenty-index family consisting of the ten positive blocks and their termwise-negated polarities.
+The explicit trunk queries the first coordinate of each pair.  The local lemmas
+`positiveOrderedPair_depth_le_one_of_first_fixed` and
+`negativeOrderedPair_depth_le_one_of_first_fixed` prove that fixing that coordinate leaves the
+corresponding canonical tree with depth at most one, for arbitrary root restrictions and fuel.
+Consequently `paddedDisjointPairFamily_commonShallow` proves
+
+```text
+CommonShallowAt (paddedDisjointPairFamily pad) fuel sigma 10 1
+```
+
+for every `pad`, `fuel`, and `sigma`.  Thus `paddedDisjointPairBad_eq_empty` identifies the entire
+twenty-live-coordinate bad event with the empty finset, and the padding-parametric theorem
+`paddedDisjointPairBad_mul_two_pow_ten_lt_shell` gives the requested `2^10` contraction with zero
+left side, including at `pad = 4080`.
+
+This rules out the simplest width-two counterexample more strongly than an exact profile count:
+one width-two clause per bottom gate can spend one trunk query per gate and reduce both indexed
+polarities to residual depth one.  Disjointness is retained in the regression construction, but
+the mechanism shows that overlap is not the source of difficulty at this clause count.
+
+The precise next frontier is the first clause-rich width-two circuit-owned family for which the
+number of clauses exceeds the ten-query transversal budget.  At `M = 10`, audit ten disjoint
+bottom gates with two disjoint width-two clauses each (twenty clauses total), using the exact
+normalized positive/termwise-negative family.  Either find a smaller shared transversal/common
+trunk, or classify and count its first genuinely bad support-shell profiles against the `2^10`
+contraction.  No P-versus-NP conclusion follows.
+
+### The first clause-rich width-two family has a certified forty-query baseline
+
+The two-clause local interface is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The definitions `positiveTwoPairGate` and
+`negativeTwoPairGate` describe the two termwise polarities of a gate containing two disjoint
+width-two clauses.  The lemmas `positiveTwoPair_depth_eq_zero_of_four_fixed` and
+`negativeTwoPair_depth_eq_zero_of_four_fixed` prove the baseline polarity-symmetric certificate:
+fixing all four owned coordinates makes either indexed gate terminal, for arbitrary ambient
+dimension, restriction, and fuel.
+
+This local cost is genuine for the obvious static transversal.  The exact finite computation
+`positiveTwoPair_first_coordinates_true_depth_eq_two` shows that fixing only the first coordinate
+of each clause true leaves positive canonical depth exactly two.  Thus the earlier one-query-per-
+clause idea does not itself meet residual threshold one.
+
+`paddedTwoPairFamily pad` is the requested exact twenty-index family of ten disjoint gates, two
+clauses per gate, and both termwise polarities on forty owned coordinates.  Querying all four
+coordinates per gate gives
+
+```text
+CommonShallowAt (paddedTwoPairFamily pad) fuel sigma 40 1
+```
+
+for every padding, fuel, and root restriction.  Consequently
+`paddedTwoPairBad_forty_eq_empty` proves that its forty-live-coordinate support-shell bad event is
+empty when the trunk allowance is forty.  This is only a baseline upper bound: it does not replace the
+target allowance ten and does not assert optimality against adaptive common trunks.
+
+The precise next frontier is to obtain the first lower bound for adaptive trunks on this family.
+Start with the four-coordinate, one-gate gadget: prove that trunk depth two cannot make both
+polarities residual-depth one (the static all-true witness is not enough for arbitrary adaptive
+trees).  Then tensor or charge that local obstruction across ten disjoint gates to classify the
+depth-ten bad profiles and count them against the `2^10` contraction.  No P-versus-NP conclusion
+follows.
+
+### Exact shallow-leaf classification refutes the naive local invariant
+
+The next proposed strengthening was tested exhaustively and is false.  It is not true that every
+restriction leaving two of the four gadget coordinates live keeps one polarity at residual depth
+at least two.  For example, fixing one coordinate of the first clause true and one coordinate of
+the second clause false leaves a single live singleton in each polarity, so both canonical depths
+are at most one.  This failed route is retained because it rules out a direct argument from live
+coordinate count alone.
+
+The replacement theorem `twoPair_both_depth_le_one_iff_opposite_cross_fixed` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean` checks every restriction with at least two live
+coordinates.  It proves an exact iff: both polarities are residual-depth one precisely when the
+restriction fixes a coordinate in each clause and the two fixed values are opposite.  The earlier
+all-true witness is one of the excluded equal-value profiles.
+
+This sharpens the adaptive target.  A depth-two trunk would have to make every reached leaf certify
+an opposite-valued cross-clause pair.  The precise next frontier is to prove that no binary
+depth-two `CommonTree` agreeing with every total assignment can enforce that certificate on every
+leaf of the all-live four-coordinate cube.  A generic path-information lemma plus the constant
+all-true (or all-false) assignment should force an equal-valued queried profile; the exact iff then
+supplies the residual-depth contradiction.  Only after kernel-checking this adaptive one-gate
+lower bound should the obstruction be tensored or charged across ten disjoint gates.  No
+P-versus-NP conclusion follows.
+
+### The adaptive one-gate depth-two obstruction is kernel checked
+
+The missing adaptive lower bound now follows from the exact leaf classification.  The definition
+`twoPairPolarityFamily` packages the positive and termwise-negative forms of the four-coordinate,
+two-clause gadget as the exact `Fin 2` family.  The theorem
+`twoPairPolarities_not_commonShallowAt_two` proves
+
+```text
+¬ CommonShallowAt twoPairPolarityFamily 4 allFree 2 1.
+```
+
+The proof applies to an arbitrary common trunk, not merely a static query set.  It follows the
+all-true assignment and records the coordinates queried on that path.  Trunk depth two bounds the
+queried set by two.  Leaf agreement under single-coordinate flips proves every unqueried
+coordinate remains live, so at least two coordinates are live at the reached restriction.
+Agreement with the all-true assignment also proves that no fixed coordinate is false.  But
+`twoPair_both_depth_le_one_iff_opposite_cross_fixed` says simultaneous residual depth at most one
+requires a fixed false coordinate in one clause and a fixed true coordinate in the other.  This is
+the desired contradiction.  The corollary `allFreeFour_mem_twoPairPolarityBad_two` places the
+fully live restriction in the actual four-live semantic bad event.
+
+This closes the first adaptive lower bound while preserving the earlier counterexample: arbitrary
+two-live restrictions can make both polarities shallow when they already contain an
+opposite-valued cross-clause certificate.  The argument succeeds specifically because a
+monochromatic branch of an agreeing adaptive trunk cannot manufacture that certificate.
+
+The precise next frontier is the disjoint-product charging lemma.  For ten four-coordinate
+gadgets and a depth-ten trunk, follow a monochromatic assignment and relate the ten queried
+coordinates to per-gadget costs: any gadget made residual-depth one must consume enough path
+information to create its required cross-clause certificate.  Determine the sharp per-gadget
+cost (the local theorem rules out cost at most two from the fully live root), then prove that the
+global ten-query budget leaves a deep gadget or identify the smallest adaptive sharing pattern
+that defeats this direct tensoring.  Only after that structural theorem should the corresponding
+forty-live bad profiles be counted against the `2^10` shell contraction.  No P-versus-NP
+conclusion follows.
+
+### Paired-polarity disjoint-product charging is now structural
+
+The reusable product step is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The definition `pairedPolarityFamily`
+flattens two polarities of each of `G` gadgets into the exact `Fin (2*G)` family expected by
+`CommonShallowAt`.  The theorem
+`pairedPolarity_not_commonShallowAt_of_compatible_sum_deficit` charges query-path information to
+the `G` underlying supports, rather than incorrectly treating the two same-support polarities as
+disjoint.
+
+Along the root-compatible all-true path, the existing weighted disjoint-support pigeonhole lemma
+selects a gadget whose live-coordinate deficit exceeds the queries charged to it.  Leaf agreement
+shows that unqueried root-live coordinates remain free and that no selected support coordinate is
+fixed false.  A local semantic premise may then choose whichever of the two polarities remains
+deep; the flattened family supplies the contradictory shallow bound for that exact polarity.
+
+This establishes the general tensor/charging interface without assuming a static query set or
+double-counting shared polarity supports.  For the fully live four-coordinate gadgets at residual
+threshold one, the intended local deficit is three per gadget, so ten gadgets carry total charge
+thirty against a depth-ten trunk.
+
+The precise next frontier is to instantiate the paired theorem for `paddedTwoPairFamily`.  Prove
+the ambient four-coordinate local lemma: if no owned coordinate is fixed false and at least two
+owned coordinates remain live, then one of `positiveTwoPairGate` and `negativeTwoPairGate` has
+canonical depth greater than one.  The `Fin 4` exact classification already proves its semantic
+content; the remaining work is a restriction/reindexing bridge to arbitrary disjoint padded
+coordinates.  Then compute the fully live deficit sum as thirty, derive that the exact forty-live
+root is bad for trunk depth ten, and only afterward count a sufficiently large bad-profile class
+against the `2^10` contraction.  No P-versus-NP conclusion follows.
+
+### The fully live ten-gadget root is now in the depth-ten bad event
+
+The padded product instantiation is kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The coordinate map is injective, each gadget
+support has cardinality four, and the ten underlying supports are pairwise disjoint.
+
+The charging theorem is generalized to separate its live-coordinate threshold from the residual
+canonical-depth target.  This avoids overcommitting to the delicate two-live classification:
+`positiveTwoPair_depth_ge_two_of_three_free` proves directly, by a two-step canonical replay, that
+three free owned coordinates and no fixed-false owned coordinate force positive-polarity depth at
+least two.  Each fully live gadget therefore contributes deficit `4 - 2 = 2`; ten gadgets give
+total charge twenty against a depth-ten trunk.
+
+Consequently `paddedTwoPairRestriction_not_commonShallow_ten` proves that the restriction fixing
+the padding and leaving exactly the forty gadget coordinates live is not common-shallow at trunk
+depth ten and residual depth one.  `paddedTwoPairRestriction_mem_bad_ten` places that exact root in
+the semantic fixed-shell bad event.  The earlier two-live opposite-cross counterexample remains
+preserved: this proof deliberately uses the sound three-live threshold rather than claiming it
+away.
+
+The precise next frontier is counting.  Define a substantial padding-parametric class of
+forty-live profiles whose compatible threshold-two deficits still exceed ten, embed that class in
+the bad event with the new theorem, and compare its exact cardinality with the ambient shell after
+the required `2^10` saving.  The fully live root alone has negligible mass and does not challenge
+the verified contraction.  No P-versus-NP conclusion follows.
+
+### The fully-live profile fiber is exact but quantitatively insufficient
+
+The first padding-parametric profile class is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`paddedTwoPair_not_commonShallow_ten_of_support_free` strengthens the single-root result: the
+padding may be fixed to arbitrary Boolean values, and every restriction leaving all forty gadget
+coordinates live is still not common-shallow at trunk depth ten and residual depth one.
+
+`paddedTwoPairFullyLiveFiber pad` packages exactly those roots.  The subset theorem embeds the
+whole fiber in the semantic forty-live bad event, and the exact count is
+
+```text
+|paddedTwoPairFullyLiveFiber pad| = 2^pad.
+```
+
+This is a genuine exponential bad class, but its normalized mass is still too small.  For
+`pad >= 3`, `paddedTwoPairFullyLiveFiber_scaled_lt_shell` proves
+
+```text
+|paddedTwoPairFullyLiveFiber pad| * 2^10
+  < choose(pad + 40, 40) * 2^pad.
+```
+
+Thus arbitrary padding assignments supply no additional shell fraction: after cancelling the
+common `2^pad`, the certified class contributes coefficient one, while the ambient choice of the
+forty live coordinates contributes `choose(pad+40,40)`.  The current class therefore cannot
+violate the desired contraction.
+
+The precise next frontier is to admit partially consumed gadget supports.  Define and count the
+profiles for which the sum over ten gadgets of the threshold-two compatible deficits remains
+strictly above ten.  This requires tracking, per gadget, both its number of live coordinates and
+whether every fixed owned coordinate is true; profiles killed by a fixed false coordinate
+contribute zero.  The decisive comparison is the resulting finite coefficient sum against
+`choose(pad+40,40)/2^10`.  If that sum remains below the shell, the next structural move is to add
+the symmetric all-false charge and perform inclusion-exclusion; if it exceeds the shell, embed the
+full class in the bad event.  No P-versus-NP conclusion follows.
+
+### The exact partially-consumed deficit class is semantically certified
+
+The counting target is now connected to the semantic bad event without a fully-live assumption.
+`paddedTwoPair_not_commonShallow_ten_of_compatible_sum_deficit` proves that every restriction
+`sigma` satisfying
+
+```text
+10 < sum_g compatibleResidualQueryDeficit(paddedTwoPairSupport pad, sigma, 2, g)
+```
+
+defeats every depth-ten common trunk at residual threshold one.  This is the exact statistic used
+by the paired-polarity charging proof: a partially consumed gadget contributes `live - 2` only
+when none of its fixed owned coordinates is false, and otherwise contributes zero.
+
+`paddedTwoPairCompatibleDeficitProfiles pad` packages the forty-live shell points satisfying that
+predicate.  The theorem `paddedTwoPairCompatibleDeficitProfiles_subset_bad` embeds the entire
+class in `commonShallowBad`; hence the next finite coefficient calculation will not rely on a
+surrogate event or require a later semantic repair.  The fully-live theorem is now a specialization
+of this general profile criterion.
+
+The precise next frontier is the exact cardinality of this certified class.  Partition each
+four-coordinate gadget by live count and compatibility, convolve the resulting six local states
+across ten gadgets, and attach the padding factor `choose(pad, 40-q) * 2^pad` at total owned-live
+count `q`.  Compare the sum over total deficit at least eleven with
+`choose(pad+40,40) * 2^pad / 2^10`.  If it is insufficient at the support-schedule padding, add the
+symmetric all-false class and use inclusion-exclusion.  No P-versus-NP conclusion follows.
+
+### The six local profile states are exact and exhaustive
+
+The first counting layer is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The definition
+`twoPairLocalCompatibleDeficit` is the canonical four-coordinate version of the threshold-two
+compatible deficit: it is `stars - 2` when no owned coordinate is fixed false, and zero otherwise.
+The corresponding profile classes have the exact table
+
+```text
+(owned live, deficit, multiplicity)
+  (0, 0, 16), (1, 0, 32), (2, 0, 24),
+  (3, 0,  4), (3, 1,  4), (4, 2,  1).
+```
+
+`twoPairLocalProfileMultiplicity_exact` proves all six cardinalities, while
+`twoPairLocalProfileClass_partition` proves their union is the full restriction space.  Thus the
+rows are exhaustive, and their multiplicities sum to `81 = 3^4`; no seventh local profile is
+being silently omitted.
+
+An exact-arithmetic audit of the ten-fold convolution gives nonzero deficit-at-least-eleven
+coefficients only for owned-live totals `q = 23,...,40`.  At the support-schedule padding
+`pad = 4080`, the resulting one-sided class, after the requested `2^10` scaling, is approximately
+`4.52e-44` of the ambient forty-live shell.  This numerical audit is not yet the Lean cardinality
+theorem, but it decisively indicates that the one-sided compatible class will be insufficient at
+the intended schedule and preserves that failed quantitative route.
+
+The precise next frontier is to formalize the ten-fold convolution and the transport from each
+padded support to the canonical six-state table, proving the exact cardinality formula
+
+```text
+sum_q A(q) * choose(pad, 40-q) * 2^(pad-40+q),
+```
+
+where `A(q)` is the convolved deficit-at-least-eleven coefficient.  Then kernel-check the strict
+insufficiency at `pad = 4080` and add the symmetric all-false class with inclusion-exclusion; the
+one-sided class alone cannot approach the required contraction.  No P-versus-NP conclusion
+follows.
+
+### The aggregated ten-fold deficit convolution is exact and already insufficient
+
+The arithmetic half of the convolution audit is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  Aggregating the six exact local rows by
+deficit gives the three-state distribution
+
+```text
+deficit 0: 76 states, deficit 1: 4 states, deficit 2: 1 state.
+```
+
+`twoPairDeficitConvolution` is the coefficient recurrence for
+`(76 + 4*y + y^2)^g`.  The theorem `twoPairTenFoldDeficitTail_exact` proves that exactly
+`333840111649` of the `81^10` ten-gadget local profiles have total compatible deficit at least
+eleven.
+
+The earlier exact-arithmetic audit observed that every contributing profile has at least 23 owned
+live coordinates.  Even before formalizing that support statement, the final numerical comparison
+has been isolated and kernel checked:
+
+```text
+333840111649 * choose(4080,17) * 2^40 * 2^10
+  < choose(4120,40) * 2^40.
+```
+
+This deliberately overcharges every deficit-tail profile by the largest padding-choice factor
+available once at most 17 padding coordinates are live.  Thus the exact bivariate coefficient
+vector is no longer needed to decide the one-sided route: after the remaining semantic/support
+transport is proved, this coarse bound already certifies strict insufficiency at `pad = 4080`.
+The failed one-sided quantitative route is retained.
+
+The precise next frontier is to prove the transport-and-support lemma: decompose an ambient
+restriction into its ten padded four-coordinate states plus padding, show the six-state local
+weights add to the ambient star count and compatible deficit, and prove deficit at least eleven
+forces at least 23 owned-live coordinates.  That lemma will turn the coarse arithmetic certificate
+into a cardinality upper bound for `paddedTwoPairCompatibleDeficitProfiles 4080`.  Then add the
+symmetric all-false class and audit its union by inclusion-exclusion.  No P-versus-NP conclusion
+follows.
+
+### The ambient product decomposition is injective, and the 23-live proof is repaired
+
+The transport layer is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  `paddedTwoPairRestrictionCode` splits an
+ambient restriction into its ten ordered `Restriction 4` gadget states and its ordered
+`Restriction pad` padding state.  `paddedTwoPairRestrictionCode_injective` proves that this loses
+no information.  The local pullback theorems identify, exactly, each gadget's live count,
+all-true compatibility condition, and compatible deficit with the corresponding canonical local
+profile statistics.
+
+This audit also found and preserved a failed arithmetic route.  The pointwise inequality
+
+```text
+2 * local deficit <= local owned-live
+```
+
+only implies 22 owned-live coordinates when total deficit is eleven; it does **not** imply 23.
+The defensible coarse consequence is now named
+`paddedTwoPair_twentyTwo_le_ownedLive_of_ten_lt_deficit`.  The repaired
+`paddedTwoPair_twentyThree_le_ownedLive_of_ten_lt_deficit` genuinely uses the transported local
+state: a deficit-one gadget has three live coordinates.  If total deficit is at least twelve,
+doubling gives 24; if it is exactly eleven, parity forces a deficit-one gadget, supplying the
+missing coordinate.  Hence the needed statement is now valid:
+
+```text
+10 < sum_g compatible deficit(g)  ->  23 <= |owned-live|.
+```
+
+The decomposition also corrects the proposed cardinality factor.  A padding state with `r` live
+coordinates has `choose(4080,r) * 2^(4080-r)` realizations, so a coarse upper bound carries
+`2^4080`, not `2^40`.  The latter was safe only as a cancellable common factor inside the existing
+arithmetic inequality.  `twoPairTenFoldDeficitTail_4080_padding_scaled_insufficient` now records
+the same strict numerical comparison with the actual `2^4080` factor on both sides.
+
+The precise next frontier is the filtered product count.  Map
+`paddedTwoPairCompatibleDeficitProfiles 4080` through the proved injective code, bound the ten-local
+projection by `twoPairTenFoldDeficitTail`, and count padding states with at most 17 live
+coordinates (including their fixed Boolean values) to prove the corrected coarse bound
+
+```text
+|paddedTwoPairCompatibleDeficitProfiles 4080|
+  <= twoPairTenFoldDeficitTail * choose(4080,17) * 2^4080.
+```
+
+Only after checking that padding factor exactly should it be combined with the arithmetic
+insufficiency certificate.  Then add the symmetric all-false class and audit the union by
+inclusion-exclusion.  No P-versus-NP conclusion follows.
+
+### The ambient forty-star shell now transports exactly to at most seventeen padding stars
+
+The remaining support-to-padding interface is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`stars_paddedTwoPairRestrictionCode` proves the exact additive decomposition
+
+```text
+stars(σ) = stars(padding(σ)) + sum_g stars(local_g(σ)).
+```
+
+This is stronger than an inequality and matches the already proved injective product code: no
+live coordinate is omitted or counted twice.  Combining it with the repaired 23-owned-live lemma
+gives `paddedTwoPair_padding_stars_le_seventeen`: every member of the forty-star compatible
+deficit tail has at most seventeen live padding coordinates.
+
+An attempted direct wrapper around the existing cumulative-shell theorem for the concrete
+4,080-coordinate padding count was not retained: elaborating the concrete restriction finset
+exhausted recursion depth, and raising it far enough caused an OS stack overflow.  This is a Lean
+resource failure, not a counterexample to the proposed numerical factor.  The semantic bridge and
+the numerical scaling certificate remain valid independently.
+
+The precise next frontier is now sharply separated into two finite counts.  First prove that the
+ten-local filtered product has cardinality `twoPairTenFoldDeficitTail`, preferably through a
+deficit-vector fiber equivalence rather than enumeration of `81^10` states.  Then count the
+at-most-seventeen-star padding subtype in a small generic lemma (avoiding concrete `Fin 4080`
+reduction during elaboration) and combine the two injections to obtain
+
+```text
+|paddedTwoPairCompatibleDeficitProfiles 4080|
+  <= twoPairTenFoldDeficitTail * choose(4080,17) * 2^4080.
+```
+
+After that, apply the existing scaled insufficiency certificate and audit the symmetric all-false
+union by inclusion-exclusion.  No P-versus-NP conclusion follows.
+
+### The ten-local filtered product is now counted exactly
+
+The local-to-arithmetic counting bridge is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The finset
+`twoPairTenLocalDeficitTailProfiles` is the actual filtered product of ten canonical four-coordinate
+restriction spaces, not a surrogate coefficient set.  `twoPairDeficitVector` maps each tuple to
+its pointwise deficit vector in `Fin 3`.  Fiberwise counting over the `3^10` possible vectors then
+factors each fiber as the product of ten local deficit classes.
+
+The local class sizes are proved to be exactly `76`, `4`, and `1`, and the remaining weighted
+`3^10` vector sum is kernel reduced to `333840111649`.  Consequently
+`twoPairTenLocalDeficitTailProfiles_card` proves the desired semantic identification
+
+```text
+|{rho : Fin 10 -> Restriction 4 | 10 < sum_g localDeficit(rho_g)}|
+  = twoPairTenFoldDeficitTail.
+```
+
+This route never enumerates the infeasible `81^10` tuple space.  It also confirms that the
+previous recurrence has neither omitted nor overcounted any local restriction tuple.
+
+The precise next frontier is the generic padding count.  Prove, without specializing the finite
+type to `Fin 4080` during elaboration, that the restrictions on `pad` coordinates with at most
+seventeen stars have cardinality at most `choose pad 17 * 2^pad` (for the needed monotonic range).
+Then combine that bound, the injective ambient product code, the exact ten-local count, and
+`paddedTwoPair_padding_stars_le_seventeen` to obtain the corrected coarse cardinality bound for
+`paddedTwoPairCompatibleDeficitProfiles 4080`.  After applying the existing scaled insufficiency
+certificate, audit the symmetric all-false union by inclusion-exclusion.  No P-versus-NP
+conclusion follows.
+
+### The generic at-most-seventeen-star padding bound is proved; the direct `3^10` reduction is not
+
+The padding shell no longer requires elaborating a concrete `Restriction 4080` finset.
+`paddingRestrictionsAtMostSeventeen_card` partitions the parametric restriction space into its
+eighteen exact star layers:
+
+```text
+sum_{k < 18} choose(pad,k) * 2^(pad-k).
+```
+
+For `pad >= 50`, `two_pow_seventeen_sub_mul_choose_le_choose_seventeen` proves
+
+```text
+2^(17-k) * choose(pad,k) <= choose(pad,17)    (k <= 17).
+```
+
+Summing those eighteen estimates and using `18 <= 2^17` yields the requested sharp generic bound
+
+```text
+|{rho : Restriction pad | stars(rho) <= 17}| <= choose(pad,17) * 2^pad.
+```
+
+This proof is symbolic in `pad`, so the required `pad = 4080` instance does not trigger the prior
+large-finite-type reduction failure.
+
+The same compile audit found that the preceding claimed exact `3^10` weighted-vector reduction
+had not in fact elaborated.  Its fiber factorization theorem remains kernel checked, but the final
+plain `decide` exceeds recursion depth; increasing limits reaches a deterministic heartbeat limit
+and then an OS stack overflow.  The unverified equality and its dependent exact-cardinality
+capstone were therefore removed rather than leaving hidden `sorryAx`.  The failed direct-reduction
+route is preserved here.  `twoPairTenLocalDeficitTailProfiles_card_le_full` records the safe
+fallback bound by the complete `81^10` tuple space.
+
+The precise next frontier is to prove the weighted `3^10` vector sum from the already verified
+deficit-convolution recurrence structurally, rather than by enumeration.  In parallel, the weaker
+`81^10` fallback may already suffice numerically: combine the injective ambient product code,
+`paddedTwoPair_padding_stars_le_seventeen`, and the generic padding bound to obtain a resource-safe
+coarse bound for `paddedTwoPairCompatibleDeficitProfiles 4080`, then test its scaled shell ratio.
+Only after one of those routes is kernel checked should the symmetric all-false union be audited by
+inclusion-exclusion.  No P-versus-NP conclusion follows.
+
+### The full `81^10` fallback already closes the one-sided quantitative audit
+
+The ambient filtered-product count is now kernel checked without enumerating either the ambient
+restriction space or the weighted `3^10` deficit vectors.  The theorem
+`paddedTwoPairCompatibleDeficitProfiles_card_le_product` maps every certified forty-star ambient
+restriction through the proved injective product code.  Its local projection lies in
+`twoPairTenLocalDeficitTailProfiles`, while its padding projection lies in
+`paddingRestrictionsAtMostSeventeen`.  Consequently
+
+```text
+|paddedTwoPairCompatibleDeficitProfiles pad|
+  <= |twoPairTenLocalDeficitTailProfiles|
+       * |paddingRestrictionsAtMostSeventeen pad|.
+```
+
+Combining this bridge with the resource-safe full-space bound and the generic padding theorem gives,
+for `pad >= 50`,
+
+```text
+|paddedTwoPairCompatibleDeficitProfiles pad|
+  <= 81^10 * choose(pad,17) * 2^pad.
+```
+
+At `pad = 4080`, even this deliberately much larger charge is strictly below the required tenth-bit
+shell fraction:
+
+```text
+|paddedTwoPairCompatibleDeficitProfiles 4080| * 2^10
+  < choose(4120,40) * 2^4080.
+```
+
+Thus the failed direct `3^10` reduction and its possible structural recurrence repair are no longer
+on the critical path for this one-sided construction.  The stronger exact coefficient would only
+tighten a bound that already misses by a very large margin.
+
+The precise next frontier is to construct the symmetric all-false compatible-deficit profile class,
+prove its analogous product bound, and identify the intersection of the all-true and all-false
+classes.  Inclusion-exclusion will then decide whether their union is still quantitatively
+insufficient.  Preserve the failed direct weighted-vector reduction as a resource counterexample;
+it need not be repaired unless a later parameter regime needs its sharper constant.  No
+P-versus-NP conclusion follows.
+
+### Even the doubled full-local-space charge is insufficient
+
+The proposed inclusion-exclusion audit can now be decided without computing the intersection.
+`two_mul_twoPairFullLocalSpace_4080_padding_scaled_insufficient` kernel checks the deliberately
+strong overcharge
+
+```text
+2 * (81^10 * choose(4080,17) * 2^4080) * 2^10
+  < choose(4120,40) * 2^4080.
+```
+
+`twoPair_two_coarse_profile_classes_union_scaled_insufficient` packages the consequence for any
+two restriction classes satisfying the already proved one-sided product bound.  It uses only
+`card(A union B) <= card(A) + card(B)`, so it assumes neither disjointness nor an intersection
+formula.  Hence, if the symmetric all-false compatible-deficit class receives the analogous
+resource-safe `81^10` product bound, its union with the all-true class is automatically too small;
+subtracting their intersection can only strengthen the failure.
+
+This changes the next frontier.  Construct the all-false semantic certificate and prove its
+coarse product bound, but do not spend effort on exact inclusion-exclusion unless it is needed for
+a different parameter regime.  Once the symmetric bound is connected to the semantic bad event,
+the entire two-one-sided-profile strategy is quantitatively closed at the support schedule.  The
+failed direct weighted-vector reduction remains preserved and off the critical path.  No
+P-versus-NP conclusion follows.
+
+### The symmetric all-false certificate closes the two-one-sided-profile route
+
+The all-false class is now kernel connected to the semantic bad event.  The local theorem
+`negativeTwoPair_depth_ge_two_of_three_free` proves the negative two-clause gate remains depth at
+least two when three owned coordinates are live and no owned coordinate is fixed true.  The
+generic theorem
+`pairedPolarity_not_commonShallowAt_of_false_compatible_sum_deficit_threshold` follows the
+all-false common-tree branch and reads its numerical charge from the complemented root
+restriction.  Specializing it gives
+`paddedTwoPairFalseCompatibleDeficitProfiles_subset_bad`.
+
+Restriction complementation preserves the free set and is involutive.  Therefore
+`paddedTwoPairFalseCompatibleDeficitProfiles_card` identifies the all-false class cardinality
+exactly with the already counted all-true class; no duplicate local convolution or padding proof
+is required.  In particular, both classes satisfy the same coarse bound
+
+```text
+81^10 * choose(4080,17) * 2^4080.
+```
+
+The actual union, not merely two abstract classes, is now certified both semantically and
+quantitatively:
+
+```text
+true-compatible profiles union false-compatible profiles
+  subset commonShallowBad(paddedTwoPairFamily 4080, shell 40, trunk 10, residual 1),
+
+|true-compatible profiles union false-compatible profiles| * 2^10
+  < choose(4120,40) * 2^4080.
+```
+
+Thus exact inclusion-exclusion cannot rescue this two-one-sided-profile strategy at the support
+schedule.  Its overlap may still be computed for another parameter regime, but it is off the
+critical path here.  The failed direct weighted `3^10` reduction also remains preserved as a Lean
+resource counterexample.
+
+The precise next frontier is to characterize bad restrictions not captured by either
+monochromatic compatible-deficit class.  The highest-information test is a mixed-branch semantic
+certificate or counterexample at one two-pair gadget, followed by a product charge only if that
+local class survives.  This will decide whether genuinely adaptive mixed Boolean branches add
+enough mass beyond the quantitatively closed all-true/all-false union.  No P-versus-NP conclusion
+follows.
+
+### A same-clause mixed profile survives, with exact local cost one
+
+The first mixed-branch test is now kernel checked in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The restriction
+`twoPairSameClauseMixedRestriction` fixes the first clause to opposite Boolean values and leaves
+the second clause live.  It lies outside both monochromatic compatibility conditions.  At its
+root, both indexed polarities have canonical depth exactly two, so it is not common-shallow at
+residual depth one with a zero-query trunk.
+
+This lower bound is semantic rather than construction-specific:
+`CommonShallowAt.root_shallow_of_trunkDepth_zero` proves generally that a depth-zero common trunk
+cannot strengthen its root restriction.  Conversely,
+`twoPairSameClauseMixedRestriction_commonShallowAt_one` explicitly queries one coordinate of the
+live clause and proves both Boolean leaves make both polarities residual-depth at most one.
+Therefore this previously uncharged local state has exact adaptive trunk cost one.
+
+The result rules out the simplest mixed-profile counterexample: mixed fixed values do not make
+every discarded gadget free.  It also shows that the monochromatic deficit `stars - 2` is not the
+full local cost function; this two-live mixed state contributes one query despite contributing
+zero to both existing one-sided charges.
+
+The precise next frontier is to classify all 81 one-gadget restrictions by their minimum common
+trunk cost in `{0,1,2}` and extract the exact multiplicities, preserving the already proved
+opposite-cross zero-cost classification and this same-clause cost-one witness.  Only then should
+that local distribution be convolved across ten disjoint gadgets and tested against the
+forty-star padded shell.  No P-versus-NP conclusion follows.
+
+### The fully live profile has exact local cost three
+
+The proposed `{0,1,2}` classification range was incomplete.  The existing theorem
+`twoPairPolarities_not_commonShallowAt_two` already rules out every common trunk of depth at most
+two for the fully live four-coordinate restriction.  The new theorem
+`twoPairPolarities_commonShallowAt_three` supplies the matching upper certificate: it queries both
+coordinates of the first clause and one coordinate of the second, after which every Boolean leaf
+makes both indexed polarities have residual canonical depth at most one.
+
+Thus `twoPairPolarities_exact_trunk_cost_three` proves
+
+```text
+not CommonShallowAt(twoPairPolarityFamily, all-free, trunkDepth 2, residualDepth 1),
+CommonShallowAt(twoPairPolarityFamily, all-free, trunkDepth 3, residualDepth 1).
+```
+
+By monotonicity, the minimum local trunk depth is exactly three.  This is a structural correction,
+not just another isolated mixed state: any enumeration forced into `{0,1,2}` would necessarily
+misclassify the unique all-free restriction and could undercharge a ten-gadget convolution.
+
+The precise next frontier is to classify all 81 local restrictions by minimum trunk cost in
+`{0,1,2,3}` and prove the exact multiplicities.  The classification should reuse the opposite-cross
+zero-cost theorem, the same-clause mixed cost-one certificate, and the fully live cost-three
+certificate; only the remaining profiles need a cost-two analysis.  Then convolve the corrected
+four-level distribution across ten disjoint gadgets and test it against the forty-star padded
+shell.  No P-versus-NP conclusion follows.
+
+### The finite local query game has histogram 56, 16, 8, 1
+
+The 81-state audit now has a kernel-checked executable presentation.  A local state wins at budget
+zero exactly when both indexed polarities already have canonical depth at most one.  At budget
+`k+1`, it additionally wins if some live coordinate has winning false and true children at budget
+`k`.  Base-three decoding enumerates every four-coordinate restriction exactly once.
+
+`twoPairLocalQueryWin_sound` proves structurally that every game win produces a genuine
+`CommonShallowAt` certificate of the same depth.  The proof recursively assembles the two child
+trunks under the selected query and verifies extension and assignment agreement on both branches.
+Thus this is not an external simulation of common trunks.
+
+Direct kernel reduction proves the game-cost multiplicities
+
+```text
+cost 0: 56
+cost 1: 16
+cost 2:  8
+cost 3:  1
+```
+
+The singleton cost-three class agrees with the already proved fully free obstruction and matching
+three-query certificate.  The eight cost-two candidates isolate exactly the previously unresolved
+part of the local frontier.  Soundness already supplies upper bounds for all 81 states, but calling
+the histogram the exact minimum-`CommonShallowAt` distribution still requires the converse: every
+arbitrary common trunk of depth `k` must induce a win in the read-once game at budget `k`.
+
+The precise next frontier is to prove that completeness/normalization lemma, using assignment
+agreement to eliminate queries of already fixed coordinates and to prevent leaf payloads from
+fixing unqueried live coordinates.  Once that bridge is checked, convolve the exact polynomial
+`56 + 16 z + 8 z^2 + z^3` across ten gadgets and compare its cost tail, together with padding,
+against the forty-star shell.  No P-versus-NP conclusion follows.
+
+### Direct leaf completion fails, but the exact arbitrary-leaf audit has the same histogram
+
+The proposed normalization cannot insert every queried branch value into an arbitrary leaf.
+Canonical residual depth is genuinely nonmonotone under such an extension, even in this four-bit
+gadget.  `twoPairRootShallow_not_monotone_fixVar` kernel checks the concrete state with base-three
+code `11`: both polarities have residual depth at most one at that state, while additionally fixing
+coordinate zero to false makes the root-shallow test fail.  The attempted monotonic completion
+route is therefore rejected and preserved as a counterexample rather than hidden inside a false
+converse proof.
+
+The replacement finite audit models the actual freedom of an arbitrary `CommonShallowAt` leaf.
+Given an immutable root and the restriction accumulated by the query path,
+`twoPairFlexibleLeafWin` permits any payload among all 81 restrictions that extends the root,
+fixes only values compatible with the path, and makes both polarities shallow.  The recursive
+`twoPairFlexibleQueryWin` then searches fresh queries while allowing a leaf to omit any earlier
+queried values.
+
+Direct kernel reduction proves that this more permissive game still has histogram
+
+```text
+cost 0: 56
+cost 1: 16
+cost 2:  8
+cost 3:  1
+```
+
+Moreover, `twoPairFlexibleQueryCost_eq_readOnceCost` proves pointwise on all 81 roots that its
+first winning budget agrees with the earlier stricter read-once cost.  Thus the nonmonotonicity is
+real but does not change this gadget's finite cost distribution through depth three.
+
+The precise next frontier is to prove the structural equivalence between arbitrary
+`CommonShallowAt` trunks and `twoPairFlexibleQueryWin`.  Its leaf case must derive that a fixed
+payload lies between the immutable root and accumulated path; its query case must skip coordinates
+already fixed on the path and consume one unit only for a fresh coordinate.  Once this bridge is
+kernel checked, the polynomial `56 + 16 z + 8 z^2 + z^3` is the exact semantic local distribution
+and can be convolved across ten gadgets with padding against the forty-star shell.  No
+P-versus-NP conclusion follows.
+
+### Arbitrary common trunks are exactly the flexible local query game
+
+The missing semantic bridge is now kernel checked.  The key leaf lemma
+`restrictionExtends_path_of_agrees_everywhere` varies one live path coordinate against a proposed
+fixed payload value.  It proves that a constant leaf which agrees with every assignment extending
+the accumulated path cannot fix an unqueried coordinate.  This avoids the false residual-depth
+monotonicity route preserved above.
+
+`twoPairFlexibleQueryWin_of_tree` then normalizes an arbitrary common trunk structurally.  A query
+of an already fixed coordinate is resolved without consuming a fresh game move; a live coordinate
+becomes one legal Boolean move; and a leaf payload is certified to lie between the immutable root
+and accumulated path.  The reverse theorem `twoPairFlexibleQueryWin_sound_aux` recursively
+assembles every flexible-game win into a genuine common trunk.  Consequently
+`twoPairFlexibleQueryWin_iff_commonShallowAt` proves pointwise, for every four-coordinate root and
+every budget `k`,
+
+```text
+twoPairFlexibleQueryWin root k root = true
+  iff CommonShallowAt(twoPairPolarityFamily, root, k, residualDepth 1).
+```
+
+Together with the previously checked exhaustive computation, the polynomial
+
+```text
+56 + 16 z + 8 z^2 + z^3
+```
+
+is therefore the exact semantic minimum-trunk-cost distribution for one gadget, not merely the
+histogram of an executable surrogate.  The nonmonotonicity counterexample remains valid and
+preserved; it explains why the flexible leaf relation is necessary even though the final costs
+happen to agree with the stricter read-once game.
+
+The precise next frontier is to derive the product/composition theorem for ten disjoint gadgets:
+relate a global common trunk of depth ten to the sum of the ten exact local costs (including
+adaptive interleaving of gadget queries), then convolve `(56 + 16z + 8z^2 + z^3)^10` and combine
+the resulting cost tail with the exact forty-star padding shell.  The convolution alone is not
+enough until this direct-sum semantic bridge is proved.  No P-versus-NP conclusion follows.
+
+### The exact local cost supports an additive adversary potential
+
+The first structural ingredient of the ten-gadget direct-sum bridge is now kernel checked.
+`twoPairFlexibleQueryCost_fixVar_adversary_code` exhausts all 81 local roots and four possible
+fresh coordinates and proves that, after any fresh query, at least one Boolean child retains all
+but at most one unit of the exact flexible-game cost.  The presentation-free theorem
+`twoPairFlexibleQueryCost_fixVar_adversary` transports this property from the base-three decoder
+to every four-coordinate restriction.
+
+Define `twoPairTenFlexibleCost` to be the sum of these exact costs over ten local restrictions.
+The theorem `twoPairTenFlexibleCost_update_adversary` proves that updating any one fresh
+coordinate in any one gadget has a Boolean branch on which this total potential decreases by at
+most one.  The other nine summands are unchanged.  This is precisely the local inequality needed
+to neutralize arbitrary adaptive interleaving: a depth-`k` global query path cannot force a loss
+of more than `k` units if its branches are chosen by this adversary.
+
+This is not yet the full direct-sum theorem.  The remaining semantic step is to recurse through
+an arbitrary ambient `CommonTree`, map every queried padded coordinate either to its unique
+`Fin 10 × Fin 4` gadget key or to padding, choose the cost-preserving branch at gadget queries,
+and use global leaf agreement to show that every local leaf payload is a legal flexible-game
+leaf.  That will prove that global `CommonShallowAt` depth is at least
+`twoPairTenFlexibleCost`; only then is it sound to convolve
+`(56 + 16z + 8z^2 + z^3)^10` and test its tail against the forty-star padded shell.
+No P-versus-NP conclusion follows.
+
+### The arbitrary-leaf direct-sum potential is now one-step stable
+
+The root-only potential from the preceding audit was not yet the correct invariant for an
+arbitrary `CommonShallowAt` trunk.  A legal leaf payload may omit values queried on its path, and
+the preserved `twoPairRootShallow_not_monotone_fixVar` counterexample shows that replacing such a
+payload by the fully accumulated path is unsound.
+
+`twoPairFlexibleConditionalCost root path` now keeps the immutable local root separate from the
+accumulated query path and measures the least remaining flexible-game budget.  On the diagonal it
+is definitionally the already audited exact local cost, so its initial distribution remains
+
+```text
+56 + 16 z + 8 z^2 + z^3.
+```
+
+The exhaustive theorem `twoPairFlexibleConditionalCost_fixVar_adversary_code` checks every legal
+pair of the 81 roots and 81 paths and every fresh coordinate.  Its presentation-free form proves
+that one Boolean child loses at most one unit of conditional cost.  Summing over ten gadgets gives
+`twoPairTenFlexibleConditionalCost_update_adversary`; the other nine root/path pairs are unchanged.
+Thus the additive adversary survives precisely the arbitrary-leaf freedom that invalidated the
+naive accumulated-restriction argument.
+
+This still stops one structural step short of the global depth lower bound.  The precise next
+frontier is to recurse the conditional potential through an arbitrary padded ambient
+`CommonTree`: ignore padding queries, decode each owned query into its unique `Fin 10 × Fin 4`
+coordinate, and at a leaf use global extension/agreement plus the two padded polarity depth bounds
+to certify conditional cost zero in every gadget.  That will prove
+`twoPairTenFlexibleCost(initial locals) <= trunk.depth`; only then should the exact ten-fold
+polynomial be convolved against the forty-star padding shell.  No P-versus-NP conclusion follows.
+
+### The conditional potential now recurses through arbitrary padded common trees
+
+The adaptive-interleaving part of the direct-sum bridge is now kernel checked.
+`paddedTwoPairLocalRestriction_fixVar` proves that fixing an owned ambient coordinate is exactly a
+point update of the unique `Fin 10 × Fin 4` local state, while
+`paddedTwoPairLocalRestriction_fixVar_padding` proves that fixing any of the first `pad`
+coordinates changes no local state.
+
+`twoPairTenFlexibleConditionalCost_tree_adversary` recursively follows an arbitrary padded
+`CommonTree`.  A query already fixed by the accumulated path is resolved for free; a fresh padding
+query is assigned false for free; and a fresh owned query takes the Boolean branch supplied by the
+conditional one-step adversary.  It returns an endpoint restriction and a payload such that every
+assignment extending the endpoint reaches that payload, and proves
+
+```text
+conditionalCost(roots, initial path)
+  <= conditionalCost(roots, endpoint) + trunk.depth.
+```
+
+Thus padding queries, repeated queries, and arbitrary adaptive interleaving can no longer obstruct
+the additive lower bound.  During verification the exhaustive local theorem was also restated
+using the executable extension predicate and transported back through
+`twoPairRestrictionExtendsB_eq_true`; this preserves the same proposition while avoiding an
+unsupported higher-order `Decidable` synthesis route.
+
+The remaining step is now isolated entirely at the returned leaf.  The precise next frontier is
+to use the constant-on-endpoint property together with the global leaf extension/agreement and
+the two padded polarity depth bounds to prove that every gadget's flexible conditional leaf test
+wins, hence that the terminal summed cost is zero.  This requires a padded-to-local canonical-depth
+transport lemma.  Composing it with the tree adversary will yield the global semantic depth lower
+bound; only afterward should `(56 + 16z + 8z^2 + z^3)^10` be convolved against the forty-star
+padding shell.  No P-versus-NP conclusion follows.
+
+### The terminal conditional potential is now discharged locally
+
+The semantic half of the returned-leaf obligation is now kernel checked.  The agreement lemma
+`restrictionExtends_path_of_agrees_everywhere` has been generalized from the four-coordinate
+gadget to an arbitrary finite ambient cube: if one payload agrees with every assignment extending
+an endpoint, it cannot fix a coordinate left live by that endpoint.  The owned-coordinate update
+identity is also packaged pointwise as `paddedTwoPairLocalRestriction_fixVar_self`.
+
+`twoPairFlexibleConditionalCost_eq_zero_of_leaf` proves that a payload lying between the immutable
+local root and the accumulated local path, and satisfying `twoPairRootShallow`, has conditional
+cost exactly zero.  Its direct-sum form
+`twoPairTenFlexibleConditionalCost_eq_zero_of_leaf` proves that the entire returned ten-gadget
+potential vanishes once these three local facts hold for every gadget.  Thus no further finite-game
+or additive-potential argument remains at the endpoint.
+
+A direct padded/local canonical-depth equality was tested and rejected in its naive form.  The
+attempt exposed two independent transports that must not be conflated: relabelling the four owned
+coordinates, and comparing local fuel `4` with ambient fuel `pad + 40`.  Unfolding the concrete
+gates after case splitting destroyed the induction hypothesis's syntactic gate form, so that route
+is preserved as a failed proof strategy rather than asserted.
+
+The precise next frontier is now only the canonical-depth bridge: prove fuel monotonicity (or
+saturation above the four local variables) and a relabelling theorem that preserves the concrete
+positive and negative two-pair gate depths under `paddedTwoPairCoord`.  Then global leaf agreement,
+the generalized endpoint lemma, and the new zero-potential capstone compose directly with
+`twoPairTenFlexibleConditionalCost_tree_adversary` to yield the semantic global depth lower bound.
+Only after that bridge is checked should `(56 + 16z + 8z^2 + z^3)^10` be convolved against the
+forty-star padding shell.  No P-versus-NP conclusion follows.
+
+### The padded ten-gadget semantic direct sum is now complete
+
+The coordinate and fuel transports are now kernel checked in the exact form needed by the
+two-pair gadget.  `positiveTwoPair_padded_depth_eq_local` and
+`negativeTwoPair_padded_depth_eq_local` prove that, for every ambient restriction and every fuel
+at least four, each padded gate's canonical depth is exactly the depth of its four-coordinate
+pullback at local fuel four.  The proof audits all 81 local restriction states, uses
+`paddedTwoPairCoord_injective` to keep the embedded coordinates distinct, and exposes the four
+successor fuel layers explicitly.  Thus relabeling and saturation are discharged together rather
+than inferred from an unproved general monotonicity principle.
+
+`twoPairRootShallow_of_padded_depths` packages the two polarity identities into the executable
+local shallow predicate.  The capstone
+`twoPairTenFlexibleCost_le_of_padded_commonShallow` then composes the arbitrary-tree conditional
+adversary with global leaf agreement, the generalized endpoint lemma, padded-to-local restriction
+extension, the new depth transport, and terminal zero potential.  It proves
+
+```text
+twoPairTenFlexibleCost(local pullbacks of sigma) <= trunkDepth
+```
+
+for every `CommonShallowAt (paddedTwoPairFamily pad) fuel sigma trunkDepth 1` with `fuel >= 4`.
+This includes arbitrary adaptive interleaving, repeated queries, and padding queries; the full
+semantic direct-sum lower bound no longer has an outstanding structural step.
+
+The earlier naive unfolding route remains recorded as a failed strategy: it conflated relabeling
+with fuel transport and destroyed the induction hypothesis's gate syntax.  The successful finite
+specialization avoids that failure without asserting a general theorem that has not been proved.
+
+The precise next frontier is quantitative.  Convolve the already verified exact local cost
+polynomial `(56 + 16z + 8z^2 + z^3)^10`, identify the coefficient tail with the padded restrictions
+whose summed local cost exceeds trunk depth ten, and combine that tail with the exact forty-star
+padding shell.  This will test whether the semantic obstruction has enough mass to refute the
+claimed half-shell contraction at the concrete schedule.  No P-versus-NP conclusion follows.
