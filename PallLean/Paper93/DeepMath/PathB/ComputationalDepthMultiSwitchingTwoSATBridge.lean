@@ -6128,18 +6128,17 @@ def paddedTwoPairLocalRestriction (pad : ℕ) (σ : Restriction (pad + 40))
   fun k => σ (paddedTwoPairCoord pad g k)
 
 set_option maxHeartbeats 4000000 in
-/-- The positive padded gadget has exactly the canonical depth of its four-coordinate pullback
-once fuel covers the four owned variables.  This simultaneously transports the coordinate
-relabeling and records saturation beyond local fuel four. -/
-theorem positiveTwoPair_padded_depth_eq_local (pad : ℕ)
-    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel) :
-    (canonicalDT (positiveTwoPairGate
+/-- A residual-depth-one bound for the positive padded gadget transports to its four-coordinate
+pullback once fuel exposes at least the first four canonical queries. -/
+theorem positiveTwoPair_local_depth_le_one_of_padded (pad : ℕ)
+    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel)
+    (hpadded : (canonicalDT (positiveTwoPairGate
       (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
-      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth =
-      (canonicalDT (positiveTwoPairGate (0 : Fin 4) 1 2 3) 4
-        (paddedTwoPairLocalRestriction pad σ g)).depth := by
+      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1) :
+    (canonicalDT (positiveTwoPairGate (0 : Fin 4) 1 2 3) 4
+      (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1 := by
   obtain ⟨extra, rfl⟩ := Nat.exists_eq_add_of_le hfuel
-  simp only [Nat.add_comm 4 extra]
+  rw [Nat.add_comm 4 extra] at hpadded
   generalize h0 : σ (paddedTwoPairCoord pad g 0) = o0
   generalize h1 : σ (paddedTwoPairCoord pad g 1) = o1
   generalize h2 : σ (paddedTwoPairCoord pad g 2) = o2
@@ -6172,20 +6171,22 @@ theorem positiveTwoPair_padded_depth_eq_local (pad : ℕ)
     simp [paddedTwoPairLocalRestriction, positiveTwoPairGate, orderedConjunctionBlock,
       canonicalDT, anyTermSat, termSat, activeTerm, termFalsified, freeLits,
       Depth3.litTrue, litVar, litFixedVal, litFalse, litFree, fixVar,
+      BoolDecisionTree.depth, positiveTwoPair_depth_eq_zero_of_four_fixed,
       h0, h1, h2, h3, h01, h02, h03, h12, h13, h23,
       Ne.symm h01, Ne.symm h02, Ne.symm h03, Ne.symm h12, Ne.symm h13, Ne.symm h23]
+      at hpadded ⊢ <;> omega
 
 set_option maxHeartbeats 4000000 in
-/-- The negative padded gadget obeys the same relabeling and fuel-saturation identity. -/
-theorem negativeTwoPair_padded_depth_eq_local (pad : ℕ)
-    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel) :
-    (canonicalDT (negativeTwoPairGate
+/-- The corresponding residual-depth-one transport for the negative padded gadget. -/
+theorem negativeTwoPair_local_depth_le_one_of_padded (pad : ℕ)
+    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel)
+    (hpadded : (canonicalDT (negativeTwoPairGate
       (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
-      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth =
-      (canonicalDT (negativeTwoPairGate (0 : Fin 4) 1 2 3) 4
-        (paddedTwoPairLocalRestriction pad σ g)).depth := by
+      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1) :
+    (canonicalDT (negativeTwoPairGate (0 : Fin 4) 1 2 3) 4
+      (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1 := by
   obtain ⟨extra, rfl⟩ := Nat.exists_eq_add_of_le hfuel
-  simp only [Nat.add_comm 4 extra]
+  rw [Nat.add_comm 4 extra] at hpadded
   generalize h0 : σ (paddedTwoPairCoord pad g 0) = o0
   generalize h1 : σ (paddedTwoPairCoord pad g 1) = o1
   generalize h2 : σ (paddedTwoPairCoord pad g 2) = o2
@@ -6217,9 +6218,11 @@ theorem negativeTwoPair_padded_depth_eq_local (pad : ℕ)
   fin_cases o0 <;> fin_cases o1 <;> fin_cases o2 <;> fin_cases o3 <;>
     simp [paddedTwoPairLocalRestriction, negativeTwoPairGate, canonicalDT, anyTermSat,
       termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
-      litFixedVal, litFalse, litFree, fixVar, h0, h1, h2, h3,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth,
+      negativeTwoPair_depth_eq_zero_of_four_fixed, h0, h1, h2, h3,
       h01, h02, h03, h12, h13, h23,
       Ne.symm h01, Ne.symm h02, Ne.symm h03, Ne.symm h12, Ne.symm h13, Ne.symm h23]
+      at hpadded ⊢ <;> omega
 
 /-- Ambient residual-depth-one bounds for both padded polarities imply the executable local
 shallow predicate used by the exact four-coordinate game. -/
@@ -6235,15 +6238,9 @@ theorem twoPairRootShallow_of_padded_depths (pad : ℕ)
   simp only [twoPairRootShallow, decide_eq_true_eq]
   constructor
   · simpa [twoPairPolarityFamily] using
-      (show (canonicalDT (positiveTwoPairGate (0 : Fin 4) 1 2 3) 4
-        (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1 by
-        rw [← positiveTwoPair_padded_depth_eq_local pad σ g fuel hfuel]
-        exact hpos)
+      positiveTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hpos
   · simpa [twoPairPolarityFamily] using
-      (show (canonicalDT (negativeTwoPairGate (0 : Fin 4) 1 2 3) 4
-        (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1 by
-        rw [← negativeTwoPair_padded_depth_eq_local pad σ g fuel hfuel]
-        exact hneg)
+      negativeTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hneg
 
 /-- Fixing one owned ambient coordinate is exactly a point update of the corresponding local
 gadget restriction.  This is the decoding identity used by the padded direct-sum recursion. -/
@@ -6513,6 +6510,302 @@ theorem twoPairTenFlexibleCost_le_of_padded_commonShallow (pad fuel trunkDepth :
   rw [twoPairTenFlexibleConditionalCost_self, hterminal, zero_add] at hcost
   exact hcost.trans htrunkDepth
 
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- Exact bivariate local profile, with rows indexed by live coordinates `0..4` and columns by
+semantic cost `0..3`.  Equivalently the generating polynomial is
+`16 + 32*x + (8 + 16*z)*x^2 + 8*z^2*x^3 + z^3*x^4`. -/
+theorem twoPairFlexibleQueryCost_stars_profile_exact :
+    (List.range 5).map (fun q => (List.range 4).map (fun c =>
+      ((List.ofFn fun code : Fin 81 => code).filter (fun code =>
+        stars (twoPairLocalRestriction code) = q &&
+          twoPairFlexibleQueryCost (twoPairLocalRestriction code) = c)).length)) =
+      [[16, 0, 0, 0], [32, 0, 0, 0], [8, 16, 0, 0],
+        [0, 0, 8, 0], [0, 0, 0, 1]] := by
+  decide
+
+/-! ### Exact bivariate semantic-cost convolution
+
+The local profile above can be convolved while retaining both live support and semantic cost.
+This is the arithmetic object needed to locate the padding transition; unlike the earlier coarse
+`81^10` bound, it does not discard either grading. -/
+
+/-- Coefficient of `x^q z^c` in
+`(16 + 32*x + 8*x^2 + 16*x^2*z + 8*x^3*z^2 + x^4*z^3)^g`. -/
+def twoPairCostLiveConvolution : ℕ → ℕ → ℕ → ℕ
+  | 0, q, c => if q = 0 ∧ c = 0 then 1 else 0
+  | g + 1, q, c =>
+      16 * twoPairCostLiveConvolution g q c +
+      (if 1 ≤ q then 32 * twoPairCostLiveConvolution g (q - 1) c else 0) +
+      (if 2 ≤ q then 8 * twoPairCostLiveConvolution g (q - 2) c else 0) +
+      (if 2 ≤ q ∧ 1 ≤ c then
+        16 * twoPairCostLiveConvolution g (q - 2) (c - 1) else 0) +
+      (if 3 ≤ q ∧ 2 ≤ c then
+        8 * twoPairCostLiveConvolution g (q - 3) (c - 2) else 0) +
+      (if 4 ≤ q ∧ 3 ≤ c then
+        twoPairCostLiveConvolution g (q - 4) (c - 3) else 0)
+
+/-- The live-support coefficients obtained by summing the cost columns strictly above ten in the
+ten-fold bivariate recurrence.  Keeping this small explicit table makes the boundary arithmetic
+resource-safe; identifying it with the actual finite product is deliberately the next structural
+lemma, rather than an appeal to an opaque evaluator. -/
+def twoPairTenFlexibleCostTailCoefficient : ℕ → ℕ
+  | 15 => 112742891520
+  | 16 => 15562042245120
+  | 17 => 329815236280320
+  | 18 => 2642541878968320
+  | 19 => 10407821275299840
+  | 20 => 22389731006349312
+  | 21 => 27618472833843200
+  | 22 => 20568593190092800
+  | 23 => 10401074475171840
+  | 24 => 4029196851609600
+  | 25 => 1315170979676160
+  | 26 => 380197424332800
+  | 27 => 98576161832960
+  | 28 => 22883751854080
+  | 29 => 4734569349120
+  | 30 => 868004380672
+  | 31 => 140000706560
+  | 32 => 19687599360
+  | 33 => 2386375680
+  | 34 => 245656320
+  | 35 => 21056256
+  | 36 => 1462240
+  | 37 => 79040
+  | 38 => 3120
+  | 39 => 80
+  | 40 => 1
+  | _ => 0
+
+/-- The tabulated bivariate padding mass.  A profile with `q` live owned coordinates forces the
+padding restriction to have exactly `40-q` stars. -/
+def paddedTwoPairFlexibleCostTabulatedMass (pad : ℕ) : ℕ :=
+  ∑ q ∈ Finset.range 41, twoPairTenFlexibleCostTailCoefficient q *
+    (Nat.choose pad (40 - q) * 2 ^ (pad - (40 - q)))
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- The exact bivariate arithmetic still violates the requested `2^-10` contraction at padding
+eighty-six. -/
+theorem paddedTwoPairFlexibleCostTabulatedMass_scaled_not_le_shell_86 :
+    ¬ paddedTwoPairFlexibleCostTabulatedMass 86 * 2 ^ 10 ≤
+      Nat.choose 126 40 * 2 ^ 86 := by
+  norm_num (config := { maxSteps := 1000000 })
+    [paddedTwoPairFlexibleCostTabulatedMass, twoPairTenFlexibleCostTailCoefficient, Nat.choose,
+      Finset.sum_range_succ]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- One additional padding coordinate reverses the exact bivariate comparison. -/
+theorem paddedTwoPairFlexibleCostTabulatedMass_scaled_le_shell_87 :
+    paddedTwoPairFlexibleCostTabulatedMass 87 * 2 ^ 10 ≤
+      Nat.choose 127 40 * 2 ^ 87 := by
+  norm_num (config := { maxSteps := 1000000 })
+    [paddedTwoPairFlexibleCostTabulatedMass, twoPairTenFlexibleCostTailCoefficient, Nat.choose,
+      Finset.sum_range_succ]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- The exact semantic local cost never exceeds the number of live owned coordinates.  This
+finite statement is stronger than the univariate histogram: jointly by `(stars,cost)`, the only
+nonzero multiplicities are `(0,0):16`, `(1,0):32`, `(2,0):8`, `(2,1):16`, `(3,2):8`, and
+`(4,3):1`. -/
+theorem twoPairFlexibleQueryCost_le_stars (rho : Restriction 4) :
+    twoPairFlexibleQueryCost rho ≤ stars rho := by
+  rw [← twoPairLocalRestriction_code rho]
+  exact (by decide +revert : ∀ code : Fin 81,
+    twoPairFlexibleQueryCost (twoPairLocalRestriction code) ≤
+      stars (twoPairLocalRestriction code)) (twoPairRestrictionCode rho)
+
+/-- The actual one-gadget fiber with prescribed live support and semantic cost.  This is the
+structural base object whose finite products must be convolved; unlike the preceding displayed
+table, it can be used directly in fiberwise cardinality proofs. -/
+def twoPairLocalCostLiveFiber (q c : ℕ) : Finset (Restriction 4) :=
+  Finset.univ.filter fun rho =>
+    stars rho = q ∧ twoPairFlexibleQueryCost rho = c
+
+/-- The arithmetic recurrence's first layer is exactly the cardinality of the corresponding
+semantic local fiber, for every pair of natural-number indices (including the zero region outside
+the possible `0..4` live and `0..3` cost ranges). -/
+theorem twoPairLocalCostLiveFiber_card_eq_convolution_one (q c : ℕ) :
+    (twoPairLocalCostLiveFiber q c).card = twoPairCostLiveConvolution 1 q c := by
+  by_cases hq : q ≤ 4
+  · by_cases hc : c ≤ 3
+    · interval_cases q <;> interval_cases c <;> decide
+    · have hempty : twoPairLocalCostLiveFiber q c = ∅ := by
+        apply Finset.eq_empty_iff_forall_notMem.mpr
+        intro rho hrho
+        simp only [twoPairLocalCostLiveFiber, Finset.mem_filter, Finset.mem_univ,
+          true_and] at hrho
+        have hcost : twoPairFlexibleQueryCost rho ≤ 3 := by
+          rw [← twoPairLocalRestriction_code rho]
+          exact (by decide +revert : ∀ code : Fin 81,
+            twoPairFlexibleQueryCost (twoPairLocalRestriction code) ≤ 3)
+            (twoPairRestrictionCode rho)
+        rw [hrho.2] at hcost
+        omega
+      rw [hempty]
+      simp only [Finset.card_empty]
+      simp [twoPairCostLiveConvolution]
+      split_ifs <;> omega
+  · have hempty : twoPairLocalCostLiveFiber q c = ∅ := by
+      apply Finset.eq_empty_iff_forall_notMem.mpr
+      intro rho hrho
+      simp only [twoPairLocalCostLiveFiber, Finset.mem_filter, Finset.mem_univ,
+        true_and] at hrho
+      have hstars : stars rho ≤ 4 := by
+        rw [stars]
+        exact Finset.card_le_univ _
+      omega
+    rw [hempty]
+    simp only [Finset.card_empty]
+    simp [twoPairCostLiveConvolution]
+    split_ifs <;> omega
+
+/-- The actual `g`-gadget fiber with prescribed total live support and total semantic cost.
+Unlike the arithmetic recurrence, this definition ranges over genuine vectors of local
+restrictions and records both additive gradings directly. -/
+def twoPairProductCostLiveFiber (g q c : ℕ) :
+    Finset (Fin g → Restriction 4) :=
+  Finset.univ.filter fun roots =>
+    (∑ i, stars (roots i)) = q ∧
+      (∑ i, twoPairFlexibleQueryCost (roots i)) = c
+
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 8000000 in
+/-- Splitting off the last local restriction gives the exact structural successor equation for
+the semantic product fiber.  The guards are essential: natural-number subtraction represents
+the remaining grading only when the last gadget does not exceed the requested totals. -/
+theorem twoPairProductCostLiveFiber_card_succ (g q c : ℕ) :
+    (twoPairProductCostLiveFiber (g + 1) q c).card =
+      ∑ rho : Restriction 4,
+        if stars rho ≤ q ∧ twoPairFlexibleQueryCost rho ≤ c then
+          (twoPairProductCostLiveFiber g (q - stars rho)
+            (c - twoPairFlexibleQueryCost rho)).card
+        else 0 := by
+  classical
+  rw [twoPairProductCostLiveFiber, Finset.card_filter]
+  change (∑ roots : Fin (g + 1) → Restriction 4,
+      if (∑ i, stars (roots i)) = q ∧
+        (∑ i, twoPairFlexibleQueryCost (roots i)) = c then 1 else 0) = _
+  rw [Fintype.sum_equiv (Fin.succFunEquiv (Restriction 4) g)
+    (fun roots => if (∑ i, stars (roots i)) = q ∧
+      (∑ i, twoPairFlexibleQueryCost (roots i)) = c then 1 else 0)
+    (fun pair => if (∑ i, stars (pair.1 i)) + stars pair.2 = q ∧
+      (∑ i, twoPairFlexibleQueryCost (pair.1 i)) +
+        twoPairFlexibleQueryCost pair.2 = c then 1 else 0)]
+  · rw [Fintype.sum_prod_type]
+    apply Finset.sum_congr rfl
+    intro rho _
+    by_cases hle : stars rho ≤ q ∧ twoPairFlexibleQueryCost rho ≤ c
+    · rw [if_pos hle, twoPairProductCostLiveFiber, Finset.card_filter]
+      change (∑ roots : Fin g → Restriction 4,
+        if (∑ i, stars (roots i)) = q - stars rho ∧
+          (∑ i, twoPairFlexibleQueryCost (roots i)) =
+            c - twoPairFlexibleQueryCost rho then 1 else 0) = _
+      apply Finset.sum_congr rfl
+      intro roots _
+      split_ifs with hleft hright
+      · rfl
+      · exfalso
+        apply hright
+        constructor <;> omega
+      · exfalso
+        apply hleft
+        constructor <;> omega
+      · rfl
+    · rw [if_neg hle]
+      apply Finset.sum_eq_zero
+      intro roots _
+      rw [if_neg]
+      intro htotals
+      apply hle
+      constructor <;> omega
+  · intro roots
+    simp [Fin.succFunEquiv, Fin.sum_univ_castSucc, Fin.castAdd, Fin.natAdd, Fin.last]
+
+/-- The exact forty-star semantic cost tail supplied by the padded ten-gadget direct sum. -/
+def paddedTwoPairFlexibleCostTail (pad : ℕ) :
+    Finset (Restriction (pad + 40)) :=
+  Finset.univ.filter fun sigma =>
+    stars sigma = 40 ∧
+      10 < twoPairTenFlexibleCost
+        (fun g => paddedTwoPairLocalRestriction pad sigma g)
+
+/-- Every point of the exact semantic cost tail is genuinely bad for a depth-ten common trunk. -/
+theorem paddedTwoPairFlexibleCostTail_subset_bad (pad : ℕ) :
+    paddedTwoPairFlexibleCostTail pad ⊆
+      commonShallowBad (paddedTwoPairFamily pad) (pad + 40) 40 10 1 := by
+  intro sigma hsigma
+  rw [paddedTwoPairFlexibleCostTail, Finset.mem_filter] at hsigma
+  rw [mem_commonShallowBad]
+  refine ⟨hsigma.2.1, ?_⟩
+  intro hshallow
+  have hcost := twoPairTenFlexibleCost_le_of_padded_commonShallow
+    pad (pad + 40) 10 sigma (by omega) hshallow
+  omega
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- The fully live local gadget has exact flexible cost three.  This executable specialization
+will distinguish the unpadded schedule from the heavily padded schedule below. -/
+theorem twoPairFlexibleQueryCost_allFree :
+    twoPairFlexibleQueryCost (fun _ : Fin 4 => none) = 3 := by
+  decide
+
+/-- With no padding, the unique forty-live restriction lies in the complete semantic cost tail:
+all ten gadgets are fully live and contribute cost three, far above trunk budget ten. -/
+theorem allFreeForty_mem_paddedTwoPairFlexibleCostTail_zero :
+    (fun _ : Fin 40 => none) ∈ paddedTwoPairFlexibleCostTail 0 := by
+  simp only [paddedTwoPairFlexibleCostTail, Finset.mem_filter,
+    Finset.mem_univ, true_and]
+  constructor
+  · simpa using
+      (stars_rectangularDistinctSingleton_allLive (G := 10) (m := 4))
+  · have hlocal : (fun g : Fin 10 =>
+        paddedTwoPairLocalRestriction 0 (fun _ : Fin 40 => none) g) =
+        fun _ => (fun _ : Fin 4 => none) := by
+      funext g i
+      rfl
+    rw [hlocal, twoPairTenFlexibleCost]
+    simp [twoPairFlexibleQueryCost_allFree]
+
+/-- At zero padding the semantic tail is the entire forty-live shell (which has one point). -/
+theorem paddedTwoPairFlexibleCostTail_card_zeroPadding :
+    (paddedTwoPairFlexibleCostTail 0).card = 1 := by
+  have hpos : 1 ≤ (paddedTwoPairFlexibleCostTail 0).card :=
+    Finset.one_le_card.mpr
+      ⟨_, allFreeForty_mem_paddedTwoPairFlexibleCostTail_zero⟩
+  have hle : (paddedTwoPairFlexibleCostTail 0).card ≤
+      (Finset.univ.filter fun sigma : Restriction 40 => stars sigma = 40).card := by
+    apply Finset.card_le_card
+    intro sigma hsigma
+    rw [paddedTwoPairFlexibleCostTail, Finset.mem_filter] at hsigma
+    rw [Finset.mem_filter]
+    exact ⟨Finset.mem_univ _, hsigma.2.1⟩
+  rw [card_stars_eq] at hle
+  norm_num at hle
+  omega
+
+/-- Therefore the requested `2^10` scaled shell contraction is false for the unpadded schedule.
+The same semantic family fails only after the padding mass dilutes its near-unit cost support. -/
+theorem not_paddedTwoPair_scaled_contraction_zeroPadding :
+    ¬ (commonShallowBad (paddedTwoPairFamily 0) 40 40 10 1).card * 2 ^ 10 ≤
+        (Finset.univ.filter fun sigma : Restriction 40 => stars sigma = 40).card := by
+  have htail := Finset.card_le_card (paddedTwoPairFlexibleCostTail_subset_bad 0)
+  rw [paddedTwoPairFlexibleCostTail_card_zeroPadding] at htail
+  intro hcontraction
+  have hlower : 1024 ≤
+      (commonShallowBad (paddedTwoPairFamily 0) 40 40 10 1).card * 1024 := by
+    exact Nat.mul_le_mul_right 1024 htail
+  have hupper :
+      (commonShallowBad (paddedTwoPairFamily 0) 40 40 10 1).card * 1024 ≤ 1 := by
+    simpa only [card_stars_eq, Nat.choose_self, Nat.sub_self, pow_zero, mul_one,
+      pow_succ, Nat.mul_one] using hcontraction
+  have himpossible := hlower.trans hupper
+  norm_num at himpossible
+
 /-- Restrict an ambient assignment to its first `pad` coordinates. -/
 def paddedTwoPairPaddingRestriction (pad : ℕ) (σ : Restriction (pad + 40)) :
     Restriction pad :=
@@ -6551,6 +6844,52 @@ theorem paddedTwoPairRestrictionCode_injective (pad : ℕ) :
     have hg := congrFun hlocal key.1
     have hk := congrFun hg key.2
     simpa [paddedTwoPairLocalRestriction, hiq] using hk
+
+/-- Reassemble an ambient restriction from its ten local states and its padding state.  This is
+the explicit inverse needed for exact, rather than merely upper-bound, product counting. -/
+def paddedTwoPairRestrictionOfCode (pad : ℕ)
+    (code : (Fin 10 → Restriction 4) × Restriction pad) :
+    Restriction (pad + 40) :=
+  fun i => if hi : i.val < pad then code.2 ⟨i.val, hi⟩ else
+    let q : Fin 40 := ⟨i.val - pad, by omega⟩
+    let key : Fin 10 × Fin 4 := finProdFinEquiv.symm q
+    code.1 key.1 key.2
+
+/-- The product code is onto: the ten four-coordinate blocks and the padding block partition the
+ambient coordinates exactly. -/
+theorem paddedTwoPairRestrictionCode_surjective (pad : ℕ) :
+    Function.Surjective (paddedTwoPairRestrictionCode pad) := by
+  intro code
+  refine ⟨paddedTwoPairRestrictionOfCode pad code, ?_⟩
+  apply Prod.ext
+  · funext g k
+    simp only [paddedTwoPairRestrictionCode, paddedTwoPairLocalRestriction,
+      paddedTwoPairRestrictionOfCode]
+    have hcoord : ¬(paddedTwoPairCoord pad g k).val < pad := by
+      simp [paddedTwoPairCoord]
+    rw [dif_neg hcoord]
+    let q : Fin 40 := ⟨(paddedTwoPairCoord pad g k).val - pad, by omega⟩
+    have hq : q = finProdFinEquiv (g, k) := by
+      apply Fin.ext
+      change (Fin.natAdd pad ⟨4 * g.val + k.val, by omega⟩).val - pad =
+        (finProdFinEquiv (g, k)).val
+      rw [Fin.val_natAdd]
+      simp [finProdFinEquiv]
+      omega
+    change code.1 ((finProdFinEquiv : Fin 10 × Fin 4 ≃ Fin 40).symm q).1
+        ((finProdFinEquiv : Fin 10 × Fin 4 ≃ Fin 40).symm q).2 = code.1 g k
+    rw [hq, Equiv.symm_apply_apply]
+  · funext i
+    simp [paddedTwoPairRestrictionCode, paddedTwoPairPaddingRestriction,
+      paddedTwoPairRestrictionOfCode]
+
+/-- The exact padded/local decomposition as an equivalence. -/
+noncomputable def paddedTwoPairRestrictionEquiv (pad : ℕ) :
+    Restriction (pad + 40) ≃
+      (Fin 10 → Restriction 4) × Restriction pad :=
+  Equiv.ofBijective (paddedTwoPairRestrictionCode pad)
+    ⟨paddedTwoPairRestrictionCode_injective pad,
+      paddedTwoPairRestrictionCode_surjective pad⟩
 
 /-- Pullback identifies the canonical local live count with the padded gadget's owned-live
 count. -/
@@ -6825,6 +7164,167 @@ theorem stars_paddedTwoPairRestrictionCode (pad : ℕ)
   rw [← hprod]
   simp [paddedTwoPairPaddingRestriction, paddedTwoPairLocalRestriction,
     paddedTwoPairCoord, finProdFinEquiv, Nat.add_comm]
+
+/-- A forty-star point in the exact semantic cost tail has at most twenty-nine live padding
+coordinates.  Unlike the earlier compatible-deficit bound, this applies to the whole direct-sum
+cost tail. -/
+theorem paddedTwoPairFlexibleCostTail_padding_stars_le_twentyNine (pad : ℕ)
+    (sigma : Restriction (pad + 40))
+    (hsigma : sigma ∈ paddedTwoPairFlexibleCostTail pad) :
+    stars (paddedTwoPairPaddingRestriction pad sigma) ≤ 29 := by
+  rw [paddedTwoPairFlexibleCostTail, Finset.mem_filter] at hsigma
+  have hlocal : twoPairTenFlexibleCost
+      (fun g => paddedTwoPairLocalRestriction pad sigma g) ≤
+      ∑ g, stars (paddedTwoPairLocalRestriction pad sigma g) := by
+    rw [twoPairTenFlexibleCost]
+    apply Finset.sum_le_sum
+    intro g _
+    exact twoPairFlexibleQueryCost_le_stars _
+  have hsplit := stars_paddedTwoPairRestrictionCode pad sigma
+  omega
+
+/-- Restrictions on `pad` coordinates with at most twenty-nine live coordinates. -/
+def paddingRestrictionsAtMostTwentyNine (pad : ℕ) : Finset (Restriction pad) :=
+  Finset.univ.filter fun rho => stars rho ≤ 29
+
+/-- The bounded-star padding count is the sum of its thirty exact star layers. -/
+theorem paddingRestrictionsAtMostTwentyNine_card (pad : ℕ) :
+    (paddingRestrictionsAtMostTwentyNine pad).card =
+      ∑ k ∈ Finset.range 30, Nat.choose pad k * 2 ^ (pad - k) := by
+  classical
+  have hmaps : Set.MapsTo (fun rho : Restriction pad => stars rho)
+      (paddingRestrictionsAtMostTwentyNine pad : Set (Restriction pad))
+      (Finset.range 30 : Set ℕ) := by
+    intro rho hrho
+    rw [Finset.mem_coe, paddingRestrictionsAtMostTwentyNine,
+      Finset.mem_filter] at hrho
+    rw [Finset.mem_coe, Finset.mem_range]
+    exact Nat.lt_succ_of_le hrho.2
+  rw [Finset.card_eq_sum_card_fiberwise hmaps]
+  apply Finset.sum_congr rfl
+  intro k hk
+  have hk29 : k ≤ 29 := by
+    rw [Finset.mem_range] at hk
+    omega
+  rw [show (paddingRestrictionsAtMostTwentyNine pad).filter (fun rho => stars rho = k) =
+      Finset.univ.filter (fun rho : Restriction pad => stars rho = k) by
+    ext rho
+    simp only [paddingRestrictionsAtMostTwentyNine, Finset.mem_filter,
+      Finset.mem_univ, true_and]
+    exact ⟨fun h => h.2, fun h => ⟨h ▸ hk29, h⟩⟩]
+  exact card_stars_eq pad k
+
+/-- Up to level twenty-nine, each successive padding layer absorbs one lost fixed-value bit once
+the padding dimension is at least eighty-six. -/
+theorem two_pow_twentyNine_sub_mul_choose_le_choose_twentyNine
+    (pad k : ℕ) (hpad : 86 ≤ pad) (hk : k ≤ 29) :
+    2 ^ (29 - k) * Nat.choose pad k ≤ Nat.choose pad 29 := by
+  induction hk using Nat.decreasingInduction with
+  | self => simp
+  | of_succ k hk ih =>
+      have hklt : k < 29 := by omega
+      have hdouble : 2 * Nat.choose pad k ≤ Nat.choose pad (k + 1) := by
+        apply Nat.le_of_mul_le_mul_right _ (Nat.zero_lt_succ k)
+        rw [Nat.choose_succ_right_eq]
+        calc
+          (2 * Nat.choose pad k) * (k + 1) =
+              Nat.choose pad k * (2 * (k + 1)) := by ring
+          _ ≤ Nat.choose pad k * (pad - k) := by
+            apply Nat.mul_le_mul_left
+            omega
+      calc
+        2 ^ (29 - k) * Nat.choose pad k =
+            2 ^ (29 - (k + 1)) * (2 * Nat.choose pad k) := by
+              rw [show 29 - k = (29 - (k + 1)) + 1 by omega, pow_succ]
+              ring
+        _ ≤ 2 ^ (29 - (k + 1)) * Nat.choose pad (k + 1) :=
+          Nat.mul_le_mul_left _ hdouble
+        _ ≤ Nat.choose pad 29 := ih
+
+/-- At ambient padding at least eighty-six, the thirty bounded-star layers fit below one top
+binomial coefficient times the full fixed-value mass. -/
+theorem paddingRestrictionsAtMostTwentyNine_card_le (pad : ℕ) (hpad : 86 ≤ pad) :
+    (paddingRestrictionsAtMostTwentyNine pad).card ≤
+      Nat.choose pad 29 * 2 ^ pad := by
+  rw [paddingRestrictionsAtMostTwentyNine_card]
+  calc
+    (∑ k ∈ Finset.range 30, Nat.choose pad k * 2 ^ (pad - k)) ≤
+        ∑ _k ∈ Finset.range 30,
+          Nat.choose pad 29 * 2 ^ (pad - 29) := by
+      apply Finset.sum_le_sum
+      intro k hk
+      have hk29 : k ≤ 29 := by
+        rw [Finset.mem_range] at hk
+        omega
+      calc
+        Nat.choose pad k * 2 ^ (pad - k) =
+            (2 ^ (29 - k) * Nat.choose pad k) * 2 ^ (pad - 29) := by
+          rw [show pad - k = (29 - k) + (pad - 29) by omega, pow_add]
+          ring
+        _ ≤ Nat.choose pad 29 * 2 ^ (pad - 29) :=
+          Nat.mul_le_mul_right _
+            (two_pow_twentyNine_sub_mul_choose_le_choose_twentyNine pad k hpad hk29)
+    _ = 30 * (Nat.choose pad 29 * 2 ^ (pad - 29)) := by simp
+    _ ≤ 2 ^ 29 * (Nat.choose pad 29 * 2 ^ (pad - 29)) := by
+      exact Nat.mul_le_mul_right _ (by norm_num)
+    _ = Nat.choose pad 29 * 2 ^ pad := by
+      rw [show pad = 29 + (pad - 29) by omega, pow_add]
+      simp only [Nat.add_sub_cancel_left]
+      ring
+
+/-- The complete exact semantic cost tail injects into all ten local states paired with a
+padding restriction of at most twenty-nine stars.  This deliberately overcounts local states;
+it is enough to decide the concrete shell comparison without a large bivariate convolution. -/
+theorem paddedTwoPairFlexibleCostTail_card_le_product (pad : ℕ) :
+    (paddedTwoPairFlexibleCostTail pad).card ≤
+      81 ^ 10 * (paddingRestrictionsAtMostTwentyNine pad).card := by
+  rw [← Finset.card_image_of_injective _ (paddedTwoPairRestrictionCode_injective pad)]
+  calc
+    ((paddedTwoPairFlexibleCostTail pad).image
+      (paddedTwoPairRestrictionCode pad)).card ≤
+        (Finset.univ ×ˢ paddingRestrictionsAtMostTwentyNine pad).card := by
+      apply Finset.card_le_card
+      intro code hcode
+      rw [Finset.mem_image] at hcode
+      obtain ⟨sigma, hsigma, rfl⟩ := hcode
+      rw [Finset.mem_product]
+      exact ⟨Finset.mem_univ _, by
+        rw [paddingRestrictionsAtMostTwentyNine, Finset.mem_filter]
+        exact ⟨Finset.mem_univ _,
+          paddedTwoPairFlexibleCostTail_padding_stars_le_twentyNine pad sigma hsigma⟩⟩
+    _ = 81 ^ 10 * (paddingRestrictionsAtMostTwentyNine pad).card := by
+      rw [Finset.card_product, Finset.card_univ, Fintype.card_fun,
+        Fintype.card_fin]
+      norm_num [Fintype.card_congr (Equiv.refl (Restriction 4))]
+
+set_option maxRecDepth 65536 in
+set_option maxHeartbeats 4000000 in
+/-- Even the coarse overcount of the complete exact semantic cost tail is far below the requested
+`2^-10` fraction of the forty-star shell at the audited padding.  Hence exact bivariate
+convolution cannot make this particular ten-gadget witness refute the half-shell contraction. -/
+theorem paddedTwoPairFlexibleCostTail_coarse_scaled_insufficient_4080 :
+    81 ^ 10 * (paddingRestrictionsAtMostTwentyNine 4080).card * 2 ^ 10 <
+      Nat.choose 4120 40 * 2 ^ 4080 := by
+  have hcard := paddingRestrictionsAtMostTwentyNine_card_le 4080 (by norm_num)
+  have hcoeff : 81 ^ 10 * Nat.choose 4080 29 * 2 ^ 10 < Nat.choose 4120 40 := by
+    norm_num (config := { maxSteps := 1000000 }) [Nat.choose]
+  have hscaled := (Nat.mul_lt_mul_right (pow_pos (by norm_num : 0 < 2) 4080)).mpr hcoeff
+  calc
+    81 ^ 10 * (paddingRestrictionsAtMostTwentyNine 4080).card * 2 ^ 10 ≤
+        81 ^ 10 * (Nat.choose 4080 29 * 2 ^ 4080) * 2 ^ 10 := by
+      exact Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ hcard)
+    _ = (81 ^ 10 * Nat.choose 4080 29 * 2 ^ 10) * 2 ^ 4080 := by ac_rfl
+    _ < Nat.choose 4120 40 * 2 ^ 4080 := hscaled
+
+/-- The exact semantic tail itself is therefore quantitatively insufficient at the audited
+schedule, although every one of its points is a genuine bad restriction. -/
+theorem paddedTwoPairFlexibleCostTail_scaled_insufficient_4080 :
+    (paddedTwoPairFlexibleCostTail 4080).card * 2 ^ 10 <
+      Nat.choose 4120 40 * 2 ^ 4080 := by
+  exact lt_of_le_of_lt
+    (Nat.mul_le_mul_right (2 ^ 10)
+      (paddedTwoPairFlexibleCostTail_card_le_product 4080))
+    paddedTwoPairFlexibleCostTail_coarse_scaled_insufficient_4080
 
 /-- A certified forty-star deficit-tail profile has at most seventeen live padding coordinates.
 This is the exact support consequence needed by the coarse padding charge. -/
@@ -7639,12 +8139,22 @@ set_option maxRecDepth 16384 in
 #print axioms paddedTwoPairLocalRestriction_fixVar_padding
 #print axioms twoPairTenFlexibleConditionalCost_tree_adversary
 #print axioms paddedTwoPairLocalRestriction_fixVar_self
-#print axioms positiveTwoPair_padded_depth_eq_local
-#print axioms negativeTwoPair_padded_depth_eq_local
+#print axioms positiveTwoPair_local_depth_le_one_of_padded
+#print axioms negativeTwoPair_local_depth_le_one_of_padded
 #print axioms twoPairRootShallow_of_padded_depths
 #print axioms twoPairFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleCost_le_of_padded_commonShallow
+#print axioms twoPairFlexibleQueryCost_stars_profile_exact
+#print axioms twoPairLocalCostLiveFiber_card_eq_convolution_one
+#print axioms paddedTwoPairFlexibleCostTabulatedMass_scaled_not_le_shell_86
+#print axioms paddedTwoPairFlexibleCostTabulatedMass_scaled_le_shell_87
+#print axioms twoPairFlexibleQueryCost_le_stars
+#print axioms paddedTwoPairFlexibleCostTail_subset_bad
+#print axioms twoPairFlexibleQueryCost_allFree
+#print axioms allFreeForty_mem_paddedTwoPairFlexibleCostTail_zero
+#print axioms paddedTwoPairFlexibleCostTail_card_zeroPadding
+#print axioms not_paddedTwoPair_scaled_contraction_zeroPadding
 #print axioms restrictionExtends_path_of_agrees_everywhere
 #print axioms twoPairFlexibleQueryWin_of_tree
 #print axioms twoPairFlexibleQueryWin_sound_aux
@@ -7683,6 +8193,13 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairTenLocalDeficitTailProfiles_card_le_full
 #print axioms paddedTwoPair_twentyThree_le_ownedLive_of_ten_lt_deficit
 #print axioms stars_paddedTwoPairRestrictionCode
+#print axioms paddedTwoPairFlexibleCostTail_padding_stars_le_twentyNine
+#print axioms paddingRestrictionsAtMostTwentyNine_card
+#print axioms two_pow_twentyNine_sub_mul_choose_le_choose_twentyNine
+#print axioms paddingRestrictionsAtMostTwentyNine_card_le
+#print axioms paddedTwoPairFlexibleCostTail_card_le_product
+#print axioms paddedTwoPairFlexibleCostTail_coarse_scaled_insufficient_4080
+#print axioms paddedTwoPairFlexibleCostTail_scaled_insufficient_4080
 #print axioms paddedTwoPair_padding_stars_le_seventeen
 #print axioms paddingRestrictionsAtMostSeventeen_card
 #print axioms two_pow_seventeen_sub_mul_choose_le_choose_seventeen

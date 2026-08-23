@@ -6254,15 +6254,17 @@ forty-star padding shell.  No P-versus-NP conclusion follows.
 ### The padded ten-gadget semantic direct sum is now complete
 
 The coordinate and fuel transports are now kernel checked in the exact form needed by the
-two-pair gadget.  `positiveTwoPair_padded_depth_eq_local` and
-`negativeTwoPair_padded_depth_eq_local` prove that, for every ambient restriction and every fuel
-at least four, each padded gate's canonical depth is exactly the depth of its four-coordinate
-pullback at local fuel four.  The proof audits all 81 local restriction states, uses
+two-pair gadget.  `positiveTwoPair_local_depth_le_one_of_padded` and
+`negativeTwoPair_local_depth_le_one_of_padded` prove that, for every ambient restriction and every
+fuel at least four, an ambient residual-depth-one bound transfers to the four-coordinate pullback
+at local fuel four.  The proof audits all 81 local restriction states, uses
 `paddedTwoPairCoord_injective` to keep the embedded coordinates distinct, and exposes the four
-successor fuel layers explicitly.  Thus relabeling and saturation are discharged together rather
-than inferred from an unproved general monotonicity principle.
+successor fuel layers explicitly.  This is deliberately the needed one-way shallow transport:
+the stronger exact tree-depth equality route leaves symbolic post-saturation fuel branches and is
+not asserted.  Thus relabeling and sufficient fuel exposure are discharged together rather than
+inferred from an unproved general monotonicity principle.
 
-`twoPairRootShallow_of_padded_depths` packages the two polarity identities into the executable
+`twoPairRootShallow_of_padded_depths` packages the two polarity transports into the executable
 local shallow predicate.  The capstone
 `twoPairTenFlexibleCost_le_of_padded_commonShallow` then composes the arbitrary-tree conditional
 adversary with global leaf agreement, the generalized endpoint lemma, padded-to-local restriction
@@ -6285,3 +6287,155 @@ polynomial `(56 + 16z + 8z^2 + z^3)^10`, identify the coefficient tail with the 
 whose summed local cost exceeds trunk depth ten, and combine that tail with the exact forty-star
 padding shell.  This will test whether the semantic obstruction has enough mass to refute the
 claimed half-shell contraction at the concrete schedule.  No P-versus-NP conclusion follows.
+
+### The complete semantic cost tail is quantitatively insufficient
+
+The joint live-coordinate/cost audit is now kernel checked, rather than inferred from the
+univariate cost histogram.  Its bivariate generating polynomial is exactly
+
+```text
+16 + 32*x + (8 + 16*z)*x^2 + 8*z^2*x^3 + z^3*x^4.
+```
+
+Thus every local semantic cost is at most the number of live owned coordinates.  The new finite
+set `paddedTwoPairFlexibleCostTail pad` contains exactly the ambient restrictions with forty stars
+whose sum of the ten local semantic costs exceeds ten.  The completed direct-sum theorem proves
+that this entire set, not merely a selected profile class, is contained in
+`commonShallowBad (paddedTwoPairFamily pad) (pad + 40) 40 10 1`.
+
+The joint grading also gives a decisive shortcut around an expensive exact ten-fold convolution.
+Every tail point owns at least eleven live gadget coordinates, so it has at most twenty-nine live
+padding coordinates.  Injecting the full tail into all `81^10` local states paired with a padding
+restriction of at most twenty-nine stars yields
+
+```text
+|cost tail at pad 4080| * 2^10
+  < choose(4120,40) * 2^4080.
+```
+
+This deliberately overcounts every possible local vector.  Therefore the exact bivariate
+convolution, which can only shrink the left side, cannot make this ten-gadget witness refute the
+requested shell contraction at the audited schedule.  The route is preserved as a genuine
+semantic bad subset with inadequate mass, not discarded as a merely numerical experiment.
+
+The precise next frontier is structural rather than a finer convolution: search for a gadget
+family whose semantic common-trunk cost grows faster relative to its owned live-coordinate
+support, or change the schedule so that padding does not dilute every cost unit.  A useful next
+local target is a proved ratio obstruction or construction with `cost > stars` under the relevant
+residual-depth notion; the present gadget satisfies the opposite inequality pointwise.  No
+P-versus-NP conclusion follows.
+
+### A universal live-support ceiling closes the super-unit gadget-ratio route
+
+The proposed local discriminator is now settled in the negative, uniformly over every finite gate
+family and every residual-depth threshold.  The new theorem
+`trunkDepth_lt_stars_of_not_commonShallowAt` states that, whenever the root's live-variable count
+fits within the canonical-tree fuel budget,
+
+```text
+¬ CommonShallowAt gates fuel sigma trunkDepth residualDepth
+  → trunkDepth < stars sigma.
+```
+
+This is the contrapositive form needed by semantic gadget lower bounds.  The proof uses the
+already verified canonical prefix that queries all live root coordinates: once the trunk budget
+reaches `stars sigma`, every reached restriction is terminal for every indexed gate, so all
+residual canonical depths are zero.  Monotonicity then covers any requested residual threshold.
+
+Consequently no sound gadget potential that certifies failure of `CommonShallowAt` can have
+semantic common-trunk cost strictly larger than its live-coordinate support.  The ten-gadget
+identity `twoPairFlexibleQueryCost ≤ stars` was not an accidental weakness of that construction;
+ratio greater than one is impossible for the current event definition under ample fuel.
+
+The precise next frontier is therefore quantitative and distributional: redesign the survivor
+schedule or the shell encoding so that a near-unit semantic cost/live-support ratio is not diluted
+by padding, or prove a stronger bad-set count using correlations across gadgets.  Searching for a
+single gadget with `cost > stars` is now a closed route.  No P-versus-NP conclusion follows.
+
+### Zero padding isolates dilution as the decisive failure mode
+
+The same exact ten-gadget semantic witness has now been checked at the opposite endpoint of the
+padding schedule.  `twoPairFlexibleQueryCost_allFree` computes that every fully live local gadget
+has cost three.  Consequently, with `pad = 0`, the unique restriction on forty coordinates with
+forty stars has total semantic cost thirty and lies in
+`paddedTwoPairFlexibleCostTail 0`.  The theorem
+`paddedTwoPairFlexibleCostTail_card_zeroPadding` proves that this tail is the entire one-point
+forty-live shell.
+
+Combining that exact tail cardinality with the already proved semantic direct-sum inclusion gives
+`not_paddedTwoPair_scaled_contraction_zeroPadding`:
+
+```text
+¬ |commonShallowBad (paddedTwoPairFamily 0) 40 40 10 1| * 2^10
+    ≤ |{sigma : Restriction 40 | stars sigma = 40}|.
+```
+
+Thus the gadget is strong enough to refute the requested contraction when all shell mass is
+concentrated on its owned coordinates, while its complete semantic tail is insufficient at
+`pad = 4080`.  This formally separates padding dilution from the semantic direct-sum strength;
+removing padding fixes the witness but does not by itself supply the ambient-variable regime
+needed by the layered circuit schedule.
+
+The precise next frontier is to locate the padding transition rather than search for a forbidden
+super-unit gadget: derive the exact bivariate tail-cardinality formula as a function of `pad`, then
+find the largest padding compatible with the `2^-10` contraction failure and compare it to the
+minimum ambient slack required by the realized-prefix encoder.  If those ranges do not overlap,
+the shell encoding or survivor schedule must change.  No P-versus-NP conclusion follows.
+
+### The bivariate arithmetic isolates the candidate padding boundary at 86/87
+
+The local joint profile has now been promoted to the explicit recurrence
+`twoPairCostLiveConvolution`: its coefficient at `(q,c)` is the coefficient of `x^q z^c` in
+
+```text
+(16 + 32*x + 8*x^2 + 16*x^2*z + 8*x^3*z^2 + x^4*z^3)^g.
+```
+
+Summing the ten-fold cost columns `c > 10` gives a resource-safe table indexed by owned live
+support `q`.  `paddedTwoPairFlexibleCostTabulatedMass pad` combines that table with the exact
+padding layer `choose(pad,40-q) * 2^(pad-(40-q))`.  The two boundary comparisons are kernel
+checked:
+
+```text
+not (tabulatedMass 86 * 2^10 <= choose(126,40) * 2^86)
+tabulatedMass 87 * 2^10 <= choose(127,40) * 2^87.
+```
+
+Thus the exact bivariate arithmetic candidate changes side between these two adjacent test points:
+padding 86 still supplies enough semantic tail mass to defeat the requested saving, whereas
+padding 87 does not.  Monotonicity away from these points is not yet asserted.  Both values are far
+below the audited schedule padding 4080 and sharply confirm the dilution diagnosis.
+
+The coefficient table is intentionally not yet asserted to equal the cardinality of
+`paddedTwoPairFlexibleCostTail`: direct reduction of the naive recurrence exceeded the module's
+resource budget, and the current dirty two-pair audit already contains unrelated unfinished
+compile errors.  The precise next frontier is a structural finite-product proof that the tabulated
+coefficients are the ten-fold local fibers and that the product restriction equivalence turns
+their weighted sum into the actual tail cardinality.  That bridge will upgrade the 86/87 arithmetic
+boundary to a theorem about `commonShallowBad`; until then it is a kernel-checked arithmetic
+discriminator, not a claimed semantic threshold.  No P-versus-NP conclusion follows.
+
+### The bivariate recurrence now has its exact semantic base fiber
+
+The first structural layer of the cardinality bridge is now explicit.  The finite set
+`twoPairLocalCostLiveFiber q c` consists of the actual four-coordinate restrictions with live
+support `q` and flexible common-trunk cost `c`.
+`twoPairLocalCostLiveFiber_card_eq_convolution_one` identifies its cardinality with
+`twoPairCostLiveConvolution 1 q c` for every pair of natural indices.  The proof checks the twenty
+feasible `(q,c)` cells against the executable local semantics and proves all cells outside the
+`q <= 4`, `c <= 3` rectangle empty from the live-support and cost bounds.  Thus the polynomial's
+one-gadget coefficients are no longer merely a displayed or manually transferred table.
+
+The exact ambient product decomposition was also repaired at its previously unfinished point.
+`paddedTwoPairRestrictionCode_surjective` now reconstructs each gadget coordinate by an explicit
+use of the inverse law for `finProdFinEquiv`, and `paddedTwoPairRestrictionEquiv` is correctly
+marked noncomputable because `Equiv.ofBijective` uses classical choice.  This supplies the actual
+bijection needed by the final weighted-cardinality transport.
+
+The precise next frontier is to iterate the new one-gadget fiber theorem: partition
+`Fin (g+1) -> Restriction 4` by the last gadget's six possible `(stars,cost)` cells and prove that
+the resulting cardinalities satisfy `twoPairCostLiveConvolution`.  Specializing at `g = 10`,
+summing the columns `c > 10`, and transporting through `paddedTwoPairRestrictionEquiv` should then
+identify `paddedTwoPairFlexibleCostTabulatedMass pad` with the actual semantic tail cardinality.
+Only after that equality is proved can the arithmetic 86/87 comparison be promoted to semantic
+bad-set statements.  No P-versus-NP conclusion follows.

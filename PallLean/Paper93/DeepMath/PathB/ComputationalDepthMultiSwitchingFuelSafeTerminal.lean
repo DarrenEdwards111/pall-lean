@@ -593,6 +593,21 @@ theorem commonShallowAt_zero_of_stars_le_fuel_le_trunk {n G : ℕ}
     (CommonTree.pathEndpoint σ (canonicalFamilyTree gates fuel σ) x)
     (canonicalFamily_pathEndpoint_terminal gates fuel σ x hext hstarsFuel g) fuel)
 
+/-- Any genuinely bad common-trunk instance with ample fuel must ask for fewer trunk queries than
+there are live variables.  In particular, no sound semantic obstruction to `CommonShallowAt` can
+force common-trunk cost strictly above the root's live-coordinate support: querying every live
+coordinate always leaves residual depth zero, independently of the gate family. -/
+theorem trunkDepth_lt_stars_of_not_commonShallowAt {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {fuel : ℕ} {σ : Restriction n}
+    {trunkDepth residualDepth : ℕ} (hstarsFuel : stars σ ≤ fuel)
+    (hbad : ¬CommonShallowAt gates fuel σ trunkDepth residualDepth) :
+    trunkDepth < stars σ := by
+  apply Nat.lt_of_not_ge
+  intro hstarsTrunk
+  apply hbad
+  exact (commonShallowAt_zero_of_stars_le_fuel_le_trunk gates fuel σ trunkDepth
+    hstarsFuel hstarsTrunk).mono (Nat.le_refl _) (Nat.zero_le _)
+
 /-- Consequently the bad event is empty whenever its trunk budget is at least the exact shell
 size and the shell fits within the available fuel. -/
 theorem commonShallowBad_card_eq_zero_of_le_trunk {n G : ℕ}
@@ -1050,6 +1065,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_eq_pathEndpoint
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_terminal_of_stars_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_eq_zero_of_terminal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.trunkDepth_lt_stars_of_not_commonShallowAt
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_canonicalEnd_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_pathEndpoint_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalGate_deep_prefix_implies_long_trace
