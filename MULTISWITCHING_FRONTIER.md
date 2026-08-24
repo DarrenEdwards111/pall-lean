@@ -6600,3 +6600,309 @@ lifted trees with `CommonTree.bind`.  The induction must carry the local-pullbac
 processed and unprocessed gadgets and use `depth_bind_le` to bound total depth by the sum of local
 costs.  Completing that fold would turn total flexible cost at most ten into the ambient
 `CommonShallowAt` converse.  No P-versus-NP conclusion follows.
+
+### The one-gadget lifted trunk now discharges the complete fold step
+
+The local-to-ambient construction is now packaged as an actual tree rather than a collection of
+coordinate identities.  `paddedTwoPairLiftTree` recursively relabels a four-coordinate local
+common trunk onto one padded gadget and overwrites every returned local payload into the current
+ambient restriction.  Its exact depth and run laws show that relabelling neither changes depth nor
+alters the intended execution/overwrite semantics.
+
+More importantly, `paddedTwoPairLiftTree_spec` proves the full induction interface from a local
+`CommonShallowAt` witness.  Provided the current ambient payload extends the immutable root, every
+reached lifted leaf:
+
+* still extends the immutable ambient root;
+* agrees with the followed ambient assignment;
+* makes the processed gadget satisfy `twoPairRootShallow`; and
+* leaves every other gadget pullback exactly unchanged.
+
+Thus the remaining product construction no longer needs to reopen local semantic soundness or
+coordinate bookkeeping.  It only needs a finite fold invariant saying that all already processed
+gadgets retain their shallow certificates while unprocessed pullbacks still equal their roots,
+together with the additive `CommonTree.depth_bind_le` estimate.
+
+The precise next frontier is to define the `List.finRange 10` bind fold over these lifted trunks,
+prove by list induction that its depth is at most the sum of the ten local flexible costs, and
+instantiate `twoPairRootShallow_iff_padded_depths` at the final leaf.  That will decide whether
+total flexible cost at most ten gives the ambient `CommonShallowAt` converse and hence whether the
+exact semantic tail is the full bad set at padding 87 and 4080.  No P-versus-NP conclusion follows.
+
+### The sequential product-tree fold and its additive depth law are now explicit
+
+`paddedTwoPairLiftFold` now performs the promised product construction for an arbitrary explicit
+list of gadget indices.  At each step it lifts that gadget's local tree at the current ambient
+payload and uses `CommonTree.bind` to continue from every returned leaf.  This is the executable
+tree skeleton that will be specialized to `List.finRange 10`.
+
+Two structural laws are proved independently of the semantic invariant.  First,
+`paddedTwoPairLiftFold_depth_le` bounds the ambient fold depth by the sum of the listed local tree
+depths, using `CommonTree.depth_bind_le` at every step.  Second,
+`paddedTwoPairLiftFold_run_cons` gives the exact head-then-tail execution recurrence.  Therefore
+neither fold construction nor trunk-budget addition remains implicit.
+
+The precise next frontier is the semantic list induction: for a duplicate-free order, show that
+the fold preserves `RestrictionExtends` and assignment agreement, retains
+`twoPairRootShallow` for every processed gadget via the other-coordinate overwrite law, and leaves
+each unprocessed pullback equal to its initial root.  Specializing that invariant to
+`List.finRange 10` and choosing each local witness at `twoPairFlexibleQueryCost` should produce the
+ambient `CommonShallowAt` converse whenever the ten costs sum to at most ten.  No P-versus-NP
+conclusion follows.
+
+### The sequential fold now carries its complete semantic list invariant
+
+The product-tree payload induction is now explicit in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  The theorem
+`paddedTwoPairLiftFold_localRestriction_of_not_mem` proves that every gadget omitted from the
+remaining order has exactly the same local pullback before and after the fold.  This is the
+preservation law needed to keep an earlier shallow certificate valid while later disjoint gadgets
+are processed.
+
+`paddedTwoPairLiftFold_spec` then proves the full semantic invariant for every duplicate-free
+order.  Assuming each listed local tree is a valid common-shallow witness at its immutable root
+pullback, every reached final payload:
+
+* extends the immutable ambient root;
+* agrees with the followed ambient assignment; and
+* satisfies `twoPairRootShallow` for every gadget in the processed order.
+
+Thus the processed/unprocessed bookkeeping, root extension, assignment agreement, and persistence
+of earlier shallow certificates are no longer implicit.  Together with the already proved
+additive depth bound, the only remaining constructive interface is selecting a concrete local
+tree at `twoPairFlexibleQueryCost` for every root, specializing the order to `List.finRange 10`,
+and translating the ten Boolean local shallow facts through
+`twoPairRootShallow_iff_padded_depths` into the `Fin 20` ambient family certificate.
+
+The precise next frontier is that specialization capstone.  First prove that
+`twoPairFlexibleQueryWin rho (twoPairFlexibleQueryCost rho) rho = true` (including the universal
+depth-three fallback), choose the corresponding ten local `CommonShallowAt` witnesses, and combine
+the fold depth and semantic theorems into
+`CommonShallowAt (paddedTwoPairFamily pad) fuel sigma (twoPairTenFlexibleCost ...) 1` for
+`4 <= fuel`.  This would establish the missing converse to
+`twoPairTenFlexibleCost_le_of_padded_commonShallow` and identify the exact bad set with the cost
+tail.  No P-versus-NP conclusion follows.
+
+### The computed local flexible cost is now certified to win
+
+The last branch of `twoPairFlexibleQueryCost` is no longer only an inferred histogram value.
+`twoPairFlexibleQueryWin_three_code` exhausts the 81 base-three local restrictions and proves that
+the flexible game wins at depth three for every one.  The decoder identity then removes the code
+presentation.  Consequently `twoPairFlexibleQueryWin_cost` proves pointwise for every local root
+`rho` that
+
+```text
+twoPairFlexibleQueryWin rho (twoPairFlexibleQueryCost rho) rho = true.
+```
+
+Thus all four branches of the computed minimum supply actual flexible-game certificates, and
+`twoPairFlexibleQueryWin_iff_commonShallowAt` can now select a local common tree at exactly that
+cost.  This closes the universal fallback issue; it does not yet assemble the ten selected trees
+or prove the ambient converse.
+
+The precise next frontier is to choose, for each `g : Fin 10`, the local `CommonTree` supplied by
+`twoPairFlexibleQueryWin_iff_commonShallowAt` at the pullback
+`paddedTwoPairLocalRestriction pad sigma g`.  Specialize `paddedTwoPairLiftFold_depth_le` and
+`paddedTwoPairLiftFold_spec` to `List.finRange 10`, rewrite the depth sum as
+`twoPairTenFlexibleCost`, and translate each final `twoPairRootShallow` fact through
+`twoPairRootShallow_iff_padded_depths` and the `Fin 20` product index.  The intended capstone is
+`CommonShallowAt (paddedTwoPairFamily pad) fuel sigma
+  (twoPairTenFlexibleCost (fun g => paddedTwoPairLocalRestriction pad sigma g)) 1`
+for `4 <= fuel`.  No P-versus-NP conclusion follows.
+
+### The exact semantic cost characterization is now closed
+
+`paddedTwoPairFamily_commonShallow_flexibleCost` performs the pending ten-gadget specialization.
+For every padding, every ambient root restriction, and every fuel budget at least four, it chooses
+the local `CommonTree` certified at `twoPairFlexibleQueryCost` for each gadget, binds their lifted
+trees in `List.finRange 10` order, identifies the additive list depth with the `Fin 10` sum, and
+translates the ten terminal `twoPairRootShallow` facts into all twenty ambient polarity bounds.
+It proves the constructive certificate
+
+```text
+CommonShallowAt (paddedTwoPairFamily pad) fuel sigma
+  (twoPairTenFlexibleCost
+    (fun g => paddedTwoPairLocalRestriction pad sigma g)) 1.
+```
+
+Combining this upper bound with the previously proved interleaved-query adversary gives
+`paddedTwoPairFamily_commonShallow_iff_flexibleCost_le`:
+
+```text
+CommonShallowAt (paddedTwoPairFamily pad) fuel sigma trunkDepth 1
+  iff
+twoPairTenFlexibleCost
+  (fun g => paddedTwoPairLocalRestriction pad sigma g) <= trunkDepth.
+```
+
+Thus, for fuel at least four, the flexible-cost tail is not merely a semantic subset of the bad
+set: it is exactly the full bad set for this padded disjoint family.  Padding queries, arbitrary
+ambient interleaving, and local leaf forgetting introduce no false positives or false negatives.
+In particular, the existing exact count resolves the earlier completeness uncertainty at padding
+87.  `paddedTwoPairFlexibleCostTail_eq_bad` records the set equality, and the existing padding-4080
+tail estimate now upgrades to `paddedTwoPair_scaled_contraction_4080`: the *entire* bad set for this
+test family satisfies the requested depth-ten contraction on the audited 4120-variable,
+forty-star shell.  This is the opposite behavior from padding 86, where the already proved theorem
+shows failure of the same scaled contraction.
+
+The precise next frontier is to transport this now-complete calibration back to the actual layered
+round.  Duplicate normalization and the ragged alphabet recurrence are already formalized earlier
+in this file, reducing the next-family key cap from `2*M^2*2^(s+1)` to
+`2*M*2^(s+1)`.  The remaining decision is whether the normalized circuit family admits a comparable
+direct-sum or bounded-overlap live-variable charge strong enough to meet the exact slot margin
+across successive survivor shells.  No P-versus-NP conclusion follows.
+
+### The exact semantic padding transition is now pinned down at 86/87
+
+The constructive cost characterization also resolves the earlier one-coordinate boundary, not
+only the far-padding schedule.  `paddedTwoPair_scaled_contraction_87` rewrites the *entire*
+`commonShallowBad` set to the exact flexible-cost tail and applies the already verified bivariate
+mass comparison.  Consequently the same disjoint ten-gadget family fails the requested
+`2^-10` contraction at padding 86 but satisfies it at padding 87.  There is no remaining
+subset-versus-full-bad-set ambiguity at either side of this tested transition.
+
+The precise next frontier is structural rather than another padding computation: specialize the
+already normalized ragged layered family to an explicit bottom-gate decomposition and determine
+whether its common-trunk cost admits an additive or bounded-overlap charge to live variables.
+Such a theorem would have to compose with the circuit-owned `bottomSlotCount` recurrence and meet
+the verified margin
+`8*(s+2)*bottomSlotCount(C)*2^(s+1) + 4*(s+2) <= N`; the two-pair threshold alone does not imply
+that bound.  A counterexample to any proposed charge should be retained explicitly.  No
+P-versus-NP conclusion follows.
+
+### A universal slot-owned live-support charge is now explicit, but is not the shell theorem
+
+The normalized ragged circuit family now has a deterministic circuit-owned trunk cap.
+`normalizedLayeredBottomFamily_liveSupport_card_le_slotCharge` proves, at every root `sigma`,
+
+```text
+|(familyVariableSupport (normalizedLayeredBottomFamily C)) live at sigma|
+  <= 2*w*bottomSlotCount(C).
+```
+
+The proof is fully additive: filtering to live coordinates cannot enlarge support, width charges
+at most `w` variables per normalized clause occurrence, normalization contributes at most the two
+polarity copies, and `bottomSlotCount` owns every original occurrence (including the empty-gate
+edge case).  With ample fuel,
+`normalizedLayeredBottomFamily_commonShallowAt_slotCharge` turns this into
+
+```text
+CommonShallowAt (normalizedLayeredBottomFamily C) fuel sigma
+  (2*w*bottomSlotCount C) 0.
+```
+
+Thus an unconditional bounded-overlap live-variable charge does exist.  It does not by itself
+close the intended half-shell survivor recurrence: it is a worst-case deterministic cap, pays for
+both syntactic polarities, and leaves no probabilistic statement showing that the live charge is
+at most the scheduled trunk budget on all but a `2^-d` fraction of a `K`-star shell.
+
+The precise next frontier is to remove the artificial polarity factor at the support level by
+proving that a clause and its `negDNF` image have identical variable support, then test the sharp
+`w*bottomSlotCount(C)` live-support charge against the actual `K=20R`, `d=10R` survivor shell.
+If even that sharp deterministic charge exceeds `d`, the next necessary theorem is a shell-tail
+bound for the root-local live support (or a counterexample saturating it), not another global
+padding calibration.  No P-versus-NP conclusion follows.
+
+### Polarity is free at support level; the deterministic half-shell route still fails
+
+The artificial factor two has now been removed.  `clauseVariableSupport_negClause` and
+`gateVariableSupport_negDNF` prove that literal negation and `negDNF` preserve variable support
+exactly.  `normalizedLayeredBottomFamily_support_subset_bottomSupport` then folds both normalized
+polarities back into the unpolarized support of the circuit's original `bottomGates`.  Direct list
+accounting gives
+
+```text
+|layeredBottomVariableSupport(C)| <= w*bottomClauseCount(C),
+```
+
+and hence `normalizedLayeredBottomFamily_liveSupport_card_le_sharpSlotCharge` proves at every root
+`sigma`
+
+```text
+|(familyVariableSupport (normalizedLayeredBottomFamily C)) live at sigma|
+  <= w*bottomSlotCount(C).
+```
+
+With ample fuel, `normalizedLayeredBottomFamily_commonShallowAt_sharpSlotCharge` constructs a
+common trunk of that depth and residual depth zero.  Thus the old `2*w*bottomSlotCount(C)` cap was
+indeed only a syntactic polarity loss.
+
+The sharp deterministic cap still does not fit the universal half-shell budget.  At the first
+tested schedule scale `R=1`, the existing padded singleton round output has width one, twenty
+bottom slots, and exact live family support twenty on the fully live `K=20` root, while the trunk
+budget is `d=10`.  The retained theorems
+`paddedSingletonSupport_not_commonShallow_of_live_false` and
+`paddedSingletonSupport_not_commonShallow_of_live_true` show that more than ten live support
+coordinates with either monochromatic fixed profile are genuinely bad at residual depth zero;
+this is not merely looseness in the new upper bound.  Mixed fixed polarities can instead make the
+same family shallow at the root, so support cardinality alone also cannot characterize the bad
+event.
+
+The precise next frontier is therefore probabilistic and polarity-sensitive: bound, on the
+`K=20R` shell, the mass of roots whose live support and fixed-value profile force common-trunk cost
+above `10R` for the normalized circuit family.  A support-cardinality tail by itself is sufficient
+but may be unnecessarily coarse; the singleton counterexample shows that any universal
+deterministic `live support <= 10R` claim is false.  No P-versus-NP conclusion follows.
+
+### Every bad normalized root is now reduced to the circuit-owned live-support tail
+
+The necessary support-tail envelope is now formal rather than heuristic.
+`commonShallowBad_subset_liveFamilySupportTail` proves, for ample fuel and every requested residual
+depth, that
+
+```text
+commonShallowBad gates fuel K d residualDepth
+  ⊆ {sigma | stars sigma = K and d < |live family support at sigma|}.
+```
+
+Indeed, if the live family support has size at most `d`, querying it gives a common trunk of depth
+at most `d` and residual depth zero, which supplies any nonnegative requested residual bound.  The
+circuit specialization `normalizedLayered_commonShallowBad_subset_liveBottomSupportTail`
+strengthens the containing event to the live part of `layeredBottomVariableSupport C`, the original
+unpolarized bottom-gate support.  Thus the reduction pays neither the duplicate-normalization
+factor nor the two-polarity factor.
+
+This theorem is only a necessary envelope.  The retained padded-singleton classification still
+shows that roots with the same live-support cardinality may be shallow or bad depending on their
+fixed-value profile.  Consequently a hypergeometric count of the support tail is a valid sufficient
+route to contraction, but failure of that coarse count would not refute a sharper semantic bound.
+
+The precise next frontier is to count `liveLayeredBottomSupportTail C (20*R) (10*R)` in terms of
+`|(layeredBottomVariableSupport C)|` and the ambient dimension, test that hypergeometric upper bound
+against the exact survivor-shell schedule, and retain the fixed-profile refinement as the fallback
+if the support-only tail is too large.  No P-versus-NP conclusion follows.
+
+### The circuit-owned support tail now has an exact hypergeometric formula
+
+The support-only envelope has been counted exactly, without adding disjointness assumptions on
+the bottom gates.  For an arbitrary fixed support `S`, `liveSupportOverlap_card` proves that the
+class of `K`-star roots with exactly `q` live coordinates in `S` has cardinality
+
+```text
+choose |S| q * choose (n-|S|) (K-q) * 2^(n-K).
+```
+
+The proof first counts free-variable sets by treating `S` as a single occupancy block, then uses
+the constant `2^(n-K)` fiber of Boolean assignments to the fixed coordinates.  The classes are
+pairwise disjoint in `q`.  Consequently `liveLayeredBottomSupportTail_card` gives the exact
+circuit-owned tail mass
+
+```text
+sum q=trunkDepth+1..K,
+  choose |layeredBottomVariableSupport(C)| q
+  * choose (n-|layeredBottomVariableSupport(C)|) (K-q)
+  * 2^(n-K).
+```
+
+Together with `normalizedLayered_commonShallowBad_subset_liveBottomSupportTail`, this is now an
+explicit numerical upper bound on the normalized-family bad set.  It is exact for the support
+event, but remains only an envelope for semantic badness; the retained singleton examples still
+show that fixed polarities can make equal-support roots behave differently.
+
+The precise next frontier is quantitative: cancel the common `2^(n-20R)` factor against the
+`20R`-star shell and prove (or refute at the recurrence boundary) that the resulting upper
+hypergeometric tail, with
+`|layeredBottomVariableSupport(C)| <= w*bottomSlotCount(C)`, is at most
+`2^(-10R) * choose n (20R)` under the actual survivor-shell margin.  If that inequality fails at
+an admissible parameter point, retain the point as a counterexample and move to the already
+identified fixed-polarity refinement.  No P-versus-NP conclusion follows.

@@ -1507,6 +1507,53 @@ def familyVariableSupport {n G : ℕ} (gates : Fin G → List (Depth3.Clause n))
     Finset (Fin n) :=
   Finset.univ.biUnion fun g => gateVariableSupport (gates g)
 
+/-- Literal negation changes polarity but not the variable support of a clause. -/
+@[simp] theorem clauseVariableSupport_negClause {n : ℕ} (T : Depth3.Clause n) :
+    clauseVariableSupport (⟨T.lits.map negLit⟩ : Depth3.Clause n) =
+      clauseVariableSupport T := by
+  have hmap : T.lits.map (litVar ∘ negLit) = T.lits.map litVar := by
+    apply List.map_congr_left
+    intro ell _hell
+    cases ell <;> rfl
+  simpa [clauseVariableSupport, List.map_map] using congrArg List.toFinset hmap
+
+/-- De Morgan dualization preserves the complete variable support of a bottom gate. -/
+@[simp] theorem gateVariableSupport_negDNF {n : ℕ} (cs : List (Depth3.Clause n)) :
+    gateVariableSupport (negDNF cs) = gateVariableSupport cs := by
+  ext v
+  simp [gateVariableSupport, negDNF]
+
+/-- The unpolarized support owned by the circuit's syntactic bottom gates. -/
+def layeredBottomVariableSupport {n : ℕ} (C : Layered n) : Finset (Fin n) :=
+  (bottomGates C).toFinset.biUnion gateVariableSupport
+
+/-- Duplicate normalization and adjoining the De Morgan polarity introduce no new variables. -/
+theorem normalizedLayeredBottomFamily_support_subset_bottomSupport {n : ℕ}
+    (C : Layered n) :
+    familyVariableSupport (normalizedLayeredBottomFamily C) ⊆
+      layeredBottomVariableSupport C := by
+  intro v hv
+  rw [familyVariableSupport] at hv
+  obtain ⟨g, _hg, hvg⟩ := Finset.mem_biUnion.mp hv
+  rw [gateVariableSupport] at hvg
+  obtain ⟨T, hT, hvT⟩ := Finset.mem_biUnion.mp hvg
+  have hTraw : T ∈ layeredBottomFamily C g :=
+    (PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_eraseDups_iff
+      T _).mp (List.mem_toFinset.mp hT)
+  have hgmem : layeredBottomFamily C g ∈ layeredBottomFamilyList C := by
+    exact List.get_mem _ _
+  rw [layeredBottomFamilyList, List.mem_append] at hgmem
+  rw [layeredBottomVariableSupport]
+  apply Finset.mem_biUnion.mpr
+  rcases hgmem with hpos | hneg
+  · exact ⟨layeredBottomFamily C g, List.mem_toFinset.mpr hpos,
+      Finset.mem_biUnion.mpr ⟨T, List.mem_toFinset.mpr hTraw, hvT⟩⟩
+  · obtain ⟨cs, hcs, hcsEq⟩ := List.mem_map.mp hneg
+    refine ⟨cs, List.mem_toFinset.mpr hcs, ?_⟩
+    rw [← gateVariableSupport_negDNF cs]
+    rw [hcsEq]
+    exact Finset.mem_biUnion.mpr ⟨T, List.mem_toFinset.mpr hTraw, hvT⟩
+
 /-- Every coordinate queried anywhere in a canonical gate tree occurs syntactically in that
 gate.  Unlike the existing freshness theorem, this records the static support restriction and is
 therefore useful when many ambient live variables are irrelevant to the family. -/
@@ -1601,6 +1648,232 @@ theorem commonShallowAt_zero_of_live_support_le {n G : ℕ}
     (CommonTree.pathEndpoint σ (canonicalFamilyTree gates fuel σ) x)
     (canonicalFamily_pathEndpoint_terminal gates fuel σ x hext hstarsFuel g) fuel)
 
+/-- The root-local support tail on the exact `K`-star shell.  This is intentionally independent
+of fixed Boolean values: it is a necessary envelope for the bad event, not an exact semantic
+classification. -/
+noncomputable def liveFamilySupportTail {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (K trunkDepth : ℕ) :
+    Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧
+      trunkDepth < ((familyVariableSupport gates).filter fun i ↦ σ i = none).card
+
+theorem mem_liveFamilySupportTail_iff {n G : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} {K trunkDepth : ℕ}
+    {σ : Restriction n} :
+    σ ∈ liveFamilySupportTail gates K trunkDepth ↔
+      stars σ = K ∧
+        trunkDepth < ((familyVariableSupport gates).filter fun i ↦ σ i = none).card := by
+  simp [liveFamilySupportTail]
+
+/-- With ample fuel, querying all live family-support coordinates proves that every bad root lies
+in the strict live-support tail.  The conclusion holds for every requested residual depth because
+the support trunk actually leaves residual depth zero. -/
+theorem commonShallowBad_subset_liveFamilySupportTail
+    {n G fuel K trunkDepth residualDepth : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} (hKfuel : K ≤ fuel) :
+    commonShallowBad gates fuel K trunkDepth residualDepth ⊆
+      liveFamilySupportTail gates K trunkDepth := by
+  intro σ hσ
+  rw [mem_liveFamilySupportTail_iff]
+  obtain ⟨hstars, hbad⟩ := mem_commonShallowBad.mp hσ
+  refine ⟨hstars, ?_⟩
+  by_contra hnot
+  apply hbad
+  apply CommonShallowAt.mono
+    (commonShallowAt_zero_of_live_support_le gates fuel σ trunkDepth
+      (by simpa [hstars] using hKfuel) (Nat.le_of_not_gt hnot))
+  · exact Nat.le_refl _
+  · exact Nat.zero_le _
+
+/-- The corresponding tail measured using the circuit's unpolarized syntactic bottom support.
+This is the sharp circuit-owned event: adjoining the second polarity and erasing duplicates do not
+enlarge its support. -/
+noncomputable def liveLayeredBottomSupportTail {n : ℕ}
+    (C : Layered n) (K trunkDepth : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧
+      trunkDepth < ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card
+
+theorem mem_liveLayeredBottomSupportTail_iff {n : ℕ} {C : Layered n}
+    {K trunkDepth : ℕ} {σ : Restriction n} :
+    σ ∈ liveLayeredBottomSupportTail C K trunkDepth ↔
+      stars σ = K ∧
+        trunkDepth < ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card := by
+  simp [liveLayeredBottomSupportTail]
+
+/-! ### Exact hypergeometric support-tail count
+
+The semantic reduction above leaves a purely support-theoretic event.  We expose its fixed-overlap
+classes separately: this keeps the exact binomial summand available even when the final tail sum
+is too coarse for the circuit recurrence. -/
+
+/-- Restrictions on the `K`-star shell with exactly `q` live coordinates in a fixed support. -/
+noncomputable def liveSupportOverlap {n : ℕ} (support : Finset (Fin n))
+    (K q : ℕ) : Finset (Restriction n) :=
+  Finset.univ.filter fun σ =>
+    stars σ = K ∧ (support.filter fun i ↦ σ i = none).card = q
+
+theorem mem_liveSupportOverlap_iff {n K q : ℕ} {support : Finset (Fin n)}
+    {σ : Restriction n} :
+    σ ∈ liveSupportOverlap support K q ↔
+      stars σ = K ∧ (support.filter fun i ↦ σ i = none).card = q := by
+  simp [liveSupportOverlap]
+
+/-- Free-variable sets underlying one fixed support-overlap class. -/
+def liveSupportOverlapFreeSets {n : ℕ} (support : Finset (Fin n))
+    (K q : ℕ) : Finset (Finset (Fin n)) :=
+  occupancySizeFiber (fun _ : Fin 1 => support) (fun _ => q) (K - q)
+
+theorem mem_liveSupportOverlapFreeSets_iff {n K q : ℕ}
+    {support : Finset (Fin n)} {S : Finset (Fin n)} :
+    S ∈ liveSupportOverlapFreeSets support K q ↔
+      (S ∩ support).card = q ∧ (S \ support).card = K - q := by
+  rw [liveSupportOverlapFreeSets, mem_occupancySizeFiber]
+  simp [supportUnion]
+
+/-- The free-set part of a fixed overlap class is the usual hypergeometric product. -/
+theorem liveSupportOverlapFreeSets_card {n K q : ℕ}
+    (support : Finset (Fin n)) :
+    (liveSupportOverlapFreeSets support K q).card =
+      support.card.choose q * (n - support.card).choose (K - q) := by
+  rw [liveSupportOverlapFreeSets,
+    occupancySizeFiber_card_uniform
+      (fun _ : Fin 1 => support)
+      (fun g h hne => False.elim (hne (Subsingleton.elim g h)))
+      (fun _ => rfl)]
+  simp
+
+theorem mem_liveSupportOverlap_iff_freeSet {n K q : ℕ}
+    {support : Finset (Fin n)} (hq : q ≤ K) (σ : Restriction n) :
+    σ ∈ liveSupportOverlap support K q ↔
+      freeVars σ ∈ liveSupportOverlapFreeSets support K q := by
+  rw [mem_liveSupportOverlap_iff, mem_liveSupportOverlapFreeSets_iff]
+  have hinter : (freeVars σ ∩ support).card =
+      (support.filter fun i ↦ σ i = none).card := by
+    apply congrArg Finset.card
+    ext i
+    simp [mem_freeVars, and_comm]
+  rw [hinter]
+  constructor
+  · rintro ⟨hstars, hoverlap⟩
+    refine ⟨hoverlap, ?_⟩
+    have hpartition := Finset.card_sdiff_add_card_inter (freeVars σ) support
+    rw [stars] at hstars
+    omega
+  · rintro ⟨hoverlap, houtside⟩
+    refine ⟨?_, hoverlap⟩
+    rw [stars]
+    have hpartition := Finset.card_sdiff_add_card_inter (freeVars σ) support
+    omega
+
+/-- Exact cardinality of one support-overlap class.  Boolean values on all `n-K` fixed
+coordinates are unrestricted, so every free set contributes the common factor `2^(n-K)`. -/
+theorem liveSupportOverlap_card {n K q : ℕ} (support : Finset (Fin n))
+    (hq : q ≤ K) :
+    (liveSupportOverlap support K q).card =
+      support.card.choose q * (n - support.card).choose (K - q) * 2 ^ (n - K) := by
+  classical
+  have hmaps : Set.MapsTo (fun σ : Restriction n => freeVars σ)
+      (liveSupportOverlap support K q : Set (Restriction n))
+      (liveSupportOverlapFreeSets support K q : Set (Finset (Fin n))) := by
+    intro σ hσ
+    rw [Finset.mem_coe] at hσ ⊢
+    exact (mem_liveSupportOverlap_iff_freeSet hq σ).mp hσ
+  rw [Finset.card_eq_sum_card_fiberwise hmaps]
+  have hterm : ∀ S ∈ liveSupportOverlapFreeSets support K q,
+      ((liveSupportOverlap support K q).filter (fun σ => freeVars σ = S)).card =
+        2 ^ (n - K) := by
+    intro S hS
+    have hScard : S.card = K := by
+      have hoverlap := (mem_liveSupportOverlapFreeSets_iff).mp hS
+      have hpartition := Finset.card_sdiff_add_card_inter S support
+      omega
+    have heq : (liveSupportOverlap support K q).filter (fun σ => freeVars σ = S) =
+        Finset.univ.filter (fun σ : Restriction n => freeVars σ = S) := by
+      ext σ
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      constructor
+      · exact fun h => h.2
+      · intro hfree
+        refine ⟨?_, hfree⟩
+        rw [mem_liveSupportOverlap_iff_freeSet hq, hfree]
+        exact hS
+    rw [heq, card_freeVars_eq, hScard]
+  rw [Finset.sum_congr rfl hterm, Finset.sum_const, smul_eq_mul,
+    liveSupportOverlapFreeSets_card]
+
+/-- The circuit-owned tail is the disjoint union of its exact overlap classes. -/
+theorem liveLayeredBottomSupportTail_eq_biUnion_overlap {n K trunkDepth : ℕ}
+    (C : Layered n) :
+    liveLayeredBottomSupportTail C K trunkDepth =
+      (Finset.Icc (trunkDepth + 1) K).biUnion
+        (liveSupportOverlap (layeredBottomVariableSupport C) K) := by
+  ext σ
+  rw [mem_liveLayeredBottomSupportTail_iff]
+  simp only [Finset.mem_biUnion, Finset.mem_Icc]
+  constructor
+  · rintro ⟨hstars, hlive⟩
+    let q := ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card
+    have hqle : q ≤ K := by
+      have hfilter :
+          ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none) ⊆ freeVars σ := by
+        intro i hi
+        exact mem_freeVars.mpr (Finset.mem_filter.mp hi).2
+      calc q ≤ (freeVars σ).card := Finset.card_le_card hfilter
+        _ = K := hstars
+    refine ⟨q, ⟨by omega, hqle⟩, ?_⟩
+    rw [mem_liveSupportOverlap_iff]
+    exact ⟨hstars, rfl⟩
+  · rintro ⟨q, hq, hσ⟩
+    rw [mem_liveSupportOverlap_iff] at hσ
+    exact ⟨hσ.1, by omega⟩
+
+/-- Exact hypergeometric cardinality of the circuit-owned live-support tail. -/
+theorem liveLayeredBottomSupportTail_card {n K trunkDepth : ℕ} (C : Layered n) :
+    (liveLayeredBottomSupportTail C K trunkDepth).card =
+      ∑ q ∈ Finset.Icc (trunkDepth + 1) K,
+        (layeredBottomVariableSupport C).card.choose q *
+          (n - (layeredBottomVariableSupport C).card).choose (K - q) * 2 ^ (n - K) := by
+  have hpair : ((Finset.Icc (trunkDepth + 1) K : Finset ℕ) : Set ℕ).PairwiseDisjoint
+      (liveSupportOverlap (layeredBottomVariableSupport C) K) := by
+    intro q hq r hr hne
+    change Disjoint (liveSupportOverlap (layeredBottomVariableSupport C) K q)
+      (liveSupportOverlap (layeredBottomVariableSupport C) K r)
+    rw [Finset.disjoint_left]
+    intro σ hσq hσr
+    rw [mem_liveSupportOverlap_iff] at hσq hσr
+    exact hne (hσq.2.symm.trans hσr.2)
+  rw [liveLayeredBottomSupportTail_eq_biUnion_overlap,
+    Finset.card_biUnion hpair]
+  apply Finset.sum_congr rfl
+  intro q hq
+  exact liveSupportOverlap_card _ (Finset.mem_Icc.mp hq).2
+
+/-- Circuit-specialized support-tail reduction.  Every normalized-family bad root is charged to
+more than `trunkDepth` live coordinates in the original, unpolarized bottom-gate support. -/
+theorem normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
+    {n fuel K trunkDepth residualDepth : ℕ} {C : Layered n}
+    (hKfuel : K ≤ fuel) :
+    commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth residualDepth ⊆
+      liveLayeredBottomSupportTail C K trunkDepth := by
+  intro σ hσ
+  rw [mem_liveLayeredBottomSupportTail_iff]
+  obtain ⟨hstars, hbad⟩ := mem_commonShallowBad.mp hσ
+  refine ⟨hstars, ?_⟩
+  by_contra hnot
+  apply hbad
+  apply CommonShallowAt.mono
+    (commonShallowAt_zero_of_live_support_le
+      (normalizedLayeredBottomFamily C) fuel σ trunkDepth
+      (by simpa [hstars] using hKfuel) ?_)
+  · exact Nat.le_refl _
+  · exact Nat.zero_le _
+  apply (Finset.card_le_card ?_).trans (Nat.le_of_not_gt hnot)
+  intro i hi
+  simp only [Finset.mem_filter] at hi ⊢
+  exact ⟨normalizedLayeredBottomFamily_support_subset_bottomSupport C hi.1, hi.2⟩
+
 theorem clauseVariableSupport_card_le_width {n w : ℕ} {T : Depth3.Clause n}
     (hw : T.lits.length ≤ w) : (clauseVariableSupport T).card ≤ w := by
   exact (List.toFinset_card_le _).trans (by simpa using hw)
@@ -1634,6 +1907,104 @@ theorem familyVariableSupport_card_le {n G w : ℕ}
       intro g _
       exact gateVariableSupport_card_le (hw g)
     _ = w * ∑ g, (gates g).length := by rw [Finset.mul_sum]
+
+/-- A list of width-`w` gates owns at most width times its number of clause occurrences.  The list
+form deliberately avoids charging duplicate gates twice merely to pass through `toFinset`. -/
+private theorem listGateVariableSupport_card_le {n w : ℕ} :
+    ∀ css : List (List (Depth3.Clause n)),
+      (∀ cs ∈ css, ∀ T ∈ cs, T.lits.length ≤ w) →
+      (css.toFinset.biUnion gateVariableSupport).card ≤
+        w * (css.map List.length).sum
+  | [] => by simp
+  | cs :: css => by
+      intro hw
+      have hhead : (gateVariableSupport cs).card ≤ w * cs.length :=
+        gateVariableSupport_card_le (hw cs (by simp))
+      have htail : (css.toFinset.biUnion gateVariableSupport).card ≤
+          w * (css.map List.length).sum :=
+        listGateVariableSupport_card_le css (by
+          intro cs' hcs'
+          exact hw cs' (by simp [hcs']))
+      rw [List.toFinset_cons, Finset.biUnion_insert, List.map_cons, List.sum_cons]
+      calc
+        (gateVariableSupport cs ∪ css.toFinset.biUnion gateVariableSupport).card ≤
+            (gateVariableSupport cs).card +
+              (css.toFinset.biUnion gateVariableSupport).card :=
+          Finset.card_union_le _ _
+        _ ≤ w * cs.length + w * (css.map List.length).sum := Nat.add_le_add hhead htail
+        _ = w * (cs.length + (css.map List.length).sum) := by rw [Nat.mul_add]
+
+/-- The variables owned by the unpolarized bottom gates cost at most width times their actual
+clause occurrences. -/
+theorem layeredBottomVariableSupport_card_le {n w : ℕ} {C : Layered n}
+    (hw : BottomWidth w C) :
+    (layeredBottomVariableSupport C).card ≤ w * bottomClauseCount C := by
+  exact listGateVariableSupport_card_le (bottomGates C) hw
+
+/-- Sharp support-level slot charge: the dual polarity is free because `negDNF` preserves every
+variable support exactly. -/
+theorem normalizedLayeredBottomFamily_liveSupport_card_le_sharpSlotCharge
+    {n w : ℕ} {C : Layered n} (hw : BottomWidth w C) (σ : Restriction n) :
+    ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+      fun i ↦ σ i = none).card ≤ w * bottomSlotCount C := by
+  calc
+    ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+        fun i ↦ σ i = none).card ≤
+        (familyVariableSupport (normalizedLayeredBottomFamily C)).card :=
+      Finset.card_filter_le _ _
+    _ ≤ (layeredBottomVariableSupport C).card :=
+      Finset.card_le_card (normalizedLayeredBottomFamily_support_subset_bottomSupport C)
+    _ ≤ w * bottomClauseCount C := layeredBottomVariableSupport_card_le hw
+    _ ≤ w * bottomSlotCount C :=
+      Nat.mul_le_mul_left w (bottomClauseCount_le_bottomSlotCount C)
+
+/-- With ample fuel the sharp circuit-owned support charge gives a zero-residual common trunk. -/
+theorem normalizedLayeredBottomFamily_commonShallowAt_sharpSlotCharge
+    {n w fuel : ℕ} {C : Layered n} (hw : BottomWidth w C)
+    (σ : Restriction n) (hstarsFuel : stars σ ≤ fuel) :
+    CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
+      (w * bottomSlotCount C) 0 := by
+  apply commonShallowAt_zero_of_live_support_le
+    (normalizedLayeredBottomFamily C) fuel σ (w * bottomSlotCount C) hstarsFuel
+  exact normalizedLayeredBottomFamily_liveSupport_card_le_sharpSlotCharge hw σ
+
+/-- The live part of the normalized layered family's literal support has a universal additive
+slot charge.  Normalization contributes at most two polarity copies of every bottom-clause
+occurrence, and width contributes at most `w` coordinates per occurrence.  Filtering to the
+coordinates live at the current root can only decrease this count. -/
+theorem normalizedLayeredBottomFamily_liveSupport_card_le_slotCharge
+    {n w : ℕ} {C : Layered n} (hw : BottomWidth w C) (σ : Restriction n) :
+    ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+      fun i ↦ σ i = none).card ≤ 2 * w * bottomSlotCount C := by
+  calc
+    ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+        fun i ↦ σ i = none).card ≤
+        (familyVariableSupport (normalizedLayeredBottomFamily C)).card :=
+      Finset.card_filter_le _ _
+    _ ≤ w * ∑ g, (normalizedLayeredBottomFamily C g).length :=
+      familyVariableSupport_card_le (normalizedLayeredBottomFamily_width_le hw)
+    _ ≤ w * (2 * bottomClauseCount C) :=
+      Nat.mul_le_mul_left w (normalizedLayeredBottomFamily_total_length_le C)
+    _ ≤ w * (2 * bottomSlotCount C) :=
+      Nat.mul_le_mul_left w
+        (Nat.mul_le_mul_left 2 (bottomClauseCount_le_bottomSlotCount C))
+    _ = 2 * w * bottomSlotCount C := by ring
+
+/-- Circuit-owned deterministic trunk cap for the normalized ragged family.  With ample fuel,
+querying its live literal support leaves every normalized bottom member at residual depth zero;
+the preceding occurrence accounting bounds that common trunk by `2*w*bottomSlotCount C`.
+
+This is a genuine bounded-overlap charge, but it is only a worst-case cap.  It does not assert
+that a half-shell trunk is this large or that the probabilistic survivor schedule can pay it. -/
+theorem normalizedLayeredBottomFamily_commonShallowAt_slotCharge
+    {n w fuel : ℕ} {C : Layered n} (hw : BottomWidth w C)
+    (σ : Restriction n) (hstarsFuel : stars σ ≤ fuel) :
+    CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
+      (2 * w * bottomSlotCount C) 0 := by
+  apply commonShallowAt_zero_of_live_support_le
+    (normalizedLayeredBottomFamily C) fuel σ (2 * w * bottomSlotCount C)
+    hstarsFuel
+  exact normalizedLayeredBottomFamily_liveSupport_card_le_slotCharge hw σ
 
 /-- Every variable decoded by a fresh canonical prefix is in the family's actual literal
 support.  This needs no path-length or bad-event premise: successful witness decoding itself
@@ -5296,6 +5667,28 @@ def twoPairFlexibleQueryCost (rho : Restriction 4) : Nat :=
     if twoPairFlexibleQueryWin rho 1 rho then 1 else
       if twoPairFlexibleQueryWin rho 2 rho then 2 else 3
 
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- Three queries always suffice for the local flexible game.  This is the finite fallback needed
+to know that the last branch in `twoPairFlexibleQueryCost` denotes an actual winning budget. -/
+theorem twoPairFlexibleQueryWin_three_code :
+    ∀ code : Fin 81, twoPairFlexibleQueryWin (twoPairLocalRestriction code) 3
+      (twoPairLocalRestriction code) = true := by
+  decide +revert
+
+/-- The computed first winning budget is itself winning, including its depth-three fallback. -/
+theorem twoPairFlexibleQueryWin_cost (rho : Restriction 4) :
+    twoPairFlexibleQueryWin rho (twoPairFlexibleQueryCost rho) rho = true := by
+  have hthree := twoPairFlexibleQueryWin_three_code (twoPairRestrictionCode rho)
+  rw [twoPairLocalRestriction_code] at hthree
+  by_cases hzero : twoPairFlexibleQueryWin rho 0 rho = true
+  · simpa [twoPairFlexibleQueryCost, hzero] using hzero
+  by_cases hone : twoPairFlexibleQueryWin rho 1 rho = true
+  · simpa [twoPairFlexibleQueryCost, hzero, hone] using hone
+  by_cases htwo : twoPairFlexibleQueryWin rho 2 rho = true
+  · simpa [twoPairFlexibleQueryCost, hzero, hone, htwo] using htwo
+  · simpa [twoPairFlexibleQueryCost, hzero, hone, htwo] using hthree
+
 set_option maxHeartbeats 2000000 in
 /-- Despite the genuine nonmonotonicity above, exhaustive arbitrary-leaf search has the same
 local cost histogram as the stricter read-once game.  A structural bridge to `CommonShallowAt`
@@ -6327,6 +6720,143 @@ theorem paddedTwoPairLiftTree_spec (pad : ℕ) (g : Fin 10)
       exact paddedTwoPairLocalRestriction_overwrite_of_ne pad hhg current
         (CommonTree.run localTree xlocal)
 
+/-! ### Sequential product-tree fold
+
+The fold is parameterized by an explicit gadget order so its algebra can be proved independently
+of the eventual `List.finRange 10` specialization and of the processed/unprocessed invariant. -/
+
+/-- Sequentially install the local gadget trunks in `order`, using `CommonTree.bind` to start the
+next lifted trunk at every leaf returned by the preceding one. -/
+def paddedTwoPairLiftFold (pad : ℕ)
+    (localTrees : Fin 10 → CommonTree 4 (Restriction 4)) :
+    List (Fin 10) → Restriction (pad + 40) →
+      CommonTree (pad + 40) (Restriction (pad + 40))
+  | [], current => .leaf current
+  | g :: gs, current => CommonTree.bind
+      (paddedTwoPairLiftTree pad g current (localTrees g))
+      (paddedTwoPairLiftFold pad localTrees gs)
+
+/-- The sequential product tree pays at most the sum of its local trunk depths. -/
+theorem paddedTwoPairLiftFold_depth_le (pad : ℕ)
+    (localTrees : Fin 10 → CommonTree 4 (Restriction 4))
+    (order : List (Fin 10)) (current : Restriction (pad + 40)) :
+    CommonTree.depth (paddedTwoPairLiftFold pad localTrees order current) ≤
+      (order.map fun g => CommonTree.depth (localTrees g)).sum := by
+  induction order generalizing current with
+  | nil => simp [paddedTwoPairLiftFold, CommonTree.depth]
+  | cons g gs ih =>
+      simp only [paddedTwoPairLiftFold, List.map_cons, List.sum_cons]
+      calc
+        CommonTree.depth (CommonTree.bind
+            (paddedTwoPairLiftTree pad g current (localTrees g))
+            (paddedTwoPairLiftFold pad localTrees gs)) ≤
+            CommonTree.depth (paddedTwoPairLiftTree pad g current (localTrees g)) +
+              (gs.map fun h => CommonTree.depth (localTrees h)).sum :=
+          CommonTree.depth_bind_le _ _ _ (fun next => ih next)
+        _ = CommonTree.depth (localTrees g) +
+              (gs.map fun h => CommonTree.depth (localTrees h)).sum := by
+          rw [paddedTwoPairLiftTree_depth]
+
+/-- Executing the product fold performs the head gadget update and then executes the remaining
+fold from that reached ambient payload. -/
+@[simp] theorem paddedTwoPairLiftFold_run_cons (pad : ℕ)
+    (localTrees : Fin 10 → CommonTree 4 (Restriction 4))
+    (g : Fin 10) (gs : List (Fin 10))
+    (current : Restriction (pad + 40)) (x : Fin (pad + 40) → Bool) :
+    CommonTree.run (paddedTwoPairLiftFold pad localTrees (g :: gs) current) x =
+      CommonTree.run (paddedTwoPairLiftFold pad localTrees gs
+        (CommonTree.run (paddedTwoPairLiftTree pad g current (localTrees g)) x)) x := by
+  simp [paddedTwoPairLiftFold, CommonTree.run_bind]
+
+/-- A gadget omitted from the fold order is untouched by every installed local payload. -/
+theorem paddedTwoPairLiftFold_localRestriction_of_not_mem (pad : ℕ)
+    (localTrees : Fin 10 → CommonTree 4 (Restriction 4))
+    (order : List (Fin 10)) (current : Restriction (pad + 40))
+    (x : Fin (pad + 40) → Bool) (h : Fin 10) (hh : h ∉ order) :
+    paddedTwoPairLocalRestriction pad
+        (CommonTree.run (paddedTwoPairLiftFold pad localTrees order current) x) h =
+      paddedTwoPairLocalRestriction pad current h := by
+  induction order generalizing current with
+  | nil => simp [paddedTwoPairLiftFold]
+  | cons g gs ih =>
+      simp only [List.mem_cons, not_or] at hh
+      rw [paddedTwoPairLiftFold_run_cons, ih _ hh.2, paddedTwoPairLiftTree_run]
+      exact paddedTwoPairLocalRestriction_overwrite_of_ne pad hh.1 current
+        (CommonTree.run (localTrees g) (fun k => x (paddedTwoPairCoord pad g k)))
+
+/-- Semantic invariant for the sequential product fold.  If every listed local tree is a valid
+common-shallow witness at the corresponding pullback of the immutable root, then the final
+ambient payload extends the root, agrees with the followed assignment, and makes every processed
+gadget shallow.  `Nodup` is used exactly once: later overwrites must not disturb the head gadget. -/
+theorem paddedTwoPairLiftFold_spec (pad : ℕ)
+    (root current : Restriction (pad + 40))
+    (localTrees : Fin 10 → CommonTree 4 (Restriction 4))
+    (order : List (Fin 10)) (horder : order.Nodup)
+    (hcurrent : RestrictionExtends root current)
+    (hlocal : ∀ g ∈ order, ∀ y : Fin 4 → Bool,
+      Rung4Restriction.Extends (paddedTwoPairLocalRestriction pad root g) y →
+        RestrictionExtends (paddedTwoPairLocalRestriction pad root g)
+            (CommonTree.run (localTrees g) y) ∧
+        Rung4Restriction.Extends (CommonTree.run (localTrees g) y) y ∧
+        twoPairRootShallow (CommonTree.run (localTrees g) y) = true) :
+    ∀ x : Fin (pad + 40) → Bool, Rung4Restriction.Extends current x →
+      RestrictionExtends root
+          (CommonTree.run (paddedTwoPairLiftFold pad localTrees order current) x) ∧
+      Rung4Restriction.Extends
+          (CommonTree.run (paddedTwoPairLiftFold pad localTrees order current) x) x ∧
+      ∀ g ∈ order, twoPairRootShallow
+          (paddedTwoPairLocalRestriction pad
+            (CommonTree.run (paddedTwoPairLiftFold pad localTrees order current) x) g) = true := by
+  induction order generalizing current with
+  | nil =>
+      intro x hx
+      simp only [paddedTwoPairLiftFold, CommonTree.run]
+      exact ⟨hcurrent, hx, by simp⟩
+  | cons g gs ih =>
+      intro x hx
+      simp only [List.nodup_cons] at horder
+      let y : Fin 4 → Bool := fun k => x (paddedTwoPairCoord pad g k)
+      have hy : Rung4Restriction.Extends
+          (paddedTwoPairLocalRestriction pad root g) y := by
+        intro k b hk
+        exact hx (paddedTwoPairCoord pad g k) b
+          (hcurrent (paddedTwoPairCoord pad g k) b hk)
+      obtain ⟨hlocalRoot, hlocalAgree, hlocalShallow⟩ :=
+        hlocal g (by simp) y hy
+      let next : Restriction (pad + 40) :=
+        paddedTwoPairOverwrite pad g current (CommonTree.run (localTrees g) y)
+      have hnextRoot : RestrictionExtends root next :=
+        restrictionExtends_paddedTwoPairOverwrite pad g hcurrent hlocalRoot
+      have hnextAgree : Rung4Restriction.Extends next x :=
+        extends_paddedTwoPairOverwrite pad g hx hlocalAgree
+      have hnextShallow : twoPairRootShallow
+          (paddedTwoPairLocalRestriction pad next g) = true := by
+        rw [paddedTwoPairLocalRestriction_overwrite_self]
+        exact hlocalShallow
+      have hlocalTail : ∀ h ∈ gs, ∀ z : Fin 4 → Bool,
+          Rung4Restriction.Extends (paddedTwoPairLocalRestriction pad root h) z →
+            RestrictionExtends (paddedTwoPairLocalRestriction pad root h)
+                (CommonTree.run (localTrees h) z) ∧
+            Rung4Restriction.Extends (CommonTree.run (localTrees h) z) z ∧
+            twoPairRootShallow (CommonTree.run (localTrees h) z) = true := by
+        intro h hmem
+        exact hlocal h (by simp [hmem])
+      obtain ⟨hfinalRoot, hfinalAgree, hfinalShallow⟩ :=
+        ih next horder.2 hnextRoot hlocalTail x hnextAgree
+      rw [paddedTwoPairLiftFold_run_cons, paddedTwoPairLiftTree_run]
+      change RestrictionExtends root
+          (CommonTree.run (paddedTwoPairLiftFold pad localTrees gs next) x) ∧
+        Rung4Restriction.Extends
+          (CommonTree.run (paddedTwoPairLiftFold pad localTrees gs next) x) x ∧ _
+      refine ⟨hfinalRoot, hfinalAgree, ?_⟩
+      intro q hmem
+      simp only [List.mem_cons] at hmem
+      rcases hmem with rfl | hmem
+      · rw [paddedTwoPairLiftFold_localRestriction_of_not_mem pad localTrees gs next x q
+          horder.1]
+        exact hnextShallow
+      · exact hfinalShallow q hmem
+
 set_option maxHeartbeats 4000000 in
 /-- A residual-depth-one bound for the positive padded gadget transports to its four-coordinate
 pullback once fuel exposes at least the first four canonical queries. -/
@@ -6548,6 +7078,63 @@ theorem twoPairRootShallow_iff_padded_depths (pad : ℕ)
         positiveTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hpos
     · simpa [twoPairPolarityFamily] using
         negativeTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hneg
+
+/-- The sum of the ten exact local flexible costs is sufficient as well as necessary: selecting
+one certified local trunk for each disjoint gadget and binding their ambient lifts produces a
+single common trunk for the full padded two-polarity family. -/
+theorem paddedTwoPairFamily_commonShallow_flexibleCost (pad fuel : ℕ)
+    (σ : Restriction (pad + 40)) (hfuel : 4 ≤ fuel) :
+    CommonShallowAt (paddedTwoPairFamily pad) fuel σ
+      (twoPairTenFlexibleCost
+        (fun g => paddedTwoPairLocalRestriction pad σ g)) 1 := by
+  have hcert : ∀ g : Fin 10,
+      CommonShallowAt twoPairPolarityFamily 4
+        (paddedTwoPairLocalRestriction pad σ g)
+        (twoPairFlexibleQueryCost (paddedTwoPairLocalRestriction pad σ g)) 1 := by
+    intro g
+    exact (twoPairFlexibleQueryWin_iff_commonShallowAt _ _).mp
+      (twoPairFlexibleQueryWin_cost _)
+  choose localTrees hlocalDepth hlocalLeaf using hcert
+  let order : List (Fin 10) := List.finRange 10
+  let trunk := paddedTwoPairLiftFold pad localTrees order σ
+  refine ⟨trunk, ?_, ?_⟩
+  · calc
+      CommonTree.depth trunk ≤
+          (order.map fun g => CommonTree.depth (localTrees g)).sum :=
+        paddedTwoPairLiftFold_depth_le pad localTrees order σ
+      _ ≤ (order.map fun g =>
+          twoPairFlexibleQueryCost (paddedTwoPairLocalRestriction pad σ g)).sum := by
+        apply List.sum_le_sum
+        intro g hg
+        exact hlocalDepth g
+      _ = twoPairTenFlexibleCost
+          (fun g => paddedTwoPairLocalRestriction pad σ g) := by
+        exact (Fin.sum_eq_sum_map_finRange _).symm
+  · intro x hx
+    have hfold := paddedTwoPairLiftFold_spec pad σ σ localTrees order
+      (List.nodup_finRange 10) (by intro i b hi; exact hi)
+      (by
+        intro g hg y hy
+        obtain ⟨hroot, hagree, hdepth⟩ := hlocalLeaf g y hy
+        refine ⟨hroot, hagree, ?_⟩
+        simp only [twoPairRootShallow, decide_eq_true_eq]
+        exact ⟨hdepth 0, hdepth 1⟩) x hx
+    obtain ⟨hroot, hagree, hshallow⟩ := hfold
+    refine ⟨hroot, hagree, ?_⟩
+    intro idx
+    let key : Fin 2 × Fin 10 := finProdFinEquiv.symm idx
+    have hs : twoPairRootShallow
+        (paddedTwoPairLocalRestriction pad (CommonTree.run trunk x) key.2) = true := by
+      apply hshallow key.2
+      exact List.mem_finRange key.2
+    have hp := (twoPairRootShallow_iff_padded_depths pad
+      (CommonTree.run trunk x) key.2 fuel hfuel).mp hs
+    change (canonicalDT (paddedTwoPairGates pad key.1 key.2) fuel
+      (CommonTree.run trunk x)).depth ≤ 1
+    rcases key with ⟨polarity, g⟩
+    fin_cases polarity
+    · simpa [paddedTwoPairGates] using hp.1
+    · simpa [paddedTwoPairGates] using hp.2
 
 /-- Ambient residual-depth-one bounds for both padded polarities imply the executable local
 shallow predicate used by the exact four-coordinate game. -/
@@ -6834,6 +7421,21 @@ theorem twoPairTenFlexibleCost_le_of_padded_commonShallow (pad fuel trunkDepth :
       hrootLocal hpathLocal hlocalShallow
   rw [twoPairTenFlexibleConditionalCost_self, hterminal, zero_add] at hcost
   exact hcost.trans htrunkDepth
+
+/-- Exact semantic characterization of common-shallow trunks for the padded disjoint family.
+The summed local flexible cost is both the constructive upper bound and the adversarial lower
+bound, independently of padding and of ambient query interleaving. -/
+theorem paddedTwoPairFamily_commonShallow_iff_flexibleCost_le
+    (pad fuel trunkDepth : ℕ) (σ : Restriction (pad + 40)) (hfuel : 4 ≤ fuel) :
+    CommonShallowAt (paddedTwoPairFamily pad) fuel σ trunkDepth 1 ↔
+      twoPairTenFlexibleCost
+        (fun g => paddedTwoPairLocalRestriction pad σ g) ≤ trunkDepth := by
+  constructor
+  · exact twoPairTenFlexibleCost_le_of_padded_commonShallow pad fuel trunkDepth σ hfuel
+  · intro hcost
+    exact CommonShallowAt.mono
+      (paddedTwoPairFamily_commonShallow_flexibleCost pad fuel σ hfuel)
+      hcost (le_refl 1)
 
 set_option maxRecDepth 16384 in
 set_option maxHeartbeats 2000000 in
@@ -7227,6 +7829,18 @@ theorem paddedTwoPairFlexibleCostTail_subset_bad (pad : ℕ) :
   intro hshallow
   have hcost := twoPairTenFlexibleCost_le_of_padded_commonShallow
     pad (pad + 40) 10 sigma (by omega) hshallow
+  omega
+
+/-- Completeness of the product-tree construction identifies the cost tail with the entire bad
+set, not merely a certified subset of it. -/
+theorem paddedTwoPairFlexibleCostTail_eq_bad (pad : ℕ) :
+    paddedTwoPairFlexibleCostTail pad =
+      commonShallowBad (paddedTwoPairFamily pad) (pad + 40) 40 10 1 := by
+  ext sigma
+  simp only [paddedTwoPairFlexibleCostTail, Finset.mem_filter, Finset.mem_univ, true_and,
+    mem_commonShallowBad]
+  rw [paddedTwoPairFamily_commonShallow_iff_flexibleCost_le pad (pad + 40) 10 sigma
+    (by omega)]
   omega
 
 set_option maxRecDepth 16384 in
@@ -7760,6 +8374,17 @@ theorem not_paddedTwoPair_scaled_contraction_86 :
     _ = Nat.choose 126 40 * 2 ^ 86 := by
       simpa using (card_stars_eq (N := 126) (K := 40))
 
+/-- The exact semantic characterization turns the arithmetic padding-eighty-seven comparison
+into a contraction theorem for the entire bad set.  Together with
+`not_paddedTwoPair_scaled_contraction_86`, this pins down the first tested padding transition
+without replacing the semantic event by a certified subset. -/
+theorem paddedTwoPair_scaled_contraction_87 :
+    (commonShallowBad (paddedTwoPairFamily 87) 127 40 10 1).card * 2 ^ 10 ≤
+      (Finset.univ.filter fun sigma : Restriction 127 => stars sigma = 40).card := by
+  rw [← paddedTwoPairFlexibleCostTail_eq_bad,
+    paddedTwoPairFlexibleCostTail_card, card_stars_eq]
+  exact paddedTwoPairFlexibleCostTabulatedMass_scaled_le_shell_87
+
 /-- A forty-star point in the exact semantic cost tail has at most twenty-nine live padding
 coordinates.  Unlike the earlier compatible-deficit bound, this applies to the whole direct-sum
 cost tail. -/
@@ -7920,6 +8545,14 @@ theorem paddedTwoPairFlexibleCostTail_scaled_insufficient_4080 :
     (Nat.mul_le_mul_right (2 ^ 10)
       (paddedTwoPairFlexibleCostTail_card_le_product 4080))
     paddedTwoPairFlexibleCostTail_coarse_scaled_insufficient_4080
+
+/-- Since the semantic tail is now known to be the full bad set, the audited padding-4080 shell
+does satisfy the requested depth-ten contraction for this exact disjoint family. -/
+theorem paddedTwoPair_scaled_contraction_4080 :
+    (commonShallowBad (paddedTwoPairFamily 4080) 4120 40 10 1).card * 2 ^ 10 <
+      Nat.choose 4120 40 * 2 ^ 4080 := by
+  rw [← paddedTwoPairFlexibleCostTail_eq_bad]
+  exact paddedTwoPairFlexibleCostTail_scaled_insufficient_4080
 
 /-- A certified forty-star deficit-tail profile has at most seventeen live padding coordinates.
 This is the exact support consequence needed by the coarse padding charge. -/
@@ -8617,7 +9250,21 @@ theorem InclusionMinimalUnsatisfiableCore.card_le_four_mul_sub_two
 #print axioms canonicalDT_queriedVars_subset_gateVariableSupport
 #print axioms canonicalFamily_trace_length_le_live_support
 #print axioms commonShallowAt_zero_of_live_support_le
+#print axioms commonShallowBad_subset_liveFamilySupportTail
+#print axioms normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
+#print axioms liveSupportOverlapFreeSets_card
+#print axioms liveSupportOverlap_card
+#print axioms liveLayeredBottomSupportTail_eq_biUnion_overlap
+#print axioms liveLayeredBottomSupportTail_card
 #print axioms familyVariableSupport_card_le
+#print axioms clauseVariableSupport_negClause
+#print axioms gateVariableSupport_negDNF
+#print axioms normalizedLayeredBottomFamily_support_subset_bottomSupport
+#print axioms layeredBottomVariableSupport_card_le
+#print axioms normalizedLayeredBottomFamily_liveSupport_card_le_sharpSlotCharge
+#print axioms normalizedLayeredBottomFamily_commonShallowAt_sharpSlotCharge
+#print axioms normalizedLayeredBottomFamily_liveSupport_card_le_slotCharge
+#print axioms normalizedLayeredBottomFamily_commonShallowAt_slotCharge
 #print axioms freshTaggedPrefixVars_subset_familyVariableSupport
 #print axioms realizedPrefixVariableSets_card_le_choose_support
 #print axioms realizedPrefixVariableSets_card_le_choose_actualAlphabet
@@ -8724,6 +9371,8 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairRootShallow_not_monotone_fixVar
 #print axioms twoPairFlexibleQueryCost_multiplicity_exact
 #print axioms twoPairFlexibleQueryCost_eq_readOnceCost
+#print axioms twoPairFlexibleQueryWin_three_code
+#print axioms twoPairFlexibleQueryWin_cost
 #print axioms twoPairFlexibleQueryCost_fixVar_adversary_code
 #print axioms twoPairFlexibleQueryCost_fixVar_adversary
 #print axioms twoPairTenFlexibleCost_update_adversary
@@ -8734,6 +9383,14 @@ set_option maxRecDepth 16384 in
 #print axioms paddedTwoPairLocalRestriction_fixVar_padding
 #print axioms twoPairTenFlexibleConditionalCost_tree_adversary
 #print axioms paddedTwoPairLocalRestriction_fixVar_self
+#print axioms paddedTwoPairLiftTree_depth
+#print axioms paddedTwoPairLiftTree_run
+#print axioms paddedTwoPairLiftTree_spec
+#print axioms paddedTwoPairLiftFold_depth_le
+#print axioms paddedTwoPairLiftFold_run_cons
+#print axioms paddedTwoPairLiftFold_localRestriction_of_not_mem
+#print axioms paddedTwoPairLiftFold_spec
+#print axioms paddedTwoPairFamily_commonShallow_flexibleCost
 #print axioms positiveTwoPair_local_depth_le_one_of_padded
 #print axioms negativeTwoPair_local_depth_le_one_of_padded
 #print axioms positiveTwoPair_padded_depth_le_one_of_local
@@ -8743,6 +9400,7 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleCost_le_of_padded_commonShallow
+#print axioms paddedTwoPairFamily_commonShallow_iff_flexibleCost_le
 #print axioms twoPairFlexibleQueryCost_stars_profile_exact
 #print axioms twoPairLocalCostLiveFiber_card_eq_convolution_one
 #print axioms twoPairLocalCostLive_weighted_sum
@@ -8799,7 +9457,9 @@ set_option maxRecDepth 16384 in
 #print axioms paddedTwoPairFlexibleCostTail_card_eq_codeTail
 #print axioms paddedTwoPairFlexibleCostCodeTail_card
 #print axioms paddedTwoPairFlexibleCostTail_card
+#print axioms paddedTwoPairFlexibleCostTail_eq_bad
 #print axioms not_paddedTwoPair_scaled_contraction_86
+#print axioms paddedTwoPair_scaled_contraction_87
 #print axioms paddedTwoPairFlexibleCostTail_padding_stars_le_twentyNine
 #print axioms paddingRestrictionsAtMostTwentyNine_card
 #print axioms two_pow_twentyNine_sub_mul_choose_le_choose_twentyNine
@@ -8807,6 +9467,7 @@ set_option maxRecDepth 16384 in
 #print axioms paddedTwoPairFlexibleCostTail_card_le_product
 #print axioms paddedTwoPairFlexibleCostTail_coarse_scaled_insufficient_4080
 #print axioms paddedTwoPairFlexibleCostTail_scaled_insufficient_4080
+#print axioms paddedTwoPair_scaled_contraction_4080
 #print axioms paddedTwoPair_padding_stars_le_seventeen
 #print axioms paddingRestrictionsAtMostSeventeen_card
 #print axioms two_pow_seventeen_sub_mul_choose_le_choose_seventeen
