@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipCollision
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingLayeredBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingNormalize
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingTwoSATBridge
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -32,6 +33,7 @@ open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingBoundedTermFamily
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingShellAveraging
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingTailIntegerBridge
 open PallLean.Paper93.DeepMath.PathB.ACC0SwitchingFixedTermLinearGap
+open PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 /-- Canonical coordinates for the live variables of a current restriction. -/
 noncomputable def liveCoordEquiv {n : ℕ} (τ : Restriction n) :
@@ -741,6 +743,96 @@ theorem localizeLiveDnf_eval {n : ℕ} (τ : Restriction n)
           (liftLiveAssignment_agrees τ x) hlive]
         simp)
 
+/-! ### Full layered-circuit transport to the live-coordinate cube -/
+
+/-- Literal negation is an involution. -/
+@[simp] theorem negLit_negLit {n : ℕ} (l : Rung4Literal n) :
+    negLit (negLit l) = l := by
+  cases l <;> rfl
+
+/-- Negating every literal twice restores a bottom-gate list exactly. -/
+theorem negDNF_negDNF {n : ℕ} (cs : List (Clause n)) :
+    negDNF (negDNF cs) = cs := by
+  simp [negDNF, List.map_map, Function.comp_def]
+
+/-- CNF localization is DNF localization of the De Morgan dual, followed by dualization back. -/
+noncomputable def localizeLiveCnf {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) : List (Clause (stars τ)) :=
+  negDNF (localizeLiveDnf τ (negDNF cs))
+
+/-- The localized CNF computes the ambient CNF under the canonical lifted assignment. -/
+theorem localizeLiveCnf_eval {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) (cs : List (Clause n)) :
+    cnfValue (localizeLiveCnf τ cs) x =
+      cnfValue cs (liftLiveAssignment τ x) := by
+  rw [cnfValue_eq_not_dnfValue_negDNF, localizeLiveCnf, negDNF_negDNF,
+    localizeLiveDnf_eval, cnfValue_eq_not_dnfValue_negDNF]
+
+/-- Substitute fixed coordinates and canonically relabel every remaining variable of a layered
+circuit.  Internal gates and their order are retained exactly; only bottom payloads are localized. -/
+noncomputable def localizeLiveLayered {n : ℕ} (τ : Restriction n) :
+    Layered n → Layered (stars τ)
+  | Layered.dnf cs => Layered.dnf (localizeLiveDnf τ cs)
+  | Layered.cnf cs => Layered.cnf (localizeLiveCnf τ cs)
+  | Layered.gAnd gs => Layered.gAnd (gs.map (localizeLiveLayered τ))
+  | Layered.gOr gs => Layered.gOr (gs.map (localizeLiveLayered τ))
+
+mutual
+/-- Full-circuit evaluation is preserved by live-coordinate transport. -/
+theorem localizeLiveLayered_eval {n : ℕ} (τ : Restriction n) :
+    ∀ (C : Layered n) (x : Fin (stars τ) → Bool),
+      Layered.eval (localizeLiveLayered τ C) x =
+        Layered.eval C (liftLiveAssignment τ x)
+  | Layered.dnf cs, x => by
+      simpa [localizeLiveLayered] using localizeLiveDnf_eval τ x cs
+  | Layered.cnf cs, x => by
+      simpa [localizeLiveLayered] using localizeLiveCnf_eval τ x cs
+  | Layered.gAnd gs, x => by
+      simp only [localizeLiveLayered, Layered.eval_gAnd]
+      exact localizeLiveLayered_evalAll τ gs x
+  | Layered.gOr gs, x => by
+      simp only [localizeLiveLayered, Layered.eval_gOr]
+      exact localizeLiveLayered_evalAny τ gs x
+theorem localizeLiveLayered_evalAll {n : ℕ} (τ : Restriction n) :
+    ∀ (gs : List (Layered n)) (x : Fin (stars τ) → Bool),
+      (gs.map (localizeLiveLayered τ)).all (fun g => Layered.eval g x) =
+        gs.all (fun g => Layered.eval g (liftLiveAssignment τ x))
+  | [], _ => rfl
+  | g :: gs, x => by
+      simp only [List.map_cons, List.all_cons]
+      rw [localizeLiveLayered_eval τ g x, localizeLiveLayered_evalAll τ gs x]
+theorem localizeLiveLayered_evalAny {n : ℕ} (τ : Restriction n) :
+    ∀ (gs : List (Layered n)) (x : Fin (stars τ) → Bool),
+      (gs.map (localizeLiveLayered τ)).any (fun g => Layered.eval g x) =
+        gs.any (fun g => Layered.eval g (liftLiveAssignment τ x))
+  | [], _ => rfl
+  | g :: gs, x => by
+      simp only [List.map_cons, List.any_cons]
+      rw [localizeLiveLayered_eval τ g x, localizeLiveLayered_evalAny τ gs x]
+end
+
+mutual
+/-- Relabelling and bottom substitution do not change the layered alternation depth. -/
+theorem localizeLiveLayered_depth {n : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n,
+      Layered.depth (localizeLiveLayered τ C) = Layered.depth C
+  | Layered.dnf _ => by simp [localizeLiveLayered, Layered.depth]
+  | Layered.cnf _ => by simp [localizeLiveLayered, Layered.depth]
+  | Layered.gAnd gs => by
+      simp only [localizeLiveLayered, Layered.depth]
+      rw [localizeLiveLayered_depthList τ gs]
+  | Layered.gOr gs => by
+      simp only [localizeLiveLayered, Layered.depth]
+      rw [localizeLiveLayered_depthList τ gs]
+theorem localizeLiveLayered_depthList {n : ℕ} (τ : Restriction n) :
+    ∀ gs : List (Layered n),
+      Layered.depthList (gs.map (localizeLiveLayered τ)) = Layered.depthList gs
+  | [] => rfl
+  | g :: gs => by
+      simp only [List.map_cons, Layered.depthList]
+      rw [localizeLiveLayered_depth τ g, localizeLiveLayered_depthList τ gs]
+end
+
 theorem localizeLiveClause_width_le {n : ℕ} (τ : Restriction n) (T : Clause n) :
     (localizeLiveClause τ T).lits.length ≤ T.lits.length := by
   exact List.length_filterMap_le _ _
@@ -759,6 +851,152 @@ theorem localizeLiveDnf_width_le {n w : ℕ} (τ : Restriction n)
   obtain ⟨U, hU, rfl⟩ := hT
   exact le_trans (localizeLiveClause_width_le τ U)
     (hw U (List.mem_of_mem_filter hU))
+
+/-- De Morgan dualization preserves the number of bottom clauses. -/
+theorem negDNF_length {n : ℕ} (cs : List (Clause n)) :
+    (negDNF cs).length = cs.length := by
+  simp [negDNF]
+
+/-- CNF localization cannot increase the number of bottom clauses. -/
+theorem localizeLiveCnf_length_le {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) :
+    (localizeLiveCnf τ cs).length ≤ cs.length := by
+  rw [localizeLiveCnf, negDNF_length]
+  exact (localizeLiveDnf_length_le τ (negDNF cs)).trans_eq (negDNF_length cs)
+
+/-- CNF localization cannot increase bottom-clause width. -/
+theorem localizeLiveCnf_width_le {n w : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) (hw : ∀ T ∈ cs, T.lits.length ≤ w) :
+    ∀ T ∈ localizeLiveCnf τ cs, T.lits.length ≤ w := by
+  have hneg : ∀ T ∈ negDNF cs, T.lits.length ≤ w := by
+    intro T hT
+    rw [negDNF, List.mem_map] at hT
+    obtain ⟨U, hU, rfl⟩ := hT
+    simpa using hw U hU
+  intro T hT
+  rw [localizeLiveCnf, negDNF, List.mem_map] at hT
+  obtain ⟨U, hU, rfl⟩ := hT
+  simpa using localizeLiveDnf_width_le τ (negDNF cs) hneg U hU
+
+/-- Live-coordinate substitution does not increase the width of any syntactic bottom gate. -/
+theorem localizeLiveLayered_BottomWidth {n w : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n, BottomWidth w C → BottomWidth w (localizeLiveLayered τ C)
+  | Layered.dnf cs, hw => by
+      intro cs' hcs'
+      simp only [localizeLiveLayered, bottomGates, List.mem_singleton] at hcs'
+      subst cs'
+      exact localizeLiveDnf_width_le τ cs
+        (fun T hT => hw cs (by simp [bottomGates]) T hT)
+  | Layered.cnf cs, hw => by
+      intro cs' hcs'
+      simp only [localizeLiveLayered, bottomGates, List.mem_singleton] at hcs'
+      subst cs'
+      exact localizeLiveCnf_width_le τ cs
+        (fun T hT => hw cs (by simp [bottomGates]) T hT)
+  | Layered.gAnd gs, hw => by
+      intro cs hcs T hT
+      simp only [localizeLiveLayered, bottomGates, bottomGatesList_eq, List.map_map,
+        List.mem_flatten] at hcs
+      obtain ⟨css, hcss, hcs⟩ := hcs
+      rw [List.mem_map] at hcss
+      obtain ⟨g, hg, rfl⟩ := hcss
+      exact localizeLiveLayered_BottomWidth τ g (BottomWidth_child_gAnd hw hg) cs hcs T hT
+  | Layered.gOr gs, hw => by
+      intro cs hcs T hT
+      simp only [localizeLiveLayered, bottomGates, bottomGatesList_eq, List.map_map,
+        List.mem_flatten] at hcs
+      obtain ⟨css, hcss, hcs⟩ := hcs
+      rw [List.mem_map] at hcss
+      obtain ⟨g, hg, rfl⟩ := hcss
+      exact localizeLiveLayered_BottomWidth τ g (BottomWidth_child_gOr hw hg) cs hcs T hT
+
+private theorem max_one_localizeLiveDnf_length_le {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) :
+    max 1 (localizeLiveDnf τ cs).length ≤ max 1 cs.length := by
+  exact max_le_max le_rfl (localizeLiveDnf_length_le τ cs)
+
+private theorem max_one_localizeLiveCnf_length_le {n : ℕ} (τ : Restriction n)
+    (cs : List (Clause n)) :
+    max 1 (localizeLiveCnf τ cs).length ≤ max 1 cs.length := by
+  exact max_le_max le_rfl (localizeLiveCnf_length_le τ cs)
+
+mutual
+/-- Live-coordinate substitution cannot increase total bottom payload, including the unit charge
+for an empty constant bottom gate. -/
+theorem localizeLiveLayered_bottomSlotCount_le {n : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n,
+      bottomSlotCount (localizeLiveLayered τ C) ≤ bottomSlotCount C
+  | Layered.dnf cs => by
+      simpa [bottomSlotCount, bottomGates, localizeLiveLayered] using
+        max_one_localizeLiveDnf_length_le τ cs
+  | Layered.cnf cs => by
+      simpa [bottomSlotCount, bottomGates, localizeLiveLayered] using
+        max_one_localizeLiveCnf_length_le τ cs
+  | Layered.gAnd gs => by
+      simpa [bottomSlotCount, bottomGates, localizeLiveLayered] using
+        localizeLiveLayered_bottomSlotCountList_le τ gs
+  | Layered.gOr gs => by
+      simpa [bottomSlotCount, bottomGates, localizeLiveLayered] using
+        localizeLiveLayered_bottomSlotCountList_le τ gs
+theorem localizeLiveLayered_bottomSlotCountList_le {n : ℕ} (τ : Restriction n) :
+    ∀ gs : List (Layered n),
+      ((bottomGatesList (gs.map (localizeLiveLayered τ))).map
+          (fun cs => max 1 cs.length)).sum ≤
+        ((bottomGatesList gs).map (fun cs => max 1 cs.length)).sum
+  | [] => by simp [bottomGatesList]
+  | g :: gs => by
+      simp only [List.map_cons, bottomGatesList, List.map_append, List.sum_append]
+      exact Nat.add_le_add (localizeLiveLayered_bottomSlotCount_le τ g)
+        (localizeLiveLayered_bottomSlotCountList_le τ gs)
+end
+
+/-! ### Exact-subcube round packaged on the next coordinate type -/
+
+/-- One actual-margin survivor round, with the reached collapse immediately transported to the
+exact `10 * R`-coordinate cube.  The witness records the four interfaces consumed by another
+round: evaluation, depth, bottom width, and bottom-slot count. -/
+theorem actualMargin_normalizedSurvivorRound_localized
+    {n fuel s R residualDepth : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hw : BottomWidth (s + 1) C)
+    (hmargin :
+      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
+    (hne : NonEmptyGates C) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+        residualDepth).card * 2 ^ (10 * R) ≤
+        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+      ∀ σ : Restriction n,
+        stars σ = 20 * R →
+        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
+          (20 * R) (10 * R) residualDepth →
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          ∃ trunk : CommonTree n (Restriction n),
+            CommonTree.depth trunk ≤ 10 * R ∧
+            let τ := CommonTree.run trunk x
+            ∃ κ : Restriction n,
+              RestrictionExtends τ κ ∧
+              stars κ = 10 * R ∧
+              stars κ ≤ fuel ∧
+              let D := localizeLiveLayered κ (collapseRound fuel τ C)
+              (∀ z : Fin (stars κ) → Bool,
+                Layered.eval D z = Layered.eval C (liftLiveAssignment κ z)) ∧
+              Layered.depth D = Layered.depth (collapseRound fuel τ C) ∧
+              BottomWidth (residualDepth + 1) D ∧
+              bottomSlotCount D ≤
+                bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+  obtain ⟨hbad, hleaf⟩ :=
+    actualMargin_normalizedSurvivorRound_exactSubcube hKfuel hw hmargin hne
+  refine ⟨hbad, ?_⟩
+  intro σ hstars hgood x hx
+  obtain ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, hequiv, hwidth, hslots⟩ :=
+    hleaf σ hstars hgood x hx
+  refine ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, ?_, ?_, ?_, ?_⟩
+  · intro z
+    rw [localizeLiveLayered_eval]
+    exact (hequiv (liftLiveAssignment κ z) (liftLiveAssignment_agrees κ z)).symm
+  · exact localizeLiveLayered_depth κ _
+  · exact localizeLiveLayered_BottomWidth κ _ hwidth
+  · exact (localizeLiveLayered_bottomSlotCount_le κ _).trans hslots
 
 /-- Transport a whole indexed bottom-gate family to the current live-coordinate cube. -/
 noncomputable def localizeLiveGates {n G : ℕ} (τ : Restriction n)
@@ -2643,6 +2881,11 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLiteral_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveCnf_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_BottomWidth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_bottomSlotCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_eval

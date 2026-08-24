@@ -6906,3 +6906,321 @@ hypergeometric tail, with
 `2^(-10R) * choose n (20R)` under the actual survivor-shell margin.  If that inequality fails at
 an admissible parameter point, retain the point as a counterexample and move to the already
 identified fixed-polarity refinement.  No P-versus-NP conclusion follows.
+
+### The shell factor is cancelled and the recurrence margin gives 1/16 support density
+
+The exact support count is now wired back into the normalized circuit bad-set theorem.
+`normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail` proves that the sole
+remaining numerical premise is
+
+```text
+(sum q=trunkDepth+1..K,
+   choose |S| q * choose (n-|S|) (K-q)) * 2^savingExponent
+  <= choose n K,
+```
+
+where `S = layeredBottomVariableSupport(C)`.  The common Boolean fiber `2^(n-K)` is cancelled
+before the premise is exposed; no division in `Nat` and no fixed-value overcount remain.
+
+The circuit-owned density regime is also now explicit.  Under bottom width `s+1`, the already
+audited recurrence margin
+
+```text
+8*(s+2)*bottomSlotCount(C)*2^(s+1) + 4*(s+2) <= n
+```
+
+implies
+
+```text
+16 * |layeredBottomVariableSupport(C)| <= n.
+```
+
+This is proved by `sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin`.  Thus the
+old sufficient condition `n` on the order of `|S|*K` is confirmed to be an artifact of the
+prefix encoder: the actual recurrence boundary supplies a dimension-free support fraction at
+most `1/16`.  A finite audit at extremal support size for `s = 0,...,4`, `M = 1,...,30`, and the
+first ten admissible shell scales found no counterexample; the largest sampled scaled ratio was
+below `4.811e-10`.  This computation is diagnostic evidence only, not part of the Lean proof.
+
+The precise next frontier is a generic without-replacement tail lemma: for `K = 2*d`, prove that
+`16*|S| <= n` and `K <= n` imply
+
+```text
+(sum q=d+1..K, choose |S| q * choose (n-|S|) (K-q)) * 2^d <= choose n K.
+```
+
+A promising elementary route is to mark a canonical `d`-subset of the support in every upper-tail
+set, then combine `choose K d <= 2^K` with the sixteenfold ambient gap.  Specializing that lemma at
+`K=20R`, `d=10R` would close the support-only contraction under the actual margin; only if this
+route fails should the fixed-polarity refinement return to the frontier.  No P-versus-NP
+conclusion follows.
+
+### The sixteen-density hypergeometric tail and actual-margin contraction are closed
+
+The support-only probabilistic frontier is now kernel-checked.  The generic theorem
+`hypergeometric_upper_tail_sixteen_density` proves, for all natural `n`, support sizes `a`, and
+half-shell depths `d`, that
+
+```text
+16*a <= n
+  =>
+(sum q=d+1..2d, choose a q * choose (n-a) (2d-q)) * 2^d
+  <= choose n (2d).
+```
+
+The proof is elementary and division-free.  `pow_mul_choose_le_choose_mul` first formalizes the
+injection obtained by independently labelling selected coordinates.  Giving every selected
+support coordinate one of 32 labels and applying Vandermonde embeds the weighted upper tail in
+`choose (n+31a) (2d)`.  In the nonzero-tail case `d+1 <= a`; together with `16a <= n`, a
+descending-factorial comparison bounds this enlarged row by
+
+```text
+choose (n+31a) (2d) <= 4^(2d) * choose n (2d).
+```
+
+The remaining powers cancel with slack because
+`2^d * 4^(2d) <= 32^(d+1)`.  The zero-tail case `a <= d` is discharged exactly.  No asymptotics,
+probability library, division in `Nat`, or hidden `2^(n-K)` fiber is used.
+
+The circuit specialization
+`normalizedLayered_commonShallowBad_scaled_le_of_actual_margin` composes this generic result with
+the exact support-tail count and the audited recurrence margin.  For bottom width `s+1`,
+
+```text
+8*(s+2)*bottomSlotCount(C)*2^(s+1) + 4*(s+2) <= n
+```
+
+and `20R <= fuel` now imply the intended contraction directly:
+
+```text
+|commonShallowBad normalizedFamily fuel (20R) (10R) residualDepth| * 2^(10R)
+  <= |{sigma : Restriction n | stars sigma = 20R}|.
+```
+
+Thus the support-only envelope is sufficient at the actual circuit-owned recurrence boundary;
+the fixed-polarity refinement is not needed for this single-round estimate.  The old
+`n`-versus-`|S|*K` obstruction was indeed an encoder artifact.
+
+The precise next frontier is compositional: expose this new actual-margin capstone in the
+quantitative-iteration module and prove one complete survivor round that combines (i) membership
+outside `commonShallowBad`, (ii) the normalized common trunk, and (iii)
+`CommonShallowAt.leaf_collapseRound_bottomSlotCount_bound`.  Then audit whether the restricted
+leaf circuit and its `20R`-coordinate survivor cube re-establish the same actual-margin premise
+for the next round.  The first failure point, if any, must be retained as the recurrence
+counterexample; no P-versus-NP conclusion follows from the single-round contraction alone.
+
+### The normalized survivor round is composed; the next-shell interface is now the gap
+
+`actualMargin_normalizedSurvivorRound` packages the complete circuit-owned single-round
+interface.  Under bottom width `s+1`, nonempty layered gates, ample fuel, and
+
+```text
+8*(s+2)*bottomSlotCount(C)*2^(s+1) + 4*(s+2) <= n,
+```
+
+it proves both the `2^(10R)` contraction of the normalized bad set on the `20R` shell and the
+following pointwise consequence.  Every root outside that bad set has a common trunk of depth at
+most `10R`; for every assignment reaching a trunk leaf `tau`, the existing collapse is legal and
+
+```text
+bottomSlotCount(collapseRound fuel tau C)
+  <= bottomSlotCount(C) * (2^(residualDepth+1) + 1).
+```
+
+The quantitative-iteration module now imports the module containing this capstone, so the result
+is available at the iteration boundary without duplicating the normalized-family construction.
+
+This composition exposes a sharper gap than the slot recurrence alone.  `CommonShallowAt` permits
+an arbitrary extending restriction as a leaf payload.  Its interface proves only
+`stars(tau) <= fuel`; it does not prove that the leaf retains `10R` live coordinates, or even a
+lower bound on `stars(tau)`.  Consequently the current theorem cannot yet instantiate the next
+`20R` survivor shell, regardless of whether the displayed slot upper bound is arithmetically
+small enough.  This is a genuine interface issue: the common tree's query depth does not by itself
+bound extra coordinates fixed inside an arbitrary leaf payload.
+
+The precise next frontier is to normalize common-trunk leaf payloads to the canonical path
+endpoint (or prove a semantics-preserving replacement theorem) so that a depth-`<=10R` path from a
+`20R` root retains at least `10R` live variables.  Then test the next actual-margin inequality
+using the proved slot multiplier.  If canonicalization is impossible, preserve the first
+`CommonShallowAt` certificate whose leaf over-fixes the survivor cube as the recurrence-interface
+counterexample.  No P-versus-NP conclusion follows.
+
+### Leaf agreement closes the over-fixing gap
+
+The feared arbitrary-payload counterexample cannot exist under the actual `CommonShallowAt`
+definition.  The definition requires every reached leaf restriction to agree with every total
+assignment following that path.  If a coordinate was live at the root and absent from the
+followed query path, flipping only that coordinate reaches the same leaf.  A fixed value in the
+leaf payload would then have to agree with both Boolean values, a contradiction.
+
+This argument is now kernel checked in generic form:
+
+```text
+CommonTree.stars_run_ge_sub_of_leaf_agreement:
+  depth(trunk) <= d
+  -> stars(root) - d <= stars(run trunk x).
+
+CommonShallowAt.leaf_stars_ge_sub:
+  CommonShallowAt gates fuel root d s
+  -> exists trunk, depth(trunk) <= d
+       and stars(root) - d <= stars(run trunk x)
+       and every residual gate has depth <= s.
+```
+
+The same bound is threaded through `CommonShallowAt.leaf_shallows` and
+`CommonShallowAt.leaf_collapseRound_bottomSlotCount_bound`.  Consequently the normalized
+survivor-round capstone now proves, at each reached leaf `tau`, all three recurrence facts at once:
+
+```text
+10R <= stars(tau) <= fuel
+
+bottomSlotCount(collapseRound fuel tau C)
+  <= bottomSlotCount(C) * (2^(residualDepth+1) + 1).
+```
+
+Thus canonicalizing the leaf payload is unnecessary for live-count preservation.  The payload
+need not be definitionally the path endpoint; its universal agreement property already prevents
+it from fixing unqueried root-live coordinates.
+
+Verification completed for the common-tree/common-shallow target (8,238 jobs) and for the full
+layered-bridge source elaboration.  A separate small integration theorem reproducing the new
+`20R -> 10R` leaf conclusion from the strengthened layered bridge also elaborated.  The expensive
+TwoSAT bridge rebuild was externally terminated before producing a new object file, so no full
+affected build is claimed for this checkpoint.  The new generic capstones report exactly
+`propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is now arithmetic and coordinate transport: choose an exact `10R`-live
+subcube inside each leaf with `stars(tau) >= 10R`, reindex the collapsed circuit onto that cube,
+and test the following round's actual-margin inequality using the proved slot multiplier.  The
+first failure between subcube transport and the margin recurrence should be retained explicitly.
+No P-versus-NP conclusion follows.
+
+### Exact half-shell subcubes are selected and collapse equivalence descends to them
+
+The first half of the coordinate-transport frontier is now kernel checked.  The generic theorem
+`exists_restrictionExtends_stars_eq` proves that whenever `K <= stars(base)`, there is a genuine
+restriction extension `rho` with exactly `K` live coordinates.  It selects a `K`-element subset of
+`freeVars(base)` and uses the existing deterministic `keepFreeExtension`; hence it preserves every
+value already fixed by `base` and introduces no coordinate outside the base-live set.
+
+The circuit-owned capstone `actualMargin_normalizedSurvivorRound_exactSubcube` composes this with
+the actual-margin survivor theorem.  At every reached good leaf `tau`, it now selects an ambient
+restriction `kappa` satisfying
+
+```text
+RestrictionExtends tau kappa
+stars(kappa) = 10R
+stars(kappa) <= fuel
+```
+
+and proves
+
+```text
+EquivOn kappa C (collapseRound fuel tau C)
+
+bottomSlotCount(collapseRound fuel tau C)
+  <= bottomSlotCount(C) * (2^(residualDepth+1) + 1).
+```
+
+The equivalence transport is direct: every assignment agreeing with the finer `kappa` restriction
+agrees with `tau`, so the already proved leaf collapse equivalence applies.  Thus exact survivor
+selection itself is not an obstruction, and no arbitrary choice of values for the consumed live
+coordinates invalidates the collapse semantics.
+
+The layered-bridge target build completed successfully (8,348 jobs).  The new TwoSAT capstone
+elaborated in the full source and reports only `propext`, `Classical.choice`, and `Quot.sound`.
+The expensive remainder of that whole-file source pass was manually stopped after it had proceeded
+well beyond the capstone without an error, so no full TwoSAT build is claimed.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is the remaining coordinate-type transport: build a canonical equivalence
+between `Fin (10R)` and `freeVars(kappa)`, reindex literals and the collapsed `Layered n` circuit onto
+that type while substituting the coordinates fixed by `kappa`, and prove evaluation, width, depth,
+and bottom-slot-count preservation.  Only then can the next round's actual-margin premise be stated
+on ambient dimension `10R` and tested against the proved slot multiplier.  The first failed
+preservation law or arithmetic inequality should be retained explicitly.  No P-versus-NP conclusion
+follows.
+
+### Full layered evaluation and depth now transport to the exact survivor cube
+
+The existing live-coordinate machinery has been lifted from indexed DNF families to the complete
+`Layered` syntax.  `localizeLiveLayered kappa C` recursively substitutes every coordinate fixed by
+`kappa`, relabels each remaining coordinate through the canonical `liveCoordEquiv`, and retains the
+ordered internal `gAnd`/`gOr` tree.  CNF gates are localized through their De Morgan DNF dual; the new
+kernel-checked involution `negDNF_negDNF` prevents a polarity mismatch at that boundary.
+
+Two preservation laws are now proved:
+
+```text
+eval (localizeLiveLayered kappa C) x
+  = eval C (liftLiveAssignment kappa x)
+
+depth (localizeLiveLayered kappa C) = depth C.
+```
+
+Thus, for the exact subcube selected by
+`actualMargin_normalizedSurvivorRound_exactSubcube`, rewriting by
+`stars(kappa) = 10R` genuinely produces a semantically equivalent circuit over `Fin (10R)` with the
+same layered depth.  No auxiliary circuit model or arbitrary coordinate bijection is required.
+
+The focused quantitative-iteration source elaboration passed.  The new transport theorems use only
+the standard logical axioms already present in the canonical live-coordinate equivalence; no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to finish the two quantitative preservation laws for
+`localizeLiveLayered`: `BottomWidth w` and `bottomSlotCount` must not increase under bottom-payload
+filtering.  Then compose all four laws directly with the exact-subcube survivor capstone and test the
+next actual-margin inequality at ambient dimension `10R`.  The first arithmetic failure must be
+retained explicitly.  No P-versus-NP conclusion follows.
+
+### Width and slot transport are closed; the next-margin schedule is now explicit
+
+Live-coordinate transport now has all four required circuit laws.  In addition to evaluation and
+exact layered-depth preservation, the kernel-checked theorems
+`localizeLiveLayered_BottomWidth` and `localizeLiveLayered_bottomSlotCount_le` prove
+
+```text
+BottomWidth w C -> BottomWidth w (localizeLiveLayered kappa C)
+
+bottomSlotCount (localizeLiveLayered kappa C) <= bottomSlotCount C.
+```
+
+The CNF case is not assumed by duality: `localizeLiveCnf_length_le` and
+`localizeLiveCnf_width_le` explicitly use the fact that both surrounding `negDNF` maps preserve
+clause count and literal-list length.  The internal `gAnd`/`gOr` cases retain their child lists;
+the slot proof sums the pointwise bottom-payload inequalities, including the unit charge for an
+empty constant gate.
+
+Consequently coordinate transport itself introduces no quantitative loss.  Composing these laws
+with the exact-subcube survivor bound gives the following worst-case next-round data on ambient
+dimension `10R`: if the current slot count is `M` and the residual parameter is `r`, then
+
+```text
+width_next <= r + 1
+slots_next <= M * (2^(r+1) + 1).
+```
+
+The next actual-margin premise is therefore reduced exactly to the schedule obligation
+
+```text
+8*(r+2)*M*(2^(r+1)+1)*2^(r+1) + 4*(r+2) <= 10R.
+```
+
+This obligation is not a consequence of the current single-round assumptions: those constrain
+the old ambient dimension `n`, while the next ambient dimension is the independently selected
+`10R`.  For example, at the abstract envelope values `r=0`, `M=1`, `R=1`, its left side is `104`
+and its right side is `10`.  This is a failure of that parameter choice and worst-case recurrence
+bound, not a circuit counterexample and not evidence that no larger schedule can work.
+
+Focused elaboration of the quantitative-iteration source passed.  A dependency-aware target build
+rebuilt the affected layered bridge and then spent several minutes rebuilding the very large
+downstream TwoSAT object; it was manually stopped without an error, so no full affected build is
+claimed.  The new capstones use only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to package evaluation, depth, width, and slot preservation with
+`actualMargin_normalizedSurvivorRound_exactSubcube`, then choose a multi-round sequence `R_i` and
+residual widths satisfying both `20*R_(i+1) <= 10*R_i` and the displayed next-margin obligation at
+every round.  If these inequalities fail for the intended depth schedule, retain the first failing
+round and parameter tuple explicitly.  No P-versus-NP conclusion follows.

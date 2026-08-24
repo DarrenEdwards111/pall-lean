@@ -1874,6 +1874,186 @@ theorem normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
   simp only [Finset.mem_filter] at hi ⊢
   exact ⟨normalizedLayeredBottomFamily_support_subset_bottomSupport C hi.1, hi.2⟩
 
+/-- After the common fixed-value factor is cancelled, the exact hypergeometric coefficient is
+the only numerical obligation needed to contract the normalized circuit bad set.  This packages
+the support-tail reduction and keeps the remaining estimate independent of the `2^(n-K)` Boolean
+fibers. -/
+theorem normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail
+    {n fuel K trunkDepth residualDepth savingExponent : ℕ} {C : Layered n}
+    (hKfuel : K ≤ fuel)
+    (htail :
+      (∑ q ∈ Finset.Icc (trunkDepth + 1) K,
+          (layeredBottomVariableSupport C).card.choose q *
+            (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
+          2 ^ savingExponent ≤ n.choose K) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
+        residualDepth).card * 2 ^ savingExponent ≤
+      (Finset.univ.filter fun σ : Restriction n ↦ stars σ = K).card := by
+  have hsubset := normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
+    (C := C) (trunkDepth := trunkDepth) (residualDepth := residualDepth) hKfuel
+  have hcard :
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
+          residualDepth).card ≤
+        (liveLayeredBottomSupportTail C K trunkDepth).card :=
+    Finset.card_le_card hsubset
+  rw [liveLayeredBottomSupportTail_card] at hcard
+  rw [SwitchingCounting.card_stars_eq]
+  rw [← Finset.sum_mul] at hcard
+  calc
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
+        residualDepth).card * 2 ^ savingExponent ≤
+        ((∑ q ∈ Finset.Icc (trunkDepth + 1) K,
+            (layeredBottomVariableSupport C).card.choose q *
+              (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
+            2 ^ (n - K)) * 2 ^ savingExponent := Nat.mul_le_mul_right _ hcard
+    _ = ((∑ q ∈ Finset.Icc (trunkDepth + 1) K,
+            (layeredBottomVariableSupport C).card.choose q *
+              (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
+            2 ^ savingExponent) * 2 ^ (n - K) := by ring
+    _ ≤ n.choose K * 2 ^ (n - K) := Nat.mul_le_mul_right _ htail
+
+/-- Replicating every ambient coordinate `c` times contains, as a distinguished subfamily, every
+`r`-subset of the original coordinates with one of `c` labels independently attached to each
+member.  The descending-factorial proof avoids any division. -/
+theorem pow_mul_choose_le_choose_mul (c a r : ℕ) :
+    c ^ r * a.choose r ≤ (c * a).choose r := by
+  by_cases hc : c = 0
+  · subst c
+    cases r <;> simp
+  have hcpos : 0 < c := Nat.pos_of_ne_zero hc
+  have hdesc : c ^ r * a.descFactorial r ≤ (c * a).descFactorial r := by
+    induction r with
+    | zero => simp
+    | succ r ih =>
+        rw [Nat.descFactorial_succ, Nat.descFactorial_succ, pow_succ]
+        by_cases hra : r ≤ a
+        · have hfactor : c * (a - r) ≤ c * a - r := by
+            rw [Nat.mul_sub_left_distrib c a r]
+            exact Nat.sub_le_sub_left (Nat.le_mul_of_pos_left r hcpos) _
+          calc
+            c ^ r * c * ((a - r) * a.descFactorial r) =
+                (c * (a - r)) * (c ^ r * a.descFactorial r) := by ring
+            _ ≤ (c * a - r) * (c ^ r * a.descFactorial r) :=
+              Nat.mul_le_mul_right _ hfactor
+            _ ≤ (c * a - r) * (c * a).descFactorial r :=
+              Nat.mul_le_mul_left _ ih
+        · have har : a - r = 0 := Nat.sub_eq_zero_of_le (Nat.le_of_not_ge hra)
+          simp [har]
+  rw [Nat.descFactorial_eq_factorial_mul_choose,
+    Nat.descFactorial_eq_factorial_mul_choose] at hdesc
+  have hcanc : (c ^ r * a.choose r) * r.factorial ≤
+      (c * a).choose r * r.factorial := by
+    simpa [mul_assoc, mul_left_comm, mul_comm] using hdesc
+  exact Nat.le_of_mul_le_mul_right hcanc (Nat.factorial_pos _)
+
+/-- In the nonzero support-tail regime, sixteenfold ambient density makes the enlarged
+`n + 31*a` binomial row cost at most four choices per selected coordinate. -/
+theorem choose_add_thirtyone_mul_le_four_pow_choose
+    {n a d : ℕ} (hdensity : 16 * a ≤ n) (hsupport : d + 1 ≤ a) :
+    (n + 31 * a).choose (2 * d) ≤ 4 ^ (2 * d) * n.choose (2 * d) := by
+  have hdesc : ∀ r ≤ 2 * d,
+      (n + 31 * a).descFactorial r ≤ 4 ^ r * n.descFactorial r := by
+    intro r hr
+    induction r with
+    | zero => simp
+    | succ r ih =>
+        rw [Nat.descFactorial_succ, Nat.descFactorial_succ, pow_succ]
+        have hrlt : r < 2 * d := by omega
+        have hrn : r ≤ n := by omega
+        have hfactor : n + 31 * a - r ≤ 4 * (n - r) := by omega
+        calc
+          (n + 31 * a - r) * (n + 31 * a).descFactorial r ≤
+              (4 * (n - r)) * (n + 31 * a).descFactorial r :=
+            Nat.mul_le_mul_right _ hfactor
+          _ ≤ (4 * (n - r)) * (4 ^ r * n.descFactorial r) :=
+            Nat.mul_le_mul_left _ (ih (by omega))
+          _ = 4 ^ r * 4 * ((n - r) * n.descFactorial r) := by ring
+  have h := hdesc (2 * d) (Nat.le_refl _)
+  simp only [Nat.descFactorial_eq_factorial_mul_choose] at h
+  have hcanc : (n + 31 * a).choose (2 * d) * (2 * d).factorial ≤
+      (4 ^ (2 * d) * n.choose (2 * d)) * (2 * d).factorial := by
+    simpa [mul_assoc, mul_left_comm, mul_comm] using h
+  exact Nat.le_of_mul_le_mul_right hcanc (Nat.factorial_pos _)
+
+/-- A weighted Vandermonde envelope for the without-replacement upper tail.  Each selected support
+coordinate receives one of `32` labels, and the resulting distinguished subsets live inside an
+ambient set of size `n + 31*a`. -/
+theorem hypergeometric_upper_tail_mul_thirtytwo_pow_le
+    {n a d : ℕ} (ha : a ≤ n) :
+    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
+        a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) ≤
+      (n + 31 * a).choose (2 * d) := by
+  calc
+    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
+        a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) =
+        ∑ q ∈ Finset.Icc (d + 1) (2 * d),
+          (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) := by
+            rw [Finset.sum_mul]
+    _ ≤ ∑ q ∈ Finset.Icc (d + 1) (2 * d),
+          (32 * a).choose q * (n - a).choose (2 * d - q) := by
+      apply Finset.sum_le_sum
+      intro q hq
+      have hpow : 32 ^ (d + 1) ≤ 32 ^ q :=
+        pow_le_pow_right' (by norm_num) (Finset.mem_Icc.mp hq).1
+      calc
+        (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) ≤
+            (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ q :=
+          Nat.mul_le_mul_left _ hpow
+        _ = (32 ^ q * a.choose q) * (n - a).choose (2 * d - q) := by ring
+        _ ≤ (32 * a).choose q * (n - a).choose (2 * d - q) :=
+          Nat.mul_le_mul_right _ (pow_mul_choose_le_choose_mul 32 a q)
+    _ ≤ ∑ q ∈ Finset.range (2 * d + 1),
+          (32 * a).choose q * (n - a).choose (2 * d - q) := by
+      apply Finset.sum_le_sum_of_subset
+      intro q hq
+      rw [Finset.mem_Icc] at hq
+      simpa [Finset.mem_range] using hq.2
+    _ = (32 * a + (n - a)).choose (2 * d) := by
+      rw [Nat.add_choose_eq, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
+    _ = (n + 31 * a).choose (2 * d) := by
+      apply congrArg (fun x : ℕ => Nat.choose x (2 * d))
+      calc
+        32 * a + (n - a) = (n - a) + a + 31 * a := by ring
+        _ = n + 31 * a := by rw [Nat.sub_add_cancel ha]
+
+/-- Generic without-replacement half-shell tail bound.  A support occupying at most one sixteenth
+of the ambient coordinates has probability at most `2^-d` of contributing more than half of a
+`2*d` sample.  The statement remains valid when `2*d > n` (both relevant binomial rows vanish). -/
+theorem hypergeometric_upper_tail_sixteen_density
+    {n a d : ℕ} (hdensity : 16 * a ≤ n) :
+    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
+        a.choose q * (n - a).choose (2 * d - q)) * 2 ^ d ≤ n.choose (2 * d) := by
+  by_cases hsmall : a ≤ d
+  · have hzero : ∑ q ∈ Finset.Icc (d + 1) (2 * d),
+        a.choose q * (n - a).choose (2 * d - q) = 0 := by
+      apply Finset.sum_eq_zero
+      intro q hq
+      simp [Nat.choose_eq_zero_of_lt
+        (lt_of_le_of_lt hsmall (Finset.mem_Icc.mp hq).1)]
+    simp [hzero]
+  have hsupport : d + 1 ≤ a := by omega
+  have ha : a ≤ n := by omega
+  let tail := ∑ q ∈ Finset.Icc (d + 1) (2 * d),
+      a.choose q * (n - a).choose (2 * d - q)
+  have hweighted : tail * 32 ^ (d + 1) ≤
+      4 ^ (2 * d) * n.choose (2 * d) :=
+    (hypergeometric_upper_tail_mul_thirtytwo_pow_le ha).trans
+      (choose_add_thirtyone_mul_le_four_pow_choose hdensity hsupport)
+  have hscale : 2 ^ d * 4 ^ (2 * d) ≤ 32 ^ (d + 1) := by
+    calc
+      2 ^ d * 4 ^ (2 * d) = 2 ^ d * (4 ^ 2) ^ d := by rw [pow_mul]
+      _ = (2 * 4 ^ 2) ^ d := by rw [mul_pow]
+      _ = 32 ^ d := by norm_num
+      _ ≤ 32 ^ (d + 1) := pow_le_pow_right' (by norm_num) (by omega)
+  have hmul : (tail * 2 ^ d) * (4 ^ (2 * d)) ≤
+      n.choose (2 * d) * (4 ^ (2 * d)) := by
+    calc
+      (tail * 2 ^ d) * 4 ^ (2 * d) = tail * (2 ^ d * 4 ^ (2 * d)) := by ring
+      _ ≤ tail * 32 ^ (d + 1) := Nat.mul_le_mul_left _ hscale
+      _ ≤ 4 ^ (2 * d) * n.choose (2 * d) := hweighted
+      _ = n.choose (2 * d) * 4 ^ (2 * d) := by ring
+  exact Nat.le_of_mul_le_mul_right hmul (pow_pos (by norm_num) _)
+
 theorem clauseVariableSupport_card_le_width {n w : ℕ} {T : Depth3.Clause n}
     (hw : T.lits.length ≤ w) : (clauseVariableSupport T).card ≤ w := by
   exact (List.toFinset_card_le _).trans (by simpa using hw)
@@ -1940,6 +2120,147 @@ theorem layeredBottomVariableSupport_card_le {n w : ℕ} {C : Layered n}
     (hw : BottomWidth w C) :
     (layeredBottomVariableSupport C).card ≤ w * bottomClauseCount C := by
   exact listGateVariableSupport_card_le (bottomGates C) hw
+
+/-- The circuit-owned recurrence margin forces a strong support-density gap: even at the maximal
+width/slot charge, the unpolarized bottom support occupies at most one sixteenth of the ambient
+coordinates.  This is the quantitative regime needed by the remaining hypergeometric tail lemma;
+unlike the earlier prefix estimate, it contains no extra factor of the shell size. -/
+theorem sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin
+    {n s : ℕ} {C : Layered n} (hw : BottomWidth (s + 1) C)
+    (hmargin :
+      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n) :
+    16 * (layeredBottomVariableSupport C).card ≤ n := by
+  have hsupport :
+      (layeredBottomVariableSupport C).card ≤ (s + 1) * bottomSlotCount C :=
+    (layeredBottomVariableSupport_card_le hw).trans
+      (Nat.mul_le_mul_left (s + 1) (bottomClauseCount_le_bottomSlotCount C))
+  have hpow : 2 ≤ 2 ^ (s + 1) := by
+    rw [pow_succ]
+    exact Nat.le_mul_of_pos_left 2 (pow_pos (by omega) s)
+  calc
+    16 * (layeredBottomVariableSupport C).card ≤
+        16 * ((s + 1) * bottomSlotCount C) := Nat.mul_le_mul_left 16 hsupport
+    _ ≤ 8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) := by
+      nlinarith
+    _ ≤ 8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) :=
+      Nat.le_add_right _ _
+    _ ≤ n := hmargin
+
+/-- The actual circuit-owned recurrence margin now closes the support-only contraction at the
+intended half-shell parameters `K = 20*R`, `d = 10*R`. -/
+theorem normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
+    {n fuel s R residualDepth : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hw : BottomWidth (s + 1) C)
+    (hmargin :
+      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+        residualDepth).card * 2 ^ (10 * R) ≤
+      (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card := by
+  apply normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail hKfuel
+  simpa [show 20 * R = 2 * (10 * R) by ring] using
+    hypergeometric_upper_tail_sixteen_density
+      (sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin hw hmargin)
+
+/-- One complete normalized survivor-round interface at the actual circuit-owned margin.  The
+first conjunct is the half-shell bad-set contraction.  The second says that every root outside
+that bad set supplies the common trunk and, at every reached leaf, the slot-count recurrence
+needed to formulate the following round's margin. -/
+theorem actualMargin_normalizedSurvivorRound
+    {n fuel s R residualDepth : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hw : BottomWidth (s + 1) C)
+    (hmargin :
+      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
+    (hne : NonEmptyGates C) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+        residualDepth).card * 2 ^ (10 * R) ≤
+        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+      ∀ σ : Restriction n,
+        stars σ = 20 * R →
+        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
+          (20 * R) (10 * R) residualDepth →
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          ∃ trunk : CommonTree n (Restriction n),
+            CommonTree.depth trunk ≤ 10 * R ∧
+            let τ := CommonTree.run trunk x
+            10 * R ≤ stars τ ∧
+            stars τ ≤ fuel ∧
+            BottomWidth (residualDepth + 1) (collapseRound fuel τ C) ∧
+            bottomSlotCount (collapseRound fuel τ C) ≤
+              bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+  constructor
+  · exact normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
+      hKfuel hw hmargin
+  · intro σ hstars hgood x hx
+    have hcommon : CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
+        (10 * R) residualDepth := by
+      by_contra hnot
+      apply hgood
+      rw [mem_commonShallowBad]
+      exact ⟨hstars, hnot⟩
+    have hfuel : stars σ ≤ fuel := by
+      calc
+        stars σ = 20 * R := hstars
+        _ ≤ fuel := hKfuel
+    obtain ⟨trunk, hdepth, hlower, hleafStars, hshallow⟩ :=
+      hcommon.leaf_shallows (normalizedLayeredBottomFamily_covers C) x hx
+    have hleafFuel : stars (CommonTree.run trunk x) ≤ fuel := hleafStars.trans hfuel
+    refine ⟨trunk, hdepth, ?_, hleafFuel,
+      collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow,
+      collapseRound_bottomSlotCount_le hne hshallow⟩
+    rw [hstars] at hlower
+    omega
+
+#print axioms actualMargin_normalizedSurvivorRound
+
+/-- The actual-margin survivor round admits an exact half-shell subcube at every reached leaf.
+Besides selecting an extension with exactly `10*R` live coordinates, the conclusion transports
+the existing collapse equivalence from the trunk leaf to that finer subcube.  The circuit still
+lives over the original ambient coordinate type; reindexing its live coordinates is a separate
+interface. -/
+theorem actualMargin_normalizedSurvivorRound_exactSubcube
+    {n fuel s R residualDepth : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hw : BottomWidth (s + 1) C)
+    (hmargin :
+      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
+    (hne : NonEmptyGates C) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+        residualDepth).card * 2 ^ (10 * R) ≤
+        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+      ∀ σ : Restriction n,
+        stars σ = 20 * R →
+        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
+          (20 * R) (10 * R) residualDepth →
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          ∃ trunk : CommonTree n (Restriction n),
+            CommonTree.depth trunk ≤ 10 * R ∧
+            let tau := CommonTree.run trunk x
+            ∃ kappa : Restriction n,
+              RestrictionExtends tau kappa ∧
+              stars kappa = 10 * R ∧
+              stars kappa ≤ fuel ∧
+              Layered.EquivOn kappa C (collapseRound fuel tau C) ∧
+              BottomWidth (residualDepth + 1) (collapseRound fuel tau C) ∧
+              bottomSlotCount (collapseRound fuel tau C) ≤
+                bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+  obtain ⟨hbad, hleaf⟩ :=
+    actualMargin_normalizedSurvivorRound hKfuel hw hmargin hne
+  refine ⟨hbad, ?_⟩
+  intro σ hstars hgood x hx
+  obtain ⟨trunk, hdepth, hlive, hleafFuel, hwidth, hslot⟩ :=
+    hleaf σ hstars hgood x hx
+  obtain ⟨kappa, hext, hkappaStars⟩ :=
+    exists_restrictionExtends_stars_eq (CommonTree.run trunk x) hlive
+  refine ⟨trunk, hdepth, kappa, hext, hkappaStars, ?_, ?_, hwidth, hslot⟩
+  · rw [hkappaStars]
+    omega
+  · intro y hy
+    exact collapseRound_EquivOn fuel hleafFuel C y
+      (fun i b hi => hy i b (hext i b hi))
+
+#print axioms actualMargin_normalizedSurvivorRound_exactSubcube
 
 /-- Sharp support-level slot charge: the dual polarity is free because `negDNF` preserves every
 variable support exactly. -/
@@ -9497,5 +9818,9 @@ set_option maxRecDepth 16384 in
 #print axioms widthTwoOwnedPrefix_balance
 #print axioms InclusionMinimalUnsatisfiableCore.card_le_twoWalk_lengths
 #print axioms InclusionMinimalUnsatisfiableCore.card_le_four_mul_sub_two
+#print axioms normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail
+#print axioms sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin
+#print axioms hypergeometric_upper_tail_sixteen_density
+#print axioms normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
 
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching

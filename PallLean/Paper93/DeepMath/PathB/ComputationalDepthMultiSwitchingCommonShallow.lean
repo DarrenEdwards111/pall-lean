@@ -56,6 +56,95 @@ theorem CommonShallowAt.leaf_stars_le {n G : ℕ} {gates : Fin G → List (Claus
   obtain ⟨hext, _hagree, hshallow⟩ := hleaf x hx
   exact ⟨trunk, hdepth, stars_le_of_restrictionExtends hext, hshallow⟩
 
+/-- A leaf payload that agrees with every assignment reaching it cannot fix a root-live
+coordinate that was not queried on the followed path.  Flipping that coordinate preserves the
+path, so any fixed leaf value would have to agree with both Boolean values. -/
+theorem CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
+    {n : ℕ} (trunk : CommonTree n (Restriction n)) (sigma : Restriction n)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends sigma x)
+    (hagree : ∀ y : Fin n → Bool, Rung4Restriction.Extends sigma y →
+      Rung4Restriction.Extends (CommonTree.run trunk y) y)
+    {i : Fin n} (hisigma : sigma i = none)
+    (hi : i ∉ (CommonTree.queryVars trunk x).toFinset) :
+    CommonTree.run trunk x i = none := by
+  let y : Fin n → Bool := Function.update x i (!x i)
+  have hy : Rung4Restriction.Extends sigma y := by
+    intro j b hj
+    have hji : j ≠ i := by
+      intro h
+      subst j
+      rw [hisigma] at hj
+      simp at hj
+    simpa [y, Function.update_of_ne hji] using hx j b hj
+  have hrun : CommonTree.run trunk y = CommonTree.run trunk x := by
+    exact CommonTree.run_update_of_not_mem_queryVars trunk x i
+      (by simpa using hi)
+  cases ht : CommonTree.run trunk x i with
+  | none => rfl
+  | some b =>
+      have hbx : x i = b := hagree x hx i b ht
+      have hby : y i = b := by
+        apply hagree y hy i b
+        simpa [hrun] using ht
+      cases hxi : x i with
+      | false =>
+          have hbfalse : b = false := by simpa [hxi] using hbx.symm
+          have hbtrue : b = true := by simpa [y, hxi] using hby.symm
+          exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+      | true =>
+          have hbtrue : b = true := by simpa [hxi] using hbx.symm
+          have hbfalse : b = false := by simpa [y, hxi] using hby.symm
+          exact False.elim (Bool.false_ne_true (hbfalse.symm.trans hbtrue))
+
+/-- The leaf-agreement interface alone gives the survivor lower bound for a specified common
+tree: a depth-`d` path can consume at most `d` coordinates that were live at the root. -/
+theorem CommonTree.stars_run_ge_sub_of_leaf_agreement
+    {n : ℕ} (trunk : CommonTree n (Restriction n)) (sigma : Restriction n)
+    (trunkDepth : ℕ) (x : Fin n → Bool)
+    (hx : Rung4Restriction.Extends sigma x)
+    (hdepth : CommonTree.depth trunk ≤ trunkDepth)
+    (hagree : ∀ y : Fin n → Bool, Rung4Restriction.Extends sigma y →
+      Rung4Restriction.Extends (CommonTree.run trunk y) y) :
+    stars sigma - trunkDepth ≤ stars (CommonTree.run trunk x) := by
+  let path : Finset (Fin n) := (CommonTree.queryVars trunk x).toFinset
+  have hpathCard : path.card ≤ trunkDepth := by
+    calc
+      path.card ≤ (CommonTree.queryVars trunk x).length := List.toFinset_card_le _
+      _ ≤ CommonTree.depth trunk := CommonTree.queryVars_length_le_depth trunk x
+      _ ≤ trunkDepth := hdepth
+  have hsubset : freeVars sigma ⊆ path ∪ freeVars (CommonTree.run trunk x) := by
+    intro i hi
+    by_cases hipath : i ∈ path
+    · exact Finset.mem_union_left _ hipath
+    · apply Finset.mem_union_right
+      rw [mem_freeVars] at hi ⊢
+      exact CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
+        trunk sigma x hx hagree hi hipath
+  have hcard := Finset.card_le_card hsubset
+  have hunion := Finset.card_union_le path (freeVars (CommonTree.run trunk x))
+  rw [stars, stars]
+  omega
+
+/-- A depth-`d` common trunk consumes at most `d` live root coordinates.  This lower live-count
+bound is forced by the universal leaf-agreement clause of `CommonShallowAt`; arbitrary leaf
+payloads therefore cannot silently over-fix the survivor cube. -/
+theorem CommonShallowAt.leaf_stars_ge_sub {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {fuel : ℕ} {sigma : Restriction n}
+    {trunkDepth residualDepth : ℕ}
+    (h : CommonShallowAt gates fuel sigma trunkDepth residualDepth)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends sigma x) :
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      stars sigma - trunkDepth ≤ stars (CommonTree.run trunk x) ∧
+      ∀ g, (canonicalDT (gates g) fuel (CommonTree.run trunk x)).depth ≤ residualDepth := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  have hagree : ∀ y : Fin n → Bool, Rung4Restriction.Extends sigma y →
+      Rung4Restriction.Extends (CommonTree.run trunk y) y :=
+    fun y hy => (hleaf y hy).2.1
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk sigma trunkDepth x hx hdepth hagree
+  exact ⟨trunk, hdepth, hlower, fun g => (hleaf x hx).2.2 g⟩
+
 /-- Ample fuel is preserved at every common-shallow leaf. -/
 theorem CommonShallowAt.leaf_stars_le_fuel {n G : ℕ} {gates : Fin G → List (Clause n)}
     {fuel : ℕ} {σ : Restriction n} {trunkDepth residualDepth : ℕ}
@@ -587,6 +676,9 @@ theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.stars_run_ge_sub_of_leaf_agreement
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_ge_sub
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.stars_le_of_restrictionExtends
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_le
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_le_fuel

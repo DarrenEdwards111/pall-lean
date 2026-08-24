@@ -641,6 +641,7 @@ theorem CommonShallowAt.leaf_shallows {n G : ℕ} {gates : Fin G → List (Claus
     (x : Fin n → Bool) (hx : Rung4Restriction.Extends σ x) :
     ∃ trunk : CommonTree n (Restriction n),
       CommonTree.depth trunk ≤ trunkDepth ∧
+      stars σ - trunkDepth ≤ stars (CommonTree.run trunk x) ∧
       stars (CommonTree.run trunk x) ≤ stars σ ∧
       Shallows fuel (CommonTree.run trunk x) (residualDepth + 1) C := by
   obtain ⟨trunk, hdepth, hleaf⟩ := h
@@ -652,7 +653,9 @@ theorem CommonShallowAt.leaf_shallows {n G : ℕ} {gates : Fin G → List (Claus
     cases hσv : σ v with
     | none => rfl
     | some b => rw [hext v b hσv] at hv; simp at hv
-  refine ⟨trunk, hdepth, hstars, ?_⟩
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk σ trunkDepth x hx hdepth (fun y hy => (hleaf y hy).2.1)
+  refine ⟨trunk, hdepth, hlower, hstars, ?_⟩
   intro cs hcs
   obtain ⟨⟨g, hg⟩, ⟨gneg, hgneg⟩⟩ := hcover cs hcs
   constructor
@@ -678,7 +681,7 @@ theorem CommonShallowAt.leaf_collapseRound_altO {n G k : ℕ}
       EquivOn τ C (collapseRound fuel τ C) ∧
       BottomWidth (residualDepth + 1) (collapseRound fuel τ C) ∧
       AltO (k + 2) (collapseRound fuel τ C) := by
-  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
+  obtain ⟨trunk, hdepth, _hlower, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
   refine ⟨trunk, hdepth, ?_⟩
   dsimp only
   have hstarsFuel : stars (CommonTree.run trunk x) ≤ fuel := hstars.trans hfuel
@@ -703,7 +706,7 @@ theorem CommonShallowAt.leaf_collapseRound_family_bounds {n G M : ℕ}
       stars τ ≤ fuel ∧
       (bottomGates (collapseRound fuel τ C)).length ≤ M ∧
       BottomCount (M * 2 ^ (residualDepth + 1)) (collapseRound fuel τ C) := by
-  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
+  obtain ⟨trunk, hdepth, _hlower, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
   refine ⟨trunk, hdepth, ?_⟩
   dsimp only
   have hstarsFuel : stars (CommonTree.run trunk x) ≤ fuel := hstars.trans hfuel
@@ -728,7 +731,7 @@ theorem CommonShallowAt.leaf_collapseRound_actualAlphabet_bound {n G M : ℕ}
       (∑ g, (normalizedLayeredBottomFamily
         (collapseRound fuel τ C) g).length) ≤
           layeredRoundActualKeyCap M residualDepth := by
-  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
+  obtain ⟨trunk, hdepth, _hlower, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
   refine ⟨trunk, hdepth, ?_⟩
   dsimp only
   have hstarsFuel : stars (CommonTree.run trunk x) ≤ fuel := hstars.trans hfuel
@@ -755,7 +758,7 @@ theorem CommonShallowAt.leaf_collapseRound_slotAlphabet_bound {n G : ℕ}
       (∑ g, (normalizedLayeredBottomFamily
         (collapseRound fuel τ C) g).length) ≤
           layeredRoundActualKeyCap (bottomSlotCount C) residualDepth := by
-  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
+  obtain ⟨trunk, hdepth, _hlower, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
   refine ⟨trunk, hdepth, ?_⟩
   dsimp only
   have hstarsFuel : stars (CommonTree.run trunk x) ≤ fuel := hstars.trans hfuel
@@ -780,14 +783,15 @@ theorem CommonShallowAt.leaf_collapseRound_bottomSlotCount_bound {n G : ℕ}
     ∃ trunk : CommonTree n (Restriction n),
       CommonTree.depth trunk ≤ trunkDepth ∧
       let τ := CommonTree.run trunk x
+      stars σ - trunkDepth ≤ stars τ ∧
       stars τ ≤ fuel ∧
       bottomSlotCount (collapseRound fuel τ C) ≤
         bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
-  obtain ⟨trunk, hdepth, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
+  obtain ⟨trunk, hdepth, hlower, hstars, hshallow⟩ := h.leaf_shallows hcover x hx
   refine ⟨trunk, hdepth, ?_⟩
   dsimp only
   have hstarsFuel : stars (CommonTree.run trunk x) ≤ fuel := hstars.trans hfuel
-  exact ⟨hstarsFuel, collapseRound_bottomSlotCount_le hne hshallow⟩
+  exact ⟨hlower, hstarsFuel, collapseRound_bottomSlotCount_le hne hshallow⟩
 
 /-! ## Baseline mass at canonical trunk leaves -/
 
@@ -1129,44 +1133,6 @@ def independentRoot {n : ℕ} (S : Finset (Fin n)) : Restriction n :=
 def independentAllFalse (n : ℕ) : Restriction n := fun _ => some false
 
 def independentAssignment (n : ℕ) : Fin n → Bool := fun _ => false
-
-/-- A path in a common tree contains no more queries than the tree's maximum depth. -/
-theorem CommonTree.queryVars_length_le_depth {n : ℕ} {α : Type}
-    (t : CommonTree n α) (x : Fin n → Bool) :
-    (CommonTree.queryVars t x).length ≤ CommonTree.depth t := by
-  induction t with
-  | leaf a => simp [CommonTree.queryVars, CommonTree.depth]
-  | query i lo hi ihlo ihhi =>
-      by_cases hxi : x i
-      · simp only [CommonTree.queryVars, hxi, if_true, List.length_cons,
-          CommonTree.depth]
-        omega
-      · simp only [CommonTree.queryVars, hxi, Bool.false_eq_true, if_false,
-          List.length_cons, CommonTree.depth]
-        omega
-
-/-- Changing a coordinate absent from the followed query path does not change the reached leaf. -/
-theorem CommonTree.run_update_of_not_mem_queryVars {n : ℕ} {α : Type}
-    (t : CommonTree n α) (x : Fin n → Bool) (i : Fin n)
-    (hi : i ∉ CommonTree.queryVars t x) :
-    CommonTree.run t (Function.update x i (!x i)) = CommonTree.run t x := by
-  induction t with
-  | leaf a => rfl
-  | query j lo hiTree ihlo ihhi =>
-      by_cases hxj : x j
-      · simp only [CommonTree.queryVars, hxj, if_true, List.mem_cons, not_or] at hi
-        have hji : j ≠ i := Ne.symm hi.1
-        have hupdate : Function.update x i (!x i) j = x j :=
-          Function.update_of_ne hji _ _
-        rw [CommonTree.run, hupdate]
-        simp [hxj, ihhi hi.2]
-      · simp only [CommonTree.queryVars, hxj, Bool.false_eq_true, if_false,
-          List.mem_cons, not_or] at hi
-        have hji : j ≠ i := Ne.symm hi.1
-        have hupdate : Function.update x i (!x i) j = x j :=
-          Function.update_of_ne hji _ _
-        rw [CommonTree.run, hupdate]
-        simp [hxj, ihlo hi.2]
 
 theorem independentRoot_extends {n : ℕ} (S : Finset (Fin n)) :
     Rung4Restriction.Extends (independentRoot S) (independentAssignment n) := by
@@ -9159,6 +9125,19 @@ theorem restrictionExtends_keepFreeExtension {n : ℕ} (base : Restriction n)
     rw [mem_freeVars, hib] at hfree
     simp at hfree
   simp [keepFreeExtension, hnot, hib]
+
+/-- Every live-count target below the current star count is realized by a genuine extension.
+The construction keeps an exact subset of the base-live coordinates free and fixes all other
+formerly live coordinates.  This is the coordinate-selection interface needed after a common
+switching trunk has proved only a lower bound on its leaf's survivor count. -/
+theorem exists_restrictionExtends_stars_eq {n K : ℕ} (base : Restriction n)
+    (hK : K ≤ stars base) :
+    ∃ rho : Restriction n, RestrictionExtends base rho ∧ stars rho = K := by
+  obtain ⟨keep, hkeep, hkeepCard⟩ := Finset.exists_subset_card_eq
+    (s := freeVars base) (n := K) (by simpa [stars] using hK)
+  refine ⟨keepFreeExtension base keep,
+    restrictionExtends_keepFreeExtension base hkeep, ?_⟩
+  simpa [hkeepCard] using stars_keepFreeExtension base keep
 
 /-- If every target coordinate is retained in `keep`, all targets remain live after extension. -/
 theorem keepFreeExtension_target_live {n G : ℕ} (base : Restriction n)
