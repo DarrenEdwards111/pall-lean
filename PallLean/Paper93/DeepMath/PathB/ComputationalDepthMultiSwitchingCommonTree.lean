@@ -649,6 +649,46 @@ def bind {n : ℕ} {α β : Type} : CommonTree n α → (α → CommonTree n β)
   | .leaf a, f => f a
   | .query i lo hi, f => .query i (bind lo f) (bind hi f)
 
+/-- Relabel every query coordinate and transform every leaf payload.  This is the structural
+operation used to place a local common tree on an injectively embedded block of ambient
+coordinates. -/
+def reindex {n m : ℕ} {α β : Type} (e : Fin n → Fin m) (f : α → β) :
+    CommonTree n α → CommonTree m β
+  | .leaf a => .leaf (f a)
+  | .query i lo hi => .query (e i) (reindex e f lo) (reindex e f hi)
+
+/-- Coordinate relabelling preserves the exact maximum query depth. -/
+theorem depth_reindex {n m : ℕ} {α β : Type} (e : Fin n → Fin m) (f : α → β)
+    (t : CommonTree n α) :
+    depth (reindex e f t) = depth t := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi => simp [reindex, depth, ihlo, ihhi]
+
+/-- Running a relabelled tree is the same as pulling the ambient assignment back along the
+coordinate embedding and then transforming the reached local payload. -/
+theorem run_reindex {n m : ℕ} {α β : Type} (e : Fin n → Fin m) (f : α → β)
+    (t : CommonTree n α) (x : Fin m → Bool) :
+    run (reindex e f t) x = f (run t (fun i => x (e i))) := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases h : x (e i) <;> simp [reindex, run, h, ihlo, ihhi]
+
+/-- Replacing every leaf by a tree of depth at most `d` adds at most `d` to the outer tree's
+depth.  In particular, sequentially composing disjoint local trunks pays the sum of their depth
+bounds. -/
+theorem depth_bind_le {n : ℕ} {α β : Type} (t : CommonTree n α)
+    (f : α → CommonTree n β) (d : ℕ) (hf : ∀ a, depth (f a) ≤ d) :
+    depth (bind t f) ≤ depth t + d := by
+  induction t with
+  | leaf a => simpa [bind, depth] using hf a
+  | query i lo hi ihlo ihhi =>
+      simp only [bind, depth]
+      have hlo := ihlo
+      have hhi := ihhi
+      omega
+
 @[simp] theorem run_leaf {n : ℕ} {α : Type} (a : α) (x : Fin n → Bool) :
     run (.leaf a : CommonTree n α) x = a := rfl
 
@@ -914,6 +954,9 @@ theorem canonicalFamily_values_eq_of_finitePathLabel_eq {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_bind
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.depth_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_reindex
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.depth_bind_le
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_readOnce
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.queryVars_readOnce_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.mem_queryVars_of_mem_readOnce

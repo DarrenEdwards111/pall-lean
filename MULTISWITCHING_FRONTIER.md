@@ -6439,3 +6439,164 @@ summing the columns `c > 10`, and transporting through `paddedTwoPairRestriction
 identify `paddedTwoPairFlexibleCostTabulatedMass pad` with the actual semantic tail cardinality.
 Only after that equality is proved can the arithmetic 86/87 comparison be promoted to semantic
 bad-set statements.  No P-versus-NP conclusion follows.
+
+### The exact semantic product fiber now satisfies the full convolution
+
+The one-gadget audit has now been lifted structurally to every finite product.  The generic lemma
+`twoPairLocalCostLive_weighted_sum` proves that any weight depending only on a local restriction's
+`(stars,cost)` profile sums with the six verified multiplicities
+
+```text
+(0,0):16, (1,0):32, (2,0):8, (2,1):16, (3,2):8, (4,3):1.
+```
+
+Together with the already present last-coordinate decomposition
+`twoPairProductCostLiveFiber_card_succ`, this yields the induction capstone
+`twoPairProductCostLiveFiber_card_eq_convolution`:
+
+```text
+|twoPairProductCostLiveFiber g q c| = twoPairCostLiveConvolution g q c
+```
+
+for all natural `g,q,c`.  The proof never evaluates the `81^g` product space: it partitions one
+local factor into its twenty bounded profile cells, eliminates the fourteen empty cells using the
+proved base fiber theorem, and applies the induction hypothesis to the remaining product fiber.
+Thus the displayed bivariate polynomial is now the exact semantic enumerator at every gadget
+count, not merely at one gadget or as an arithmetic recurrence.
+
+The precise next frontier is the final weighted-cardinality transport.  Specialize the new theorem
+to `g = 10`, prove that summing all fibers with `q <= 40` and `c > 10` gives
+`twoPairTenFlexibleCostTailCoefficient q`, and combine this with `card_stars_eq` on the padding
+factor through `paddedTwoPairRestrictionEquiv`.  This should identify
+`paddedTwoPairFlexibleCostTabulatedMass pad` with the actual semantic tail cardinality and promote
+the padding-86 arithmetic failure to a genuine `commonShallowBad` lower bound.  The padding-87
+comparison will remain only an upper bound on this particular semantic witness, not a monotonicity
+or exact bad-set threshold claim.  No P-versus-NP conclusion follows.
+
+### The bivariate table is now the exact ambient semantic tail
+
+The final weighted-cardinality transport is complete.  On the attainable range `q <= 40`,
+`twoPairTenFlexibleCostTailCoefficient_eq_sum` verifies that the explicit coefficient table is
+the sum of recurrence columns `11 <= c <= 30`.  Fiberwise decomposition plus
+`twoPairProductCostLiveFiber_card_eq_convolution` then proves
+
+```text
+|twoPairProductFlexibleCostTailFiber q|
+  = twoPairTenFlexibleCostTailCoefficient q.
+```
+
+The ambient transport is also exact.  `paddedTwoPairFlexibleCostTail_card_eq_codeTail` maps the
+semantic tail through `paddedTwoPairRestrictionCode`, preserving both the split star count and the
+ten-gadget flexible cost.  `paddedTwoPairFlexibleCostCodeTail_card` partitions the product-side
+image by local live support and counts the complementary padding fiber with `card_stars_eq`.
+Consequently `paddedTwoPairFlexibleCostTail_card` establishes, for every `pad`,
+
+```text
+|paddedTwoPairFlexibleCostTail pad|
+  = paddedTwoPairFlexibleCostTabulatedMass pad.
+```
+
+This promotes the lower side of the arithmetic boundary to semantics:
+`not_paddedTwoPair_scaled_contraction_86` proves that the actual
+`commonShallowBad (paddedTwoPairFamily 86) 126 40 10 1` violates the requested `2^-10`
+contraction.  The proof uses the already established inclusion of every exact-tail point in the
+bad set.  At padding 87, the arithmetic theorem says only that this particular semantic tail fits
+under the target mass; it gives no upper bound on the entire bad set and no threshold or
+monotonicity theorem.
+
+The precise next frontier is therefore no longer coefficient semantics.  It is to determine
+whether bad restrictions outside this flexible-cost witness can remain quantitatively large at
+padding 87 and, more importantly, along the actual multi-round schedule (whose audited padding is
+4080).  The highest-information route is an exact completeness audit for
+`twoPairFlexibleQueryCost`: either prove that cost `<= 10` characterizes existence of a depth-ten
+common trunk for this disjoint family, turning the tail into the full bad set, or isolate and count
+a concrete family of false negatives.  Existing coarse results already prove this tail alone is
+insufficient at padding 4080, so merely refining its count further cannot close the scheduled
+iteration.  No P-versus-NP conclusion follows.
+
+### Local semantic shallowness now lifts exactly to the padded gadget
+
+The completeness audit exposed a concrete missing direction before the ten-gadget trunks can be
+composed.  The direct-sum adversary already pulled ambient shallow leaves back to the canonical
+four-coordinate game, but the converse construction needs a locally shallow leaf payload to imply
+that the corresponding ambient padded gate is shallow.  That converse is now kernel checked.
+
+`positiveTwoPair_padded_depth_le_one_of_local` and
+`negativeTwoPair_padded_depth_le_one_of_local` prove that, for every padding, gadget, ambient
+restriction, and fuel at least four, a canonical local depth bound of one lifts to the matching
+padded polarity.  The proof exhausts only the three states of the four owned coordinates; it does
+not enumerate padding assignments.  Together with the previous pullback lemmas,
+`twoPairRootShallow_iff_padded_depths` gives the exact equivalence
+
+```text
+twoPairRootShallow(local pullback) = true
+  iff
+both corresponding padded polarities have canonical depth at most one.
+```
+
+This removes a semantic gap in the proposed product-tree converse: after lifting a local
+flexible-game leaf into the ambient restriction, its local terminal certificate is now sufficient
+for the required ambient residual-depth bound.  It does not by itself prove that total flexible
+cost at most ten supplies one ambient common trunk, because the remaining local trunks still have
+to be relabelled onto their disjoint owned supports, their leaf payloads merged, and their depths
+added under `CommonTree.bind`.
+
+The precise next frontier is to implement that disjoint product-tree composition.  Prove a generic
+depth bound for sequential `CommonTree.bind`, lift each local query coordinate through
+`paddedTwoPairCoord`, merge its returned four-coordinate payload into the ambient restriction, and
+iterate over `Fin 10`.  Combined with the existing adversary inequality, this would establish
+that the semantic cost tail is exactly the full bad set at every padding, resolving padding 87 and
+4080 by the already proved exact count.  No P-versus-NP conclusion follows.
+
+### The product-tree calculus now has its depth and coordinate-lifting core
+
+The first structural part of the constructive converse is now kernel checked in
+`ComputationalDepthMultiSwitchingCommonTree.lean`.  `CommonTree.reindex` relabels every local query
+through an arbitrary coordinate map while transforming its leaf payload;
+`depth_reindex` proves that this costs exactly the original local depth, and `run_reindex` proves
+that ambient execution is precisely execution on the pulled-back assignment.  Separately,
+`depth_bind_le` proves the additive estimate
+
+```text
+depth (bind t f) <= depth t + d
+```
+
+whenever every replacement tree `f a` has depth at most `d`.  Consequently the intended
+sequential construction can lift each local gadget tree through `paddedTwoPairCoord` and pay the
+sum of the ten local budgets; no unproved depth algebra remains in that composition.
+
+This does not yet prove the converse.  The precise next frontier is the payload layer: define the
+ambient restriction obtained by overwriting one gadget's four owned coordinates with the local
+leaf restriction, prove its pullback is exactly that leaf and every other gadget's pullback is
+unchanged, and show it preserves both root extension and agreement with the ambient assignment.
+Those laws will allow `reindex` trees to be chained with `bind`; induction over the ten gadgets can
+then turn total flexible cost at most ten into `CommonShallowAt`.  Together with the existing
+adversary direction this would identify the full bad set with the exact semantic cost tail.  No
+P-versus-NP conclusion follows.
+
+### The one-gadget ambient payload overwrite is now formalized
+
+The payload layer needed by the constructive product-tree converse is now explicit in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  `paddedTwoPairOverwrite` replaces exactly
+the four ambient coordinates owned by one gadget with a returned local restriction.  Its four
+interface laws prove that:
+
+* pulling the result back to the overwritten gadget returns the local payload exactly;
+* pulling it back to any other gadget returns the previous ambient payload unchanged;
+* if the previous ambient payload extends the immutable root and the local payload extends the
+  root's local pullback, then the overwritten payload still extends the root; and
+* if the previous ambient payload and local replacement agree with an ambient assignment, then
+  the overwritten payload agrees with that assignment.
+
+This closes the coordinate/payload bookkeeping identified in the preceding reassessment.  In
+particular, sequential gadget updates can no longer corrupt certificates already installed on
+disjoint gadgets, and the two semantic leaf obligations of `CommonShallowAt` are stable under one
+update.
+
+The precise next frontier is the actual ten-gadget fold: obtain each local tree from
+`twoPairFlexibleQueryWin_iff_commonShallowAt`, lift it with `CommonTree.reindex` using
+`paddedTwoPairCoord`, map its local leaves through `paddedTwoPairOverwrite`, and compose the ten
+lifted trees with `CommonTree.bind`.  The induction must carry the local-pullback invariants for
+processed and unprocessed gadgets and use `depth_bind_le` to bound total depth by the sum of local
+costs.  Completing that fold would turn total flexible cost at most ten into the ambient
+`CommonShallowAt` converse.  No P-versus-NP conclusion follows.

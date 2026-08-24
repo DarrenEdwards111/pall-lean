@@ -6127,6 +6127,206 @@ def paddedTwoPairLocalRestriction (pad : ℕ) (σ : Restriction (pad + 40))
     (g : Fin 10) : Restriction 4 :=
   fun k => σ (paddedTwoPairCoord pad g k)
 
+/-! ### One-gadget ambient payload overwrite
+
+The constructive product-tree converse replaces one gadget's four-coordinate leaf payload while
+leaving the padding and the other nine gadgets untouched.  The explicit four-way definition keeps
+this operation executable and avoids choosing an inverse to `paddedTwoPairCoord`. -/
+
+/-- Replace exactly the four ambient coordinates owned by `g` with the local restriction `tau`. -/
+def paddedTwoPairOverwrite (pad : ℕ) (g : Fin 10)
+    (sigma : Restriction (pad + 40)) (tau : Restriction 4) :
+    Restriction (pad + 40) := fun i =>
+  if i = paddedTwoPairCoord pad g 0 then tau 0 else
+  if i = paddedTwoPairCoord pad g 1 then tau 1 else
+  if i = paddedTwoPairCoord pad g 2 then tau 2 else
+  if i = paddedTwoPairCoord pad g 3 then tau 3 else sigma i
+
+/-- Pulling an overwritten ambient payload back to the overwritten gadget recovers the local
+payload exactly. -/
+@[simp] theorem paddedTwoPairLocalRestriction_overwrite_self (pad : ℕ) (g : Fin 10)
+    (sigma : Restriction (pad + 40)) (tau : Restriction 4) :
+    paddedTwoPairLocalRestriction pad (paddedTwoPairOverwrite pad g sigma tau) g = tau := by
+  funext k
+  fin_cases k <;>
+    simp [paddedTwoPairLocalRestriction, paddedTwoPairOverwrite, paddedTwoPairCoord]
+
+/-- Overwriting one gadget does not change the pullback of any other gadget. -/
+@[simp] theorem paddedTwoPairLocalRestriction_overwrite_of_ne (pad : ℕ)
+    {g h : Fin 10} (hgh : h ≠ g) (sigma : Restriction (pad + 40))
+    (tau : Restriction 4) :
+    paddedTwoPairLocalRestriction pad (paddedTwoPairOverwrite pad g sigma tau) h =
+      paddedTwoPairLocalRestriction pad sigma h := by
+  funext k
+  have hne (l : Fin 4) :
+      paddedTwoPairCoord pad h k ≠ paddedTwoPairCoord pad g l := by
+    intro heq
+    exact hgh (congrArg Prod.fst
+      ((@paddedTwoPairCoord_injective pad (h, k) (g, l)) heq))
+  simp [paddedTwoPairLocalRestriction, paddedTwoPairOverwrite,
+    hne 0, hne 1, hne 2, hne 3]
+
+/-- If the current ambient payload extends the immutable root and the replacement payload extends
+the root's local pullback, then the overwritten ambient payload still extends the root. -/
+theorem restrictionExtends_paddedTwoPairOverwrite (pad : ℕ) (g : Fin 10)
+    {root current : Restriction (pad + 40)} {tau : Restriction 4}
+    (hcurrent : RestrictionExtends root current)
+    (htau : RestrictionExtends (paddedTwoPairLocalRestriction pad root g) tau) :
+    RestrictionExtends root (paddedTwoPairOverwrite pad g current tau) := by
+  intro i b hi
+  by_cases h0 : i = paddedTwoPairCoord pad g 0
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 0) = tau 0 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 0
+    exact hover.trans (htau 0 b hi)
+  by_cases h1 : i = paddedTwoPairCoord pad g 1
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 1) = tau 1 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 1
+    exact hover.trans (htau 1 b hi)
+  by_cases h2 : i = paddedTwoPairCoord pad g 2
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 2) = tau 2 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 2
+    exact hover.trans (htau 2 b hi)
+  by_cases h3 : i = paddedTwoPairCoord pad g 3
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 3) = tau 3 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 3
+    exact hover.trans (htau 3 b hi)
+  simpa [paddedTwoPairOverwrite, h0, h1, h2, h3] using hcurrent i b hi
+
+/-- Agreement with an ambient assignment is preserved when the local replacement agrees with the
+assignment pulled back to the overwritten gadget. -/
+theorem extends_paddedTwoPairOverwrite (pad : ℕ) (g : Fin 10)
+    {current : Restriction (pad + 40)} {tau : Restriction 4}
+    {x : Fin (pad + 40) → Bool}
+    (hcurrent : Rung4Restriction.Extends current x)
+    (htau : Rung4Restriction.Extends tau (fun k => x (paddedTwoPairCoord pad g k))) :
+    Rung4Restriction.Extends (paddedTwoPairOverwrite pad g current tau) x := by
+  intro i b hi
+  by_cases h0 : i = paddedTwoPairCoord pad g 0
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 0) = tau 0 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 0
+    exact htau 0 b (hover.symm.trans hi)
+  by_cases h1 : i = paddedTwoPairCoord pad g 1
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 1) = tau 1 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 1
+    exact htau 1 b (hover.symm.trans hi)
+  by_cases h2 : i = paddedTwoPairCoord pad g 2
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 2) = tau 2 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 2
+    exact htau 2 b (hover.symm.trans hi)
+  by_cases h3 : i = paddedTwoPairCoord pad g 3
+  · subst i
+    have hover : paddedTwoPairOverwrite pad g current tau
+        (paddedTwoPairCoord pad g 3) = tau 3 := by
+      simpa [paddedTwoPairLocalRestriction] using congrFun
+        (paddedTwoPairLocalRestriction_overwrite_self pad g current tau) 3
+    exact htau 3 b (hover.symm.trans hi)
+  exact hcurrent i b (by simpa [paddedTwoPairOverwrite, h0, h1, h2, h3] using hi)
+
+/-! ### One-gadget lifted common trunk
+
+The ten-fold construction repeatedly performs the same operation: run a four-coordinate local
+trunk on one owned gadget and overwrite the ambient leaf payload with the returned local payload.
+The following wrapper and interface theorem package that operation independently of the eventual
+choice of fold order. -/
+
+/-- Lift a local gadget trunk to its four owned ambient coordinates and install its returned
+payload into the current ambient restriction. -/
+def paddedTwoPairLiftTree (pad : ℕ) (g : Fin 10)
+    (current : Restriction (pad + 40))
+    (localTree : CommonTree 4 (Restriction 4)) :
+    CommonTree (pad + 40) (Restriction (pad + 40)) :=
+  match localTree with
+  | .leaf tau => .leaf (paddedTwoPairOverwrite pad g current tau)
+  | .query i lo hi => .query (paddedTwoPairCoord pad g i)
+      (paddedTwoPairLiftTree pad g current lo)
+      (paddedTwoPairLiftTree pad g current hi)
+
+/-- Lifting a local gadget trunk preserves its exact depth. -/
+@[simp] theorem paddedTwoPairLiftTree_depth (pad : ℕ) (g : Fin 10)
+    (current : Restriction (pad + 40))
+    (localTree : CommonTree 4 (Restriction 4)) :
+    CommonTree.depth (paddedTwoPairLiftTree pad g current localTree) =
+      CommonTree.depth localTree := by
+  induction localTree with
+  | leaf tau => rfl
+  | query i lo hi ihlo ihhi => simp [paddedTwoPairLiftTree, CommonTree.depth, ihlo, ihhi]
+
+/-- Ambient execution of the lifted trunk is exactly local execution on the pulled-back
+assignment followed by the one-gadget overwrite. -/
+@[simp] theorem paddedTwoPairLiftTree_run (pad : ℕ) (g : Fin 10)
+    (current : Restriction (pad + 40))
+    (localTree : CommonTree 4 (Restriction 4))
+    (x : Fin (pad + 40) → Bool) :
+    CommonTree.run (paddedTwoPairLiftTree pad g current localTree) x =
+      paddedTwoPairOverwrite pad g current
+        (CommonTree.run localTree (fun k => x (paddedTwoPairCoord pad g k))) := by
+  induction localTree with
+  | leaf tau => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases h : x (paddedTwoPairCoord pad g i) <;>
+        simp [paddedTwoPairLiftTree, CommonTree.run, h, ihlo, ihhi]
+
+/-- A local `CommonShallowAt` certificate lifts to a valid one-gadget ambient refinement.  The
+returned leaf extends the immutable ambient root, agrees with the followed ambient assignment,
+makes the processed gadget locally shallow, and leaves every other gadget pullback unchanged.
+This is the complete induction step needed by the remaining ten-gadget `bind` fold. -/
+theorem paddedTwoPairLiftTree_spec (pad : ℕ) (g : Fin 10)
+    {root current : Restriction (pad + 40)} {k : ℕ}
+    (hcurrent : RestrictionExtends root current)
+    (hlocal : CommonShallowAt twoPairPolarityFamily 4
+      (paddedTwoPairLocalRestriction pad root g) k 1) :
+    ∃ lifted : CommonTree (pad + 40) (Restriction (pad + 40)),
+      CommonTree.depth lifted ≤ k ∧
+      ∀ x : Fin (pad + 40) → Bool, Rung4Restriction.Extends current x →
+        RestrictionExtends root (CommonTree.run lifted x) ∧
+        Rung4Restriction.Extends (CommonTree.run lifted x) x ∧
+        twoPairRootShallow
+          (paddedTwoPairLocalRestriction pad (CommonTree.run lifted x) g) = true ∧
+        ∀ h : Fin 10, h ≠ g →
+          paddedTwoPairLocalRestriction pad (CommonTree.run lifted x) h =
+            paddedTwoPairLocalRestriction pad current h := by
+  obtain ⟨localTree, hdepth, hleaf⟩ := hlocal
+  refine ⟨paddedTwoPairLiftTree pad g current localTree, ?_, ?_⟩
+  · simpa using hdepth
+  · intro x hx
+    let xlocal : Fin 4 → Bool := fun i => x (paddedTwoPairCoord pad g i)
+    have hxlocal : Rung4Restriction.Extends
+        (paddedTwoPairLocalRestriction pad root g) xlocal := by
+      intro i b hi
+      exact hx (paddedTwoPairCoord pad g i) b
+        (hcurrent (paddedTwoPairCoord pad g i) b hi)
+    obtain ⟨hroot, hagree, hshallow⟩ := hleaf xlocal hxlocal
+    rw [paddedTwoPairLiftTree_run]
+    refine ⟨restrictionExtends_paddedTwoPairOverwrite pad g hcurrent hroot,
+      extends_paddedTwoPairOverwrite pad g hx hagree, ?_, ?_⟩
+    · rw [paddedTwoPairLocalRestriction_overwrite_self]
+      simp only [twoPairRootShallow, decide_eq_true_eq]
+      exact ⟨hshallow 0, hshallow 1⟩
+    · intro h hhg
+      exact paddedTwoPairLocalRestriction_overwrite_of_ne pad hhg current
+        (CommonTree.run localTree xlocal)
+
 set_option maxHeartbeats 4000000 in
 /-- A residual-depth-one bound for the positive padded gadget transports to its four-coordinate
 pullback once fuel exposes at least the first four canonical queries. -/
@@ -6223,6 +6423,131 @@ theorem negativeTwoPair_local_depth_le_one_of_padded (pad : ℕ)
       h01, h02, h03, h12, h13, h23,
       Ne.symm h01, Ne.symm h02, Ne.symm h03, Ne.symm h12, Ne.symm h13, Ne.symm h23]
       at hpadded ⊢ <;> omega
+
+set_option maxHeartbeats 4000000 in
+/-- The positive transport is exact: local residual depth at most one also lifts back to the
+padded gadget.  Coordinates outside the owned four-variable support are irrelevant, and any
+fuel at least four has already exposed every possible owned query. -/
+theorem positiveTwoPair_padded_depth_le_one_of_local (pad : ℕ)
+    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel)
+    (hlocal : (canonicalDT (positiveTwoPairGate (0 : Fin 4) 1 2 3) 4
+      (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1) :
+    (canonicalDT (positiveTwoPairGate
+      (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
+      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1 := by
+  obtain ⟨extra, rfl⟩ := Nat.exists_eq_add_of_le hfuel
+  rw [Nat.add_comm 4 extra]
+  generalize h0 : σ (paddedTwoPairCoord pad g 0) = o0
+  generalize h1 : σ (paddedTwoPairCoord pad g 1) = o1
+  generalize h2 : σ (paddedTwoPairCoord pad g 2) = o2
+  generalize h3 : σ (paddedTwoPairCoord pad g 3) = o3
+  have h01 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 1 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 1)) h)
+    simp at this
+  have h02 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 2 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 2)) h)
+    simp at this
+  have h03 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 3)) h)
+    simp at this
+  have h12 : paddedTwoPairCoord pad g 1 ≠ paddedTwoPairCoord pad g 2 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 1) (g, 2)) h)
+    simp at this
+  have h13 : paddedTwoPairCoord pad g 1 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 1) (g, 3)) h)
+    simp at this
+  have h23 : paddedTwoPairCoord pad g 2 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 2) (g, 3)) h)
+    simp at this
+  fin_cases o0 <;> fin_cases o1 <;> fin_cases o2 <;> fin_cases o3 <;>
+    simp [paddedTwoPairLocalRestriction, positiveTwoPairGate, orderedConjunctionBlock,
+      canonicalDT, anyTermSat, termSat, activeTerm, termFalsified, freeLits,
+      Depth3.litTrue, litVar, litFixedVal, litFalse, litFree, fixVar,
+      BoolDecisionTree.depth, positiveTwoPair_depth_eq_zero_of_four_fixed,
+      h0, h1, h2, h3, h01, h02, h03, h12, h13, h23,
+      Ne.symm h01, Ne.symm h02, Ne.symm h03, Ne.symm h12, Ne.symm h13, Ne.symm h23]
+      at hlocal ⊢ <;> omega
+
+set_option maxHeartbeats 4000000 in
+/-- The corresponding exact lift for the negative polarity. -/
+theorem negativeTwoPair_padded_depth_le_one_of_local (pad : ℕ)
+    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel)
+    (hlocal : (canonicalDT (negativeTwoPairGate (0 : Fin 4) 1 2 3) 4
+      (paddedTwoPairLocalRestriction pad σ g)).depth ≤ 1) :
+    (canonicalDT (negativeTwoPairGate
+      (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
+      (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1 := by
+  obtain ⟨extra, rfl⟩ := Nat.exists_eq_add_of_le hfuel
+  rw [Nat.add_comm 4 extra]
+  generalize h0 : σ (paddedTwoPairCoord pad g 0) = o0
+  generalize h1 : σ (paddedTwoPairCoord pad g 1) = o1
+  generalize h2 : σ (paddedTwoPairCoord pad g 2) = o2
+  generalize h3 : σ (paddedTwoPairCoord pad g 3) = o3
+  have h01 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 1 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 1)) h)
+    simp at this
+  have h02 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 2 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 2)) h)
+    simp at this
+  have h03 : paddedTwoPairCoord pad g 0 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 0) (g, 3)) h)
+    simp at this
+  have h12 : paddedTwoPairCoord pad g 1 ≠ paddedTwoPairCoord pad g 2 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 1) (g, 2)) h)
+    simp at this
+  have h13 : paddedTwoPairCoord pad g 1 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 1) (g, 3)) h)
+    simp at this
+  have h23 : paddedTwoPairCoord pad g 2 ≠ paddedTwoPairCoord pad g 3 := by
+    intro h
+    have := congrArg Prod.snd ((@paddedTwoPairCoord_injective pad (g, 2) (g, 3)) h)
+    simp at this
+  fin_cases o0 <;> fin_cases o1 <;> fin_cases o2 <;> fin_cases o3 <;>
+    simp [paddedTwoPairLocalRestriction, negativeTwoPairGate, canonicalDT, anyTermSat,
+      termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth,
+      negativeTwoPair_depth_eq_zero_of_four_fixed, h0, h1, h2, h3,
+      h01, h02, h03, h12, h13, h23,
+      Ne.symm h01, Ne.symm h02, Ne.symm h03, Ne.symm h12, Ne.symm h13, Ne.symm h23]
+      at hlocal ⊢ <;> omega
+
+/-- Hence the executable local shallow predicate is equivalent to the two ambient padded depth
+bounds, rather than merely necessary for them. -/
+theorem twoPairRootShallow_iff_padded_depths (pad : ℕ)
+    (σ : Restriction (pad + 40)) (g : Fin 10) (fuel : ℕ) (hfuel : 4 ≤ fuel) :
+    twoPairRootShallow (paddedTwoPairLocalRestriction pad σ g) = true ↔
+      (canonicalDT (positiveTwoPairGate
+        (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
+        (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1 ∧
+      (canonicalDT (negativeTwoPairGate
+        (paddedTwoPairCoord pad g 0) (paddedTwoPairCoord pad g 1)
+        (paddedTwoPairCoord pad g 2) (paddedTwoPairCoord pad g 3)) fuel σ).depth ≤ 1 := by
+  constructor
+  · simp only [twoPairRootShallow, decide_eq_true_eq]
+    intro hlocal
+    constructor
+    · apply positiveTwoPair_padded_depth_le_one_of_local pad σ g fuel hfuel
+      simpa [twoPairPolarityFamily] using hlocal.1
+    · apply negativeTwoPair_padded_depth_le_one_of_local pad σ g fuel hfuel
+      simpa [twoPairPolarityFamily] using hlocal.2
+  · rintro ⟨hpos, hneg⟩
+    simp only [twoPairRootShallow, decide_eq_true_eq]
+    constructor
+    · simpa [twoPairPolarityFamily] using
+        positiveTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hpos
+    · simpa [twoPairPolarityFamily] using
+        negativeTwoPair_local_depth_le_one_of_padded pad σ g fuel hfuel hneg
 
 /-- Ambient residual-depth-one bounds for both padded polarities imply the executable local
 shallow predicate used by the exact four-coordinate game. -/
@@ -6618,6 +6943,14 @@ theorem twoPairFlexibleQueryCost_le_stars (rho : Restriction 4) :
     twoPairFlexibleQueryCost (twoPairLocalRestriction code) ≤
       stars (twoPairLocalRestriction code)) (twoPairRestrictionCode rho)
 
+/-- A single two-pair gadget has flexible semantic query cost at most three. -/
+theorem twoPairFlexibleQueryCost_le_three (rho : Restriction 4) :
+    twoPairFlexibleQueryCost rho ≤ 3 := by
+  rw [← twoPairLocalRestriction_code rho]
+  exact (by decide +revert : ∀ code : Fin 81,
+    twoPairFlexibleQueryCost (twoPairLocalRestriction code) ≤ 3)
+    (twoPairRestrictionCode rho)
+
 /-- The actual one-gadget fiber with prescribed live support and semantic cost.  This is the
 structural base object whose finite products must be convolved; unlike the preceding displayed
 table, it can be used directly in fiberwise cardinality proofs. -/
@@ -6662,6 +6995,70 @@ theorem twoPairLocalCostLiveFiber_card_eq_convolution_one (q c : ℕ) :
     simp only [Finset.card_empty]
     simp [twoPairCostLiveConvolution]
     split_ifs <;> omega
+
+/-- Any weight depending only on a local restriction's `(stars, cost)` profile sums according to
+the six nonempty semantic fibers.  This packages the finite one-gadget audit in a form that can be
+used by the structural product recurrence without enumerating the `81^g` product space. -/
+theorem twoPairLocalCostLive_weighted_sum (F : ℕ → ℕ → ℕ) :
+    (∑ rho : Restriction 4,
+      F (stars rho) (twoPairFlexibleQueryCost rho)) =
+      16 * F 0 0 + 32 * F 1 0 + 8 * F 2 0 + 16 * F 2 1 +
+        8 * F 3 2 + F 4 3 := by
+  classical
+  let profile : Restriction 4 → ℕ × ℕ := fun rho =>
+    (stars rho, twoPairFlexibleQueryCost rho)
+  have hmaps : ∀ rho ∈ (Finset.univ : Finset (Restriction 4)),
+      profile rho ∈ Finset.range 5 ×ˢ Finset.range 4 := by
+    intro rho _
+    rw [Finset.mem_product, Finset.mem_range, Finset.mem_range]
+    change stars rho < 5 ∧ twoPairFlexibleQueryCost rho < 4
+    constructor
+    · have hstars : stars rho ≤ 4 := by
+        rw [stars]
+        exact Finset.card_le_univ _
+      omega
+    · exact lt_of_le_of_lt (twoPairFlexibleQueryCost_le_stars rho) (by
+        have hstars : stars rho ≤ 4 := by
+          rw [stars]
+          exact Finset.card_le_univ _
+        omega)
+  have hfiber (q c : ℕ) :
+      (∑ rho ∈ (Finset.univ : Finset (Restriction 4)) with
+        stars rho = q ∧ twoPairFlexibleQueryCost rho = c,
+          F (stars rho) (twoPairFlexibleQueryCost rho)) =
+        (twoPairLocalCostLiveFiber q c).card * F q c := by
+    change (∑ rho ∈ twoPairLocalCostLiveFiber q c,
+      F (stars rho) (twoPairFlexibleQueryCost rho)) = _
+    calc
+      (∑ rho ∈ twoPairLocalCostLiveFiber q c,
+          F (stars rho) (twoPairFlexibleQueryCost rho)) =
+          ∑ _rho ∈ twoPairLocalCostLiveFiber q c, F q c := by
+            apply Finset.sum_congr rfl
+            intro rho hrho
+            rw [twoPairLocalCostLiveFiber, Finset.mem_filter] at hrho
+            simp [hrho.2.1, hrho.2.2]
+      _ = (twoPairLocalCostLiveFiber q c).card * F q c := by simp
+  calc
+    (∑ rho : Restriction 4,
+        F (stars rho) (twoPairFlexibleQueryCost rho)) =
+        ∑ p ∈ Finset.range 5 ×ˢ Finset.range 4,
+          ∑ rho ∈ (Finset.univ : Finset (Restriction 4)) with profile rho = p,
+            F (stars rho) (twoPairFlexibleQueryCost rho) :=
+      (Finset.sum_fiberwise_of_maps_to hmaps
+        (fun rho => F (stars rho) (twoPairFlexibleQueryCost rho))).symm
+    _ = ∑ q ∈ Finset.range 5, ∑ c ∈ Finset.range 4,
+        (twoPairLocalCostLiveFiber q c).card * F q c := by
+      rw [Finset.sum_product]
+      apply Finset.sum_congr rfl
+      intro q hq
+      apply Finset.sum_congr rfl
+      intro c hc
+      simpa only [profile, Prod.mk.injEq] using hfiber q c
+    _ = 16 * F 0 0 + 32 * F 1 0 + 8 * F 2 0 + 16 * F 2 1 +
+        8 * F 3 2 + F 4 3 := by
+      simp_rw [twoPairLocalCostLiveFiber_card_eq_convolution_one]
+      norm_num [twoPairCostLiveConvolution, Finset.sum_range_succ]
+      ring
 
 /-- The actual `g`-gadget fiber with prescribed total live support and total semantic cost.
 Unlike the arithmetic recurrence, this definition ranges over genuine vectors of local
@@ -6724,6 +7121,92 @@ theorem twoPairProductCostLiveFiber_card_succ (g q c : ℕ) :
       constructor <;> omega
   · intro roots
     simp [Fin.succFunEquiv, Fin.sum_univ_castSucc, Fin.castAdd, Fin.natAdd, Fin.last]
+
+/-- The arithmetic bivariate recurrence counts the genuine semantic product fiber for every
+number of gadgets and every pair of total gradings.  The proof is structural in `g`; in
+particular, it never reduces the exponentially large function space. -/
+theorem twoPairProductCostLiveFiber_card_eq_convolution (g q c : ℕ) :
+    (twoPairProductCostLiveFiber g q c).card =
+      twoPairCostLiveConvolution g q c := by
+  induction g with
+  | zero =>
+      simp [twoPairProductCostLiveFiber, twoPairCostLiveConvolution]
+  | succ g ih =>
+      rw [twoPairProductCostLiveFiber_card_succ]
+      simp_rw [ih]
+      rw [twoPairLocalCostLive_weighted_sum (fun q' c' =>
+        if q' ≤ q ∧ c' ≤ c then
+          twoPairCostLiveConvolution g (q - q') (c - c') else 0)]
+      simp only [Nat.zero_le, true_and, Nat.sub_zero, Nat.one_mul]
+      simp [twoPairCostLiveConvolution]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 8000000 in
+/-- On the only live-support range attainable by ten four-coordinate gadgets, the explicit
+tail table is exactly the sum of the semantic recurrence's cost columns strictly above ten.
+The upper endpoint thirty is the maximum possible total cost. -/
+theorem twoPairTenFlexibleCostTailCoefficient_eq_sum (q : ℕ) (hq : q ≤ 40) :
+    twoPairTenFlexibleCostTailCoefficient q =
+      ∑ c ∈ Finset.Icc 11 30, twoPairCostLiveConvolution 10 q c := by
+  interval_cases q <;>
+    norm_num (config := { maxSteps := 1000000 })
+      [twoPairTenFlexibleCostTailCoefficient, twoPairCostLiveConvolution,
+        Finset.sum_Icc_succ_top]
+
+/-- Ten genuine local restrictions with prescribed total live support and total flexible cost
+strictly above ten. -/
+def twoPairProductFlexibleCostTailFiber (q : ℕ) :
+    Finset (Fin 10 → Restriction 4) :=
+  Finset.univ.filter fun roots =>
+    (∑ g, stars (roots g)) = q ∧
+      10 < ∑ g, twoPairFlexibleQueryCost (roots g)
+
+/-- The explicit tail coefficient counts the corresponding genuine ten-gadget semantic fiber.
+This turns the previously arithmetic table into a semantic cardinality statement. -/
+theorem twoPairProductFlexibleCostTailFiber_card (q : ℕ) (hq : q ≤ 40) :
+    (twoPairProductFlexibleCostTailFiber q).card =
+      twoPairTenFlexibleCostTailCoefficient q := by
+  classical
+  have hmaps : Set.MapsTo
+      (fun roots : Fin 10 → Restriction 4 =>
+        ∑ g, twoPairFlexibleQueryCost (roots g))
+      (twoPairProductFlexibleCostTailFiber q : Set (Fin 10 → Restriction 4))
+      (Finset.Icc 11 30 : Set ℕ) := by
+    intro roots hroots
+    rw [Finset.mem_coe, twoPairProductFlexibleCostTailFiber,
+      Finset.mem_filter] at hroots
+    rw [Finset.mem_coe, Finset.mem_Icc]
+    constructor
+    · omega
+    · calc
+        (∑ g, twoPairFlexibleQueryCost (roots g)) ≤ ∑ _g : Fin 10, 3 := by
+          apply Finset.sum_le_sum
+          intro g _
+          exact twoPairFlexibleQueryCost_le_three _
+        _ = 30 := by norm_num
+  rw [Finset.card_eq_sum_card_fiberwise hmaps]
+  calc
+    (∑ c ∈ Finset.Icc 11 30,
+        ((twoPairProductFlexibleCostTailFiber q).filter fun roots =>
+          (∑ g, twoPairFlexibleQueryCost (roots g)) = c).card) =
+        ∑ c ∈ Finset.Icc 11 30,
+          (twoPairProductCostLiveFiber 10 q c).card := by
+      apply Finset.sum_congr rfl
+      intro c hc
+      congr 1
+      ext roots
+      rw [Finset.mem_Icc] at hc
+      simp only [twoPairProductFlexibleCostTailFiber, twoPairProductCostLiveFiber,
+        Finset.mem_filter, Finset.mem_univ, true_and]
+      constructor
+      · intro h
+        exact ⟨h.1.1, h.2⟩
+      · intro h
+        exact ⟨⟨h.1, by omega⟩, h.2⟩
+    _ = ∑ c ∈ Finset.Icc 11 30, twoPairCostLiveConvolution 10 q c := by
+      simp_rw [twoPairProductCostLiveFiber_card_eq_convolution]
+    _ = twoPairTenFlexibleCostTailCoefficient q :=
+      (twoPairTenFlexibleCostTailCoefficient_eq_sum q hq).symm
 
 /-- The exact forty-star semantic cost tail supplied by the padded ten-gadget direct sum. -/
 def paddedTwoPairFlexibleCostTail (pad : ℕ) :
@@ -7164,6 +7647,118 @@ theorem stars_paddedTwoPairRestrictionCode (pad : ℕ)
   rw [← hprod]
   simp [paddedTwoPairPaddingRestriction, paddedTwoPairLocalRestriction,
     paddedTwoPairCoord, finProdFinEquiv, Nat.add_comm]
+
+/-- The image-side description of the exact semantic tail under the padded/local product
+equivalence. -/
+def paddedTwoPairFlexibleCostCodeTail (pad : ℕ) :
+    Finset ((Fin 10 → Restriction 4) × Restriction pad) :=
+  Finset.univ.filter fun code =>
+    stars code.2 + (∑ g, stars (code.1 g)) = 40 ∧
+      10 < ∑ g, twoPairFlexibleQueryCost (code.1 g)
+
+/-- The padded/local equivalence preserves the complete defining predicate of the semantic
+tail, so it preserves its cardinality exactly. -/
+theorem paddedTwoPairFlexibleCostTail_card_eq_codeTail (pad : ℕ) :
+    (paddedTwoPairFlexibleCostTail pad).card =
+      (paddedTwoPairFlexibleCostCodeTail pad).card := by
+  classical
+  apply Finset.card_bij (fun sigma _ => paddedTwoPairRestrictionCode pad sigma)
+  · intro sigma hsigma
+    simp only [paddedTwoPairFlexibleCostTail, Finset.mem_filter,
+      Finset.mem_univ, true_and] at hsigma
+    simp only [paddedTwoPairFlexibleCostCodeTail, Finset.mem_filter,
+      Finset.mem_univ, true_and, paddedTwoPairRestrictionCode, Prod.fst,
+      Prod.snd]
+    exact ⟨(stars_paddedTwoPairRestrictionCode pad sigma).symm.trans hsigma.1,
+      by simpa [twoPairTenFlexibleCost] using hsigma.2⟩
+  · intro sigma _ tau _ hcode
+    exact paddedTwoPairRestrictionCode_injective pad hcode
+  · intro code hcode
+    obtain ⟨sigma, hsigma⟩ := paddedTwoPairRestrictionCode_surjective pad code
+    refine ⟨sigma, ?_, hsigma⟩
+    simp only [paddedTwoPairFlexibleCostCodeTail, Finset.mem_filter,
+      Finset.mem_univ, true_and] at hcode
+    simp only [paddedTwoPairFlexibleCostTail, Finset.mem_filter,
+      Finset.mem_univ, true_and]
+    rw [← hsigma] at hcode
+    simp only [paddedTwoPairRestrictionCode, Prod.fst, Prod.snd] at hcode
+    exact ⟨(stars_paddedTwoPairRestrictionCode pad sigma).trans hcode.1,
+      by simpa [twoPairTenFlexibleCost] using hcode.2⟩
+
+/-- The product-side tail cardinality factors by local live support into the genuine semantic
+tail coefficient and the complementary exact padding shell. -/
+theorem paddedTwoPairFlexibleCostCodeTail_card (pad : ℕ) :
+    (paddedTwoPairFlexibleCostCodeTail pad).card =
+      paddedTwoPairFlexibleCostTabulatedMass pad := by
+  classical
+  have hmaps : Set.MapsTo
+      (fun code : (Fin 10 → Restriction 4) × Restriction pad =>
+        ∑ g, stars (code.1 g))
+      (paddedTwoPairFlexibleCostCodeTail pad :
+        Set ((Fin 10 → Restriction 4) × Restriction pad))
+      (Finset.range 41 : Set ℕ) := by
+    intro code hcode
+    rw [Finset.mem_coe, paddedTwoPairFlexibleCostCodeTail,
+      Finset.mem_filter] at hcode
+    rw [Finset.mem_coe, Finset.mem_range]
+    omega
+  rw [Finset.card_eq_sum_card_fiberwise hmaps]
+  calc
+    (∑ q ∈ Finset.range 41,
+        ((paddedTwoPairFlexibleCostCodeTail pad).filter fun code =>
+          (∑ g, stars (code.1 g)) = q).card) =
+        ∑ q ∈ Finset.range 41,
+          (twoPairProductFlexibleCostTailFiber q).card *
+            (Finset.univ.filter fun rho : Restriction pad =>
+              stars rho = 40 - q).card := by
+      apply Finset.sum_congr rfl
+      intro q hq
+      rw [Finset.mem_range] at hq
+      rw [← Finset.card_product]
+      congr 1
+      ext code
+      simp only [paddedTwoPairFlexibleCostCodeTail,
+        twoPairProductFlexibleCostTailFiber, Finset.mem_filter,
+        Finset.mem_univ, true_and, Finset.mem_product]
+      constructor
+      · intro h
+        exact ⟨⟨h.2, h.1.2⟩, by omega⟩
+      · intro h
+        exact ⟨⟨by omega, h.1.2⟩, h.1.1⟩
+    _ = ∑ q ∈ Finset.range 41, twoPairTenFlexibleCostTailCoefficient q *
+          (Nat.choose pad (40 - q) * 2 ^ (pad - (40 - q))) := by
+      apply Finset.sum_congr rfl
+      intro q hq
+      rw [Finset.mem_range] at hq
+      rw [twoPairProductFlexibleCostTailFiber_card q (by omega), card_stars_eq]
+    _ = paddedTwoPairFlexibleCostTabulatedMass pad := by
+      rfl
+
+/-- The tabulated bivariate mass is exactly the cardinality of the ambient semantic tail. -/
+theorem paddedTwoPairFlexibleCostTail_card (pad : ℕ) :
+    (paddedTwoPairFlexibleCostTail pad).card =
+      paddedTwoPairFlexibleCostTabulatedMass pad := by
+  rw [paddedTwoPairFlexibleCostTail_card_eq_codeTail,
+    paddedTwoPairFlexibleCostCodeTail_card]
+
+/-- At padding eighty-six the exact semantic tail is already too large for the requested
+`2^-10` contraction.  Since every tail point is genuinely bad, the full bad set also violates
+that contraction. -/
+theorem not_paddedTwoPair_scaled_contraction_86 :
+    ¬ (commonShallowBad (paddedTwoPairFamily 86) 126 40 10 1).card * 2 ^ 10 ≤
+        (Finset.univ.filter fun sigma : Restriction 126 => stars sigma = 40).card := by
+  have htail := Finset.card_le_card (paddedTwoPairFlexibleCostTail_subset_bad 86)
+  rw [paddedTwoPairFlexibleCostTail_card] at htail
+  intro hcontraction
+  apply paddedTwoPairFlexibleCostTabulatedMass_scaled_not_le_shell_86
+  calc
+    paddedTwoPairFlexibleCostTabulatedMass 86 * 2 ^ 10 ≤
+        (commonShallowBad (paddedTwoPairFamily 86) 126 40 10 1).card * 2 ^ 10 :=
+      Nat.mul_le_mul_right _ htail
+    _ ≤ (Finset.univ.filter fun sigma : Restriction 126 =>
+          stars sigma = 40).card := hcontraction
+    _ = Nat.choose 126 40 * 2 ^ 86 := by
+      simpa using (card_stars_eq (N := 126) (K := 40))
 
 /-- A forty-star point in the exact semantic cost tail has at most twenty-nine live padding
 coordinates.  Unlike the earlier compatible-deficit bound, this applies to the whole direct-sum
@@ -8141,12 +8736,20 @@ set_option maxRecDepth 16384 in
 #print axioms paddedTwoPairLocalRestriction_fixVar_self
 #print axioms positiveTwoPair_local_depth_le_one_of_padded
 #print axioms negativeTwoPair_local_depth_le_one_of_padded
+#print axioms positiveTwoPair_padded_depth_le_one_of_local
+#print axioms negativeTwoPair_padded_depth_le_one_of_local
+#print axioms twoPairRootShallow_iff_padded_depths
 #print axioms twoPairRootShallow_of_padded_depths
 #print axioms twoPairFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleConditionalCost_eq_zero_of_leaf
 #print axioms twoPairTenFlexibleCost_le_of_padded_commonShallow
 #print axioms twoPairFlexibleQueryCost_stars_profile_exact
 #print axioms twoPairLocalCostLiveFiber_card_eq_convolution_one
+#print axioms twoPairLocalCostLive_weighted_sum
+#print axioms twoPairProductCostLiveFiber_card_succ
+#print axioms twoPairProductCostLiveFiber_card_eq_convolution
+#print axioms twoPairTenFlexibleCostTailCoefficient_eq_sum
+#print axioms twoPairProductFlexibleCostTailFiber_card
 #print axioms paddedTwoPairFlexibleCostTabulatedMass_scaled_not_le_shell_86
 #print axioms paddedTwoPairFlexibleCostTabulatedMass_scaled_le_shell_87
 #print axioms twoPairFlexibleQueryCost_le_stars
@@ -8193,6 +8796,10 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairTenLocalDeficitTailProfiles_card_le_full
 #print axioms paddedTwoPair_twentyThree_le_ownedLive_of_ten_lt_deficit
 #print axioms stars_paddedTwoPairRestrictionCode
+#print axioms paddedTwoPairFlexibleCostTail_card_eq_codeTail
+#print axioms paddedTwoPairFlexibleCostCodeTail_card
+#print axioms paddedTwoPairFlexibleCostTail_card
+#print axioms not_paddedTwoPair_scaled_contraction_86
 #print axioms paddedTwoPairFlexibleCostTail_padding_stars_le_twentyNine
 #print axioms paddingRestrictionsAtMostTwentyNine_card
 #print axioms two_pow_twentyNine_sub_mul_choose_le_choose_twentyNine
