@@ -1249,6 +1249,101 @@ theorem localizeLiveLayered_BottomWidth {n w : ℕ} (τ : Restriction n) :
       obtain ⟨g, hg, rfl⟩ := hcss
       exact localizeLiveLayered_BottomWidth τ g (BottomWidth_child_gOr hw hg) cs hcs T hT
 
+/-- Live-coordinate substitution cannot increase the clause count of any syntactic bottom gate. -/
+theorem localizeLiveLayered_BottomCount {n m : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n, BottomCount m C → BottomCount m (localizeLiveLayered τ C)
+  | Layered.dnf cs, hcount => by
+      intro cs' hcs'
+      simp only [localizeLiveLayered, bottomGates, List.mem_singleton] at hcs'
+      subst cs'
+      exact (localizeLiveDnf_length_le τ cs).trans
+        (hcount cs (by simp [bottomGates]))
+  | Layered.cnf cs, hcount => by
+      intro cs' hcs'
+      simp only [localizeLiveLayered, bottomGates, List.mem_singleton] at hcs'
+      subst cs'
+      exact (localizeLiveCnf_length_le τ cs).trans
+        (hcount cs (by simp [bottomGates]))
+  | Layered.gAnd gs, hcount => by
+      intro cs hcs
+      simp only [localizeLiveLayered, bottomGates, bottomGatesList_eq, List.map_map,
+        List.mem_flatten] at hcs
+      obtain ⟨css, hcss, hcs⟩ := hcs
+      rw [List.mem_map] at hcss
+      obtain ⟨g, hg, rfl⟩ := hcss
+      exact localizeLiveLayered_BottomCount τ g
+        (fun cs' hcs' => hcount cs'
+          (by simpa [bottomGates, bottomGatesList_eq] using
+            List.mem_flatten.mpr ⟨bottomGates g,
+              List.mem_map.mpr ⟨g, hg, rfl⟩, hcs'⟩)) cs hcs
+
+  | Layered.gOr gs, hcount => by
+      intro cs hcs
+      simp only [localizeLiveLayered, bottomGates, bottomGatesList_eq, List.map_map,
+        List.mem_flatten] at hcs
+      obtain ⟨css, hcss, hcs⟩ := hcs
+      rw [List.mem_map] at hcss
+      obtain ⟨g, hg, rfl⟩ := hcss
+      exact localizeLiveLayered_BottomCount τ g
+        (fun cs' hcs' => hcount cs'
+          (by simpa [bottomGates, bottomGatesList_eq] using
+            List.mem_flatten.mpr ⟨bottomGates g,
+              List.mem_map.mpr ⟨g, hg, rfl⟩, hcs'⟩)) cs hcs
+
+mutual
+/-- Live-coordinate localization preserves the number of syntactic bottom gates exactly. -/
+theorem localizeLiveLayered_bottomGates_length {n : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n,
+      (bottomGates (localizeLiveLayered τ C)).length = (bottomGates C).length
+  | Layered.dnf cs => by simp [localizeLiveLayered, bottomGates]
+  | Layered.cnf cs => by simp [localizeLiveLayered, bottomGates]
+  | Layered.gAnd gs => by
+      simpa [localizeLiveLayered, bottomGates, bottomGatesList_eq] using
+        localizeLiveLayered_bottomGatesList_length τ gs
+  | Layered.gOr gs => by
+      simpa [localizeLiveLayered, bottomGates, bottomGatesList_eq] using
+        localizeLiveLayered_bottomGatesList_length τ gs
+theorem localizeLiveLayered_bottomGatesList_length {n : ℕ} (τ : Restriction n) :
+    ∀ gs : List (Layered n),
+      (bottomGatesList (gs.map (localizeLiveLayered τ))).length =
+        (bottomGatesList gs).length
+  | [] => by simp [bottomGatesList]
+  | g :: gs => by
+      simp only [List.map_cons, bottomGatesList, List.length_append]
+      rw [localizeLiveLayered_bottomGates_length τ g,
+        localizeLiveLayered_bottomGatesList_length τ gs]
+end
+
+mutual
+/-- Live-coordinate substitution cannot increase the total number of bottom-clause
+occurrences.  This is the occurrence-sensitive companion to
+`localizeLiveLayered_bottomSlotCount_le`. -/
+theorem localizeLiveLayered_bottomClauseCount_le {n : ℕ} (τ : Restriction n) :
+    ∀ C : Layered n,
+      bottomClauseCount (localizeLiveLayered τ C) ≤ bottomClauseCount C
+  | Layered.dnf cs => by
+      simpa [bottomClauseCount, bottomGates, localizeLiveLayered] using
+        localizeLiveDnf_length_le τ cs
+  | Layered.cnf cs => by
+      simpa [bottomClauseCount, bottomGates, localizeLiveLayered] using
+        localizeLiveCnf_length_le τ cs
+  | Layered.gAnd gs => by
+      simpa [bottomClauseCount, bottomGates, localizeLiveLayered] using
+        localizeLiveLayered_bottomClauseCountList_le τ gs
+  | Layered.gOr gs => by
+      simpa [bottomClauseCount, bottomGates, localizeLiveLayered] using
+        localizeLiveLayered_bottomClauseCountList_le τ gs
+theorem localizeLiveLayered_bottomClauseCountList_le {n : ℕ} (τ : Restriction n) :
+    ∀ gs : List (Layered n),
+      ((bottomGatesList (gs.map (localizeLiveLayered τ))).map List.length).sum ≤
+        ((bottomGatesList gs).map List.length).sum
+  | [] => by simp [bottomGatesList]
+  | g :: gs => by
+      simp only [List.map_cons, bottomGatesList, List.map_append, List.sum_append]
+      exact Nat.add_le_add (localizeLiveLayered_bottomClauseCount_le τ g)
+        (localizeLiveLayered_bottomClauseCountList_le τ gs)
+end
+
 private theorem max_one_localizeLiveDnf_length_le {n : ℕ} (τ : Restriction n)
     (cs : List (Clause n)) :
     max 1 (localizeLiveDnf τ cs).length ≤ max 1 cs.length := by
@@ -4326,12 +4421,362 @@ theorem exists_denseParity_normalizedCollapseSuccessor_of_realized_density
       (collapseRound_bottomSlotCount_le hne hshallow)
   exact ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, hDeval, hDsupport, hwidth, hslots⟩
 
+/-- Strict production form of the exact ragged-alphabet density theorem.  This is the
+occurrence-sensitive analogue of
+`exists_normalizedLayered_storedCommonTerminalAt_of_realized_density`: it charges the sum of the
+actual normalized gate lengths rather than a rectangular family-length times maximum-length
+envelope. -/
+theorem exists_normalizedLayered_storedCommonTerminalAt_of_actual_density
+    {n r fuel : ℕ} {C : Layered n}
+    (hr : 0 < r) (hw : BottomWidth 2 C)
+    (hKfuel : 20 * r ≤ fuel) (hKn : 20 * r ≤ n)
+    (hdensity :
+      (4 * ((2 + 1) *
+        ((∑ g, (normalizedLayeredBottomFamily C g).length) + 1))) *
+          (20 * r) + 20 * r ≤ n + 1) :
+    ∃ sigma : Restriction n,
+      stars sigma = 20 * r ∧
+      StoredCommonTerminalAt (normalizedLayeredBottomFamily C) sigma (10 * r) := by
+  let shell := Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * r
+  let bad := commonShallowBad (normalizedLayeredBottomFamily C) fuel
+    (20 * r) (10 * r) 0
+  have hscaled : bad.card * 2 ^ (10 * r) ≤ shell.card := by
+    have hbound := normalizedLayered_commonShallowBad_scaled_le_of_actual_density
+      (d := 10 * r) (residualDepth := 0) (savingNum := 1) (savingDen := 2)
+      hw hKfuel (by omega) (by omega) hKn (by omega) hdensity
+    have hhalf : (20 * r) / 2 = 10 * r := by omega
+    simp only [one_mul] at hbound
+    rw [hhalf] at hbound
+    simpa [bad, shell] using hbound
+  have hshellPos : 0 < shell.card := by
+    rw [show shell.card = Nat.choose n (20 * r) * 2 ^ (n - 20 * r) by
+      simpa [shell] using card_stars_eq n (20 * r)]
+    exact Nat.mul_pos (Nat.choose_pos hKn) (pow_pos (by omega) _)
+  have hsaving : 2 ≤ 2 ^ (10 * r) := by
+    calc
+      2 = 2 ^ 1 := by norm_num
+      _ ≤ 2 ^ (10 * r) := Nat.pow_le_pow_right (by omega) (by omega)
+  have hcard : bad.card < shell.card := by nlinarith
+  obtain ⟨sigma, hsigmaShell, hsigmaBad⟩ :=
+    Finset.exists_mem_notMem_of_card_lt_card hcard
+  have hstars : stars sigma = 20 * r := by simpa [shell] using hsigmaShell
+  have hcommon : CommonShallowAt (normalizedLayeredBottomFamily C) fuel sigma
+      (10 * r) 0 := by
+    by_contra hnot
+    apply hsigmaBad
+    rw [mem_commonShallowBad]
+    exact ⟨hstars, hnot⟩
+  refine ⟨sigma, hstars, hcommon.toStoredCommonTerminalAt_zero ?_⟩
+  simpa [hstars] using hKfuel
+
+/-- Conditional successor-state constructor for a stored terminal trunk.  After consuming the
+stored certificate, the collapsed circuit is relabelled to the reached leaf's live cube.  If that
+actual next circuit satisfies the realized-density premise on a smaller scheduled shell, the
+counting theorem supplies a fresh stored certificate for the new normalized bottom family.  Its
+local root lifts to a genuine ambient extension of the reached leaf; the old certificate is never
+reused across the family change. -/
+theorem StoredCommonTerminalAt.exists_localized_collapse_successor_of_realized_density
+    {n M r fuel trunkDepth : ℕ} {C : Layered n} {τ : Restriction n}
+    (h : StoredCommonTerminalAt (normalizedLayeredBottomFamily C) τ trunkDepth)
+    (hfuel : stars τ ≤ fuel)
+    (hM1 : 1 ≤ M) (hC : NonEmptyGates C) (hcnt : (bottomGates C).length ≤ M)
+    (hr : 0 < r) (hnextFuel : 20 * r ≤ fuel)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends τ x) :
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      let υ := CommonTree.run trunk x
+      stars υ ≤ fuel ∧
+      let D := localizeLiveLayered υ (collapseRound fuel υ C)
+      BottomWidth 2 D ∧ BottomCount (2 * M) D ∧
+      (layeredBottomFamilyList D).length ≤ 2 * M ∧
+      (∑ g, (normalizedLayeredBottomFamily D g).length) ≤
+        layeredRoundActualKeyCap M 0 ∧
+      (20 * r ≤ stars υ →
+        (4 * ((2 + 1) *
+            ((∑ g, (normalizedLayeredBottomFamily D g).length) + 1))) *
+              (20 * r) + 20 * r ≤ stars υ + 1 →
+        ∃ next : Restriction (stars υ),
+          stars next = 20 * r ∧
+          RestrictionExtends υ (liftLiveRestriction υ next) ∧
+          StoredCommonTerminalAt (normalizedLayeredBottomFamily D) next (10 * r)) := by
+  have hcommon := h.toCommonShallowAt fuel
+  obtain ⟨trunk, hdepth, _hlower, hleafStars, hshallow⟩ :=
+    hcommon.leaf_shallows (normalizedLayeredBottomFamily_covers C) x hx
+  refine ⟨trunk, hdepth, ?_⟩
+  dsimp only
+  have hυfuel : stars (CommonTree.run trunk x) ≤ fuel := hleafStars.trans hfuel
+  refine ⟨hυfuel, ?_, ?_, ?_, ?_, ?_⟩
+  · exact localizeLiveLayered_BottomWidth (CommonTree.run trunk x) _
+      (BottomWidth_mono (by omega)
+        (collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow))
+  · apply localizeLiveLayered_BottomCount (CommonTree.run trunk x)
+    simpa [Nat.mul_comm] using
+      (collapseRound_BottomCount fuel (CommonTree.run trunk x)
+        hM1 hC hshallow hcnt)
+  · rw [layeredBottomFamilyList_length,
+      localizeLiveLayered_bottomGates_length]
+    exact Nat.mul_le_mul_left 2
+      ((collapseRound_count_le fuel (CommonTree.run trunk x) hC).trans hcnt)
+  · have hnorm := normalizedLayeredBottomFamily_total_length_le
+      (localizeLiveLayered (CommonTree.run trunk x)
+        (collapseRound fuel (CommonTree.run trunk x) C))
+    have hlocal := localizeLiveLayered_bottomClauseCount_le
+      (CommonTree.run trunk x) (collapseRound fuel (CommonTree.run trunk x) C)
+    have hcollapse := collapseRound_bottomClauseCount_le hcnt hshallow
+    exact hnorm.trans ((Nat.mul_le_mul_left 2 (hlocal.trans hcollapse)).trans_eq (by
+      simp [layeredRoundActualKeyCap]
+      ring))
+  · intro hnextShell hnextDensity
+    let D := localizeLiveLayered (CommonTree.run trunk x)
+      (collapseRound fuel (CommonTree.run trunk x) C)
+    have hDwidth : BottomWidth 2 D := by
+      exact localizeLiveLayered_BottomWidth (CommonTree.run trunk x) _
+        (BottomWidth_mono (by omega)
+          (collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow))
+    have hDcount : BottomCount (2 * M) D := by
+      apply localizeLiveLayered_BottomCount (CommonTree.run trunk x)
+      simpa [Nat.mul_comm] using
+        (collapseRound_BottomCount fuel (CommonTree.run trunk x)
+          hM1 hC hshallow hcnt)
+    have hnextResult :
+        ∃ next : Restriction (stars (CommonTree.run trunk x)),
+          stars next = 20 * r ∧
+          StoredCommonTerminalAt (normalizedLayeredBottomFamily D) next (10 * r) := by
+      exact exists_normalizedLayered_storedCommonTerminalAt_of_actual_density
+        (n := stars (CommonTree.run trunk x)) (C := D)
+        hr hDwidth hnextFuel hnextShell hnextDensity
+    obtain ⟨next, hnextStars, hnextStored⟩ := hnextResult
+    exact ⟨next, hnextStars, liftLiveRestriction_extends _ _, hnextStored⟩
+
 /-! ### Finite backward survivor schedules -/
 
 /-- The exact ambient-coordinate margin demanded by the following normalized round when its
 residual depth is `r` and its current bottom-slot envelope is `M`. -/
 def nextRoundActualMargin (r M : ℕ) : ℕ :=
   8 * (r + 2) * M * 2 ^ (r + 1) + 4 * (r + 2)
+
+/-- The two inequalities currently stored in `FiniteBackwardSurvivorSchedule` do not by
+themselves discharge even one successor's rectangular realized-density premise.  With one bottom
+gate, residual depth zero, current survivor parameter four, and next parameter one, both schedule
+inequalities hold exactly, but the width-two `G ≤ 2*M`, `m ≤ 2*M` density envelope exceeds the
+entire current live cube. -/
+theorem finiteBackwardSchedule_obligations_do_not_imply_successor_rectangular_density :
+    let survivor : ℕ → ℕ := fun i => if i = 0 then 4 else 1
+    (20 * survivor 1 ≤ 10 * survivor 0 ∧
+      nextRoundActualMargin 0 1 ≤ 10 * survivor 0) ∧
+    ¬(4 * ((2 + 1) * ((2 * 1) * (2 * 1) + 1)) *
+        (20 * survivor 1) + 20 * survivor 1 ≤ 10 * survivor 0 + 1) := by
+  norm_num [nextRoundActualMargin]
+
+/-- Full occurrence-sensitive density demand for a width-two successor with exact ragged
+alphabet cap `A` and survivor parameter `r`.  Unlike `nextRoundActualMargin`, this retains the
+essential product with the next shell size. -/
+def nextRoundProductDemand (A r : ℕ) : ℕ :=
+  4 * ((2 + 1) * (A + 1)) * (20 * r) + 20 * r
+
+/-- Product-aware replacement for the old finite backward schedule.  The first conjunct nests
+the next shell in the current ten-times-survivor cube; the second pays the complete ragged
+density demand, including its next-shell multiplier. -/
+def FiniteProductAwareSurvivorSchedule
+    (d : ℕ) (actualKeys survivor : ℕ → ℕ) : Prop :=
+  ∀ i < d,
+    20 * survivor (i + 1) ≤ 10 * survivor i ∧
+    nextRoundProductDemand (actualKeys (i + 1)) (survivor (i + 1)) ≤
+      10 * survivor i + 1
+
+/-- Ceiling that converts a density demand `x` into the least ten-times-survivor cube whose
+dimension plus one can contain `x`. -/
+def ceilDensityBudget (x : ℕ) : ℕ := (x + 8) / 10
+
+/-- On the product demand, the apparent ceiling is exact: the demand is a multiple of ten and
+the added eight is precisely the harmless remainder. -/
+theorem ceilDensityBudget_nextRoundProductDemand (A next : ℕ) :
+    ceilDensityBudget (nextRoundProductDemand A next) = (24 * A + 26) * next := by
+  simp only [ceilDensityBudget, nextRoundProductDemand]
+  rw [show 4 * ((2 + 1) * (A + 1)) * (20 * next) + 20 * next + 8 =
+      10 * ((24 * A + 26) * next) + 8 by ring]
+  rw [Nat.add_comm, Nat.add_mul_div_left _ _ (by omega : 0 < 10),
+    Nat.div_eq_of_lt (by omega), Nat.zero_add]
+
+theorem le_ten_mul_ceilDensityBudget_add_one (x : ℕ) :
+    x ≤ 10 * ceilDensityBudget x + 1 := by
+  have hdiv := Nat.div_add_mod (x + 8) 10
+  have hmod := Nat.mod_lt (x + 8) (by omega : 0 < 10)
+  simp only [ceilDensityBudget]
+  omega
+
+/-- `ceilDensityBudget` is exact: every survivor parameter paying `x` is at least this value. -/
+theorem ceilDensityBudget_le_of_le_ten_mul_add_one {x R : ℕ}
+    (h : x ≤ 10 * R + 1) : ceilDensityBudget x ≤ R := by
+  rw [ceilDensityBudget, Nat.div_le_iff_le_mul (by omega : 0 < 10)]
+  omega
+
+/-- The least current survivor parameter for a fixed one-step ragged successor, jointly paying
+shell nesting and the full density product. -/
+def leastProductAwarePredecessor (A next : ℕ) : ℕ :=
+  max (2 * next) (ceilDensityBudget (nextRoundProductDemand A next))
+
+/-- Closed form of the least product-aware predecessor.  The density term always dominates the
+separate shell-nesting term, so one round is exactly multiplication by `24*A+26`. -/
+theorem leastProductAwarePredecessor_eq (A next : ℕ) :
+    leastProductAwarePredecessor A next = (24 * A + 26) * next := by
+  simp only [leastProductAwarePredecessor, ceilDensityBudget_nextRoundProductDemand]
+  apply max_eq_right
+  nlinarith
+
+theorem leastProductAwarePredecessor_pays (A next : ℕ) :
+    20 * next ≤ 10 * leastProductAwarePredecessor A next ∧
+    nextRoundProductDemand A next ≤
+      10 * leastProductAwarePredecessor A next + 1 := by
+  constructor
+  · have h := Nat.le_max_left (2 * next)
+      (ceilDensityBudget (nextRoundProductDemand A next))
+    simp only [leastProductAwarePredecessor]
+    omega
+  · exact (le_ten_mul_ceilDensityBudget_add_one _).trans
+      (Nat.add_le_add_right (Nat.mul_le_mul_left 10
+        (Nat.le_max_right (2 * next)
+          (ceilDensityBudget (nextRoundProductDemand A next)))) 1)
+
+theorem leastProductAwarePredecessor_le_of_pays {A next current : ℕ}
+    (hnest : 20 * next ≤ 10 * current)
+    (hdensity : nextRoundProductDemand A next ≤ 10 * current + 1) :
+    leastProductAwarePredecessor A next ≤ current := by
+  rw [leastProductAwarePredecessor, Nat.max_le]
+  constructor
+  · omega
+  · exact ceilDensityBudget_le_of_le_ten_mul_add_one hdensity
+
+theorem ceilDensityBudget_mono {x y : ℕ} (hxy : x ≤ y) :
+    ceilDensityBudget x ≤ ceilDensityBudget y := by
+  exact Nat.div_le_div_right (c := 10) (Nat.add_le_add_right hxy 8)
+
+theorem nextRoundProductDemand_mono_right (A : ℕ) {x y : ℕ} (hxy : x ≤ y) :
+    nextRoundProductDemand A x ≤ nextRoundProductDemand A y := by
+  simp only [nextRoundProductDemand]
+  gcongr
+
+/-- The exact one-step predecessor is monotone in the requested next survivor. -/
+theorem leastProductAwarePredecessor_mono_right (A : ℕ) {x y : ℕ} (hxy : x ≤ y) :
+    leastProductAwarePredecessor A x ≤ leastProductAwarePredecessor A y := by
+  simp only [leastProductAwarePredecessor]
+  exact max_le_max (Nat.mul_le_mul_left 2 hxy)
+    (ceilDensityBudget_mono (nextRoundProductDemand_mono_right A hxy))
+
+/-- Exact finite product-aware backward budget with an explicit terminal survivor.  Key index
+`i+1` is the ragged alphabet charged by transition `i`. -/
+def leastFiniteProductAwareBudget : ℕ → (ℕ → ℕ) → ℕ → ℕ
+  | 0, _, terminal => terminal
+  | d + 1, actualKeys, terminal =>
+      leastProductAwarePredecessor (actualKeys 1)
+        (leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal)
+
+@[simp] theorem leastFiniteProductAwareBudget_zero (actualKeys : ℕ → ℕ) (terminal : ℕ) :
+    leastFiniteProductAwareBudget 0 actualKeys terminal = terminal := rfl
+
+@[simp] theorem leastFiniteProductAwareBudget_succ
+    (d : ℕ) (actualKeys : ℕ → ℕ) (terminal : ℕ) :
+    leastFiniteProductAwareBudget (d + 1) actualKeys terminal =
+      leastProductAwarePredecessor (actualKeys 1)
+        (leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal) := rfl
+
+/-- The exact recursive budget is attained, including the prescribed terminal survivor. -/
+theorem exists_finiteProductAwareSurvivorSchedule_least
+    (d : ℕ) (actualKeys : ℕ → ℕ) (terminal : ℕ) :
+    ∃ survivor : ℕ → ℕ,
+      FiniteProductAwareSurvivorSchedule d actualKeys survivor ∧
+      survivor 0 = leastFiniteProductAwareBudget d actualKeys terminal ∧
+      survivor d = terminal := by
+  induction d generalizing actualKeys with
+  | zero =>
+      exact ⟨fun _ => terminal, by intro i hi; omega, rfl, rfl⟩
+  | succ d ih =>
+      obtain ⟨tail, htail, htail0, htailEnd⟩ :=
+        ih (fun i => actualKeys (i + 1))
+      let survivor : ℕ → ℕ
+        | 0 => leastProductAwarePredecessor (actualKeys 1) (tail 0)
+        | i + 1 => tail i
+      refine ⟨survivor, ?_, ?_, ?_⟩
+      · intro i hi
+        cases i with
+        | zero =>
+            simpa only [survivor, Nat.zero_add] using
+              leastProductAwarePredecessor_pays (actualKeys 1) (tail 0)
+        | succ i =>
+            have hi : i < d := by omega
+            simpa only [survivor, Nat.add_assoc] using htail i hi
+      · simp only [survivor, leastFiniteProductAwareBudget_succ]
+        rw [← htail0]
+      · simpa only [survivor] using htailEnd
+
+/-- No product-aware schedule ending at or above `terminal` can start below the exact recursive
+budget.  Together with attainment this proves finite-horizon minimality. -/
+theorem leastFiniteProductAwareBudget_le_initial
+    (d : ℕ) (actualKeys survivor : ℕ → ℕ) (terminal : ℕ)
+    (hschedule : FiniteProductAwareSurvivorSchedule d actualKeys survivor)
+    (hterminal : terminal ≤ survivor d) :
+    leastFiniteProductAwareBudget d actualKeys terminal ≤ survivor 0 := by
+  induction d generalizing actualKeys survivor with
+  | zero => simpa using hterminal
+  | succ d ih =>
+      have hfirst := hschedule 0 (by omega)
+      have htail : FiniteProductAwareSurvivorSchedule d
+          (fun i => actualKeys (i + 1)) (fun i => survivor (i + 1)) := by
+        intro i hi
+        simpa only [Nat.add_assoc] using hschedule (i + 1) (by omega)
+      have hleastTail :
+          leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal ≤
+            survivor 1 := by
+        apply ih _ _ htail
+        simpa only [Nat.add_assoc] using hterminal
+      rw [leastFiniteProductAwareBudget_succ]
+      exact (leastProductAwarePredecessor_mono_right (actualKeys 1) hleastTail).trans
+        (leastProductAwarePredecessor_le_of_pays hfirst.1 hfirst.2)
+
+theorem leastFiniteProductAwareBudget_pos
+    (d : ℕ) (actualKeys : ℕ → ℕ) {terminal : ℕ} (hterminal : 0 < terminal) :
+    0 < leastFiniteProductAwareBudget d actualKeys terminal := by
+  induction d generalizing actualKeys with
+  | zero => simpa using hterminal
+  | succ d ih =>
+      rw [leastFiniteProductAwareBudget_succ]
+      have hnext := ih (fun i => actualKeys (i + 1))
+      have hle := Nat.le_max_left
+        (2 * leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal)
+        (ceilDensityBudget (nextRoundProductDemand (actualKeys 1)
+          (leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal)))
+      simp only [leastProductAwarePredecessor]
+      omega
+
+/-- Even an empty charged alphabet costs a factor `26` per product-aware transition.  This is the
+alphabet-independent floor hidden by positivity of the tail in the first-round audit. -/
+theorem leastFiniteProductAwareBudget_baseline_lower
+    (d : ℕ) (actualKeys : ℕ → ℕ) (terminal : ℕ) :
+    26 ^ d * terminal ≤ leastFiniteProductAwareBudget d actualKeys terminal := by
+  induction d generalizing actualKeys with
+  | zero => simp
+  | succ d ih =>
+      rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq, pow_succ]
+      calc
+        26 ^ d * 26 * terminal = 26 * (26 ^ d * terminal) := by ring
+        _ ≤ 26 * leastFiniteProductAwareBudget d
+            (fun i => actualKeys (i + 1)) terminal := Nat.mul_le_mul_left 26 (ih _)
+        _ ≤ (24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget d (fun i => actualKeys (i + 1)) terminal := by
+          gcongr
+          omega
+
+/-- Exact calibration of the smallest corrected transition.  With one incoming bottom gate,
+the proved residual-zero ragged cap is four keys.  Keeping one unit of survivor parameter in the
+next round requires current parameter `122`, hence an initial shell of `2440` stars—not `80`. -/
+theorem leastProductAwarePredecessor_one_shallow_gate :
+    leastProductAwarePredecessor (layeredRoundActualKeyCap 1 0) 1 = 122 := by
+  norm_num [leastProductAwarePredecessor, ceilDensityBudget, nextRoundProductDemand,
+    layeredRoundActualKeyCap]
+
+theorem leastProductAwareInitialShell_one_shallow_gate :
+    20 * leastProductAwarePredecessor (layeredRoundActualKeyCap 1 0) 1 = 2440 := by
+  rw [leastProductAwarePredecessor_one_shallow_gate]
 
 /-- The circuit-owned density premise cannot even start when the bottom-slot envelope is at least
 the ambient dimension.  This preserves the first broad incompatible regime explicitly: the
@@ -4384,6 +4829,375 @@ theorem iteratedSlotBound_zero_residual (M i : ℕ) :
       rw [iteratedSlotBound_succ, ih, shallowSlotBound_succ]
       simp only [shallowSlotBound]
       ring
+
+/-- Forward ragged-key cap generated by the cheapest verified slot recurrence.  Transition `i`
+charges the collapse of `M_i = M₀*3^i`, so its successor key is stored at index `i+1`. -/
+def shallowForwardActualKeys (M₀ : ℕ) : ℕ → ℕ
+  | 0 => 0
+  | i + 1 => layeredRoundActualKeyCap (shallowSlotBound M₀ i) 0
+
+/-- Closed multiplicative form of the shallow product-aware recurrence.  At round `i`, the
+forward slot envelope has acquired the factor `3^i`, so the backward survivor is multiplied by
+the affine factor `96*M_i+26`. -/
+def shallowProductBudget : ℕ → ℕ → ℕ → ℕ
+  | 0, _, terminal => terminal
+  | d + 1, M, terminal =>
+      (96 * M + 26) * shallowProductBudget d (M * 3) terminal
+
+/-- Any key sequence with the exact shallow forward values computes the closed product budget.
+This formulation makes the index shift explicit and can also be reused for extensionally equal
+key schedules. -/
+theorem leastFiniteProductAwareBudget_eq_shallowProductBudget_of_keys
+    (d : ℕ) (actualKeys : ℕ → ℕ) (M terminal : ℕ)
+    (hkeys : ∀ i < d, actualKeys (i + 1) = 4 * M * 3 ^ i) :
+    leastFiniteProductAwareBudget d actualKeys terminal =
+      shallowProductBudget d M terminal := by
+  induction d generalizing actualKeys M with
+  | zero => rfl
+  | succ d ih =>
+      rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq,
+        hkeys 0 (by omega)]
+      simp only [pow_zero, mul_one]
+      rw [show 24 * (4 * M) + 26 = 96 * M + 26 by ring]
+      simp only [shallowProductBudget]
+      congr 1
+      apply ih
+      intro i hi
+      rw [hkeys (i + 1) (by omega), pow_succ]
+      ring
+
+/-- The forward-specialized least budget is exactly the affine product recurrence, for arbitrary
+depth, initial bottom-slot envelope, and terminal survivor. -/
+theorem leastFiniteProductAwareBudget_shallowForward_eq
+    (d M terminal : ℕ) :
+    leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal =
+      shallowProductBudget d M terminal := by
+  apply leastFiniteProductAwareBudget_eq_shallowProductBudget_of_keys
+  intro i _hi
+  simp [shallowForwardActualKeys, layeredRoundActualKeyCap, shallowSlotBound]
+  ring
+
+/-- Degree-`d` lower envelope in the initial slot parameter.  The exact recurrence is at least
+the product of `d` copies of its first round's homogeneous term. -/
+theorem shallowProductBudget_lower (d M terminal : ℕ) :
+    (96 * M) ^ d * terminal ≤ shallowProductBudget d M terminal := by
+  induction d generalizing M with
+  | zero => simp [shallowProductBudget]
+  | succ d ih =>
+      simp only [shallowProductBudget, pow_succ]
+      calc
+        (96 * M) ^ d * (96 * M) * terminal =
+            (96 * M) * ((96 * M) ^ d * terminal) := by ring
+        _ ≤ (96 * M + 26) * shallowProductBudget d (M * 3) terminal := by
+          apply Nat.mul_le_mul (by omega)
+          exact (Nat.mul_le_mul_right terminal
+            (Nat.pow_le_pow_left (by nlinarith : 96 * M ≤ 96 * (M * 3)) d)).trans
+              (ih (M * 3))
+
+/-- Matching degree-`d` upper envelope for fixed depth.  Every affine round factor is bounded by
+the final forward slot scale, so no hidden super-polynomial dependence on `M` occurs when `d` is
+fixed. -/
+theorem shallowProductBudget_upper (d M terminal : ℕ) :
+    shallowProductBudget d M terminal ≤
+      (96 * M * 3 ^ d + 26) ^ d * terminal := by
+  induction d generalizing M with
+  | zero => simp [shallowProductBudget]
+  | succ d ih =>
+      simp only [shallowProductBudget]
+      have htail := ih (M * 3)
+      have hbase : 96 * (M * 3) * 3 ^ d + 26 =
+          96 * M * 3 ^ (d + 1) + 26 := by
+        rw [pow_succ]
+        ring
+      rw [hbase] at htail
+      rw [pow_succ]
+      have hfactor : 96 * M + 26 ≤ 96 * M * 3 ^ (d + 1) + 26 := by
+        have hpow : 1 ≤ 3 ^ (d + 1) := one_le_pow₀ (by omega)
+        nlinarith
+      calc
+        (96 * M + 26) * shallowProductBudget d (M * 3) terminal ≤
+            (96 * M * 3 ^ (d + 1) + 26) *
+              ((96 * M * 3 ^ (d + 1) + 26) ^ d * terminal) :=
+          Nat.mul_le_mul hfactor htail
+        _ = (96 * M * 3 ^ (d + 1) + 26) ^ d *
+              (96 * M * 3 ^ (d + 1) + 26) * terminal := by ring
+
+/-- Direct lower bound on the actual round-zero shell demanded by the forward-specialized
+schedule.  This is the comparison quantity that must fit both the original ambient dimension and
+the rebuild fuel. -/
+theorem leastFiniteProductAwareInitialShell_shallow_lower (d M terminal : ℕ) :
+    20 * ((96 * M) ^ d * terminal) ≤
+      20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal := by
+  rw [leastFiniteProductAwareBudget_shallowForward_eq]
+  exact Nat.mul_le_mul_left 20 (shallowProductBudget_lower d M terminal)
+
+/-- Consequently, an ambient cube below the homogeneous degree-`d` floor cannot host this
+whole-family product-aware iteration. -/
+theorem shallowProductAwareSchedule_not_fit_of_ambient_lt
+    {d M terminal n : ℕ} (hn : n < 20 * ((96 * M) ^ d * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal ≤ n := by
+  intro hfit
+  have hle := (leastFiniteProductAwareInitialShell_shallow_lower d M terminal).trans hfit
+  omega
+
+/-- A positive-depth whole-family run cannot fit if its chosen round-zero bottom-slot envelope is
+already at least the ambient dimension.  This is a statement about using such an envelope in the
+verified schedule: it does not assert that every circuit has linearly many bottom gates. -/
+theorem shallowProductAwareSchedule_not_fit_of_ambient_le_slots
+    {d M terminal n : ℕ} (hd : 0 < d) (hterminal : 0 < terminal) (hnM : n ≤ M) :
+    ¬20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal ≤ n := by
+  by_cases hn : n = 0
+  · subst n
+    have hbudget := leastFiniteProductAwareBudget_pos d (shallowForwardActualKeys M) hterminal
+    omega
+  · have hnpos : 0 < n := Nat.pos_of_ne_zero hn
+    have hMpos : 0 < M := hnpos.trans_le hnM
+    obtain ⟨e, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+    have hpow : 1 ≤ (96 * M) ^ e := one_le_pow₀ (by omega)
+    apply shallowProductAwareSchedule_not_fit_of_ambient_lt
+    rw [pow_succ]
+    calc
+      n ≤ M := hnM
+      _ < 96 * M := by omega
+      _ = 1 * (96 * M) * 1 := by ring
+      _ ≤ (96 * M) ^ e * (96 * M) * terminal := by
+        exact Nat.mul_le_mul (Nat.mul_le_mul hpow (le_refl _)) (by omega)
+      _ ≤ 20 * ((96 * M) ^ e * (96 * M) * terminal) :=
+        Nat.le_mul_of_pos_left _ (by omega)
+
+/-- The actual escape window is much narrower than `M < n`: at positive depth and with a
+positive terminal survivor, the schedule already fails whenever the ambient dimension is at most
+the `d`th power of the round-zero slot envelope.  Thus a circuit-specific replacement must be
+strictly `d`th-root sparse before constants are even considered. -/
+theorem shallowProductAwareSchedule_not_fit_of_ambient_le_slots_pow
+    {d M terminal n : ℕ} (hd : 0 < d) (hterminal : 0 < terminal) (hnM : n ≤ M ^ d) :
+    ¬20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal ≤ n := by
+  by_cases hM : M = 0
+  · subst M
+    have hdpow : 0 ^ d = 0 := Nat.zero_pow hd
+    rw [hdpow] at hnM
+    have hbudget := leastFiniteProductAwareBudget_pos d (shallowForwardActualKeys 0) hterminal
+    omega
+  · apply shallowProductAwareSchedule_not_fit_of_ambient_lt
+    have hMpos : 0 < M := Nat.pos_of_ne_zero hM
+    have hbase : M ≤ 96 * M := by omega
+    have hpow : M ^ d ≤ (96 * M) ^ d := Nat.pow_le_pow_left hbase d
+    have hscaledPos : 0 < (96 * M) ^ d * terminal :=
+      Nat.mul_pos (pow_pos (by omega) d) hterminal
+    calc
+      n ≤ M ^ d := hnM
+      _ ≤ (96 * M) ^ d := hpow
+      _ ≤ (96 * M) ^ d * terminal := Nat.le_mul_of_pos_right _ hterminal
+      _ < 20 * ((96 * M) ^ d * terminal) := by omega
+
+/-- Necessary sparsity condition for every fitting positive-depth schedule.  It is the direct
+contrapositive of the power obstruction and exposes the quantitative target for any proposed
+semantics-preserving circuit-specific reduction. -/
+theorem slots_pow_lt_ambient_of_shallowProductAwareSchedule_fit
+    {d M terminal n : ℕ} (hd : 0 < d) (hterminal : 0 < terminal)
+    (hfit : 20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M) terminal ≤ n) :
+    M ^ d < n := by
+  by_contra hnot
+  exact shallowProductAwareSchedule_not_fit_of_ambient_le_slots_pow hd hterminal
+    (Nat.le_of_not_gt hnot) hfit
+
+/-- In particular, the standard uniform polynomial slot envelope `M = n^k` is incompatible with
+the present whole-family product-aware iteration at every positive depth and positive terminal
+survivor, on every nonempty ambient cube.  Smaller circuit-specific envelopes remain outside this
+obstruction. -/
+theorem shallowProductAwareSchedule_not_fit_of_polynomial_slot_envelope
+    {d k terminal n : ℕ} (hd : 0 < d) (hk : 0 < k) (hterminal : 0 < terminal)
+    (hn : 0 < n) :
+    ¬20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys (n ^ k)) terminal ≤ n := by
+  apply shallowProductAwareSchedule_not_fit_of_ambient_le_slots hd hterminal
+  obtain ⟨e, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hk)
+  rw [pow_succ]
+  have hpow : 1 ≤ n ^ e := one_le_pow₀ hn
+  nlinarith
+
+/-- Every width-two layered representative of parity (up to a fixed output phase) has a linear
+bottom-slot floor.  This is circuit-specific rather than an external size envelope: full semantic
+support costs at most two variables per bottom-clause occurrence, and occurrences are bounded by
+the actual slot count. -/
+theorem widthTwoParity_ambient_le_two_mul_bottomSlotCount
+    {n : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase) :
+    n ≤ 2 * bottomSlotCount C := by
+  calc
+    n = (layeredBottomVariableSupport C).card :=
+      (Layered.bottomSupport_card_eq_of_eval_eq_parity_xor C phase hparity).symm
+    _ ≤ 2 * bottomClauseCount C := layeredBottomVariableSupport_card_le hw
+    _ ≤ 2 * bottomSlotCount C :=
+      Nat.mul_le_mul_left 2 (bottomClauseCount_le_bottomSlotCount C)
+
+/-- The exact whole-family product-aware schedule is incompatible with every width-two parity
+representative at every positive iteration depth, even when it charges the circuit's actual
+bottom-slot count instead of a worst-case polynomial envelope.  The semantic linear slot floor
+already exceeds the schedule's much smaller constant-adjusted escape window. -/
+theorem widthTwoParity_shallowProductAwareSchedule_not_fit
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d) (hterminal : 0 < terminal) :
+    ¬20 * leastFiniteProductAwareBudget d
+      (shallowForwardActualKeys (bottomSlotCount C)) terminal ≤ n := by
+  by_cases hn : n = 0
+  · subst n
+    have hbudget := leastFiniteProductAwareBudget_pos d
+      (shallowForwardActualKeys (bottomSlotCount C)) hterminal
+    omega
+  · have hnpos : 0 < n := Nat.pos_of_ne_zero hn
+    have hlinear := widthTwoParity_ambient_le_two_mul_bottomSlotCount C phase hw hparity
+    have hslots : 0 < bottomSlotCount C := by omega
+    obtain ⟨e, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+    apply shallowProductAwareSchedule_not_fit_of_ambient_lt
+    rw [pow_succ]
+    have hpow : 1 ≤ (96 * bottomSlotCount C) ^ e := one_le_pow₀ (by omega)
+    calc
+      n ≤ 2 * bottomSlotCount C := hlinear
+      _ < 20 * (96 * bottomSlotCount C) := by omega
+      _ = 20 * (1 * (96 * bottomSlotCount C) * 1) := by ring
+      _ ≤ 20 *
+          ((96 * bottomSlotCount C) ^ e * (96 * bottomSlotCount C) * terminal) := by
+        exact Nat.mul_le_mul_left 20
+          (Nat.mul_le_mul (Nat.mul_le_mul hpow (le_refl _)) (by omega))
+
+/-- Any product-aware schedule for width-two parity, even with an arbitrary future key sequence,
+must compress the first-round alphabet by more than the full density constant.  If `A` is the
+first charged alphabet and `M` is the circuit's actual bottom-slot count, fitting even one positive
+round forces `240*A + 260 ≤ M`.  This isolates the quantitative target for a replacement encoder:
+merely reducing the current constant multiple of `M` is insufficient. -/
+theorem widthTwoParity_firstKey_compression_of_productAwareSchedule_fit
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d) (hterminal : 0 < terminal)
+    (actualKeys : ℕ → ℕ)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    240 * actualKeys 1 + 260 ≤ bottomSlotCount C := by
+  obtain ⟨e, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+  have htail : 0 < leastFiniteProductAwareBudget e
+      (fun i => actualKeys (i + 1)) terminal :=
+    leastFiniteProductAwareBudget_pos e (fun i => actualKeys (i + 1)) hterminal
+  have hfirst : 20 * (24 * actualKeys 1 + 26) ≤ n := by
+    calc
+      20 * (24 * actualKeys 1 + 26) ≤
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget e
+              (fun i => actualKeys (i + 1)) terminal) := by
+        exact Nat.mul_le_mul_left 20 (Nat.le_mul_of_pos_right _ htail)
+      _ = 20 * leastFiniteProductAwareBudget (e + 1) actualKeys terminal := by
+        rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq]
+      _ ≤ n := hfit
+  have hsupport := widthTwoParity_ambient_le_two_mul_bottomSlotCount C phase hw hparity
+  omega
+
+/-- Exact tail-sensitive strengthening of the first-key threshold.  If `B` is the least budget
+still required after the first transition, fitting width-two parity forces
+`(240*A + 260) * B ≤ M`.  The earlier `240*A + 260 ≤ M` bound is the special consequence `B ≥ 1`;
+this form retains all later-round expenditure. -/
+theorem widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (actualKeys : ℕ → ℕ)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    (240 * actualKeys 1 + 260) *
+        leastFiniteProductAwareBudget (d - 1) (fun i => actualKeys (i + 1)) terminal ≤
+      bottomSlotCount C := by
+  obtain ⟨e, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+  have htotal :
+      20 * ((24 * actualKeys 1 + 26) *
+        leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal) ≤ n := by
+    simpa only [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq] using hfit
+  have hsupport := widthTwoParity_ambient_le_two_mul_bottomSlotCount C phase hw hparity
+  have hdouble :
+      2 * (10 * ((24 * actualKeys 1 + 26) *
+        leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal)) ≤
+        2 * bottomSlotCount C := by
+    calc
+      2 * (10 * ((24 * actualKeys 1 + 26) *
+          leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal)) =
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal) := by ring
+      _ ≤ n := htotal
+      _ ≤ 2 * bottomSlotCount C := hsupport
+  have hcancel := Nat.le_of_mul_le_mul_left hdouble (by omega : 0 < 2)
+  simpa only [Nat.add_sub_cancel] using (show
+    (240 * actualKeys 1 + 260) *
+        leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal ≤
+      bottomSlotCount C by
+    calc
+      (240 * actualKeys 1 + 260) *
+          leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal =
+          10 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget e (fun i => actualKeys (i + 1)) terminal) := by ring
+      _ ≤ bottomSlotCount C := hcancel)
+
+/-- Round-count form of the tail-sensitive threshold.  Independently of every later alphabet,
+`d` positive rounds and terminal survivor `T` force the first alphabet to fit after multiplication
+by the unavoidable baseline tail `26^(d-1) * T`. -/
+theorem widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (actualKeys : ℕ → ℕ)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    (240 * actualKeys 1 + 260) * (26 ^ (d - 1) * terminal) ≤ bottomSlotCount C := by
+  have htail := leastFiniteProductAwareBudget_baseline_lower
+    (d - 1) (fun i => actualKeys (i + 1)) terminal
+  exact (Nat.mul_le_mul_left (240 * actualKeys 1 + 260) htail).trans
+    (widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit
+      C phase hw hparity hd actualKeys hfit)
+
+/-- Contrapositive form of the exact first-key compression threshold.  Any proposed occurrence-
+sensitive alphabet that still has too many first-round keys is ruled out before later-round
+amortization can matter. -/
+theorem widthTwoParity_productAwareSchedule_not_fit_of_firstKey_undercompressed
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d) (hterminal : 0 < terminal)
+    (actualKeys : ℕ → ℕ)
+    (hkey : bottomSlotCount C < 240 * actualKeys 1 + 260) :
+    ¬20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n := by
+  intro hfit
+  have hcompression :=
+    widthTwoParity_firstKey_compression_of_productAwareSchedule_fit C phase hw hparity
+      hd hterminal actualKeys hfit
+  omega
+
+/-- Even with one initial gate and terminal survivor one, two product-aware shallow rounds need
+`38308` units of initial survivor parameter. -/
+theorem leastFiniteProductAwareBudget_two_shallow_rounds_one :
+    leastFiniteProductAwareBudget 2 (shallowForwardActualKeys 1) 1 = 38308 := by
+  norm_num [leastFiniteProductAwareBudget, shallowForwardActualKeys, shallowSlotBound,
+    leastProductAwarePredecessor, ceilDensityBudget, nextRoundProductDemand,
+    layeredRoundActualKeyCap]
+
+theorem leastFiniteProductAwareInitialShell_two_shallow_rounds_one :
+    20 * leastFiniteProductAwareBudget 2 (shallowForwardActualKeys 1) 1 = 766160 := by
+  rw [leastFiniteProductAwareBudget_two_shallow_rounds_one]
+
+/-- A third cheapest shallow round raises the exact initial survivor budget to `34,094,120`, and
+therefore the initial shell alone to `681,882,400` live variables. -/
+theorem leastFiniteProductAwareBudget_three_shallow_rounds_one :
+    leastFiniteProductAwareBudget 3 (shallowForwardActualKeys 1) 1 = 34094120 := by
+  rw [leastFiniteProductAwareBudget_shallowForward_eq]
+  norm_num [shallowProductBudget]
+
+theorem leastFiniteProductAwareInitialShell_three_shallow_rounds_one :
+    20 * leastFiniteProductAwareBudget 3 (shallowForwardActualKeys 1) 1 = 681882400 := by
+  rw [leastFiniteProductAwareBudget_three_shallow_rounds_one]
 
 /-- The two arithmetic obligations at every transition of a finite localized iteration: the next
 `20 * R` shell fits inside the current exact `10 * R` cube, and that cube also pays the next
@@ -6677,11 +7491,42 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_collapseRound_AltO
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_collapseRound_NonEmptyGates
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_BottomWidth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_BottomCount
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_bottomGates_length
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_bottomClauseCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_bottomSlotCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.actualMargin_normalizedSurvivorRound_localized
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.supportDensity_normalizedSurvivorRound_localized
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_denseParity_normalizedCollapseSuccessor_of_realized_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_normalizedLayered_storedCommonTerminalAt_of_actual_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.StoredCommonTerminalAt.exists_localized_collapse_successor_of_realized_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastProductAwarePredecessor_pays
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastProductAwarePredecessor_le_of_pays
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_finiteProductAwareSurvivorSchedule_least
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_le_initial
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_pos
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_two_shallow_rounds_one
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastProductAwarePredecessor_one_shallow_gate
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastProductAwarePredecessor_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_shallowForward_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductBudget_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductBudget_upper
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductAwareSchedule_not_fit_of_ambient_le_slots
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductAwareSchedule_not_fit_of_ambient_le_slots_pow
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.slots_pow_lt_ambient_of_shallowProductAwareSchedule_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductAwareSchedule_not_fit_of_polynomial_slot_envelope
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_ambient_le_two_mul_bottomSlotCount
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_shallowProductAwareSchedule_not_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_firstKey_compression_of_productAwareSchedule_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_baseline_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_productAwareSchedule_not_fit_of_firstKey_undercompressed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareInitialShell_shallow_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductAwareSchedule_not_fit_of_ambient_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_three_shallow_rounds_one
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.nextRoundActualMargin_not_le_ambient_of_ambient_le_slots
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.finiteBackwardSchedule_obligations_do_not_imply_successor_rectangular_density
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.iteratedSlotBound_zero_residual
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_finiteBackwardSurvivorSchedule_initial_eq
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialBackwardSurvivorBudget_le_geometric

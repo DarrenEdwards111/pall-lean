@@ -11524,3 +11524,401 @@ return a fresh `StoredCommonTerminalAt` for
 against the proved `M * 2` residual-zero clause bound; reusing the old certificate across the family
 change would be unsound.  The independent density/fiber obstructions remain open.  No P-versus-NP
 conclusion follows.
+
+### The fresh successor certificate is constructed conditionally on the actual next density
+
+`StoredCommonTerminalAt.exists_localized_collapse_successor_of_realized_density` now crosses the
+family-change boundary soundly.  It consumes the stored residual-zero certificate at a reached
+leaf, applies `collapseRound`, and relabels the collapsed circuit to that leaf's live-coordinate
+cube.  The old certificate is not reused for the synthesized clauses.
+
+The auxiliary theorem `localizeLiveLayered_BottomCount` proves that live-coordinate localization
+cannot increase any bottom gate's clause count.  Together with the residual-zero collapse bounds,
+the localized successor has bottom width at most two and `BottomCount (2*M)`.  Consequently, if a
+scheduled `20*r` shell fits inside the reached leaf and this actual localized circuit satisfies
+the verified rectangular realized-density inequality with term cap `2*M`, the production selector
+returns a fresh `StoredCommonTerminalAt` of depth `10*r` for the successor's normalized two-polarity
+family.  `liftLiveRestriction_extends` proves that the selected local root lifts to a genuine
+ambient restriction extension of the reached leaf.
+
+This closes the semantic and coordinate-plumbing part of the successor constructor, while leaving
+the quantitative premise explicit.  In particular, the next family charge is its actual
+`layeredBottomFamilyList` length times `2*M`; nothing here assumes the same shell parameter can be
+reused after a nontrivial trunk.  Focused elaboration of the full quantitative-iteration module
+passed, and the new capstones use only `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to discharge the conditional next-density inequality from the proved
+bottom-gate and live-shell recurrences, using a decreasing schedule satisfying
+`20*r_next <= stars leaf` (for example the existing backward survivor schedule).  The first task is
+to replace the successor theorem's actual family-length factor by a recurrence bound derived from
+the retained `M` bottom-gate bound, then test the resulting inequality against the available live
+dimension.  The independent density/fiber obstructions remain open.  No P-versus-NP conclusion
+follows.
+
+### The successor family factor is bounded, but the current backward schedule misses its product
+
+`localizeLiveLayered_bottomGates_length` now proves that live-coordinate localization preserves
+the number of syntactic bottom gates exactly.  Combined with `collapseRound_count_le`, the stored
+successor constructor now records
+
+```text
+length(layeredBottomFamilyList D) <= 2*M.
+```
+
+Together with its already proved `BottomCount (2*M) D`, this replaces the formerly circuit-owned
+rectangular key factor by the explicit worst-case recurrence `(2*M)*(2*M) = 4*M^2`.  Thus the
+family-length interface is no longer open.
+
+The resulting schedule test fails before any further semantic construction is needed.
+`finiteBackwardSchedule_obligations_do_not_imply_successor_rectangular_density` kernel-checks the
+smallest concrete mismatch: for residual depth zero, `M = 1`, current survivor parameter `4`, and
+next parameter `1`, both inequalities stored by the present backward schedule hold,
+
+```text
+20*R_next <= 10*R_current
+nextRoundActualMargin 0 1 <= 10*R_current,
+```
+
+but the successor's width-two rectangular density demand is `1220 <= 41`, hence false.  The issue
+is structural: `nextRoundActualMargin` stores only the density base, while the realized-density
+premise multiplies that base by the next shell size before comparing it with the current live
+dimension.  Treating shell fit and base fit as two independent inequalities loses this product.
+
+The precise next frontier is to replace `FiniteBackwardSurvivorSchedule` with a product-aware
+condition (preferably using the already proved linear ragged-alphabet cap rather than the quadratic
+rectangular cap), construct its least backward budget, and test whether that corrected budget fits
+the original ambient shell.  The existing schedule must not be used to discharge the successor
+density premise.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### The successor now uses the exact ragged product, with its least one-step budget calibrated
+
+The family-change handoff no longer routes through the quadratic rectangular envelope.
+`localizeLiveLayered_bottomClauseCount_le` proves that live-coordinate transport cannot increase
+the total bottom-clause occurrence count.  Combining it with
+`collapseRound_bottomClauseCount_le` and duplicate normalization shows that the actual localized
+successor satisfies
+
+```text
+sum_g length(normalizedLayeredBottomFamily D g)
+  <= layeredRoundActualKeyCap M 0 = 4*M.
+```
+
+`exists_normalizedLayered_storedCommonTerminalAt_of_actual_density` is the strict production form
+of the ragged-alphabet contraction.  The stored successor constructor now consumes that theorem
+directly: its conditional density premise charges the actual sum of normalized clause
+occurrences, not `family length * maximum gate length`.  This removes the spurious quadratic
+`4*M^2` recurrence from the successor interface while retaining the necessary product with the
+next shell size.
+
+The corrected arithmetic interface is recorded by `nextRoundProductDemand` and
+`FiniteProductAwareSurvivorSchedule`.  For one fixed transition,
+`leastProductAwarePredecessor` is proved both sufficient and minimal.  The smallest nontrivial
+calibration is already decisive: with `M = 1`, residual depth zero, and next survivor parameter
+one, the ragged cap is four and the least current survivor parameter is exactly `122`.  Thus the
+least current shell is `20*122 = 2440`, whereas the rejected old schedule used only `20*4 = 80`.
+The linear ragged cap repairs the extra factor of `M`, but it does not make the omitted shell
+product inexpensive.
+
+Focused elaboration of the quantitative-iteration module passed.  The new capstones use only the
+standard logical axioms already present (`propext`, `Classical.choice`, and `Quot.sound`); no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier
+counterexamples and failed routes remain in place.
+
+The precise next frontier is to lift the exact one-step predecessor into an attained and minimal
+finite backward recurrence whose terminal survivor remains positive, substitute the forward
+`M_i`/ragged-key recurrence, and compare its initial `20*R_0` shell and fuel floor with the original
+ambient dimension.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### The exact finite product-aware recurrence is attained, minimal, and already explosive
+
+`leastFiniteProductAwareBudget` now iterates the corrected one-step predecessor backwards from an
+explicit terminal survivor.  Its key indexing is occurrence-sensitive: transition `i` charges
+`actualKeys (i+1)`.  `exists_finiteProductAwareSurvivorSchedule_least` constructs a schedule whose
+initial value is exactly this recurrence and whose final value is exactly the requested terminal.
+Conversely, `leastFiniteProductAwareBudget_le_initial` proves that every product-aware schedule
+ending at or above that terminal starts at or above the recursive value.  Thus the finite budget
+is both attained and minimal.  A positive terminal also gives a positive initial budget.
+
+The forward specialization `shallowForwardActualKeys` substitutes the cheapest verified slot
+recurrence `M_i = M_0*3^i` and charges transition `i` by the proved ragged cap `4*M_i`.  The first
+two-round calibration is stark.  For `M_0 = 1` and terminal survivor one, the exact backward
+values are
+
+```text
+R_2 = 1,
+R_1 = 314,
+R_0 = 38308,
+20*R_0 = 766160.
+```
+
+The one-round value was `R_0 = 122` and shell `2440`.  Hence the omitted shell product does not
+merely change a constant: even the smallest two-round forward instance multiplies the requested
+next survivor by the current ragged density base, causing rapid recurrence growth.  The earlier
+non-product schedule and its counterexample remain in the file as a rejected route.
+
+The quantitative-iteration target builds successfully (8451 jobs), and the full build passes
+(8068 jobs).  The new capstones use only
+the standard logical axioms already present; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is to derive symbolic lower bounds for the forward-specialized
+product recurrence over arbitrary fixed depth and initial `M_0`, then compare `20*R_0` and the
+same fuel floor with the actual round-zero ambient `n`.  In particular, determine whether the
+recurrence is polynomial of depth-dependent degree for fixed depth and whether any intended
+initial gate envelope can fit it; if not, the present whole-family realized-density iteration is
+quantitatively closed as a route.  The independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### The forward product recurrence has an exact affine form and fixed-depth degree `d`
+
+The ceiling and maximum in the corrected predecessor are now eliminated symbolically:
+
+```text
+leastProductAwarePredecessor A R = (24*A + 26)*R.
+```
+
+For the cheapest verified shallow forward recurrence `M_i = M_0*3^i`, the ragged key cap is
+`A_i = 4*M_i`.  Therefore `shallowProductBudget` records the exact arbitrary-depth recurrence
+
+```text
+B(0,M,T)     = T,
+B(d+1,M,T)   = (96*M + 26)*B(d,3*M,T),
+leastFiniteProductAwareBudget d (shallowForwardActualKeys M) T = B(d,M,T).
+```
+
+The new lower and upper bounds are
+
+```text
+(96*M)^d*T <= B(d,M,T) <= (96*M*3^d + 26)^d*T.
+```
+
+Thus for every fixed `d` and positive fixed terminal survivor, the current whole-family schedule
+is polynomial of degree exactly `d` in the initial bottom-slot envelope `M`; its obstruction is
+not hidden super-polynomial growth in `M`, but the degree-`d` shell that must fit the ambient
+dimension and rebuild fuel.  The formal shell corollary proves that any
+`n < 20*(96*M)^d*T` cannot host the schedule.
+
+The next concrete calibration continues the rapid constant growth.  With `M=1`, `T=1`, and three
+rounds, the exact affine factors are `122`, `314`, and `890`, giving
+
+```text
+R_0 = 34094120,
+20*R_0 = 681882400.
+```
+
+The earlier non-product schedule, its explicit counterexample, and the exact one- and two-round
+calibrations remain preserved.  Focused elaboration of the quantitative-iteration module passed.
+The new capstones use only the standard logical axioms already present; no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to instantiate the proved degree-`d` floor with the actual
+round-zero relation between `M_0` and ambient `n` in the intended circuit envelope.  If
+`20*(96*M_0)^d*T > n` there, the present whole-family realized-density iteration is
+quantitatively ruled out and the next route must amortize or avoid the family-wide key product;
+if it fits, construct the corresponding fuel-compatible initial state and iterate the stateful
+successor theorem.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### A uniform polynomial slot envelope cannot fit the product-aware schedule
+
+The degree comparison is now instantiated at the first standard circuit-envelope boundary.
+`shallowProductAwareSchedule_not_fit_of_ambient_le_slots` proves that for positive iteration depth
+and positive terminal survivor, the initial shell cannot fit whenever the round-zero slot envelope
+used by the schedule satisfies `n <= M_0`.  The zero-dimensional edge case is handled separately,
+so the theorem has no hidden positivity premise on `n`.
+
+The direct specialization
+`shallowProductAwareSchedule_not_fit_of_polynomial_slot_envelope` shows that on every nonempty
+ambient cube, every positive exponent `k`, positive depth `d`, and positive terminal `T`, choosing
+the usual uniform polynomial envelope
+
+```text
+M_0 = n^k
+```
+
+makes
+
+```text
+20 * leastFiniteProductAwareBudget d (shallowForwardActualKeys M_0) T <= n
+```
+
+false.  Thus the present whole-family realized-density iteration cannot establish a uniform result
+by simply plugging a standard `n^k` bottom-slot bound into its verified schedule.  This is an
+envelope obstruction, not a circuit lower bound: it does not say that every circuit in the class
+has `n^k` actual bottom gates, and it leaves circuit-specific sublinear or fixed-size bottom layers
+open.  The earlier exact recurrence, calibrations, and rejected non-product schedule remain in
+place.
+
+The precise next frontier is to decide whether the intended family admits a semantics-preserving
+reduction to a circuit-specific `M_0 < n` (strong enough that `20*(96*M_0)^d*T <= n`), or whether
+uniformity over all circuits of size at most `n^k` genuinely forces use of the incompatible
+envelope.  If the latter, the whole-family product route is closed for that uniform theorem and the
+next mechanism must amortize or avoid the family-wide key charge.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### A fitting circuit-specific envelope must be strictly `d`th-root sparse
+
+The possible circuit-specific escape window is now stated as a necessary condition rather than
+the weaker comparison `M_0 < n`.  The strengthened obstruction
+`shallowProductAwareSchedule_not_fit_of_ambient_le_slots_pow` proves that, for positive depth and
+positive terminal survivor, the schedule cannot fit whenever
+
+```text
+n <= M_0^d.
+```
+
+Equivalently, `slots_pow_lt_ambient_of_shallowProductAwareSchedule_fit` proves that every fitting
+schedule must satisfy
+
+```text
+M_0^d < n.
+```
+
+This is only a necessary condition; the omitted constants in the exact lower shell
+`20*(96*M_0)^d*T` make the true window smaller.  In particular, merely proving a
+semantics-preserving reduction from `M_0 <= n^k` to some unspecified `M_0 < n` would not reopen a
+multi-round route.  At depth `d`, the reduction must cross the `d`th-root scale before the
+stateful successor construction can possibly fit.
+
+The existing ideal semantic-slot API does not currently supply such a reduction.  Its preserved
+live-literal examples show that semantic cleanup removes neither every baseline slot nor the
+aggregate component charge, so duplicate elimination alone cannot establish the required
+root-scale sparsity.  This is an obstruction for the verified schedule, not a lower bound against
+all circuit representations.
+
+The precise next frontier is to test the intended initial circuit family against this root-scale
+threshold: either prove a width- and alternation-preserving representative with `M_0^d < n` and
+then discharge the stronger exact constant bound, or exhibit a family member whose minimum
+admissible bottom-slot envelope is at least the root scale.  If neither is available, the present
+whole-family product route remains quantitatively unusable and the next mechanism must amortize or
+avoid the family-wide key charge.  The independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### Width-two parity closes the circuit-specific escape window
+
+The intended dense-support parity family can now be tested against the actual circuit-owned slot
+count, without substituting a worst-case polynomial envelope.  The theorem
+`widthTwoParity_ambient_le_two_mul_bottomSlotCount` combines the already proved full-support
+necessity for parity with the width-to-clause-occurrence bound and proves that every width-two
+layered circuit computing parity, possibly XOR a fixed output phase, satisfies
+
+```text
+n <= 2 * bottomSlotCount C.
+```
+
+This semantic lower bound applies to every width-two layered representative, so duplicate removal
+or another semantics-preserving cleanup cannot create a root-sparse representative inside the
+same width class.  It is stronger than merely exhibiting one syntactically dense circuit.
+
+The capstone `widthTwoParity_shallowProductAwareSchedule_not_fit` substitutes the *actual*
+`bottomSlotCount C` into the exact forward product-aware recurrence.  For every positive iteration
+depth and positive terminal survivor it proves
+
+```text
+not (20 * leastFiniteProductAwareBudget d
+       (shallowForwardActualKeys (bottomSlotCount C)) terminal <= n).
+```
+
+Thus constants close even the one-round escape window: the schedule's homogeneous first factor is
+already `96 * bottomSlotCount C`, while width-two parity gives `n <= 2 * bottomSlotCount C`.
+The earlier polynomial-envelope and `d`th-root obstructions remain useful general regression
+theorems, but for the intended width-two parity route the conclusion is now circuit-specific and
+decisive.  This rules out the present whole-family realized-density/product schedule for that
+family; it is not a parity lower bound and does not rule out other switching encoders.
+
+Focused elaboration of the quantitative-iteration module passed.  Both new capstones print only
+the standard logical axioms already present (`propext`, `Classical.choice`, and `Quot.sound`); no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is no longer representative sparsification for width-two parity.  A
+viable dense-support iteration must remove or amortize the whole-family key product—most directly,
+prove a restriction- or survivor-conditioned charge whose round-zero cost is not linear in every
+bottom clause occurrence, and test it against the preserved scheduled counterexamples.  Absent
+such a theorem, the product-aware route should remain recorded as quantitatively closed for the
+width-two parity target.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### Any replacement product alphabet must beat the exact 240-to-one first-round threshold
+
+The required amortization is now quantified independently of the later-round key recurrence.
+`widthTwoParity_firstKey_compression_of_productAwareSchedule_fit` accepts an arbitrary key sequence
+`actualKeys`, a positive number of rounds, and a positive terminal survivor.  If the exact
+product-aware shell fits a width-two parity representative with actual bottom-slot count `M`, then
+its first charged alphabet `A = actualKeys 1` necessarily satisfies
+
+```text
+240*A + 260 <= M.
+```
+
+The proof uses only the first exact predecessor factor `(24*A+26)`, positivity of the remaining
+backward budget, the initial shell multiplier `20`, and the circuit-specific support bound
+`n <= 2*M`.  Consequently the result does not assume the current forward key cap, and no amount of
+later-round amortization repairs a first alphabet above this threshold.
+
+The contrapositive
+`widthTwoParity_productAwareSchedule_not_fit_of_firstKey_undercompressed` records the operational
+form: if `M < 240*A+260`, the schedule cannot fit.  Thus replacing the present `A=4*M` charge by
+`A=M`, or even by one key per any fixed block of at most 239 occurrences, remains quantitatively
+insufficient.  A viable product-form encoder must already compress the first round beyond roughly
+240 slot occurrences per key (and then still satisfy all later factors).  This does not exclude a
+different density theorem whose demand is not proportional to `A` times the survivor shell.
+
+Focused elaboration of the quantitative-iteration module passed, and the full `lake build` passed
+(8,068 jobs).  Both new capstones print only `propext`, `Classical.choice`, and `Quot.sound`; no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to test a genuinely restriction- or survivor-conditioned alphabet
+against this threshold: construct a sound first-round code with `240*A+260 <= bottomSlotCount C`
+for the dense-support parity family, then audit its later-round recurrence.  If every sound code
+still needs more than `(M-260)/240` first-round keys, prove that lower bound and close the entire
+present product-demand form; otherwise thread the compressed alphabet through the realized-density
+decoder and the preserved scheduled counterexamples.  The independent density/fiber obstructions
+remain open.  No P-versus-NP conclusion follows.
+
+### The exact tail makes the first-round threshold exponential in round count
+
+The first-round audit now retains the tail budget discarded by the preceding positivity argument.
+`leastFiniteProductAwareBudget_baseline_lower` proves, for every alphabet sequence (including an
+identically zero sequence), that `e` remaining product-aware transitions and terminal survivor
+`T` cost at least
+
+```text
+26^e * T.
+```
+
+The exact circuit-specific theorem
+`widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit` shows that if the schedule fits a
+width-two parity representative, first alphabet `A`, actual bottom-slot count `M`, and remaining
+least budget `B`, then
+
+```text
+(240*A + 260) * B <= M.
+```
+
+Consequently `widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit` proves the
+alphabet-independent depth form
+
+```text
+(240*A + 260) * 26^(d-1) * T <= M
+```
+
+for every positive `d`.  Thus the earlier 240-to-one target is exact only for one round with
+terminal survivor one.  Two rounds already require the first-round charge, including its additive
+constant, to fit after a factor 26; each additional round imposes another factor 26 even under the
+unrealistically favorable assumption that every later alphabet is empty.  Later-round
+amortization therefore tightens rather than merely preserves the first-round obstruction.
+
+Focused elaboration passed, and the new capstones print only `propext`, `Classical.choice`, and
+`Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  The
+earlier normalization results, counterexamples, and rejected schedules remain preserved.
+
+The precise next frontier is to compare a concrete sound restriction- or survivor-conditioned
+first-round code against the depth-sensitive bound, not the one-round bound: for intended depth
+`d` and terminal `T`, prove its alphabet satisfies
+`(240*A+260)*26^(d-1)*T <= bottomSlotCount C` and then audit its actual (necessarily more expensive)
+tail.  Alternatively, prove a lower bound on every sound conditioned alphabet that violates this
+inequality, closing the current product-demand form at that depth.  A non-product density theorem
+remains outside this obstruction.  No P-versus-NP conclusion follows.
