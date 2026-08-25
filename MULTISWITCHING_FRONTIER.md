@@ -11499,3 +11499,28 @@ transported certificate to `leaf_collapseRound_family_bounds`, retaining the sto
 successor certificate) in the round state for iteration.  The remaining audit is now state
 plumbing and the next-round family change, not production terminality of the counted trunk.  The
 independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The stored certificate now crosses one real layered survivor transition
+
+`StoredCommonTerminalAt.extended_leaf_collapseRound_family_bounds` is the first explicit stateful
+round wrapper.  Starting from a stored terminal certificate for the normalized two-polarity family
+of `C`, it accepts an arbitrary survivor restriction extending the certificate root, retains the
+transported `StoredCommonTerminalAt` object at that restriction, converts that same object to
+residual-depth-zero `CommonShallowAt`, and feeds it directly to
+`leaf_collapseRound_family_bounds`.
+
+At every reached trunk leaf the resulting collapse keeps at most `M` bottom gates and has clause
+bound `M * 2^(0+1)`.  This verifies that certificate transport, rebuild-fuel independence, family
+coverage, and the existing layered collapse interface compose without another semantic lemma.
+The theorem deliberately retains terminality only for the old family.  Its output circuit has a
+new normalized bottom-gate family, and semantic terminality of the old gates says nothing about
+those newly synthesized clauses.
+
+The full layered-bridge source elaborates successfully.  The precise next frontier is therefore
+the successor-state constructor: combine the collapsed circuit and its survivor restriction with
+the next realized-density selection, prove the selected next root extends the reached leaf, and
+return a fresh `StoredCommonTerminalAt` for
+`normalizedLayeredBottomFamily (collapseRound ...)`.  That step must audit the next density premise
+against the proved `M * 2` residual-zero clause bound; reusing the old certificate across the family
+change would be unsound.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
