@@ -9,7 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthSwitchingSkipCollision
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingLayeredBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingNormalize
-import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingTwoSATBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingSupportSurvivor
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -188,6 +188,302 @@ theorem liftLiveAssignment_agrees {n : ℕ} (τ : Restriction n)
     liftLiveAssignment τ x (liveCoordEquiv τ i) = x i := by
   rw [liftLiveAssignment, dif_pos (liveCoordEquiv τ i).property]
   simp
+
+/-- Extending a live-cube assignment to the ambient cube loses no information: every input bit
+can be read back at its corresponding live ambient coordinate. -/
+theorem liftLiveAssignment_injective {n : ℕ} (τ : Restriction n) :
+    Function.Injective (liftLiveAssignment τ) := by
+  intro x y hxy
+  funext i
+  have hi := congrFun hxy (liveCoordEquiv τ i)
+  simpa using hi
+
+/-! ### Parity phase under live-coordinate localization -/
+
+/-- The number of ambient coordinates fixed to `true` by a restriction. -/
+def fixedTrueCount {n : ℕ} (τ : Restriction n) : ℕ :=
+  (Finset.univ.filter (fun v => τ v = some true)).card
+
+/-- The fixed-coordinate phase acquired when ambient parity is restricted to the live cube. -/
+def fixedParityPhase {n : ℕ} (τ : Restriction n) : Bool :=
+  decide (Odd (fixedTrueCount τ))
+
+/-- Oddness of a sum is Boolean xor of the two summands' oddness bits. -/
+theorem decide_odd_add (a b : ℕ) :
+    decide (Odd (a + b)) = xor (decide (Odd a)) (decide (Odd b)) := by
+  by_cases ha : Odd a <;> by_cases hb : Odd b <;>
+    simp [ha, hb, Nat.odd_add, Nat.not_odd_iff_even.mp]
+
+/-- Extending a live assignment adds exactly the `true` coordinates already fixed by the
+restriction.  This is the counting identity behind the parity phase. -/
+theorem trueCount_liftLiveAssignment {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) :
+    DTree.trueCount (liftLiveAssignment τ x) =
+      DTree.trueCount x + fixedTrueCount τ := by
+  classical
+  let A := Finset.univ.filter (fun v => liftLiveAssignment τ x v = true)
+  have hsplit := Finset.card_filter_add_card_filter_not
+    (s := A) (fun v => v ∈ freeVars τ)
+  have hlive :
+      (A.filter (fun v => v ∈ freeVars τ)).card = DTree.trueCount x := by
+    have hset :
+        A.filter (fun v => v ∈ freeVars τ) =
+          (Finset.univ.filter (fun i => x i = true)).image
+            (fun i => (liveCoordEquiv τ i).1) := by
+      ext v
+      simp only [A, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image]
+      constructor
+      · rintro ⟨hvtrue, hvfree⟩
+        let i : Fin (stars τ) := (liveCoordEquiv τ).symm ⟨v, hvfree⟩
+        refine ⟨i, ?_, ?_⟩
+        · simpa [liftLiveAssignment, hvfree, i] using hvtrue
+        · simp [i]
+      · rintro ⟨i, hitrue, rfl⟩
+        exact ⟨by simpa using hitrue, (liveCoordEquiv τ i).property⟩
+    rw [hset, Finset.card_image_of_injective]
+    · rfl
+    · intro i j hij
+      exact (liveCoordEquiv τ).injective (Subtype.ext hij)
+  have hfixed :
+      (A.filter (fun v => ¬ v ∈ freeVars τ)).card = fixedTrueCount τ := by
+    congr 1
+    ext v
+    simp only [A, Finset.mem_filter, Finset.mem_univ, true_and]
+    by_cases hv : v ∈ freeVars τ
+    · have hnone : τ v = none := by simpa [mem_freeVars] using hv
+      simp [hv, hnone]
+    · have hne : τ v ≠ none := by simpa [mem_freeVars] using hv
+      cases hτ : τ v with
+      | none => exact (hne hτ).elim
+      | some b => cases b <;> simp [liftLiveAssignment, hv, hτ]
+  rw [hlive, hfixed] at hsplit
+  simpa [DTree.trueCount, A] using hsplit.symm
+
+/-- Ambient parity on a restricted subcube is live-coordinate parity xor the phase of the
+coordinates fixed to `true`. -/
+theorem parity_liftLiveAssignment {n : ℕ} (τ : Restriction n)
+    (x : Fin (stars τ) → Bool) :
+    DTree.parity (liftLiveAssignment τ x) =
+      xor (DTree.parity x) (fixedParityPhase τ) := by
+  rw [DTree.parity, trueCount_liftLiveAssignment, decide_odd_add]
+  rfl
+
+/-- Complementing parity by an arbitrary fixed phase does not weaken the decision-tree lower
+bound.  This is the localization-aware cashout interface: unlike the older same-ambient theorem,
+it is stated directly on the relabelled live cube. -/
+theorem DTree.shallow_dtree_not_parity_xor {m : ℕ} (t : DTree m) (phase : Bool)
+    (hd : t.depth < m) :
+    ∃ x, t.eval x ≠ xor (DTree.parity x) phase := by
+  cases phase with
+  | false => simpa using DTree.shallow_dtree_not_parity t hd
+  | true =>
+      have hdepth : (DTree.negTree t).depth < m := by
+        simpa [DTree.negTree_depth] using hd
+      obtain ⟨x, hx⟩ := DTree.shallow_dtree_not_parity (DTree.negTree t) hdepth
+      refine ⟨x, ?_⟩
+      rw [DTree.negTree_eval] at hx
+      cases ht : t.eval x <;> cases hp : DTree.parity x <;> simp_all
+
+/-- The image of the canonical live-cube embedding is exactly the set of total assignments
+agreeing with the fixed coordinates of the restriction. -/
+theorem exists_liftLiveAssignment_eq_iff_agrees {n : ℕ} (τ : Restriction n)
+    (x : Fin n → Bool) :
+    (∃ z : Fin (stars τ) → Bool, liftLiveAssignment τ z = x) ↔
+      DTree.agreeRestriction τ x := by
+  constructor
+  · rintro ⟨z, rfl⟩
+    exact liftLiveAssignment_agrees τ z
+  · intro hx
+    refine ⟨fun i => x (liveCoordEquiv τ i), ?_⟩
+    funext v
+    by_cases hv : v ∈ freeVars τ
+    · simp [liftLiveAssignment, hv]
+    · have hfixed : τ v ≠ none := by
+        intro hnone
+        apply hv
+        rw [mem_freeVars, hnone]
+      cases hτ : τ v with
+      | none => exact (hfixed hτ).elim
+      | some b =>
+          simpa [liftLiveAssignment, hv, hτ] using (hx v b hτ).symm
+
+/-- The finite cube of total assignments compatible with a restriction. -/
+noncomputable def assignmentsAgreeingRestriction {n : ℕ} (τ : Restriction n) :
+    Finset (Fin n → Bool) := by
+  classical
+  exact Finset.univ.filter fun x => DTree.agreeRestriction τ x
+
+/-- A restriction with `stars τ` live coordinates has exactly `2 ^ stars τ` compatible total
+assignments.  This is the assignment-side counterpart of the earlier binomial count of
+restrictions compatible with one fixed assignment. -/
+theorem card_assignments_agreeing_restriction {n : ℕ} (τ : Restriction n) :
+    (assignmentsAgreeingRestriction τ).card = 2 ^ stars τ := by
+  classical
+  have himage :
+      (Finset.univ : Finset (Fin (stars τ) → Bool)).image (liftLiveAssignment τ) =
+        assignmentsAgreeingRestriction τ := by
+    ext x
+    simp only [Finset.mem_image, Finset.mem_univ, true_and,
+      assignmentsAgreeingRestriction, Finset.mem_filter]
+    exact exists_liftLiveAssignment_eq_iff_agrees τ x
+  rw [← himage, Finset.card_image_of_injective _ (liftLiveAssignment_injective τ)]
+  simp [Fintype.card_fin, Fintype.card_bool]
+
+/-- The canonical restriction of an agreeing ambient assignment to the live coordinates lifts
+back to that same ambient assignment. -/
+theorem liftLiveAssignment_restrict_eq_of_agrees {n : ℕ} (τ : Restriction n)
+    (x : Fin n → Bool) (hx : DTree.agreeRestriction τ x) :
+    liftLiveAssignment τ (fun i => x (liveCoordEquiv τ i)) = x := by
+  funext v
+  by_cases hv : v ∈ freeVars τ
+  · simp [liftLiveAssignment, hv]
+  · have hfixed : τ v ≠ none := by
+      intro hnone
+      apply hv
+      rw [mem_freeVars, hnone]
+    cases hτ : τ v with
+    | none => exact (hfixed hτ).elim
+    | some b =>
+        simpa [liftLiveAssignment, hv, hτ] using (hx v b hτ).symm
+
+/-- Two restrictions are compatible when they never fix one ambient coordinate to opposite
+Boolean values.  They may still have different live sets. -/
+def RestrictionsCompatible {n : ℕ} (τ υ : Restriction n) : Prop :=
+  ∀ v b c, τ v = some b → υ v = some c → b = c
+
+/-- Compatibility is exactly the existence of a common total extension. -/
+theorem restrictionsCompatible_iff_exists_agrees {n : ℕ} (τ υ : Restriction n) :
+    RestrictionsCompatible τ υ ↔
+      ∃ x : Fin n → Bool,
+        DTree.agreeRestriction τ x ∧ DTree.agreeRestriction υ x := by
+  constructor
+  · intro hcompat
+    let x : Fin n → Bool := fun v => (τ v).getD ((υ v).getD false)
+    refine ⟨x, ?_, ?_⟩
+    · intro v b hτ
+      simp [x, hτ]
+    · intro v b hυ
+      cases hτ : τ v with
+      | none => simp [x, hτ, hυ]
+      | some c =>
+          have hcb : c = b := hcompat v c b hτ hυ
+          simp [x, hτ, hcb]
+  · rintro ⟨x, hxτ, hxυ⟩ v b c hτ hυ
+    exact (hxτ v b hτ).symm.trans (hxυ v c hυ)
+
+/-- The unique restriction with prescribed live-variable set `S` that agrees with `x` on every
+fixed coordinate. -/
+def restrictionWithFreeSet {n : ℕ} (x : Fin n → Bool) (S : Finset (Fin n)) :
+    Restriction n :=
+  fun v => if v ∈ S then none else some (x v)
+
+@[simp] theorem freeVars_restrictionWithFreeSet {n : ℕ} (x : Fin n → Bool)
+    (S : Finset (Fin n)) :
+    freeVars (restrictionWithFreeSet x S) = S := by
+  ext v
+  simp [mem_freeVars, restrictionWithFreeSet]
+
+@[simp] theorem stars_restrictionWithFreeSet {n : ℕ} (x : Fin n → Bool)
+    (S : Finset (Fin n)) :
+    stars (restrictionWithFreeSet x S) = S.card := by
+  simp [stars]
+
+theorem agreeRestriction_restrictionWithFreeSet {n : ℕ} (x : Fin n → Bool)
+    (S : Finset (Fin n)) :
+    DTree.agreeRestriction (restrictionWithFreeSet x S) x := by
+  intro v b hv
+  simp only [restrictionWithFreeSet] at hv
+  split at hv
+  · simp at hv
+  · simpa using hv
+
+/-- Agreement makes the free-variable set a complete code for a restriction. -/
+theorem restrictionWithFreeSet_freeVars_of_agrees {n : ℕ} (x : Fin n → Bool)
+    (rho : Restriction n) (hrho : DTree.agreeRestriction rho x) :
+    restrictionWithFreeSet x (freeVars rho) = rho := by
+  funext v
+  cases h : rho v with
+  | none => simp [restrictionWithFreeSet, mem_freeVars, h]
+  | some b =>
+      have hxb : x v = b := hrho v b h
+      simp [restrictionWithFreeSet, mem_freeVars, h, hxb]
+
+/-- Exact stars-and-bars-free parametrization of all `K`-live restrictions compatible with one
+total assignment: choosing the live set is the only remaining choice. -/
+noncomputable def agreeingRestrictionEquivFreeSet {n K : ℕ} (x : Fin n → Bool) :
+    {rho : Restriction n // stars rho = K ∧ DTree.agreeRestriction rho x} ≃
+      {S : Finset (Fin n) // S.card = K} where
+  toFun rho := ⟨freeVars rho, by simpa [stars] using rho.2.1⟩
+  invFun S := ⟨restrictionWithFreeSet x S, by
+    exact ⟨by simpa using S.2, agreeRestriction_restrictionWithFreeSet x S⟩⟩
+  left_inv rho := by
+    apply Subtype.ext
+    exact restrictionWithFreeSet_freeVars_of_agrees x rho rho.2.2
+  right_inv S := by
+    apply Subtype.ext
+    exact freeVars_restrictionWithFreeSet x S
+
+/-- Exact ambient compatibility degree at live dimension `K`.  This counts all distinct
+restriction cubes containing a fixed root assignment, so every generated path-tree family is a
+subfamily of a set of this size. -/
+theorem card_agreeing_restrictions_of_stars_eq {n K : ℕ} (x : Fin n → Bool) :
+    Nat.card {rho : Restriction n //
+      stars rho = K ∧ DTree.agreeRestriction rho x} = n.choose K := by
+  rw [Nat.card_congr (agreeingRestrictionEquivFreeSet x)]
+  rw [Nat.card_eq_fintype_card]
+  simpa using (Fintype.card_finset_len (α := Fin n) K)
+
+/-- Any finite injectively indexed family of distinct `K`-live restrictions whose cubes contain
+one root assignment has compatibility degree at most `choose n K`. -/
+theorem card_distinct_agreeing_restriction_family_le_choose
+    {n K : ℕ} {I : Type} [Finite I] (x : Fin n → Bool)
+    (root : I → Restriction n) (hinj : Function.Injective root)
+    (hstars : ∀ i, stars (root i) = K)
+    (hagrees : ∀ i, DTree.agreeRestriction (root i) x) :
+    Nat.card I ≤ n.choose K := by
+  let into : I → {rho : Restriction n //
+      stars rho = K ∧ DTree.agreeRestriction rho x} :=
+    fun i => ⟨root i, hstars i, hagrees i⟩
+  have hinto : Function.Injective into := by
+    intro i j hij
+    apply hinj
+    exact congrArg Subtype.val hij
+  rw [← card_agreeing_restrictions_of_stars_eq x]
+  exact Nat.card_le_card_of_injective into hinto
+
+/-- Exact cross-branch overlap criterion for one localized edge: two live-cube images intersect
+if and only if their fixed coordinates are compatible.  Distinct live sets therefore do not by
+themselves supply disjoint branch labels. -/
+theorem liftLiveAssignment_ranges_overlap_iff {n : ℕ} (τ υ : Restriction n) :
+    (∃ z : Fin (stars τ) → Bool, ∃ w : Fin (stars υ) → Bool,
+      liftLiveAssignment τ z = liftLiveAssignment υ w) ↔
+      RestrictionsCompatible τ υ := by
+  rw [restrictionsCompatible_iff_exists_agrees]
+  constructor
+  · rintro ⟨z, w, hzw⟩
+    exact ⟨liftLiveAssignment τ z,
+      liftLiveAssignment_agrees τ z,
+      hzw ▸ liftLiveAssignment_agrees υ w⟩
+  · rintro ⟨x, hxτ, hxυ⟩
+    obtain ⟨z, hz⟩ := (exists_liftLiveAssignment_eq_iff_agrees τ x).2 hxτ
+    obtain ⟨w, hw⟩ := (exists_liftLiveAssignment_eq_iff_agrees υ x).2 hxυ
+    exact ⟨z, w, hz.trans hw.symm⟩
+
+/-- Disjointness cannot be the generic cross-branch theorem: already on two coordinates there
+are distinct restrictions with intersecting live-cube images.  The two branches fix complementary
+coordinates, so their common all-false assignment is retained by both. -/
+theorem exists_distinct_restrictions_with_overlapping_lift_ranges :
+    ∃ τ υ : Restriction 2, τ ≠ υ ∧
+      (∃ z : Fin (stars τ) → Bool, ∃ w : Fin (stars υ) → Bool,
+        liftLiveAssignment τ z = liftLiveAssignment υ w) := by
+  let τ : Restriction 2 := fun v => if v = 0 then some false else none
+  let υ : Restriction 2 := fun v => if v = 1 then some false else none
+  refine ⟨τ, υ, ?_, (liftLiveAssignment_ranges_overlap_iff τ υ).2 ?_⟩
+  · intro h
+    have h0 := congrFun h (0 : Fin 2)
+    simp [τ, υ] at h0
+  · intro v b c hτ hυ
+    fin_cases v <;> simp [τ, υ] at hτ hυ
 
 theorem localizeLiveLiteral_eval {n : ℕ} (τ : Restriction n)
     (x : Fin (stars τ) → Bool) (l : Rung4Literal n)
@@ -833,6 +1129,49 @@ theorem localizeLiveLayered_depthList {n : ℕ} (τ : Restriction n) :
       rw [localizeLiveLayered_depth τ g, localizeLiveLayered_depthList τ gs]
 end
 
+mutual
+/-- Live-coordinate transport preserves the exact top-`OR` alternating shape.  In particular,
+the nonempty internal gate lists carried by `AltO` survive localization, so a localized output can
+feed the `NonEmptyGates` premise of the following switching round. -/
+theorem localizeLiveLayered_AltO {n : ℕ} (τ : Restriction n) :
+    ∀ {k : ℕ} {C : Layered n}, AltO k C → AltO k (localizeLiveLayered τ C)
+  | _, _, AltO.dnf cs => by
+      simpa only [localizeLiveLayered] using AltO.dnf (localizeLiveDnf τ cs)
+  | _, _, AltO.gOr k gs hne h => by
+      rw [localizeLiveLayered]
+      refine AltO.gOr k (gs.map (localizeLiveLayered τ)) (by simpa using hne) ?_
+      intro g' hg'
+      rw [List.mem_map] at hg'
+      obtain ⟨g, hg, rfl⟩ := hg'
+      exact localizeLiveLayered_AltA τ (h g hg)
+/-- Live-coordinate transport preserves the exact top-`AND` alternating shape. -/
+theorem localizeLiveLayered_AltA {n : ℕ} (τ : Restriction n) :
+    ∀ {k : ℕ} {C : Layered n}, AltA k C → AltA k (localizeLiveLayered τ C)
+  | _, _, AltA.cnf cs => by
+      simpa only [localizeLiveLayered] using AltA.cnf (localizeLiveCnf τ cs)
+  | _, _, AltA.gAnd k gs hne h => by
+      rw [localizeLiveLayered]
+      refine AltA.gAnd k (gs.map (localizeLiveLayered τ)) (by simpa using hne) ?_
+      intro g' hg'
+      rw [List.mem_map] at hg'
+      obtain ⟨g, hg, rfl⟩ := hg'
+      exact localizeLiveLayered_AltO τ (h g hg)
+end
+
+/-- Collapse followed by exact live-coordinate transport still removes one alternating layer.
+This is the structural handoff needed to derive `NonEmptyGates` for the next localized round. -/
+theorem localizeLiveLayered_collapseRound_AltO {n fuel k : ℕ}
+    (κ τ : Restriction n) {C : Layered n} (hAlt : AltO (k + 3) C) :
+    AltO (k + 2) (localizeLiveLayered κ (collapseRound fuel τ C)) := by
+  exact localizeLiveLayered_AltO κ (collapseRound_AltO fuel τ hAlt)
+
+/-- The localized collapsed output has nonempty gates whenever it still has alternating shape,
+discharging the one-round capstone's structural premise at the following iteration. -/
+theorem localizeLiveLayered_collapseRound_NonEmptyGates {n fuel k : ℕ}
+    (κ τ : Restriction n) {C : Layered n} (hAlt : AltO (k + 3) C) :
+    NonEmptyGates (localizeLiveLayered κ (collapseRound fuel τ C)) := by
+  exact AltO_NonEmptyGates (localizeLiveLayered_collapseRound_AltO κ τ hAlt)
+
 theorem localizeLiveClause_width_le {n : ℕ} (τ : Restriction n) (T : Clause n) :
     (localizeLiveClause τ T).lits.length ≤ T.lits.length := by
   exact List.length_filterMap_le _ _
@@ -950,17 +1289,2928 @@ theorem localizeLiveLayered_bottomSlotCountList_le {n : ℕ} (τ : Restriction n
         (localizeLiveLayered_bottomSlotCountList_le τ gs)
 end
 
+/-! ### Bottom-support transport through live-coordinate localization -/
+
+/-- Relabelling a localized clause back into ambient coordinates uses only variables that occurred
+in the source clause and were live in the localizing restriction.  The reverse inclusion is not
+valid in general: an otherwise-live variable may occur only in a clause killed by another fixed
+literal, and localization discards that whole clause. -/
+theorem image_clauseVariableSupport_localizeLiveClause_subset {n : ℕ}
+    (τ : Restriction n) (T : Clause n) :
+    (clauseVariableSupport (localizeLiveClause τ T)).image
+        (fun i => (liveCoordEquiv τ i).1) ⊆
+      clauseVariableSupport T ∩ freeVars τ := by
+  intro v hv
+  obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hv
+  rw [clauseVariableSupport] at hi ⊢
+  have hiList : i ∈ (localizeLiveClause τ T).lits.map litVarOf :=
+    List.mem_toFinset.mp hi
+  obtain ⟨ell', hell', hvar⟩ := List.mem_map.mp hiList
+  obtain ⟨ell, hell, hloc⟩ := List.mem_filterMap.mp hell'
+  have hamb : (liveCoordEquiv τ (litVarOf ell')).1 = litVarOf ell :=
+    localizeLiveLiteral_litVar τ ell ell' hloc
+  have hfree : litVarOf ell ∈ freeVars τ := by
+    cases ell with
+    | pos w =>
+        simp only [localizeLiveLiteral] at hloc
+        split at hloc
+        · assumption
+        · simp at hloc
+    | neg w =>
+        simp only [localizeLiveLiteral] at hloc
+        split at hloc
+        · assumption
+        · simp at hloc
+  rw [← hvar, hamb]
+  exact Finset.mem_inter.mpr
+    ⟨List.mem_toFinset.mpr (List.mem_map.mpr ⟨ell, hell, rfl⟩), hfree⟩
+
+/-- Gate-level localization law for DNF payloads. -/
+theorem image_gateVariableSupport_localizeLiveDnf_subset {n : ℕ}
+    (τ : Restriction n) (cs : List (Clause n)) :
+    (gateVariableSupport (localizeLiveDnf τ cs)).image
+        (fun i => (liveCoordEquiv τ i).1) ⊆
+      gateVariableSupport cs ∩ freeVars τ := by
+  intro v hv
+  obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp hv
+  rw [gateVariableSupport] at hi ⊢
+  obtain ⟨T', hT', hiT'⟩ := Finset.mem_biUnion.mp hi
+  obtain ⟨T, hT, rfl⟩ := List.mem_map.mp
+    (show T' ∈ localizeLiveDnf τ cs from List.mem_toFinset.mp hT')
+  have hlocal := image_clauseVariableSupport_localizeLiveClause_subset τ T
+    (Finset.mem_image.mpr ⟨i, hiT', rfl⟩)
+  exact Finset.mem_inter.mpr ⟨Finset.mem_biUnion.mpr
+    ⟨T, List.mem_toFinset.mpr (List.mem_filter.mp hT).1,
+      (Finset.mem_inter.mp hlocal).1⟩, (Finset.mem_inter.mp hlocal).2⟩
+
+/-- Gate-level localization law for CNF payloads. -/
+theorem image_gateVariableSupport_localizeLiveCnf_subset {n : ℕ}
+    (τ : Restriction n) (cs : List (Clause n)) :
+    (gateVariableSupport (localizeLiveCnf τ cs)).image
+        (fun i => (liveCoordEquiv τ i).1) ⊆
+      gateVariableSupport cs ∩ freeVars τ := by
+  rw [localizeLiveCnf, gateVariableSupport_negDNF]
+  simpa using image_gateVariableSupport_localizeLiveDnf_subset τ (negDNF cs)
+
+mutual
+/-- Full localization image/intersection law, in its strongest generally valid direction. -/
+theorem image_layeredBottomVariableSupport_localizeLiveLayered_subset {n : ℕ}
+    (τ : Restriction n) : ∀ C : Layered n,
+    (layeredBottomVariableSupport (localizeLiveLayered τ C)).image
+        (fun i => (liveCoordEquiv τ i).1) ⊆
+      layeredBottomVariableSupport C ∩ freeVars τ
+  | Layered.dnf cs => by
+      simpa [layeredBottomVariableSupport, bottomGates, localizeLiveLayered] using
+        image_gateVariableSupport_localizeLiveDnf_subset τ cs
+  | Layered.cnf cs => by
+      simpa [layeredBottomVariableSupport, bottomGates, localizeLiveLayered] using
+        image_gateVariableSupport_localizeLiveCnf_subset τ cs
+  | Layered.gAnd gs => by
+      rw [localizeLiveLayered]
+      exact image_layeredBottomVariableSupport_localizeLiveLayeredList_subset τ gs
+  | Layered.gOr gs => by
+      rw [localizeLiveLayered]
+      simpa [layeredBottomVariableSupport, bottomGates] using
+        image_layeredBottomVariableSupport_localizeLiveLayeredList_subset τ gs
+theorem image_layeredBottomVariableSupport_localizeLiveLayeredList_subset {n : ℕ}
+    (τ : Restriction n) : ∀ gs : List (Layered n),
+    (layeredBottomVariableSupport
+        (Layered.gAnd (gs.map (localizeLiveLayered τ)))).image
+        (fun i => (liveCoordEquiv τ i).1) ⊆
+      layeredBottomVariableSupport (Layered.gAnd gs) ∩ freeVars τ
+  | [] => by simp [layeredBottomVariableSupport, bottomGates, bottomGatesList]
+  | g :: gs => by
+      intro v hv
+      have hlocal : layeredBottomVariableSupport
+          (Layered.gAnd ((g :: gs).map (localizeLiveLayered τ))) =
+          layeredBottomVariableSupport (localizeLiveLayered τ g) ∪
+            layeredBottomVariableSupport
+              (Layered.gAnd (gs.map (localizeLiveLayered τ))) := by
+        ext i
+        simp only [layeredBottomVariableSupport, bottomGates, bottomGatesList,
+          List.map_cons, List.toFinset_append, Finset.mem_biUnion,
+          Finset.mem_union, List.mem_toFinset]
+        aesop
+      have hsource : layeredBottomVariableSupport (Layered.gAnd (g :: gs)) =
+          layeredBottomVariableSupport g ∪
+            layeredBottomVariableSupport (Layered.gAnd gs) := by
+        ext i
+        simp only [layeredBottomVariableSupport, bottomGates, bottomGatesList,
+          List.toFinset_append, Finset.mem_biUnion,
+          Finset.mem_union, List.mem_toFinset]
+        aesop
+      rw [hlocal, Finset.image_union] at hv
+      rw [hsource]
+      rcases Finset.mem_union.mp hv with hg | hgs
+      · have hg' := image_layeredBottomVariableSupport_localizeLiveLayered_subset τ g hg
+        exact Finset.mem_inter.mpr ⟨Finset.mem_union_left _ (Finset.mem_inter.mp hg').1,
+          (Finset.mem_inter.mp hg').2⟩
+      · have hgs' := image_layeredBottomVariableSupport_localizeLiveLayeredList_subset τ gs hgs
+        exact Finset.mem_inter.mpr ⟨Finset.mem_union_right _ (Finset.mem_inter.mp hgs').1,
+          (Finset.mem_inter.mp hgs').2⟩
+end
+
+/-- Cardinal form of the localization law. -/
+theorem layeredBottomVariableSupport_localizeLiveLayered_card_le_inter {n : ℕ}
+    (τ : Restriction n) (C : Layered n) :
+    (layeredBottomVariableSupport (localizeLiveLayered τ C)).card ≤
+      (layeredBottomVariableSupport C ∩ freeVars τ).card := by
+  have hinj : Function.Injective (fun i : Fin (stars τ) => (liveCoordEquiv τ i).1) := by
+    intro a b hab
+    exact (liveCoordEquiv τ).injective (Subtype.ext hab)
+  rw [← Finset.card_image_of_injective _ hinj]
+  exact Finset.card_le_card
+    (image_layeredBottomVariableSupport_localizeLiveLayered_subset τ C)
+
+/-- The exact support recurrence for the transformation used by a survivor round: collapse cannot
+add ambient support, and localization retains only coordinates in the chosen survivor set. -/
+theorem layeredBottomVariableSupport_localizeLiveLayered_collapseRound_card_le_inter
+    {n fuel : ℕ} (τ κ : Restriction n) (C : Layered n) :
+    (layeredBottomVariableSupport
+        (localizeLiveLayered κ (collapseRound fuel τ C))).card ≤
+      (layeredBottomVariableSupport C ∩ freeVars κ).card := by
+  refine (layeredBottomVariableSupport_localizeLiveLayered_card_le_inter κ
+    (collapseRound fuel τ C)).trans (Finset.card_le_card ?_)
+  intro v hv
+  exact Finset.mem_inter.mpr
+    ⟨layeredBottomVariableSupport_collapseRound_subset τ C (Finset.mem_inter.mp hv).1,
+      (Finset.mem_inter.mp hv).2⟩
+
+/-! ### The exact-size survivor selector does not control support overlap -/
+
+/-- A restriction extension can only remove live coordinates.  This pointwise form strengthens the
+cardinality-only `stars_le_of_restrictionExtends` interface and is useful for auditing survivor
+overlap. -/
+theorem freeVars_subset_of_restrictionExtends {n : ℕ}
+    {σ τ : Restriction n} (h : RestrictionExtends σ τ) :
+    freeVars τ ⊆ freeVars σ := by
+  intro v hv
+  rw [mem_freeVars] at hv ⊢
+  cases hσ : σ v with
+  | none => rfl
+  | some b =>
+      rw [h v b hσ] at hv
+      simp at hv
+
+/-- If the current support already covers every base-live coordinate, every exact-size extension
+has overlap equal to its complete live count.  No choice made by
+`exists_restrictionExtends_stars_eq` can improve this case. -/
+theorem support_inter_freeVars_card_eq_stars_of_cover {n : ℕ}
+    {base ρ : Restriction n} {S : Finset (Fin n)}
+    (hext : RestrictionExtends base ρ) (hcover : freeVars base ⊆ S) :
+    (S ∩ freeVars ρ).card = stars ρ := by
+  have hsub : freeVars ρ ⊆ S :=
+    (freeVars_subset_of_restrictionExtends hext).trans hcover
+  rw [Finset.inter_eq_right.mpr hsub, stars]
+
+/-- A concrete globally sparse support occupying one of sixteen ambient coordinates. -/
+def sparseSupport16 : Finset (Fin 16) := {0}
+
+/-- The matching leaf has only that supported coordinate live. -/
+def sparseSupportRoot16 : Restriction 16 :=
+  fun i => if i = 0 then none else some false
+
+theorem sparseSupport16_card : sparseSupport16.card = 1 := by decide
+
+theorem sparseSupportRoot16_freeVars :
+    freeVars sparseSupportRoot16 = sparseSupport16 := by decide
+
+/-- The first-round global factor-sixteen density premise holds exactly in the example. -/
+theorem sparseSupport16_global_density :
+    16 * sparseSupport16.card ≤ 16 := by decide
+
+/-- Nevertheless every exact one-survivor extension has overlap one, so the desired next-round
+factor-sixteen premise is false.  This is a counterexample to deriving overlap control from global
+support density plus the present arbitrary exact-cardinality selector. -/
+theorem sparseSupport16_exact_survivor_overlap
+    {ρ : Restriction 16} (hext : RestrictionExtends sparseSupportRoot16 ρ)
+    (hstars : stars ρ = 1) :
+    (sparseSupport16 ∩ freeVars ρ).card = 1 ∧
+      ¬ 16 * (sparseSupport16 ∩ freeVars ρ).card ≤ 1 := by
+  have hcover : freeVars sparseSupportRoot16 ⊆ sparseSupport16 := by
+    rw [sparseSupportRoot16_freeVars]
+  have hover := support_inter_freeVars_card_eq_stars_of_cover hext hcover
+  rw [hstars] at hover
+  constructor
+  · exact hover
+  · omega
+
+/-- Outside-support capacity is sufficient for an overlap-aware exact survivor choice.  Keeping
+`K - q` live coordinates outside `S`, then filling the remaining `q` positions arbitrarily from
+the still-live coordinates, produces an extension whose support overlap is at most `q`. -/
+theorem exists_restrictionExtends_stars_eq_inter_card_le {n K q : ℕ}
+    (base : Restriction n) (S : Finset (Fin n))
+    (hqK : q ≤ K) (hK : K ≤ stars base)
+    (hout : K - q ≤ (freeVars base \ S).card) :
+    ∃ rho : Restriction n,
+      RestrictionExtends base rho ∧ stars rho = K ∧
+        (S ∩ freeVars rho).card ≤ q := by
+  classical
+  obtain ⟨outside, houtsideSub, houtsideCard⟩ := Finset.exists_subset_card_eq
+    (s := freeVars base \ S) (n := K - q) hout
+  have houtsideLive : outside ⊆ freeVars base :=
+    houtsideSub.trans Finset.sdiff_subset
+  have hremaining : q ≤ (freeVars base \ outside).card := by
+    rw [Finset.card_sdiff_of_subset houtsideLive, houtsideCard]
+    rw [stars] at hK
+    omega
+  obtain ⟨fill, hfillSub, hfillCard⟩ := Finset.exists_subset_card_eq
+    (s := freeVars base \ outside) (n := q) hremaining
+  let keep := outside ∪ fill
+  have hkeepLive : keep ⊆ freeVars base := by
+    exact Finset.union_subset houtsideLive (hfillSub.trans Finset.sdiff_subset)
+  have hdisjoint : Disjoint outside fill := by
+    exact Finset.disjoint_left.mpr fun i hiOutside hiFill =>
+      (Finset.mem_sdiff.mp (hfillSub hiFill)).2 hiOutside
+  have hkeepCard : keep.card = K := by
+    dsimp only [keep]
+    rw [Finset.card_union_of_disjoint hdisjoint, houtsideCard, hfillCard]
+    omega
+  refine ⟨keepFreeExtension base keep,
+    restrictionExtends_keepFreeExtension base hkeepLive, ?_, ?_⟩
+  · simpa [hkeepCard] using stars_keepFreeExtension base keep
+  · rw [freeVars_keepFreeExtension]
+    refine (Finset.card_le_card ?_).trans_eq hfillCard
+    intro i hi
+    have hi' := Finset.mem_inter.mp hi
+    have hikeep : i ∈ outside ∪ fill := hi'.2
+    rcases Finset.mem_union.mp hikeep with hiOutside | hiFill
+    · exact False.elim <| (Finset.mem_sdiff.mp (houtsideSub hiOutside)).2 hi'.1
+    · exact hiFill
+
+/-- Keep exactly `keep` live and fill every other coordinate from `x`.  Unlike the older
+`keepFreeExtension`, this extension retains provenance from the assignment that selected the
+canonical leaf. -/
+def assignmentKeepFreeExtension {n : ℕ} (keep : Finset (Fin n))
+    (x : Fin n → Bool) : Restriction n :=
+  fun i => if i ∈ keep then none else some (x i)
+
+@[simp] theorem freeVars_assignmentKeepFreeExtension {n : ℕ}
+    (keep : Finset (Fin n)) (x : Fin n → Bool) :
+    freeVars (assignmentKeepFreeExtension keep x) = keep := by
+  ext i
+  simp [mem_freeVars, assignmentKeepFreeExtension]
+
+@[simp] theorem stars_assignmentKeepFreeExtension {n : ℕ}
+    (keep : Finset (Fin n)) (x : Fin n → Bool) :
+    stars (assignmentKeepFreeExtension keep x) = keep.card := by
+  rw [stars, freeVars_assignmentKeepFreeExtension]
+
+theorem restrictionExtends_assignmentKeepFreeExtension {n : ℕ}
+    {base : Restriction n} {keep : Finset (Fin n)} {x : Fin n → Bool}
+    (hkeep : keep ⊆ freeVars base) (hx : Rung4Restriction.Extends base x) :
+    RestrictionExtends base (assignmentKeepFreeExtension keep x) := by
+  intro i b hib
+  have hinot : i ∉ keep := by
+    intro hi
+    have hilive := hkeep hi
+    rw [mem_freeVars, hib] at hilive
+    simp at hilive
+  simp [assignmentKeepFreeExtension, hinot, hx i b hib]
+
+theorem assignmentKeepFreeExtension_extends {n : ℕ}
+    (keep : Finset (Fin n)) (x : Fin n → Bool) :
+    Rung4Restriction.Extends (assignmentKeepFreeExtension keep x) x := by
+  intro i b hib
+  simp only [assignmentKeepFreeExtension] at hib
+  split at hib
+  · contradiction
+  · exact Option.some.inj hib
+
+/-- Assignment-following form of the overlap-aware exact survivor selector.  It has the same
+size and overlap guarantees as `exists_restrictionExtends_stars_eq_inter_card_le`, and additionally
+the selected survivor is extended by the assignment that chose the canonical branch. -/
+theorem exists_assignmentExtending_stars_eq_inter_card_le {n K q : ℕ}
+    (base : Restriction n) (S : Finset (Fin n)) (x : Fin n → Bool)
+    (hx : Rung4Restriction.Extends base x)
+    (hqK : q ≤ K) (hK : K ≤ stars base)
+    (hout : K - q ≤ (freeVars base \ S).card) :
+    ∃ rho : Restriction n,
+      RestrictionExtends base rho ∧ Rung4Restriction.Extends rho x ∧
+        stars rho = K ∧ (S ∩ freeVars rho).card ≤ q := by
+  classical
+  obtain ⟨outside, houtsideSub, houtsideCard⟩ := Finset.exists_subset_card_eq
+    (s := freeVars base \ S) (n := K - q) hout
+  have houtsideLive : outside ⊆ freeVars base :=
+    houtsideSub.trans Finset.sdiff_subset
+  have hremaining : q ≤ (freeVars base \ outside).card := by
+    rw [Finset.card_sdiff_of_subset houtsideLive, houtsideCard]
+    rw [stars] at hK
+    omega
+  obtain ⟨fill, hfillSub, hfillCard⟩ := Finset.exists_subset_card_eq
+    (s := freeVars base \ outside) (n := q) hremaining
+  let keep := outside ∪ fill
+  have hkeepLive : keep ⊆ freeVars base :=
+    Finset.union_subset houtsideLive (hfillSub.trans Finset.sdiff_subset)
+  have hdisjoint : Disjoint outside fill := by
+    exact Finset.disjoint_left.mpr fun i hiOutside hiFill =>
+      (Finset.mem_sdiff.mp (hfillSub hiFill)).2 hiOutside
+  have hkeepCard : keep.card = K := by
+    dsimp only [keep]
+    rw [Finset.card_union_of_disjoint hdisjoint, houtsideCard, hfillCard]
+    omega
+  refine ⟨assignmentKeepFreeExtension keep x,
+    restrictionExtends_assignmentKeepFreeExtension hkeepLive hx,
+    assignmentKeepFreeExtension_extends keep x, ?_, ?_⟩
+  · simpa [hkeepCard] using stars_assignmentKeepFreeExtension keep x
+  · rw [freeVars_assignmentKeepFreeExtension]
+    refine (Finset.card_le_card ?_).trans_eq hfillCard
+    intro i hi
+    have hi' := Finset.mem_inter.mp hi
+    rcases Finset.mem_union.mp hi'.2 with hiOutside | hiFill
+    · exact False.elim <| (Finset.mem_sdiff.mp (houtsideSub hiOutside)).2 hi'.1
+    · exact hiFill
+
+/-- Conversely, any exact survivor extension must pay for every survivor not supplied by the
+base-live coordinates outside `S`.  This is the deterministic necessity half of the same leaf
+interface. -/
+theorem stars_le_outside_add_inter_card_of_restrictionExtends {n : ℕ}
+    {base rho : Restriction n} (S : Finset (Fin n))
+    (hext : RestrictionExtends base rho) :
+    stars rho ≤ (freeVars base \ S).card + (S ∩ freeVars rho).card := by
+  rw [stars]
+  have hpartition := Finset.card_sdiff_add_card_inter (freeVars rho) S
+  have houtside : (freeVars rho \ S).card ≤ (freeVars base \ S).card := by
+    apply Finset.card_le_card
+    exact Finset.sdiff_subset_sdiff (freeVars_subset_of_restrictionExtends hext)
+      (Finset.Subset.refl S)
+  rw [Finset.inter_comm] at hpartition
+  omega
+
+/-- Hence factor-sixteen overlap density at an exact `K`-survivor leaf requires at least
+`15/16` as much outside-support capacity.  This is the precise event that a strengthened
+common-trunk count must force. -/
+theorem fifteen_mul_stars_le_sixteen_mul_outside_of_overlap_density {n : ℕ}
+    {base rho : Restriction n} (S : Finset (Fin n))
+    (hext : RestrictionExtends base rho)
+    (hdensity : 16 * (S ∩ freeVars rho).card ≤ stars rho) :
+    15 * stars rho ≤ 16 * (freeVars base \ S).card := by
+  have hcapacity := stars_le_outside_add_inter_card_of_restrictionExtends S hext
+  omega
+
+/-- Choosing any integer overlap allowance `q` with `16*q ≤ K` turns the escape selector into
+the exact factor-sixteen density interface required by the next survivor round. -/
+theorem exists_restrictionExtends_factorSixteen_overlap_density {n K q : ℕ}
+    (base : Restriction n) (S : Finset (Fin n))
+    (hqK : q ≤ K) (h16q : 16 * q ≤ K) (hK : K ≤ stars base)
+    (hout : K - q ≤ (freeVars base \ S).card) :
+    ∃ rho : Restriction n,
+      RestrictionExtends base rho ∧ stars rho = K ∧
+        16 * (S ∩ freeVars rho).card ≤ K := by
+  obtain ⟨rho, hext, hstars, hoverlap⟩ :=
+    exists_restrictionExtends_stars_eq_inter_card_le base S hqK hK hout
+  exact ⟨rho, hext, hstars, (Nat.mul_le_mul_left 16 hoverlap).trans h16q⟩
+
+/-! ### The correlated support-tail event supplies zero-overlap survivors -/
+
+/-- Outside the strengthened root support tail, the canonical normalized-family prefix has two
+properties at once: it is a residual-depth-zero common-shallow certificate, and every reached leaf
+admits an exact half-shell survivor extension completely disjoint from the old bottom support.
+Thus the correlated leaf-capacity problem reduces to the already counted root hypergeometric tail;
+no additional leaf-wise probabilistic event is needed. -/
+theorem normalizedCanonicalPrefix_zeroOverlapSurvivor_of_not_supportTail
+    {n fuel R : ℕ} {C : Layered n} {sigma : Restriction n}
+    (hstars : stars sigma = 20 * R) (hKfuel : 20 * R ≤ fuel)
+    (hgood : sigma ∉ liveLayeredBottomSupportTail C (20 * R) (10 * R)) :
+    CommonShallowAt (normalizedLayeredBottomFamily C) fuel sigma (10 * R) 0 ∧
+      ∀ x : Fin n → Bool, Rung4Restriction.Extends sigma x →
+        let tau := CommonTree.prefixEndpoint sigma
+          (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel sigma) (10 * R) x
+        ∃ rho : Restriction n,
+          RestrictionExtends tau rho ∧ Rung4Restriction.Extends rho x ∧
+            stars rho = 10 * R ∧
+            (layeredBottomVariableSupport C ∩ freeVars rho).card = 0 := by
+  have hliveSupport :
+      ((layeredBottomVariableSupport C).filter fun i ↦ sigma i = none).card ≤ 10 * R := by
+    apply Nat.le_of_not_gt
+    intro hgt
+    apply hgood
+    rw [mem_liveLayeredBottomSupportTail_iff]
+    exact ⟨hstars, hgt⟩
+  have hfamilySupport :
+      ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+        fun i ↦ sigma i = none).card ≤ 10 * R := by
+    refine (Finset.card_le_card ?_).trans hliveSupport
+    intro i hi
+    simp only [Finset.mem_filter] at hi ⊢
+    exact ⟨normalizedLayeredBottomFamily_support_subset_bottomSupport C hi.1, hi.2⟩
+  constructor
+  · apply commonShallowAt_zero_of_live_support_le
+    · simpa [hstars] using hKfuel
+    · exact hfamilySupport
+  · intro x hx
+    dsimp only
+    let tau := CommonTree.prefixEndpoint sigma
+      (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel sigma) (10 * R) x
+    have houtsideRoot : 10 * R ≤
+        (freeVars sigma \ layeredBottomVariableSupport C).card := by
+      have hpartition := Finset.card_sdiff_add_card_inter
+        (freeVars sigma) (layeredBottomVariableSupport C)
+      have hinter : (freeVars sigma ∩ layeredBottomVariableSupport C).card =
+          ((layeredBottomVariableSupport C).filter fun i ↦ sigma i = none).card := by
+        apply congrArg Finset.card
+        ext i
+        simp [mem_freeVars, and_comm]
+      rw [stars] at hstars
+      rw [hinter] at hpartition
+      omega
+    have houtsideSubset : freeVars sigma \ layeredBottomVariableSupport C ⊆
+        freeVars tau \ layeredBottomVariableSupport C := by
+      intro i hi
+      rw [Finset.mem_sdiff] at hi ⊢
+      refine ⟨?_, hi.2⟩
+      apply freeVars_sdiff_familySupport_subset_canonicalPrefixEndpoint
+        (normalizedLayeredBottomFamily C) fuel sigma (10 * R) x hx
+      rw [Finset.mem_sdiff]
+      exact ⟨hi.1, fun hfamily => hi.2
+        (normalizedLayeredBottomFamily_support_subset_bottomSupport C hfamily)⟩
+    have houtsideLeaf : 10 * R ≤
+        (freeVars tau \ layeredBottomVariableSupport C).card :=
+      houtsideRoot.trans (Finset.card_le_card houtsideSubset)
+    have htargetStars : 10 * R ≤ stars tau := by
+      rw [stars]
+      exact houtsideLeaf.trans (Finset.card_le_card Finset.sdiff_subset)
+    have htauExtends : Rung4Restriction.Extends tau x := by
+      exact CommonTree.run_prefixEndpoints_extends sigma
+        (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel sigma)
+        (10 * R) x hx
+    obtain ⟨rho, hext, hrhoExtends, hrhoStars, hoverlap⟩ :=
+      exists_assignmentExtending_stars_eq_inter_card_le tau
+        (layeredBottomVariableSupport C) (K := 10 * R) (q := 0)
+        x htauExtends (by omega) htargetStars (by simpa using houtsideLeaf)
+    exact ⟨rho, hext, hrhoExtends, hrhoStars, Nat.eq_zero_of_le_zero hoverlap⟩
+
+/-- The strengthened support-tail complement now drives the complete localized survivor round.
+The selected canonical leaf is shared by the depth-zero collapse certificate and the zero-overlap
+survivor selector.  After localization, the next bottom support is therefore empty, so the
+factor-sixteen density premise propagates with room to spare. -/
+theorem supportTail_normalizedSurvivorRound_localized
+    {n fuel R k : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) :
+    (liveLayeredBottomSupportTail C (20 * R) (10 * R)).card * 2 ^ (10 * R) ≤
+        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+      ∀ σ : Restriction n,
+        stars σ = 20 * R →
+        σ ∉ liveLayeredBottomSupportTail C (20 * R) (10 * R) →
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          let trunk := CommonTree.prefixEndpoints σ
+            (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel σ) (10 * R)
+          let τ := CommonTree.run trunk x
+          ∃ κ : Restriction n,
+            RestrictionExtends τ κ ∧
+            Rung4Restriction.Extends κ x ∧
+            stars κ = 10 * R ∧
+            stars κ ≤ fuel ∧
+            let D := localizeLiveLayered κ (collapseRound fuel τ C)
+            (∀ z : Fin (stars κ) → Bool,
+              Layered.eval D z = Layered.eval C (liftLiveAssignment κ z)) ∧
+            Layered.depth D = Layered.depth (collapseRound fuel τ C) ∧
+            AltO (k + 2) D ∧
+            NonEmptyGates D ∧
+            BottomWidth 1 D ∧
+            bottomSlotCount D ≤ bottomSlotCount C * 3 ∧
+            (layeredBottomVariableSupport D).card = 0 ∧
+            16 * (layeredBottomVariableSupport D).card ≤ stars κ := by
+  refine ⟨liveLayeredBottomSupportTail_scaled_le_sixteen_density hsupport, ?_⟩
+  intro σ hstars hgood x hx
+  have hcert := normalizedCanonicalPrefix_zeroOverlapSurvivor_of_not_supportTail
+    (C := C) (fuel := fuel) (R := R) hstars hKfuel hgood
+  let trunk := CommonTree.prefixEndpoints σ
+    (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel σ) (10 * R)
+  let τ := CommonTree.run trunk x
+  have hτeq : τ = CommonTree.prefixEndpoint σ
+      (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel σ) (10 * R) x := rfl
+  obtain ⟨κ, hext, hκextends, hκstars, hoverlap⟩ := hcert.2 x hx
+  have hfuel : stars σ ≤ fuel := by simpa [hstars] using hKfuel
+  have hliveSupport :
+      ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card ≤ 10 * R := by
+    apply Nat.le_of_not_gt
+    intro hgt
+    apply hgood
+    rw [mem_liveLayeredBottomSupportTail_iff]
+    exact ⟨hstars, hgt⟩
+  have hfamilySupport :
+      ((familyVariableSupport (normalizedLayeredBottomFamily C)).filter
+        fun i ↦ σ i = none).card ≤ 10 * R := by
+    refine (Finset.card_le_card ?_).trans hliveSupport
+    intro i hi
+    simp only [Finset.mem_filter] at hi ⊢
+    exact ⟨normalizedLayeredBottomFamily_support_subset_bottomSupport C hi.1, hi.2⟩
+  have hresidual : ∀ g,
+      (canonicalDT ((normalizedLayeredBottomFamily C) g) fuel τ).depth = 0 := by
+    intro g
+    rw [hτeq]
+    exact canonicalFamily_prefix_depth_eq_zero_of_live_support_le
+      (normalizedLayeredBottomFamily C) fuel σ (10 * R) hfuel hfamilySupport x hx g
+  have hshallow : Shallows fuel τ 1 C := by
+    intro cs hcs
+    obtain ⟨⟨g, hg⟩, ⟨gneg, hgneg⟩⟩ := normalizedLayeredBottomFamily_covers C cs hcs
+    constructor
+    · rw [← hg fuel τ, hresidual g]
+      omega
+    · rw [← hgneg fuel τ, hresidual gneg]
+      omega
+  have hτfuel : stars τ ≤ fuel := by
+    refine (stars_le_of_restrictionExtends ?_).trans hfuel
+    simpa [τ, trunk] using prefixEndpoint_restrictionExtends σ
+      (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel σ) (10 * R) x hx
+  have hκfuel : stars κ ≤ fuel := (stars_le_of_restrictionExtends hext).trans hτfuel
+  have hequiv : Layered.EquivOn κ C (collapseRound fuel τ C) := by
+    intro y hy
+    exact collapseRound_EquivOn fuel hτfuel C y (fun i b hi => hy i b (hext i b hi))
+  have hwidth : BottomWidth 1 (collapseRound fuel τ C) :=
+    collapseRound_BottomWidth fuel τ hshallow
+  have hslots : bottomSlotCount (collapseRound fuel τ C) ≤ bottomSlotCount C * 3 := by
+    simpa using collapseRound_bottomSlotCount_le (AltO_NonEmptyGates hAlt) hshallow
+  have hDalt : AltO (k + 2)
+      (localizeLiveLayered κ (collapseRound fuel τ C)) :=
+    localizeLiveLayered_collapseRound_AltO κ τ hAlt
+  have hDnonempty : NonEmptyGates
+      (localizeLiveLayered κ (collapseRound fuel τ C)) :=
+    AltO_NonEmptyGates hDalt
+  have hDsupport :
+      (layeredBottomVariableSupport
+        (localizeLiveLayered κ (collapseRound fuel τ C))).card = 0 := by
+    apply Nat.eq_zero_of_le_zero
+    exact (layeredBottomVariableSupport_localizeLiveLayered_collapseRound_card_le_inter
+      τ κ C).trans (by simpa using Nat.le_of_eq hoverlap)
+  refine ⟨κ, hext, hκextends, hκstars, hκfuel, ?_, ?_, hDalt, hDnonempty, ?_, ?_,
+    hDsupport, ?_⟩
+  · intro z
+    rw [localizeLiveLayered_eval]
+    exact (hequiv (liftLiveAssignment κ z) (liftLiveAssignment_agrees κ z)).symm
+  · exact localizeLiveLayered_depth κ _
+  · exact localizeLiveLayered_BottomWidth κ _ hwidth
+  · exact (localizeLiveLayered_bottomSlotCount_le κ _).trans hslots
+  · rw [hDsupport]
+    omega
+
+/-! ### Exact shell schedule for iterating zero-support localized rounds -/
+
+/-- Backward geometric scale for `d` remaining localized rounds.  Round `i` uses survivor
+parameter `2^(d-i) * r`, so the scale halves exactly at every genuine transition. -/
+def zeroSupportSurvivorScale (d r i : ℕ) : ℕ := 2 ^ (d - i) * r
+
+@[simp] theorem zeroSupportSurvivorScale_zero (d r : ℕ) :
+    zeroSupportSurvivorScale d r 0 = 2 ^ d * r := by
+  simp [zeroSupportSurvivorScale]
+
+@[simp] theorem zeroSupportSurvivorScale_terminal (d r : ℕ) :
+    zeroSupportSurvivorScale d r d = r := by
+  simp [zeroSupportSurvivorScale]
+
+/-- The next round's entire `20R` shell is exactly the current round's `10R` survivor cube.
+Thus shell fit introduces no slack loss and no slot-dependent actual-margin charge once the
+localized bottom support has become empty. -/
+theorem zeroSupportSurvivorScale_shell_exact
+    (d r i : ℕ) (hi : i < d) :
+    20 * zeroSupportSurvivorScale d r (i + 1) =
+      10 * zeroSupportSurvivorScale d r i := by
+  have hsub : d - i = (d - (i + 1)) + 1 := by omega
+  simp only [zeroSupportSurvivorScale, hsub, pow_succ]
+  ring
+
+/-- Consequently every next shell fits, in the precise form consumed by a finite recurrence. -/
+theorem zeroSupportSurvivorScale_shell_le
+    (d r i : ℕ) (hi : i < d) :
+    20 * zeroSupportSurvivorScale d r (i + 1) ≤
+      10 * zeroSupportSurvivorScale d r i := by
+  exact Nat.le_of_eq (zeroSupportSurvivorScale_shell_exact d r i hi)
+
+/-- Positive terminal scale propagates backward through the whole finite schedule. -/
+theorem zeroSupportSurvivorScale_pos
+    (d r i : ℕ) (hr : 0 < r) : 0 < zeroSupportSurvivorScale d r i := by
+  exact Nat.mul_pos (pow_pos (by omega) _) hr
+
+/-! ### Dependent state for recursive zero-support rounds -/
+
+/-- The data exported by a localized round and consumed by the next one.  The ambient dimension is
+kept as a field, rather than definitionally fixed to `20 * R`, because the preceding round naturally
+produces the coordinate type `Fin (stars κ)`.  The equality records the exact shell handoff without
+requiring a lossy cast of the circuit. -/
+structure ZeroSupportLocalizedState (R level slotBound : ℕ) where
+  n : ℕ
+  circuit : Layered n
+  ambient_eq : n = 20 * R
+  alt : AltO (level + 2) circuit
+  width_one : BottomWidth 1 circuit
+  slots_le : bottomSlotCount circuit ≤ slotBound
+  support_zero : (layeredBottomVariableSupport circuit).card = 0
+
+/-- A zero-support state at remaining level zero is an actual bottom DNF whose canonical tree is
+a leaf under every restriction and every fuel budget.  This is stronger than the width-one bound:
+the support invariant rules out every literal in the terminal DNF. -/
+theorem ZeroSupportLocalizedState.exists_terminalDnf_depth_zero
+    {R slotBound : ℕ} (S : ZeroSupportLocalizedState R 0 slotBound) :
+    ∃ D : List (Clause S.n), S.circuit = Layered.dnf D ∧
+      ∀ fuel σ, (canonicalDT D fuel σ).depth = 0 := by
+  obtain ⟨D, hD⟩ := AltO_two_dnf (by simpa using S.alt)
+  refine ⟨D, hD, ?_⟩
+  have hsupport : (gateVariableSupport D).card = 0 := by
+    apply Finset.card_eq_zero.mpr
+    apply Finset.eq_empty_iff_forall_notMem.mpr
+    intro v hv
+    have hvCircuit : v ∈ layeredBottomVariableSupport S.circuit := by
+      rw [layeredBottomVariableSupport]
+      apply Finset.mem_biUnion.mpr
+      refine ⟨D, List.mem_toFinset.mpr ?_, hv⟩
+      rw [hD]
+      exact List.mem_cons_self
+    have hempty := Finset.card_eq_zero.mp S.support_zero
+    rw [hempty] at hvCircuit
+    simpa using hvCircuit
+  exact fun fuel σ =>
+    canonicalDT_depth_eq_zero_of_gateVariableSupport_card_eq_zero D hsupport fuel σ
+
+/-! ### Provenance across the initial support-tail boundary -/
+
+/-- The first nonzero-support shell selection, kept together with the zero-support child that it
+produces.  Unlike `ZeroSupportLocalizedState`, this package deliberately remembers the genuine
+root event and the assignment that selected the canonical prefix leaf.  The child restriction is
+proved to extend the original shell root, not merely the intermediate trunk leaf. -/
+structure InitialSupportTailSuccessor {n fuel R k : ℕ} (C : Layered n)
+    (sigma : Restriction n) (x : Fin n → Bool) where
+  root_stars : stars sigma = 20 * (2 * R)
+  root_good : sigma ∉ liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))
+  root_assignment : Rung4Restriction.Extends sigma x
+  restriction : Restriction n
+  root_extends : RestrictionExtends sigma restriction
+  restriction_assignment : Rung4Restriction.Extends restriction x
+  circuit : Layered (stars restriction)
+  ambient_eq : stars restriction = 20 * R
+  eval_eq : ∀ z : Fin (stars restriction) → Bool,
+    Layered.eval circuit z = Layered.eval C (liftLiveAssignment restriction z)
+  alt : AltO (k + 2) circuit
+  width_one : BottomWidth 1 circuit
+  slots_le : bottomSlotCount circuit ≤ bottomSlotCount C * 3
+  support_zero : (layeredBottomVariableSupport circuit).card = 0
+
+/-- Forgetting the initial good-event provenance yields the exact state consumed by the geometric
+zero-support iterator. -/
+def InitialSupportTailSuccessor.toState {n fuel R k : ℕ} {C : Layered n}
+    {sigma : Restriction n} {x : Fin n → Bool}
+    (step : InitialSupportTailSuccessor (fuel := fuel) (R := R) (k := k) C sigma x) :
+    ZeroSupportLocalizedState R k (bottomSlotCount C * 3) where
+  n := stars step.restriction
+  circuit := step.circuit
+  ambient_eq := step.ambient_eq
+  alt := step.alt
+  width_one := step.width_one
+  slots_le := step.slots_le
+  support_zero := step.support_zero
+
+/-- Slot-normalized presentation of the initial successor for the geometric iterator at index
+zero.  Keeping the harmless `3^0` in the type avoids dependent casts at the path constructor. -/
+def InitialSupportTailSuccessor.toInitialGeometricState
+    {n fuel R k : ℕ} {C : Layered n}
+    {sigma : Restriction n} {x : Fin n → Bool}
+    (step : InitialSupportTailSuccessor (fuel := fuel) (R := R) (k := k) C sigma x) :
+    ZeroSupportLocalizedState R k ((bottomSlotCount C * 3) * 3 ^ 0) where
+  n := stars step.restriction
+  circuit := step.circuit
+  ambient_eq := step.ambient_eq
+  alt := step.alt
+  width_one := step.width_one
+  slots_le := by simpa using step.slots_le
+  support_zero := step.support_zero
+
+/-- Every genuinely good root on the initial `40R` shell and every assignment extending it
+produce a provenance-carrying zero-support state on the `20R` successor shell.  This is the
+charging boundary that the later zero-support iterator had forgotten. -/
+theorem exists_initialSupportTailSuccessor {n fuel R k : ℕ} {C : Layered n}
+    {sigma : Restriction n} {x : Fin n → Bool}
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C)
+    (hstars : stars sigma = 20 * (2 * R))
+    (hgood : sigma ∉ liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R)))
+    (hx : Rung4Restriction.Extends sigma x) :
+    Nonempty (InitialSupportTailSuccessor (fuel := fuel) (R := R) (k := k) C sigma x) := by
+  have hround :=
+    (supportTail_normalizedSurvivorRound_localized
+      (C := C) (fuel := fuel) (R := 2 * R) (k := k)
+      hKfuel hsupport hAlt).2 sigma hstars hgood x hx
+  dsimp only at hround
+  obtain ⟨kappa, hkappaExtendsTau, hkappaAssignment, hkappaStars, _hkappaFuel,
+    heval, _hdepth, hDalt, _hne, hwidth, hslots, hsupportZero, _hdensity⟩ := hround
+  let tau := CommonTree.run
+    (CommonTree.prefixEndpoints sigma
+      (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel sigma) (10 * (2 * R))) x
+  have hsigmaExtendsTau : RestrictionExtends sigma tau := by
+    exact prefixEndpoint_restrictionExtends sigma
+      (canonicalFamilyTree (normalizedLayeredBottomFamily C) fuel sigma)
+      (10 * (2 * R)) x hx
+  have hsigmaExtendsKappa : RestrictionExtends sigma kappa := by
+    intro v b hv
+    exact hkappaExtendsTau v b (hsigmaExtendsTau v b hv)
+  refine ⟨{
+    root_stars := hstars
+    root_good := hgood
+    root_assignment := hx
+    restriction := kappa
+    root_extends := hsigmaExtendsKappa
+    restriction_assignment := hkappaAssignment
+    circuit := localizeLiveLayered kappa (collapseRound fuel tau C)
+    ambient_eq := ?_
+    eval_eq := heval
+    alt := hDalt
+    width_one := hwidth
+    slots_le := hslots
+    support_zero := hsupportZero }⟩
+  calc
+    stars kappa = 10 * (2 * R) := hkappaStars
+    _ = 20 * R := by ring
+
+/-! ### Exact multiplicity of the initial shell extension relation -/
+
+/-- The finite fiber of `K`-star coarsenings of a fixed successor restriction.  These are exactly
+the possible earlier shell roots whose fixed values are retained by `kappa`. -/
+noncomputable def restrictionCoarseningShellFiber {n K : ℕ}
+    (kappa : Restriction n) : Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun sigma =>
+    RestrictionExtends sigma kappa ∧ stars sigma = K
+
+/-- Two coarsenings of the same restriction are equal once their live sets agree.  The common
+successor fixes every coordinate outside that live set, including its Boolean value. -/
+theorem restriction_eq_of_extends_to_of_freeVars_eq {n : ℕ}
+    {sigma tau kappa : Restriction n}
+    (hsigma : RestrictionExtends sigma kappa)
+    (htau : RestrictionExtends tau kappa)
+    (hfree : freeVars sigma = freeVars tau) :
+    sigma = tau := by
+  funext v
+  cases hs : sigma v with
+  | none =>
+      have hv : v ∈ freeVars sigma := mem_freeVars.mpr hs
+      exact (mem_freeVars.mp (hfree ▸ hv)).symm
+  | some b =>
+      have hk : kappa v = some b := hsigma v b hs
+      cases ht : tau v with
+      | none =>
+          have hv : v ∈ freeVars tau := mem_freeVars.mpr ht
+          have : sigma v = none := mem_freeVars.mp (hfree.symm ▸ hv)
+          simp [hs] at this
+      | some c =>
+          have hk' : kappa v = some c := htau v c ht
+          rw [hk] at hk'
+          simp only [Option.some.injEq] at hk'
+          simpa [hs, ht, hk']
+
+/-- A `K`-star predecessor of `kappa` is injectively labelled by the coordinates that it frees
+beyond `kappa`.  Hence its fiber is bounded by the exact binomial choice
+`choose (n - stars kappa) (K - stars kappa)`; there is no extra Boolean factor because all retained
+fixed values are forced by `kappa`. -/
+theorem card_restrictionCoarseningShellFiber_le_choose {n K : ℕ}
+    (kappa : Restriction n) :
+    (restrictionCoarseningShellFiber (K := K) kappa).card ≤
+      Nat.choose (n - stars kappa) (K - stars kappa) := by
+  classical
+  let label : Restriction n → Finset (Fin n) := fun sigma =>
+    freeVars sigma \ freeVars kappa
+  let labels := (Finset.univ \ freeVars kappa).powersetCard (K - stars kappa)
+  have hlabel : ∀ sigma ∈ restrictionCoarseningShellFiber (K := K) kappa,
+      label sigma ∈ labels := by
+    intro sigma hsigma
+    have hsigma' := Finset.mem_filter.mp hsigma
+    have hsub := freeVars_subset_of_restrictionExtends hsigma'.2.1
+    rw [Finset.mem_powersetCard]
+    constructor
+    · exact Finset.sdiff_subset_sdiff (Finset.subset_univ _) (Finset.Subset.rfl)
+    · rw [Finset.card_sdiff_of_subset hsub]
+      simpa only [stars] using congrArg (fun q => q - (freeVars kappa).card) hsigma'.2.2
+  have hinj : Set.InjOn label
+      (restrictionCoarseningShellFiber (K := K) kappa) := by
+    intro sigma hsigma tau htau heq
+    have hsigma' := (Finset.mem_filter.mp hsigma).2.1
+    have htau' := (Finset.mem_filter.mp htau).2.1
+    apply restriction_eq_of_extends_to_of_freeVars_eq hsigma' htau'
+    have hsigmaSub := freeVars_subset_of_restrictionExtends hsigma'
+    have htauSub := freeVars_subset_of_restrictionExtends htau'
+    change freeVars sigma \ freeVars kappa = freeVars tau \ freeVars kappa at heq
+    calc
+      freeVars sigma = (freeVars sigma \ freeVars kappa) ∪ freeVars kappa :=
+        (Finset.sdiff_union_of_subset hsigmaSub).symm
+      _ = (freeVars tau \ freeVars kappa) ∪ freeVars kappa := by rw [heq]
+      _ = freeVars tau := Finset.sdiff_union_of_subset htauSub
+  calc
+    (restrictionCoarseningShellFiber (K := K) kappa).card =
+        ((restrictionCoarseningShellFiber (K := K) kappa).image label).card := by
+          symm
+          exact Finset.card_image_iff.mpr hinj
+    _ ≤ labels.card := Finset.card_le_card (by
+      intro S hS
+      obtain ⟨sigma, hsigma, rfl⟩ := Finset.mem_image.mp hS
+      exact hlabel sigma hsigma)
+    _ = Nat.choose (n - stars kappa) (K - stars kappa) := by
+      rw [Finset.card_powersetCard, Finset.card_sdiff_of_subset (Finset.subset_univ _)]
+      simp [labels, stars]
+
+/-- On the actual initial `40R -> 20R` boundary, each fixed successor has at most
+`choose (n - 20R) (20R)` compatible shell roots.  This is the exact stars-and-bars multiplicity
+available from `root_extends`. -/
+theorem card_initialSupportTail_rootFiber_le {n R : ℕ}
+    (kappa : Restriction n) (hkappa : stars kappa = 20 * R) :
+    (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).card ≤
+      Nat.choose (n - 20 * R) (20 * R) := by
+  have h := card_restrictionCoarseningShellFiber_le_choose
+    (K := 20 * (2 * R)) kappa
+  have hsub : 20 * (2 * R) - 20 * R = 20 * R := by omega
+  simpa only [hkappa, hsub] using h
+
+/-- The genuine finite domain at the initial charging boundary: a good `40R` root together with
+a total assignment extending it. -/
+def InitialGoodRootAssignmentPair {n : ℕ} (C : Layered n) (R : ℕ)
+    (p : Restriction n × (Fin n → Bool)) : Prop :=
+  stars p.1 = 20 * (2 * R) ∧
+    p.1 ∉ liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R)) ∧
+    Rung4Restriction.Extends p.1 p.2
+
+/-- The finite population of genuinely good roots on the initial `40R` shell. -/
+noncomputable def initialGoodRoots {n : ℕ} (C : Layered n) (R : ℕ) :
+    Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun sigma =>
+    stars sigma = 20 * (2 * R) ∧
+      sigma ∉ liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))
+
+/-- The complete initial `40R` root shell, before the genuine support-tail event is removed. -/
+noncomputable def initialRootShell (n R : ℕ) : Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun sigma => stars sigma = 20 * (2 * R)
+
+/-- Good and bad roots form an exact partition of the initial shell. -/
+theorem card_initialGoodRoots_add_bad {n : ℕ} (C : Layered n) (R : ℕ) :
+    (initialGoodRoots C R).card +
+        (liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))).card =
+      (initialRootShell n R).card := by
+  classical
+  let bad := liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))
+  let shell := initialRootShell n R
+  have hbad : bad ⊆ shell := by
+    intro sigma hsigma
+    change sigma ∈ Finset.univ.filter (fun tau : Restriction n =>
+      stars tau = 20 * (2 * R))
+    rw [Finset.mem_filter]
+    exact ⟨Finset.mem_univ _, (mem_liveLayeredBottomSupportTail_iff.mp hsigma).1⟩
+  have hgood : initialGoodRoots C R = shell \ bad := by
+    ext sigma
+    rw [Finset.mem_sdiff]
+    change sigma ∈ Finset.univ.filter (fun tau : Restriction n =>
+      stars tau = 20 * (2 * R) ∧ tau ∉ bad) ↔ sigma ∈ shell ∧ sigma ∉ bad
+    change sigma ∈ Finset.univ.filter (fun tau : Restriction n =>
+      stars tau = 20 * (2 * R) ∧ tau ∉ bad) ↔
+        sigma ∈ Finset.univ.filter (fun tau : Restriction n =>
+          stars tau = 20 * (2 * R)) ∧ sigma ∉ bad
+    simp
+  rw [hgood]
+  exact Finset.card_sdiff_add_card_eq_card hbad
+
+/-- At positive scale, the verified support-tail contraction says at least half of the initial
+shell is genuinely good.  This is the direct population comparison needed before applying the
+selected-successor fiber ceiling. -/
+theorem initialRootShell_card_le_two_mul_good {n : ℕ} (C : Layered n) (R : ℕ)
+    (hR : 0 < R)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n) :
+    (initialRootShell n R).card ≤ 2 * (initialGoodRoots C R).card := by
+  have hscaled := liveLayeredBottomSupportTail_scaled_le_sixteen_density
+    (C := C) (R := 2 * R) hsupport
+  have hpow : 2 ≤ 2 ^ (10 * (2 * R)) := by
+    exact Nat.one_lt_pow (by omega) (by omega)
+  have hbadTwo :
+      (liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))).card * 2 ≤
+        (initialRootShell n R).card := by
+    calc
+      (liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))).card * 2 ≤
+          (liveLayeredBottomSupportTail C (20 * (2 * R)) (10 * (2 * R))).card *
+            2 ^ (10 * (2 * R)) := Nat.mul_le_mul_left _ hpow
+      _ ≤ (Finset.univ.filter fun sigma : Restriction n =>
+          stars sigma = 20 * (2 * R)).card := hscaled
+      _ = (initialRootShell n R).card := by rfl
+  have hpartition := card_initialGoodRoots_add_bad C R
+  omega
+
+/-- The raw finite set underlying `InitialGoodRootAssignmentPair`.  Naming it separately makes
+the uniform assignment fiber over every good root available to finite fiberwise counting. -/
+noncomputable def initialGoodRootAssignmentPairs {n : ℕ} (C : Layered n) (R : ℕ) :
+    Finset (Restriction n × (Fin n → Bool)) := by
+  classical
+  exact Finset.univ.filter fun p => InitialGoodRootAssignmentPair C R p
+
+/-- Every good `40R` root has exactly its `2^(40R)`-element compatible assignment cube above it.
+Thus the genuine initial charging domain has the exact product cardinality promised by the shell
+interpretation, rather than merely an upper or lower estimate. -/
+theorem card_initialGoodRootAssignmentPairs {n : ℕ} (C : Layered n) (R : ℕ) :
+    (initialGoodRootAssignmentPairs C R).card =
+      (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) := by
+  classical
+  rw [Finset.card_eq_sum_card_fiberwise
+    (f := fun p : Restriction n × (Fin n → Bool) => p.1)
+    (t := initialGoodRoots C R)]
+  · calc
+      (∑ sigma ∈ initialGoodRoots C R,
+          ((initialGoodRootAssignmentPairs C R).filter fun p => p.1 = sigma).card) =
+          ∑ _sigma ∈ initialGoodRoots C R, 2 ^ (20 * (2 * R)) := by
+            apply Finset.sum_congr rfl
+            intro sigma hsigma
+            have hsigma' := Finset.mem_filter.mp hsigma
+            let fiber :=
+              (initialGoodRootAssignmentPairs C R).filter (fun p => p.1 = sigma)
+            have himage : fiber.image (fun p => p.2) = assignmentsAgreeingRestriction sigma := by
+              ext x
+              simp only [Finset.mem_image, fiber, Finset.mem_filter,
+                initialGoodRootAssignmentPairs, Finset.mem_univ, true_and,
+                assignmentsAgreeingRestriction]
+              constructor
+              · rintro ⟨p, ⟨hp, hpRoot⟩, rfl⟩
+                change DTree.agreeRestriction sigma p.2
+                simpa only [hpRoot] using hp.2.2
+              · intro hx
+                refine ⟨(sigma, x), ?_, rfl⟩
+                exact ⟨⟨hsigma'.2.1, hsigma'.2.2, hx⟩, rfl⟩
+            have hinj : Set.InjOn (fun p : Restriction n × (Fin n → Bool) => p.2) fiber := by
+              intro p hp q hq hpq
+              have hpRoot := (Finset.mem_filter.mp hp).2
+              have hqRoot := (Finset.mem_filter.mp hq).2
+              apply Prod.ext
+              · exact hpRoot.trans hqRoot.symm
+              · exact hpq
+            calc
+              fiber.card = (fiber.image (fun p => p.2)).card := by
+                symm
+                exact Finset.card_image_iff.mpr hinj
+              _ = (assignmentsAgreeingRestriction sigma).card := by rw [himage]
+              _ = 2 ^ (20 * (2 * R)) := by
+                rw [card_assignments_agreeing_restriction, hsigma'.2.1]
+      _ = (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) := by simp
+  · intro p hp
+    change p ∈ initialGoodRootAssignmentPairs C R at hp
+    rw [initialGoodRootAssignmentPairs, Finset.mem_filter] at hp
+    change p.1 ∈ initialGoodRoots C R
+    rw [initialGoodRoots, Finset.mem_filter]
+    exact ⟨Finset.mem_univ _, hp.2.1, hp.2.2.1⟩
+
+/-- The finite subtype domain used by the selected-successor map. -/
+noncomputable def initialGoodRootAssignmentPairDomain {n : ℕ} (C : Layered n) (R : ℕ) :
+    Finset {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p} := by
+  classical
+  exact Finset.univ
+
+/-- Subtype presentation of the genuine domain has the same exact product cardinality. -/
+theorem card_initialGoodRootAssignmentPairDomain {n : ℕ} (C : Layered n) (R : ℕ) :
+    (initialGoodRootAssignmentPairDomain C R).card =
+      (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) := by
+  classical
+  let forgetPair :
+      {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p} →
+        Restriction n × (Fin n → Bool) := fun p => p.1
+  have hinj : Function.Injective forgetPair := by
+    intro p q hpq
+    exact Subtype.ext hpq
+  have himage : (initialGoodRootAssignmentPairDomain C R).image forgetPair =
+      initialGoodRootAssignmentPairs C R := by
+    ext p
+    simp only [Finset.mem_image, initialGoodRootAssignmentPairDomain,
+      Finset.mem_univ, true_and,
+      initialGoodRootAssignmentPairs, Finset.mem_filter]
+    constructor
+    · rintro ⟨q, rfl⟩
+      exact q.2
+    · intro hp
+      exact ⟨⟨p, hp⟩, rfl⟩
+  calc
+    (initialGoodRootAssignmentPairDomain C R).card =
+        ((initialGoodRootAssignmentPairDomain C R).image forgetPair).card := by
+      symm
+      exact Finset.card_image_of_injective _ hinj
+    _ = (initialGoodRootAssignmentPairs C R).card := by rw [himage]
+    _ = (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) :=
+      card_initialGoodRootAssignmentPairs C R
+
+/-- Choose the provenance-carrying initial successor for a member of the genuine finite domain. -/
+noncomputable def selectedInitialSupportTailSuccessor {n fuel R k : ℕ} (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C)
+    (p : {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p}) :
+    InitialSupportTailSuccessor (fuel := fuel) (R := R) (k := k) C p.1.1 p.1.2 :=
+  Classical.choice (exists_initialSupportTailSuccessor hKfuel hsupport hAlt
+    p.2.1 p.2.2.1 p.2.2.2)
+
+/-- The finite map from good initial roots with extending assignments to their selected `20R`
+successor restrictions. -/
+noncomputable def initialSupportTailSuccessorImage {n fuel R k : ℕ} (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) : Finset (Restriction n) := by
+  classical
+  exact Finset.univ.image fun p =>
+    (selectedInitialSupportTailSuccessor C hKfuel hsupport hAlt p).restriction
+
+/-- The fiber of the selected initial-successor map over one ambient restriction. -/
+noncomputable def initialSupportTailSuccessorFiber {n fuel R k : ℕ} (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) (kappa : Restriction n) :
+    Finset {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p} := by
+  classical
+  exact Finset.univ.filter fun p =>
+    (selectedInitialSupportTailSuccessor C hKfuel hsupport hAlt p).restriction = kappa
+
+/-- Every selected-map fiber injects into the product of the exact root-coarsening fiber and the
+assignment cube extending the successor. -/
+theorem card_initialSupportTailSuccessorFiber_le_product {n fuel R k : ℕ}
+    (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) (kappa : Restriction n) :
+    (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).card ≤
+      (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).card *
+        (assignmentsAgreeingRestriction kappa).card := by
+  classical
+  let target :=
+    (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).product
+      (assignmentsAgreeingRestriction kappa)
+  let forgetPair :
+      {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p} →
+        Restriction n × (Fin n → Bool) := fun p => p.1
+  have hinj : Function.Injective forgetPair := by
+    intro p q hpq
+    exact Subtype.ext hpq
+  have hsubset :
+      (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).image forgetPair ⊆
+        target := by
+    intro q hq
+    obtain ⟨p, hp, rfl⟩ := Finset.mem_image.mp hq
+    have hpFiber := (Finset.mem_filter.mp hp).2
+    let step := selectedInitialSupportTailSuccessor C hKfuel hsupport hAlt p
+    have hrestriction : step.restriction = kappa := hpFiber
+    change p.1 ∈ target
+    change p.1 ∈
+      (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).product
+        (assignmentsAgreeingRestriction kappa)
+    apply Finset.mem_product.mpr
+    constructor
+    · rw [restrictionCoarseningShellFiber, Finset.mem_filter]
+      exact ⟨Finset.mem_univ _, hrestriction ▸ step.root_extends, step.root_stars⟩
+    · rw [assignmentsAgreeingRestriction, Finset.mem_filter]
+      exact ⟨Finset.mem_univ _, hrestriction ▸ step.restriction_assignment⟩
+  calc
+    (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).card =
+        ((initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).image
+          forgetPair).card := by
+            symm
+            exact Finset.card_image_of_injective _ hinj
+    _ ≤ target.card := Finset.card_le_card hsubset
+    _ = (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).card *
+        (assignmentsAgreeingRestriction kappa).card := by simp [target]
+
+/-- Exact numerical fiber ceiling on the genuine `40R -> 20R` selected-successor map.  The
+binomial term is root multiplicity; `2^(20R)` is precisely the assignment cube over the fixed
+successor and cannot be removed by provenance alone. -/
+theorem card_initialSupportTailSuccessorFiber_le {n fuel R k : ℕ}
+    (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) (kappa : Restriction n)
+    (hkappa : stars kappa = 20 * R) :
+    (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).card ≤
+      Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R) := by
+  calc
+    (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).card ≤
+        (restrictionCoarseningShellFiber (K := 20 * (2 * R)) kappa).card *
+          (assignmentsAgreeingRestriction kappa).card :=
+      card_initialSupportTailSuccessorFiber_le_product C hKfuel hsupport hAlt kappa
+    _ ≤ Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R) := by
+      rw [card_assignments_agreeing_restriction, hkappa]
+      exact Nat.mul_le_mul_right _ (card_initialSupportTail_rootFiber_le kappa hkappa)
+
+/-- Exact-domain counting and the uniform successor-fiber ceiling give the first genuine image
+lower bound at the initial charging boundary.  It retains both unavoidable multiplicities:
+`choose (n-20R,20R)` from root coarsening and `2^(20R)` from assignments over one successor. -/
+theorem initialGoodRoots_mul_assignments_le_successorImage {n fuel R k : ℕ}
+    (C : Layered n)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) :
+    (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) ≤
+      (Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)) *
+        (initialSupportTailSuccessorImage C hKfuel hsupport hAlt).card := by
+  classical
+  let domain := initialGoodRootAssignmentPairDomain C R
+  let successor :
+      {p : Restriction n × (Fin n → Bool) // InitialGoodRootAssignmentPair C R p} →
+        Restriction n := fun p =>
+      (selectedInitialSupportTailSuccessor C hKfuel hsupport hAlt p).restriction
+  let cap := Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)
+  have himage : domain.image successor =
+      initialSupportTailSuccessorImage C hKfuel hsupport hAlt := by
+    simp [domain, successor, initialGoodRootAssignmentPairDomain,
+      initialSupportTailSuccessorImage]
+  have hfibers : ∀ kappa ∈ domain.image successor,
+      (domain.filter fun p => successor p = kappa).card ≤ cap := by
+    intro kappa hkappa
+    obtain ⟨p, hp, hpImage⟩ := Finset.mem_image.mp hkappa
+    have hkappaStars : stars kappa = 20 * R := by
+      rw [← hpImage]
+      exact (selectedInitialSupportTailSuccessor C hKfuel hsupport hAlt p).ambient_eq
+    change (initialSupportTailSuccessorFiber C hKfuel hsupport hAlt kappa).card ≤ cap
+    exact card_initialSupportTailSuccessorFiber_le C hKfuel hsupport hAlt kappa hkappaStars
+  have hcount := Finset.card_le_mul_card_image domain cap hfibers
+  calc
+    (initialGoodRoots C R).card * 2 ^ (20 * (2 * R)) = domain.card := by
+      symm
+      exact card_initialGoodRootAssignmentPairDomain C R
+    _ ≤ cap * (domain.image successor).card := hcount
+    _ = (Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)) *
+        (initialSupportTailSuccessorImage C hKfuel hsupport hAlt).card := by
+      rw [himage]
+
+/-- Combining the genuine half-shell support-tail contraction with the exact assignment-domain
+count and the selected-successor fiber ceiling yields a direct lower bound on the number of
+distinct `20R` successors.  The leading factor `2` is exactly the price of discarding the bad
+half-shell; the remaining cap records the root-coarsening and assignment collisions. -/
+theorem initialRootShell_mul_assignments_le_two_mul_successorImage {n fuel R k : ℕ}
+    (C : Layered n)
+    (hR : 0 < R)
+    (hKfuel : 20 * (2 * R) ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (k + 3) C) :
+    (initialRootShell n R).card * 2 ^ (20 * (2 * R)) ≤
+      2 * (Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)) *
+        (initialSupportTailSuccessorImage C hKfuel hsupport hAlt).card := by
+  have hhalf := initialRootShell_card_le_two_mul_good C R hR hsupport
+  have himage := initialGoodRoots_mul_assignments_le_successorImage
+    C hKfuel hsupport hAlt
+  calc
+    (initialRootShell n R).card * 2 ^ (20 * (2 * R)) ≤
+        (2 * (initialGoodRoots C R).card) * 2 ^ (20 * (2 * R)) :=
+      Nat.mul_le_mul_right _ hhalf
+    _ = 2 * ((initialGoodRoots C R).card * 2 ^ (20 * (2 * R))) := by ring
+    _ ≤ 2 * ((Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)) *
+        (initialSupportTailSuccessorImage C hKfuel hsupport hAlt).card) :=
+      Nat.mul_le_mul_left _ himage
+    _ = 2 * (Nat.choose (n - 20 * R) (20 * R) * 2 ^ (20 * R)) *
+        (initialSupportTailSuccessorImage C hKfuel hsupport hAlt).card := by ring
+
+/-- A recursive zero-support state has no support-tail bad roots at any shell or trunk depth.
+This makes explicit that the later geometric iterator is already past the probabilistic
+support-tail selection: there is no nonempty round event on these states to which an additional
+switching charge could be attached. -/
+theorem ZeroSupportLocalizedState.liveLayeredBottomSupportTail_eq_empty
+    {R level slotBound : ℕ} (S : ZeroSupportLocalizedState R level slotBound)
+    (K trunkDepth : ℕ) :
+    liveLayeredBottomSupportTail S.circuit K trunkDepth = ∅ := by
+  have hsupport : layeredBottomVariableSupport S.circuit = ∅ :=
+    Finset.card_eq_zero.mp S.support_zero
+  ext σ
+  rw [mem_liveLayeredBottomSupportTail_iff]
+  simp [hsupport]
+
+/-- The normalized-family common-shallow bad set is likewise empty on every zero-support state,
+provided the shell fits the canonical-tree fuel.  Thus both the support-tail envelope used by the
+localized round and the switching bad event it bounds vanish before geometric iteration begins. -/
+theorem ZeroSupportLocalizedState.normalizedLayered_commonShallowBad_eq_empty
+    {R level slotBound fuel K trunkDepth residualDepth : ℕ}
+    (S : ZeroSupportLocalizedState R level slotBound) (hKfuel : K ≤ fuel) :
+    commonShallowBad (normalizedLayeredBottomFamily S.circuit) fuel K trunkDepth residualDepth =
+      ∅ := by
+  apply Finset.eq_empty_iff_forall_notMem.mpr
+  intro σ hσ
+  have htail :=
+    normalizedLayered_commonShallowBad_subset_liveBottomSupportTail hKfuel hσ
+  rw [S.liveLayeredBottomSupportTail_eq_empty K trunkDepth] at htail
+  simpa using htail
+
+/-- A successor retains the actual restriction used to identify its live-coordinate cube.  This
+semantic edge is essential for later composition: merely returning the child state would forget how
+assignments on that child lift back to the parent circuit. -/
+structure ZeroSupportLocalizedStep
+    {R level slotBound : ℕ} (S : ZeroSupportLocalizedState R (level + 1) slotBound)
+    (nextR nextSlotBound : ℕ) where
+  restriction : Restriction S.n
+  circuit : Layered (stars restriction)
+  ambient_eq : stars restriction = 20 * nextR
+  eval_eq : ∀ z : Fin (stars restriction) → Bool,
+    Layered.eval circuit z = Layered.eval S.circuit (liftLiveAssignment restriction z)
+  alt : AltO (level + 2) circuit
+  width_one : BottomWidth 1 circuit
+  slots_le : bottomSlotCount circuit ≤ nextSlotBound
+  support_zero : (layeredBottomVariableSupport circuit).card = 0
+
+/-- Forgetting the semantic edge of a successor yields exactly the state required by another
+round. -/
+def ZeroSupportLocalizedStep.toState
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 1) slotBound}
+    {nextR nextSlotBound : ℕ}
+    (step : ZeroSupportLocalizedStep S nextR nextSlotBound) :
+    ZeroSupportLocalizedState nextR level nextSlotBound where
+  n := stars step.restriction
+  circuit := step.circuit
+  ambient_eq := step.ambient_eq
+  alt := step.alt
+  width_one := step.width_one
+  slots_le := step.slots_le
+  support_zero := step.support_zero
+
+/-- Two composable localized edges.  The second restriction lives on the first edge's dependent
+coordinate type, so retaining the intermediate step in the package is essential: there is no
+single ambient restriction of the original type that can replace this data definitionally. -/
+structure ZeroSupportLocalizedTwoStep
+    {R level slotBound : ℕ} (S : ZeroSupportLocalizedState R (level + 2) slotBound)
+    (middleR finalR middleSlotBound finalSlotBound : ℕ) where
+  first : ZeroSupportLocalizedStep S middleR middleSlotBound
+  second : ZeroSupportLocalizedStep first.toState finalR finalSlotBound
+
+/-- View a final assignment on the intermediate live-coordinate cube.  Unfolding `toState` is the
+only transport required: its ambient dimension is definitionally the first restriction's star
+count. -/
+noncomputable def ZeroSupportLocalizedTwoStep.middleAssignment
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 2) slotBound}
+    {middleR finalR middleSlotBound finalSlotBound : ℕ}
+    (path : ZeroSupportLocalizedTwoStep S middleR finalR middleSlotBound finalSlotBound)
+    (z : Fin (stars path.second.restriction) → Bool) :
+    Fin (stars path.first.restriction) → Bool := by
+  simpa [ZeroSupportLocalizedStep.toState] using
+    liftLiveAssignment path.second.restriction z
+
+/-- The assignment embedding carried by two dependent localized edges. -/
+noncomputable def ZeroSupportLocalizedTwoStep.liftAssignment
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 2) slotBound}
+    {middleR finalR middleSlotBound finalSlotBound : ℕ}
+    (path : ZeroSupportLocalizedTwoStep S middleR finalR middleSlotBound finalSlotBound)
+    (z : Fin (stars path.second.restriction) → Bool) : Fin S.n → Bool :=
+  liftLiveAssignment path.first.restriction (path.middleAssignment z)
+
+/-- Semantic subcube equations compose transitively even though the two live-coordinate types are
+branch dependent.  This is the first nontrivial path-composition law for the recursive state. -/
+theorem ZeroSupportLocalizedTwoStep.eval_eq
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 2) slotBound}
+    {middleR finalR middleSlotBound finalSlotBound : ℕ}
+    (path : ZeroSupportLocalizedTwoStep S middleR finalR middleSlotBound finalSlotBound)
+    (z : Fin (stars path.second.restriction) → Bool) :
+    Layered.eval path.second.circuit z =
+      Layered.eval S.circuit (path.liftAssignment z) := by
+  calc
+    Layered.eval path.second.circuit z =
+        Layered.eval path.first.circuit (path.middleAssignment z) := by
+      simpa [ZeroSupportLocalizedStep.toState,
+        ZeroSupportLocalizedTwoStep.middleAssignment] using path.second.eval_eq z
+    _ = Layered.eval S.circuit (path.liftAssignment z) := by
+      exact path.first.eval_eq (path.middleAssignment z)
+
+/-! ### Length-indexed semantic paths through dependent live-coordinate cubes -/
+
+/-- A finite path of localized semantic edges.  Each successor restriction is defined on the
+previous edge's live-coordinate type, so both the endpoint dimension and endpoint circuit are
+genuinely dependent on the retained branch data.  The zero-length path is the identity edge. -/
+inductive LocalizedSemanticPath : {n : ℕ} → Layered n → ℕ → Type
+  | nil {n : ℕ} (C : Layered n) : LocalizedSemanticPath C 0
+  | cons {n length : ℕ} {C : Layered n} (restriction : Restriction n)
+      (child : Layered (stars restriction))
+      (eval_eq : ∀ z : Fin (stars restriction) → Bool,
+        Layered.eval child z = Layered.eval C (liftLiveAssignment restriction z))
+      (tail : LocalizedSemanticPath child length) :
+      LocalizedSemanticPath C (length + 1)
+
+/-- Ambient dimension at the final dependent endpoint. -/
+def LocalizedSemanticPath.endpointN {n length : ℕ} {C : Layered n}
+    (path : LocalizedSemanticPath C length) : ℕ := by
+  cases path with
+  | nil => exact n
+  | cons _ _ _ tail => exact tail.endpointN
+
+/-- Circuit at the final dependent endpoint. -/
+def LocalizedSemanticPath.endpointCircuit {n length : ℕ} {C : Layered n}
+    (path : LocalizedSemanticPath C length) : Layered path.endpointN := by
+  cases path with
+  | nil => exact C
+  | cons _ _ _ tail => exact tail.endpointCircuit
+
+/-- Fold all live-coordinate embeddings along a dependent path.  At a successor this first lifts
+from the final endpoint to the child cube, then through the current restriction to the parent. -/
+noncomputable def LocalizedSemanticPath.liftAssignment
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    (z : Fin path.endpointN → Bool) : Fin n → Bool := by
+  cases path with
+  | nil => exact z
+  | cons restriction _ _ tail =>
+      exact liftLiveAssignment restriction (tail.liftAssignment z)
+
+/-- The folded assignment embedding preserves semantics across an arbitrary finite dependent
+path.  This induction is the length-indexed replacement for the special two-edge calculation. -/
+theorem LocalizedSemanticPath.eval_eq
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    (z : Fin path.endpointN → Bool) :
+    Layered.eval path.endpointCircuit z = Layered.eval C (path.liftAssignment z) := by
+  induction path with
+  | nil => rfl
+  | cons restriction child hedge tail ih =>
+      exact (ih z).trans (hedge (tail.liftAssignment z))
+
+/-- XOR phase accumulated from all fixed-true coordinates along a dependent semantic path. -/
+def LocalizedSemanticPath.parityPhase
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length) : Bool :=
+  match path with
+  | .nil _ => false
+  | .cons restriction _ _ tail => xor tail.parityPhase (fixedParityPhase restriction)
+
+/-- Parity is transported through a whole dependent path by XOR with its accumulated fixed-bit
+phase.  This is the iterated form of `parity_liftLiveAssignment`; retaining only the first edge's
+phase is insufficient. -/
+theorem LocalizedSemanticPath.parity_liftAssignment
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    (z : Fin path.endpointN → Bool) :
+    DTree.parity (path.liftAssignment z) =
+      xor (DTree.parity z) path.parityPhase := by
+  induction path with
+  | nil => simp [LocalizedSemanticPath.liftAssignment,
+      LocalizedSemanticPath.parityPhase]
+  | cons restriction child hedge tail ih =>
+      rw [LocalizedSemanticPath.liftAssignment,
+        parity_liftLiveAssignment restriction, ih, Bool.xor_assoc]
+      rfl
+
+/-- Folding live-coordinate embeddings along a dependent path remains injective.  Thus a fixed
+root assignment has at most one endpoint assignment preimage along any retained branch. -/
+theorem LocalizedSemanticPath.liftAssignment_injective
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length) :
+    Function.Injective path.liftAssignment := by
+  induction path with
+  | nil =>
+      intro x y hxy
+      exact hxy
+  | cons restriction child hedge tail ih =>
+      exact (liftLiveAssignment_injective restriction).comp ih
+
+/-- Pointwise preimage form of path injectivity, convenient for later branch-fiber counts. -/
+theorem LocalizedSemanticPath.eq_of_liftAssignment_eq
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    {x y : Fin path.endpointN → Bool}
+    (hxy : path.liftAssignment x = path.liftAssignment y) :
+    x = y :=
+  path.liftAssignment_injective hxy
+
+/-- Exact finite-fiber consequence: over the endpoint Boolean cube, every root assignment has at
+most one preimage along a fixed dependent path. -/
+theorem LocalizedSemanticPath.liftAssignment_fiber_card_le_one
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    (root : Fin n → Bool) :
+    ((Finset.univ : Finset (Fin path.endpointN → Bool)).filter
+      fun z => path.liftAssignment z = root).card ≤ 1 := by
+  classical
+  rw [Finset.card_le_one]
+  intro x hx y hy
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hx hy
+  exact path.liftAssignment_injective (hx.trans hy.symm)
+
+/-- Agreement with a lifted local restriction separates into agreement with the ambient
+restriction and agreement, in canonical live coordinates, with the local restriction. -/
+theorem agreeRestriction_liftLiveRestriction_iff {n : ℕ} (tau : Restriction n)
+    (sigma : Restriction (stars tau)) (x : Fin n → Bool) :
+    DTree.agreeRestriction (liftLiveRestriction tau sigma) x ↔
+      DTree.agreeRestriction tau x ∧
+        DTree.agreeRestriction sigma (fun i => x (liveCoordEquiv tau i)) := by
+  constructor
+  · intro h
+    constructor
+    · intro v b hv
+      have hfixed : v ∉ freeVars tau := by
+        rw [mem_freeVars, hv]
+        simp
+      exact h v b (by simpa [liftLiveRestriction, hfixed] using hv)
+    · intro i b hi
+      exact h (liveCoordEquiv tau i) b (by simpa using hi)
+  · rintro ⟨htau, hsigma⟩ v b hv
+    by_cases hlive : v ∈ freeVars tau
+    · let i : Fin (stars tau) := (liveCoordEquiv tau).symm ⟨v, hlive⟩
+      have hi : sigma i = some b := by
+        simpa [liftLiveRestriction, hlive, i] using hv
+      have := hsigma i b hi
+      simpa [i] using this
+    · have ht : tau v = some b := by
+        simpa [liftLiveRestriction, hlive] using hv
+      exact htau v b ht
+
+/-- Fold every dependent edge restriction back into one restriction on the root cube.  The empty
+path fixes nothing; a successor lifts the tail's composed restriction through the current edge. -/
+noncomputable def LocalizedSemanticPath.rootRestriction
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length) : Restriction n := by
+  cases path with
+  | nil => exact fun _ => none
+  | cons restriction _ _ tail =>
+      exact liftLiveRestriction restriction tail.rootRestriction
+
+/-- The folded assignment image of a dependent semantic path is exactly the extension cube of its
+single composed root restriction.  This removes all canonical-coordinate transports from the
+cross-branch overlap question. -/
+theorem LocalizedSemanticPath.exists_liftAssignment_eq_iff_agrees
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length)
+    (x : Fin n → Bool) :
+    (∃ z : Fin path.endpointN → Bool, path.liftAssignment z = x) ↔
+      DTree.agreeRestriction path.rootRestriction x := by
+  induction path with
+  | nil =>
+      constructor
+      · rintro ⟨z, rfl⟩
+        intro v b h
+        simp [LocalizedSemanticPath.rootRestriction] at h
+      · intro _
+        exact ⟨x, rfl⟩
+  | cons restriction child hedge tail ih =>
+      rw [LocalizedSemanticPath.rootRestriction,
+        agreeRestriction_liftLiveRestriction_iff]
+      constructor
+      · rintro ⟨z, hz⟩
+        have houter : DTree.agreeRestriction restriction x := by
+          rw [← hz]
+          exact liftLiveAssignment_agrees restriction (tail.liftAssignment z)
+        refine ⟨houter, ?_⟩
+        apply (ih _).mp
+        refine ⟨z, ?_⟩
+        funext i
+        change liftLiveAssignment restriction (tail.liftAssignment z) = x at hz
+        have hi := congrFun hz (liveCoordEquiv restriction i)
+        simpa using hi
+      · rintro ⟨houter, htail⟩
+        obtain ⟨z, hz⟩ := (ih _).mpr htail
+        obtain ⟨y, hy⟩ :=
+          (exists_liftLiveAssignment_eq_iff_agrees restriction x).2 houter
+        refine ⟨z, ?_⟩
+        change liftLiveAssignment restriction (tail.liftAssignment z) = x
+        rw [hz]
+        have hycoord : y = fun i => x (liveCoordEquiv restriction i) := by
+          funext i
+          have hi := congrFun hy (liveCoordEquiv restriction i)
+          simpa using hi
+        rw [← hycoord]
+        exact hy
+
+/-- The composed restriction has exactly the endpoint number of live coordinates. -/
+@[simp] theorem LocalizedSemanticPath.stars_rootRestriction
+    {n length : ℕ} {C : Layered n} (path : LocalizedSemanticPath C length) :
+    stars path.rootRestriction = path.endpointN := by
+  induction path with
+  | nil =>
+      simp [LocalizedSemanticPath.rootRestriction, LocalizedSemanticPath.endpointN,
+        stars, freeVars]
+  | cons restriction child hedge tail ih =>
+      change stars (liftLiveRestriction restriction tail.rootRestriction) = tail.endpointN
+      rw [stars_liftLiveRestriction]
+      exact ih
+
+/-- Exact cross-branch overlap criterion for arbitrary dependent paths: their folded images meet
+if and only if their composed root restrictions are compatible. -/
+theorem LocalizedSemanticPath.liftAssignment_ranges_overlap_iff
+    {n leftLength rightLength : ℕ} {C D : Layered n}
+    (left : LocalizedSemanticPath C leftLength)
+    (right : LocalizedSemanticPath D rightLength) :
+    (∃ z : Fin left.endpointN → Bool, ∃ w : Fin right.endpointN → Bool,
+      left.liftAssignment z = right.liftAssignment w) ↔
+      RestrictionsCompatible left.rootRestriction right.rootRestriction := by
+  rw [restrictionsCompatible_iff_exists_agrees]
+  constructor
+  · rintro ⟨z, w, hzw⟩
+    exact ⟨left.liftAssignment z,
+      (left.exists_liftAssignment_eq_iff_agrees _).1 ⟨z, rfl⟩,
+      hzw ▸ (right.exists_liftAssignment_eq_iff_agrees _).1 ⟨w, rfl⟩⟩
+  · rintro ⟨x, hxleft, hxright⟩
+    obtain ⟨z, hz⟩ := (left.exists_liftAssignment_eq_iff_agrees x).2 hxleft
+    obtain ⟨w, hw⟩ := (right.exists_liftAssignment_eq_iff_agrees x).2 hxright
+    exact ⟨z, w, hz.trans hw.symm⟩
+
+/-- Every state-transition edge supplies a one-edge semantic path. -/
+def ZeroSupportLocalizedStep.toSemanticPath
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 1) slotBound}
+    {nextR nextSlotBound : ℕ}
+    (step : ZeroSupportLocalizedStep S nextR nextSlotBound) :
+    LocalizedSemanticPath S.circuit 1 := by
+  simpa using LocalizedSemanticPath.cons step.restriction step.circuit step.eval_eq
+    (LocalizedSemanticPath.nil step.circuit)
+
+/-- The previously constructed two-step package embeds into the uniform length-indexed path. -/
+def ZeroSupportLocalizedTwoStep.toSemanticPath
+    {R level slotBound : ℕ} {S : ZeroSupportLocalizedState R (level + 2) slotBound}
+    {middleR finalR middleSlotBound finalSlotBound : ℕ}
+    (path : ZeroSupportLocalizedTwoStep S middleR finalR middleSlotBound finalSlotBound) :
+    LocalizedSemanticPath S.circuit 2 := by
+  refine LocalizedSemanticPath.cons path.first.restriction path.first.circuit
+    path.first.eval_eq ?_
+  simpa [ZeroSupportLocalizedStep.toState] using
+    LocalizedSemanticPath.cons path.second.restriction path.second.circuit
+      path.second.eval_eq (LocalizedSemanticPath.nil path.second.circuit)
+
+/-- A zero-support state on shell `i` advances along every assignment to a dependent successor on
+shell `i+1`.  This is one canonical-branch round with the assignment provenance that the earlier
+`Nonempty` interface discarded: the returned survivor restriction is extended by the assignment
+used to select the prefix-tree leaf.  The support-tail good condition is automatic at the all-free
+root, while the exact geometric shell identity supplies the child's ambient dimension. -/
+theorem ZeroSupportLocalizedState.exists_next_agreeing
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel)
+    (x : Fin S.n → Bool) :
+    ∃ step : ZeroSupportLocalizedStep S
+        (zeroSupportSurvivorScale d r (i + 1)) (slotBound * 3),
+      Rung4Restriction.Extends step.restriction x := by
+  let σ : Restriction S.n := fun _ => none
+  have hstars : stars σ = 20 * zeroSupportSurvivorScale d r i := by
+    calc
+      stars σ = S.n := by simp [σ, stars, freeVars]
+      _ = 20 * zeroSupportSurvivorScale d r i := S.ambient_eq
+  have hsupport : 16 * (layeredBottomVariableSupport S.circuit).card ≤ S.n := by
+    rw [S.support_zero]
+    omega
+  have hAlt : AltO (level + 3) S.circuit := by
+    simpa only [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using S.alt
+  have hgood : σ ∉ liveLayeredBottomSupportTail S.circuit
+      (20 * zeroSupportSurvivorScale d r i)
+      (10 * zeroSupportSurvivorScale d r i) := by
+    intro hbad
+    rw [mem_liveLayeredBottomSupportTail_iff] at hbad
+    have hfiltered :
+        ((layeredBottomVariableSupport S.circuit).filter fun j ↦ σ j = none).card = 0 := by
+      apply Nat.eq_zero_of_le_zero
+      exact (Finset.card_filter_le _ _).trans_eq S.support_zero
+    omega
+  have hx : Rung4Restriction.Extends σ x := by
+    intro j b hj
+    simp [σ] at hj
+  have hround :=
+    (supportTail_normalizedSurvivorRound_localized
+      (C := S.circuit) (fuel := fuel)
+      (R := zeroSupportSurvivorScale d r i) (k := level)
+      hfuel hsupport hAlt).2 σ hstars hgood x hx
+  dsimp only at hround
+  obtain ⟨κ, _hext, hκextends, hκstars, _hκfuel, heval, _hdepth, hDalt, _hne,
+    hwidth, hslots, hDsupport, _hdensity⟩ := hround
+  refine ⟨{
+    restriction := κ
+    circuit := localizeLiveLayered κ
+      (collapseRound fuel
+        (CommonTree.run
+          (CommonTree.prefixEndpoints σ
+            (canonicalFamilyTree (normalizedLayeredBottomFamily S.circuit) fuel σ)
+            (10 * zeroSupportSurvivorScale d r i)) x)
+        S.circuit)
+    ambient_eq := ?_
+    eval_eq := heval
+    alt := hDalt
+    width_one := hwidth
+    slots_le := hslots.trans (by nlinarith [S.slots_le])
+    support_zero := hDsupport }, hκextends⟩
+  calc
+    stars κ = 10 * zeroSupportSurvivorScale d r i := hκstars
+    _ = 20 * zeroSupportSurvivorScale d r (i + 1) :=
+      (zeroSupportSurvivorScale_shell_exact d r i hi).symm
+
+/-- Fix one provenance-carrying successor for each total assignment.  The domain is the finite
+Boolean cube, so this is an actual finite branch generator rather than another unlabelled
+existence statement. -/
+noncomputable def ZeroSupportLocalizedState.selectedNextStep
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel)
+    (x : Fin S.n → Bool) :
+    ZeroSupportLocalizedStep S
+      (zeroSupportSurvivorScale d r (i + 1)) (slotBound * 3) :=
+  Classical.choose (S.exists_next_agreeing hi hfuel x)
+
+/-- The selected successor keeps the assignment label that generated it: the root assignment
+extends its survivor restriction. -/
+theorem ZeroSupportLocalizedState.selectedNextStep_agreeing
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel)
+    (x : Fin S.n → Bool) :
+    Rung4Restriction.Extends (S.selectedNextStep hi hfuel x).restriction x :=
+  Classical.choose_spec (S.exists_next_agreeing hi hfuel x)
+
+/-- The finite provenance labels for the one-round selector.  Keeping the full assignment cube,
+rather than prematurely quotienting by the selected restriction, preserves collisions for the
+later branch-fiber audit. -/
+def ZeroSupportLocalizedState.generatedNextLabels
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel) :
+    Finset (Fin S.n → Bool) :=
+  Finset.univ
+
+/-- Root-assignment completeness of the finite generator.  Every assignment is a retained finite
+label and extends the survivor restriction of its selected successor. -/
+theorem ZeroSupportLocalizedState.generatedNextLabels_complete
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel)
+    (x : Fin S.n → Bool) :
+    x ∈ S.generatedNextLabels hi hfuel ∧
+      Rung4Restriction.Extends (S.selectedNextStep hi hfuel x).restriction x := by
+  constructor
+  · simp [ZeroSupportLocalizedState.generatedNextLabels]
+  · exact S.selectedNextStep_agreeing hi hfuel x
+
+/-- The finite generator has exactly one label for each Boolean root assignment. -/
+@[simp] theorem ZeroSupportLocalizedState.card_generatedNextLabels
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel) :
+    (S.generatedNextLabels hi hfuel).card = 2 ^ S.n := by
+  simp [ZeroSupportLocalizedState.generatedNextLabels]
+
+/-- Compatibility wrapper preserving the original existential-only successor API. -/
+theorem ZeroSupportLocalizedState.exists_next
+    {d r i level slotBound fuel : ℕ} (hi : i < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 1) slotBound)
+    (hfuel : 20 * zeroSupportSurvivorScale d r i ≤ fuel)
+    (x : Fin S.n → Bool) :
+    Nonempty (ZeroSupportLocalizedStep S
+      (zeroSupportSurvivorScale d r (i + 1)) (slotBound * 3)) := by
+  obtain ⟨step, _⟩ := S.exists_next_agreeing hi hfuel x
+  exact ⟨step⟩
+
+/-- Two successive calls to the one-round constructor produce a genuinely composable dependent
+path.  The branch assignments are deliberately arbitrary here: their only role is to select the
+canonical tree leaf used by each existential round, while the returned edge equations hold for
+every assignment on the final live cube. -/
+theorem ZeroSupportLocalizedState.exists_two_step
+    {d r i level slotBound fuel₀ fuel₁ : ℕ}
+    (hi₀ : i < d) (hi₁ : i + 1 < d)
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + 2) slotBound)
+    (hfuel₀ : 20 * zeroSupportSurvivorScale d r i ≤ fuel₀)
+    (hfuel₁ : 20 * zeroSupportSurvivorScale d r (i + 1) ≤ fuel₁) :
+    Nonempty (ZeroSupportLocalizedTwoStep S
+      (zeroSupportSurvivorScale d r (i + 1))
+      (zeroSupportSurvivorScale d r (i + 2))
+      (slotBound * 3) ((slotBound * 3) * 3)) := by
+  obtain ⟨first⟩ := S.exists_next hi₀ hfuel₀ (fun _ => false)
+  obtain ⟨second⟩ := first.toState.exists_next hi₁ hfuel₁ (fun _ => false)
+  exact ⟨{ first := first, second := second }⟩
+
+/-! ### Geometrically scheduled dependent localized paths -/
+
+/-- A dependent localized path carrying the complete structural recurrence.  At shell `i` it
+stores the exact geometric scale, `length` remaining alternation drops, and the forward slot
+envelope `M * 3^i`.  The successor is therefore indexed by the next shell and by the exact next
+slot envelope, rather than merely retaining those facts as propositions at the endpoint. -/
+inductive ZeroSupportGeometricPath (d r level M : ℕ) :
+    (i length : ℕ) →
+      ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+        (level + length) (M * 3 ^ i) → Type
+  | nil (i : ℕ)
+      (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i) level
+        (M * 3 ^ i)) :
+      ZeroSupportGeometricPath d r level M i 0 S
+  | cons {i length : ℕ}
+      {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+        (level + (length + 1)) (M * 3 ^ i)}
+      (step : ZeroSupportLocalizedStep S
+        (zeroSupportSurvivorScale d r (i + 1)) (M * 3 ^ (i + 1)))
+      (tail : ZeroSupportGeometricPath d r level M (i + 1) length step.toState) :
+      ZeroSupportGeometricPath d r level M i (length + 1) S
+
+/-- Forgetting the schedule and state invariants leaves the arbitrary dependent semantic path
+constructed above.  In particular, its folded assignment embedding is immediately covered by
+`LocalizedSemanticPath.eval_eq`. -/
+def ZeroSupportGeometricPath.toSemanticPath
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S) :
+    LocalizedSemanticPath S.circuit length :=
+  match path with
+  | .nil _ S => LocalizedSemanticPath.nil S.circuit
+  | .cons step tail =>
+      LocalizedSemanticPath.cons step.restriction step.circuit step.eval_eq (by
+        simpa [ZeroSupportLocalizedStep.toState] using tail.toSemanticPath)
+
+/-- The endpoint again has a state, now at shell `i+length`, with all requested indices exposed in
+its type: remaining level `level` and slot envelope `M * 3^(i+length)`. -/
+def ZeroSupportGeometricPath.endpointState
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S) :
+    ZeroSupportLocalizedState (zeroSupportSurvivorScale d r (i + length)) level
+      (M * 3 ^ (i + length)) :=
+  match path with
+  | .nil _ S => by simpa using S
+  | .cons _ tail => by
+      simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using tail.endpointState
+
+/-- At remaining level zero, every geometric endpoint is an exposed DNF with canonical depth
+strictly below its positive scheduled dimension.  In fact the depth is exactly zero for every
+fuel and restriction; positivity is used only to make the terminal inequality strict. -/
+theorem ZeroSupportGeometricPath.exists_endpointDnf_depth_lt
+    {d r M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (0 + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r 0 M i length S)
+    (hR : 0 < zeroSupportSurvivorScale d r (i + length)) :
+    ∃ D : List (Clause path.endpointState.n),
+      path.endpointState.circuit = Layered.dnf D ∧
+        ∀ fuel σ, (canonicalDT D fuel σ).depth < path.endpointState.n := by
+  obtain ⟨D, hD, hdepth⟩ := path.endpointState.exists_terminalDnf_depth_zero
+  refine ⟨D, hD, ?_⟩
+  intro fuel σ
+  rw [hdepth fuel σ, path.endpointState.ambient_eq]
+  omega
+
+/-- The semantic endpoint projection computes through one geometric successor without exposing
+the dependent proof transports used to build the semantic tail. -/
+@[simp] theorem ZeroSupportGeometricPath.toSemanticPath_endpointN_cons
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + (length + 1)) (M * 3 ^ i)}
+    (step : ZeroSupportLocalizedStep S
+      (zeroSupportSurvivorScale d r (i + 1)) (M * 3 ^ (i + 1)))
+    (tail : ZeroSupportGeometricPath d r level M (i + 1) length step.toState) :
+    (ZeroSupportGeometricPath.cons step tail).toSemanticPath.endpointN =
+      tail.toSemanticPath.endpointN := rfl
+
+/-- Any finite prefix fitting within the geometric horizon is generated by repeated applications
+of `ZeroSupportLocalizedState.exists_next`.  Fuel may vary by shell; no uniform choice is hidden in
+the construction. -/
+theorem ZeroSupportLocalizedState.exists_geometric_path
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    Nonempty (ZeroSupportGeometricPath d r level M i length S) := by
+  induction length generalizing i with
+  | zero =>
+      exact ⟨ZeroSupportGeometricPath.nil i S⟩
+  | succ length ih =>
+      have hi : i < d := by omega
+      have hfueli : 20 * zeroSupportSurvivorScale d r i ≤ fuel i :=
+        hfuel i (by omega) (by omega)
+      obtain ⟨rawStep⟩ := S.exists_next hi hfueli (fun _ => false)
+      have step : ZeroSupportLocalizedStep S
+          (zeroSupportSurvivorScale d r (i + 1)) (M * 3 ^ (i + 1)) := by
+        simpa only [pow_succ, Nat.mul_assoc] using rawStep
+      have htailHorizon : i + 1 + length ≤ d := by omega
+      have htailFuel : ∀ j, i + 1 ≤ j → j < i + 1 + length →
+          20 * zeroSupportSurvivorScale d r j ≤ fuel j := by
+        intro j hjlo hjhi
+        exact hfuel j (by omega) (by omega)
+      obtain ⟨tail⟩ := ih step.toState htailHorizon htailFuel
+      exact ⟨ZeroSupportGeometricPath.cons step tail⟩
+
+/-- A geometrically scheduled path can be selected coherently from one root assignment.  At each
+round the same assignment is restricted to the current canonical live coordinates and used as the
+next branch label.  The endpoint assignment therefore lifts all the way back to the original root
+assignment, retaining the provenance that the existential-only path constructor discarded. -/
+theorem ZeroSupportLocalizedState.exists_geometric_path_lifting_assignment
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (x : Fin S.n → Bool) :
+    ∃ path : ZeroSupportGeometricPath d r level M i length S,
+      ∃ z : Fin path.toSemanticPath.endpointN → Bool,
+        path.toSemanticPath.liftAssignment z = x := by
+  induction length generalizing i with
+  | zero =>
+      refine ⟨ZeroSupportGeometricPath.nil i S, x, rfl⟩
+  | succ length ih =>
+      have hi : i < d := by omega
+      have hfueli : 20 * zeroSupportSurvivorScale d r i ≤ fuel i :=
+        hfuel i (by omega) (by omega)
+      let rawStep := S.selectedNextStep hi hfueli x
+      have hrawAgree : Rung4Restriction.Extends rawStep.restriction x := by
+        exact S.selectedNextStep_agreeing hi hfueli x
+      have hslot : (M * 3 ^ i) * 3 = M * 3 ^ (i + 1) := by
+        rw [pow_succ]
+        ring
+      let step : ZeroSupportLocalizedStep S
+          (zeroSupportSurvivorScale d r (i + 1)) (M * 3 ^ (i + 1)) := {
+        restriction := rawStep.restriction
+        circuit := rawStep.circuit
+        ambient_eq := rawStep.ambient_eq
+        eval_eq := rawStep.eval_eq
+        alt := rawStep.alt
+        width_one := rawStep.width_one
+        slots_le := by rw [← hslot]; exact rawStep.slots_le
+        support_zero := rawStep.support_zero }
+      have hstepAgree : DTree.agreeRestriction step.restriction x := by
+        change Rung4Restriction.Extends rawStep.restriction x
+        exact hrawAgree
+      let localX : Fin step.toState.n → Bool :=
+        fun j => x (liveCoordEquiv step.restriction j)
+      have htailHorizon : i + 1 + length ≤ d := by omega
+      have htailFuel : ∀ j, i + 1 ≤ j → j < i + 1 + length →
+          20 * zeroSupportSurvivorScale d r j ≤ fuel j := by
+        intro j hjlo hjhi
+        exact hfuel j (by omega) (by omega)
+      obtain ⟨tail, z, hz⟩ :=
+        ih step.toState htailHorizon htailFuel localX
+      refine ⟨ZeroSupportGeometricPath.cons step tail, z, ?_⟩
+      change liftLiveAssignment step.restriction
+          (tail.toSemanticPath.liftAssignment z) = x
+      rw [hz]
+      simpa [localX, ZeroSupportLocalizedStep.toState] using
+        liftLiveAssignment_restrict_eq_of_agrees step.restriction x hstepAgree
+
+/-- Deterministically select the provenance-carrying geometric path generated by a root
+assignment.  Classical choice only removes the final existential packaging: every round inside
+the witness was selected from the assignment restricted to that round's live coordinates. -/
+noncomputable def ZeroSupportLocalizedState.selectedGeometricPath
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (x : Fin S.n → Bool) :
+    ZeroSupportGeometricPath d r level M i length S :=
+  Classical.choose (S.exists_geometric_path_lifting_assignment
+    horizon fuel hfuel x)
+
+/-- The composed root restriction of the assignment-selected path is extended by the same root
+assignment.  This is the end-to-end provenance invariant needed before distinct generated fibers
+can be counted. -/
+theorem ZeroSupportLocalizedState.selectedGeometricPath_rootRestriction_agrees
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (x : Fin S.n → Bool) :
+    DTree.agreeRestriction
+      (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath.rootRestriction x := by
+  have hlift := Classical.choose_spec
+    (S.exists_geometric_path_lifting_assignment horizon fuel hfuel x)
+  exact (LocalizedSemanticPath.exists_liftAssignment_eq_iff_agrees
+    (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath x).1 hlift
+
+/-- The generated scheduled path inherits the transitive semantic equation for its folded live-
+coordinate embedding. -/
+theorem ZeroSupportGeometricPath.eval_eq
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S)
+    (z : Fin path.toSemanticPath.endpointN → Bool) :
+    Layered.eval path.toSemanticPath.endpointCircuit z =
+      Layered.eval S.circuit (path.toSemanticPath.liftAssignment z) :=
+  path.toSemanticPath.eval_eq z
+
+/-- Forgetting the schedule and projecting the endpoint state compute the same final ambient
+dimension. -/
+theorem ZeroSupportGeometricPath.toSemanticPath_endpointN_scheduled
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S) :
+    path.toSemanticPath.endpointN =
+      20 * zeroSupportSurvivorScale d r (i + length) := by
+  induction path with
+  | nil _ S => exact S.ambient_eq
+  | cons step tail ih =>
+      rw [ZeroSupportGeometricPath.toSemanticPath_endpointN_cons, ih]
+      congr 2
+      omega
+
+@[simp] theorem ZeroSupportGeometricPath.semantic_endpointN_eq_endpointState_n
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S) :
+    path.toSemanticPath.endpointN = path.endpointState.n := by
+  exact path.toSemanticPath_endpointN_scheduled.trans path.endpointState.ambient_eq.symm
+
+/-- Terminal DNF extraction directly in the semantic endpoint presentation.  Recursing through
+the geometric path avoids casting the entire dependent endpoint-state structure: both the DNF and
+the decision tree now live definitionally on the same cube used by `LocalizedSemanticPath.eval_eq`.
+-/
+theorem ZeroSupportGeometricPath.exists_semantic_endpointDnf_depth_lt
+    {d r M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (0 + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r 0 M i length S)
+    (hR : 0 < zeroSupportSurvivorScale d r (i + length)) :
+    ∃ D : List (Clause path.toSemanticPath.endpointN),
+      path.toSemanticPath.endpointCircuit = Layered.dnf D ∧
+        ∀ fuel σ, (canonicalDT D fuel σ).depth < path.toSemanticPath.endpointN := by
+  induction path with
+  | nil i S =>
+      change ∃ D : List (Clause S.n), S.circuit = Layered.dnf D ∧
+        ∀ fuel σ, (canonicalDT D fuel σ).depth < S.n
+      obtain ⟨D, hD, hdepth⟩ := S.exists_terminalDnf_depth_zero
+      refine ⟨D, hD, ?_⟩
+      intro fuel σ
+      rw [hdepth fuel σ, S.ambient_eq]
+      simpa using hR
+  | cons step tail ih =>
+      change ∃ D : List (Clause tail.toSemanticPath.endpointN),
+        tail.toSemanticPath.endpointCircuit = Layered.dnf D ∧
+          ∀ fuel σ, (canonicalDT D fuel σ).depth < tail.toSemanticPath.endpointN
+      apply ih
+      simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hR
+
+/-- A positive zero-support terminal path cannot compute live parity, even after an arbitrary
+fixed XOR phase.  This is the localized structural cashout: the canonical tree is built at the
+all-free endpoint restriction, computes the exposed semantic-endpoint DNF, and is too shallow for
+parity on that same dependent live cube. -/
+theorem ZeroSupportGeometricPath.exists_semantic_endpoint_disagrees_parity_xor
+    {d r M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (0 + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r 0 M i length S)
+    (hR : 0 < zeroSupportSurvivorScale d r (i + length))
+    (phase : Bool) :
+    ∃ z : Fin path.toSemanticPath.endpointN → Bool,
+      Layered.eval path.toSemanticPath.endpointCircuit z ≠
+        xor (DTree.parity z) phase := by
+  obtain ⟨D, hD, hdepth⟩ := path.exists_semantic_endpointDnf_depth_lt hR
+  let σ : Restriction path.toSemanticPath.endpointN := fun _ => none
+  let fuel := path.toSemanticPath.endpointN
+  have hstars : stars σ ≤ fuel := by
+    simp [σ, fuel, stars, freeVars]
+  have hext (z : Fin path.toSemanticPath.endpointN → Bool) :
+      Rung4Restriction.Extends σ z := by
+    intro v b hv
+    simp [σ] at hv
+  obtain ⟨z, hz⟩ := DTree.shallow_dtree_not_parity_xor
+    (toDTree (canonicalDT D fuel σ)) phase (by
+      rw [toDTree_depth]
+      exact hdepth fuel σ)
+  refine ⟨z, ?_⟩
+  rw [hD, Layered.eval_dnf, ← dnfEval_eq_dnfValue,
+    ← canonicalDT_eval fuel σ z hstars (hext z), ← toDTree_eval]
+  exact hz
+
+/-- Every structurally admissible geometric path ends on the scheduled shell.  This is the
+dimension fact needed to place all of its composed root restrictions in one finite ambient
+family. -/
+@[simp] theorem ZeroSupportGeometricPath.semantic_endpointN
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    (path : ZeroSupportGeometricPath d r level M i length S) :
+    path.toSemanticPath.endpointN =
+      20 * zeroSupportSurvivorScale d r (i + length) := by
+  exact path.toSemanticPath_endpointN_scheduled
+
+/-! ### The assignment-generated composed-root image -/
+
+/-- The distinct composed root restrictions actually selected by total root assignments.  Unlike
+`admissibleGeometricRootRestrictions`, this image retains constructor provenance and therefore
+supports a genuine fiber count for the selected geometric-path map. -/
+noncomputable def generatedGeometricRootRestrictions
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    Finset (Restriction S.n) := by
+  classical
+  exact Finset.univ.image fun x =>
+    (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath.rootRestriction
+
+@[simp] theorem mem_generatedGeometricRootRestrictions_iff
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    {horizon : i + length ≤ d}
+    {fuel : ℕ → ℕ}
+    {hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j}
+    {rho : Restriction S.n} :
+    rho ∈ generatedGeometricRootRestrictions S horizon fuel hfuel ↔
+      ∃ x : Fin S.n → Bool,
+        (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath.rootRestriction = rho := by
+  classical
+  simp [generatedGeometricRootRestrictions]
+
+/-- Every assignment-generated composed restriction lies on the scheduled final survivor shell. -/
+theorem stars_eq_of_mem_generatedGeometricRootRestrictions
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    {horizon : i + length ≤ d}
+    {fuel : ℕ → ℕ}
+    {hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j}
+    {rho : Restriction S.n}
+    (hrho : rho ∈ generatedGeometricRootRestrictions S horizon fuel hfuel) :
+    stars rho = 20 * zeroSupportSurvivorScale d r (i + length) := by
+  obtain ⟨x, rfl⟩ := mem_generatedGeometricRootRestrictions_iff.mp hrho
+  rw [LocalizedSemanticPath.stars_rootRestriction]
+  exact (S.selectedGeometricPath horizon fuel hfuel x).semantic_endpointN
+
+/-- Root assignments in one selected-map fiber. -/
+noncomputable def generatedGeometricRootFiber
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (rho : Restriction S.n) : Finset (Fin S.n → Bool) := by
+  classical
+  exact Finset.univ.filter fun x =>
+    (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath.rootRestriction = rho
+
+/-- Provenance forces every assignment in a generated fiber to extend that fiber's root
+restriction.  Thus a fiber cannot be larger than its endpoint Boolean cube. -/
+theorem generatedGeometricRootFiber_subset_agreeing
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (rho : Restriction S.n) :
+    generatedGeometricRootFiber S horizon fuel hfuel rho ⊆
+      assignmentsAgreeingRestriction rho := by
+  classical
+  intro x hx
+  rw [generatedGeometricRootFiber, Finset.mem_filter] at hx
+  rw [assignmentsAgreeingRestriction, Finset.mem_filter]
+  refine ⟨Finset.mem_univ x, ?_⟩
+  rw [← hx.2]
+  exact S.selectedGeometricPath_rootRestriction_agrees horizon fuel hfuel x
+
+/-- Every generated-map fiber has size at most the final live cube. -/
+theorem card_generatedGeometricRootFiber_le
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    {rho : Restriction S.n}
+    (hrho : rho ∈ generatedGeometricRootRestrictions S horizon fuel hfuel) :
+    (generatedGeometricRootFiber S horizon fuel hfuel rho).card ≤
+      2 ^ (20 * zeroSupportSurvivorScale d r (i + length)) := by
+  calc
+    (generatedGeometricRootFiber S horizon fuel hfuel rho).card ≤
+        (assignmentsAgreeingRestriction rho).card :=
+      Finset.card_le_card
+        (generatedGeometricRootFiber_subset_agreeing S horizon fuel hfuel rho)
+    _ = 2 ^ stars rho := card_assignments_agreeing_restriction rho
+    _ = 2 ^ (20 * zeroSupportSurvivorScale d r (i + length)) := by
+      rw [stars_eq_of_mem_generatedGeometricRootRestrictions hrho]
+
+/-- The selected restrictions must cover the whole root cube, and no selected fiber is larger
+than the scheduled endpoint cube.  Consequently the generated image satisfies the exact product
+lower bound expected from a partition into endpoint-sized fibers. -/
+theorem generatedGeometricRootRestrictions_product_lower_bound
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (horizon : i + length ≤ d)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, i ≤ j → j < i + length →
+      20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    2 ^ S.n ≤
+      2 ^ (20 * zeroSupportSurvivorScale d r (i + length)) *
+        (generatedGeometricRootRestrictions S horizon fuel hfuel).card := by
+  classical
+  let root : (Fin S.n → Bool) → Restriction S.n := fun x =>
+    (S.selectedGeometricPath horizon fuel hfuel x).toSemanticPath.rootRestriction
+  have hcard := Finset.card_le_mul_card_image
+    (Finset.univ : Finset (Fin S.n → Bool))
+    (2 ^ (20 * zeroSupportSurvivorScale d r (i + length)))
+    (fun rho hrho => by
+      have hrho' : rho ∈ generatedGeometricRootRestrictions S horizon fuel hfuel := by
+        simpa [root, generatedGeometricRootRestrictions] using hrho
+      simpa [root, generatedGeometricRootFiber] using
+        card_generatedGeometricRootFiber_le S horizon fuel hfuel hrho')
+  simpa [root, generatedGeometricRootRestrictions, Fintype.card_fin,
+    Fintype.card_bool] using hcard
+
+/-! ### Composing the genuine initial event with the zero-support geometric path -/
+
+/-- The selected provenance-carrying geometric path after the genuine initial support-tail
+successor.  Earlier APIs exposed only its folded ambient restriction; retaining the path also
+exposes the terminal localized circuit and every semantic edge used to reach it. -/
+noncomputable def selectedInitialGeometricPath
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p}) :
+    ZeroSupportGeometricPath d r level (bottomSlotCount C * 3) 0 d
+      (selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+        simpa only [Nat.add_assoc] using hAlt) p).toInitialGeometricState := by
+  let step := selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+    simpa only [Nat.add_assoc] using hAlt) p
+  let S := step.toInitialGeometricState
+  let localX : Fin S.n → Bool := fun i ↦ p.1.2 (liveCoordEquiv step.restriction i)
+  exact S.selectedGeometricPath (d := d) (r := r) (level := level)
+    (M := bottomSlotCount C * 3) (i := 0) (length := d) (by omega) fuel (by
+      intro j _hjlo hjhi
+      exact hfuel j (by omega)) localX
+
+/-- The terminal localized circuit on the selected path is semantically equivalent to the
+original circuit under the full dependent-coordinate embedding.  This is the semantic payload
+that was absent from the restriction-only endpoint image. -/
+theorem selectedInitialGeometricPath_eval_eq
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p})
+    (z : Fin (selectedInitialGeometricPath C hKfuel₀ hsupport hAlt fuel hfuel p).toSemanticPath.endpointN →
+      Bool) :
+    Layered.eval
+        (selectedInitialGeometricPath C hKfuel₀ hsupport hAlt fuel hfuel p).toSemanticPath.endpointCircuit z =
+      Layered.eval C
+        (liftLiveAssignment
+          (selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+            simpa only [Nat.add_assoc] using hAlt) p).restriction
+          ((selectedInitialGeometricPath C hKfuel₀ hsupport hAlt fuel hfuel p).toSemanticPath.liftAssignment z)) := by
+  let step := selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+    simpa only [Nat.add_assoc] using hAlt) p
+  let path := selectedInitialGeometricPath C hKfuel₀ hsupport hAlt fuel hfuel p
+  calc
+    Layered.eval path.toSemanticPath.endpointCircuit z =
+        Layered.eval step.circuit (path.toSemanticPath.liftAssignment z) :=
+      path.eval_eq z
+    _ = Layered.eval C
+        (liftLiveAssignment step.restriction (path.toSemanticPath.liftAssignment z)) :=
+      step.eval_eq _
+
+/-- End-to-end localized parity cashout for a selected genuine initial successor.  At residual
+level zero and positive terminal scale, the original circuit disagrees with ambient parity at an
+assignment in the selected endpoint subcube.  The fixed bits introduced by the initial
+restriction are accounted for by `fixedParityPhase`; the remaining dependent path is consumed by
+its composed semantic equation. -/
+theorem selectedInitialGeometricPath_exists_disagrees_parity
+    {n fuel₀ d r : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (0 + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p})
+    (hr : 0 < r) :
+    ∃ x : Fin n → Bool, Layered.eval C x ≠ DTree.parity x := by
+  let step := selectedInitialSupportTailSuccessor (k := 0 + d)
+    C hKfuel₀ hsupport hAlt p
+  let S := step.toInitialGeometricState
+  let localX : Fin S.n → Bool := fun j ↦ p.1.2 (liveCoordEquiv step.restriction j)
+  let path := S.selectedGeometricPath (d := d) (r := r) (level := 0)
+    (M := bottomSlotCount C * 3) (i := 0) (length := d) (by omega) fuel (by
+      intro j _hjlo hjhi
+      exact hfuel j (by omega)) localX
+  have hR : 0 < zeroSupportSurvivorScale d r (0 + d) := by
+    simpa [zeroSupportSurvivorScale] using hr
+  obtain ⟨z, hz⟩ := path.exists_semantic_endpoint_disagrees_parity_xor hR
+    (xor path.toSemanticPath.parityPhase (fixedParityPhase step.restriction))
+  let x := liftLiveAssignment step.restriction (path.toSemanticPath.liftAssignment z)
+  refine ⟨x, ?_⟩
+  intro heq
+  apply hz
+  calc
+    Layered.eval path.toSemanticPath.endpointCircuit z =
+        Layered.eval step.circuit (path.toSemanticPath.liftAssignment z) := path.eval_eq z
+    _ = Layered.eval C x := by
+      simpa [x] using step.eval_eq (path.toSemanticPath.liftAssignment z)
+    _ = DTree.parity x := heq
+    _ = xor (DTree.parity (path.toSemanticPath.liftAssignment z))
+          (fixedParityPhase step.restriction) :=
+      by simpa [x] using
+        parity_liftLiveAssignment step.restriction (path.toSemanticPath.liftAssignment z)
+    _ = xor (xor (DTree.parity z) path.toSemanticPath.parityPhase)
+          (fixedParityPhase step.restriction) := by
+      rw [path.toSemanticPath.parity_liftAssignment]
+    _ = xor (DTree.parity z)
+          (xor path.toSemanticPath.parityPhase (fixedParityPhase step.restriction)) :=
+      Bool.xor_assoc _ _ _
+
+/-- Select the full ambient endpoint obtained by entering the zero-support iterator through the
+genuine initial support-tail successor.  The initial scale is written as
+`zeroSupportSurvivorScale d r 0`, so the successor state feeds the geometric schedule without an
+index cast. -/
+noncomputable def selectedInitialGeometricEndpointRestriction
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p}) :
+    Restriction n := by
+  let step := selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+    simpa only [Nat.add_assoc] using hAlt) p
+  let S := step.toInitialGeometricState
+  let localX : Fin S.n → Bool := fun i ↦ p.1.2 (liveCoordEquiv step.restriction i)
+  let path := S.selectedGeometricPath (d := d) (r := r) (level := level)
+    (M := bottomSlotCount C * 3) (i := 0) (length := d) (by omega) fuel (by
+    intro j _hjlo hjhi
+    exact hfuel j (by omega)) localX
+  exact liftLiveRestriction step.restriction path.toSemanticPath.rootRestriction
+
+/-- The composed endpoint retains the scheduled final number of live coordinates. -/
+theorem stars_selectedInitialGeometricEndpointRestriction
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p}) :
+    stars (selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p) =
+      20 * r := by
+  simp only [selectedInitialGeometricEndpointRestriction, stars_liftLiveRestriction]
+  rw [LocalizedSemanticPath.stars_rootRestriction]
+  simpa using (ZeroSupportGeometricPath.semantic_endpointN
+    (S := (selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+      simpa only [Nat.add_assoc] using hAlt) p).toInitialGeometricState)
+    ((selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+      simpa only [Nat.add_assoc] using hAlt) p).toInitialGeometricState.selectedGeometricPath
+      (d := d) (r := r) (level := level) (M := bottomSlotCount C * 3)
+      (i := 0) (length := d) (by omega) fuel (by
+        intro j _hjlo hjhi
+        exact hfuel j (by omega))
+      (fun i ↦ p.1.2 (liveCoordEquiv
+        (selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+          simpa only [Nat.add_assoc] using hAlt) p).restriction i))))
+
+/-- The original assignment selecting the good initial successor also extends the fully composed
+ambient endpoint.  This is the cross-boundary provenance statement used by the direct fiber
+count. -/
+theorem selectedInitialGeometricEndpointRestriction_assignment
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p}) :
+    Rung4Restriction.Extends
+      (selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p)
+      p.1.2 := by
+  let step := selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+    simpa only [Nat.add_assoc] using hAlt) p
+  let S := step.toInitialGeometricState
+  let localX : Fin S.n → Bool := fun i ↦ p.1.2 (liveCoordEquiv step.restriction i)
+  let path := S.selectedGeometricPath (d := d) (r := r) (level := level)
+    (M := bottomSlotCount C * 3) (i := 0) (length := d) (by omega) fuel (by
+    intro j _hjlo hjhi
+    exact hfuel j (by omega)) localX
+  change DTree.agreeRestriction
+    (liftLiveRestriction step.restriction path.toSemanticPath.rootRestriction) p.1.2
+  rw [agreeRestriction_liftLiveRestriction_iff]
+  refine ⟨step.restriction_assignment, ?_⟩
+  exact S.selectedGeometricPath_rootRestriction_agrees (d := d) (r := r)
+    (level := level) (M := bottomSlotCount C * 3) (i := 0) (length := d)
+    (by omega) fuel (by
+      intro j _hjlo hjhi
+      exact hfuel j (by omega)) localX
+
+/-- The original `40R` shell root coarsens the fully composed endpoint. -/
+theorem selectedInitialGeometricEndpointRestriction_root_extends
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (p : {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p}) :
+    RestrictionExtends p.1.1
+      (selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p) := by
+  let step := selectedInitialSupportTailSuccessor C hKfuel₀ hsupport (by
+    simpa only [Nat.add_assoc] using hAlt) p
+  let S := step.toInitialGeometricState
+  let localX : Fin S.n → Bool := fun i ↦ p.1.2 (liveCoordEquiv step.restriction i)
+  let path := S.selectedGeometricPath (d := d) (r := r) (level := level)
+    (M := bottomSlotCount C * 3) (i := 0) (length := d) (by omega) fuel (by
+      intro j _hjlo hjhi
+      exact hfuel j (by omega)) localX
+  change RestrictionExtends p.1.1
+    (liftLiveRestriction step.restriction path.toSemanticPath.rootRestriction)
+  intro v b hv
+  exact liftLiveRestriction_extends step.restriction _ v b (step.root_extends v b hv)
+
+/-- Distinct final ambient restrictions selected after the genuine initial event and `d`
+zero-support rounds. -/
+noncomputable def initialGeometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    Finset (Restriction n) := by
+  classical
+  exact Finset.univ.image fun p =>
+    selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p
+
+/-- Every member of the selected full-path image lies on the scheduled terminal shell. -/
+theorem stars_eq_of_mem_initialGeometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    {rho : Restriction n}
+    (hrho : rho ∈ initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel) :
+    stars rho = 20 * r := by
+  classical
+  rw [initialGeometricEndpointImage, Finset.mem_image] at hrho
+  obtain ⟨p, _hp, rfl⟩ := hrho
+  exact stars_selectedInitialGeometricEndpointRestriction
+    C hKfuel₀ hsupport hAlt fuel hfuel p
+
+/-- Full initial-domain fiber over one composed final endpoint. -/
+noncomputable def initialGeometricEndpointFiber
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (rho : Restriction n) :
+    Finset {p : Restriction n × (Fin n → Bool) //
+      InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p} := by
+  classical
+  exact Finset.univ.filter fun p =>
+    selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p = rho
+
+/-- Direct cross-boundary fiber bound.  A fixed final endpoint determines an extension cube;
+every preimage contributes a distinct original `40R` root coarsening that endpoint and a distinct
+assignment agreeing with it.  No product of intermediate-round collision caps is needed. -/
+theorem card_initialGeometricEndpointFiber_le_product
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (rho : Restriction n) :
+    (initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).card ≤
+      (restrictionCoarseningShellFiber
+        (K := 20 * (2 * zeroSupportSurvivorScale d r 0)) rho).card *
+        (assignmentsAgreeingRestriction rho).card := by
+  classical
+  let target :=
+    (restrictionCoarseningShellFiber
+      (K := 20 * (2 * zeroSupportSurvivorScale d r 0)) rho).product
+      (assignmentsAgreeingRestriction rho)
+  let forgetPair :
+      {p : Restriction n × (Fin n → Bool) //
+        InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p} →
+        Restriction n × (Fin n → Bool) := fun p ↦ p.1
+  have hinj : Function.Injective forgetPair := by
+    intro p q hpq
+    exact Subtype.ext hpq
+  have hsubset :
+      (initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).image
+          forgetPair ⊆ target := by
+    intro q hq
+    obtain ⟨p, hp, rfl⟩ := Finset.mem_image.mp hq
+    have hpFiber := (Finset.mem_filter.mp hp).2
+    change p.1 ∈ target
+    apply Finset.mem_product.mpr
+    constructor
+    · rw [restrictionCoarseningShellFiber, Finset.mem_filter]
+      refine ⟨Finset.mem_univ _, ?_, p.2.1⟩
+      rw [← hpFiber]
+      exact selectedInitialGeometricEndpointRestriction_root_extends
+        C hKfuel₀ hsupport hAlt fuel hfuel p
+    · rw [assignmentsAgreeingRestriction, Finset.mem_filter]
+      refine ⟨Finset.mem_univ _, ?_⟩
+      rw [← hpFiber]
+      exact selectedInitialGeometricEndpointRestriction_assignment
+        C hKfuel₀ hsupport hAlt fuel hfuel p
+  calc
+    (initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).card =
+        ((initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).image
+          forgetPair).card := by
+            symm
+            exact Finset.card_image_of_injective _ hinj
+    _ ≤ target.card := Finset.card_le_card hsubset
+    _ = (restrictionCoarseningShellFiber
+          (K := 20 * (2 * zeroSupportSurvivorScale d r 0)) rho).card *
+        (assignmentsAgreeingRestriction rho).card := by simp [target]
+
+/-- Numerical form of the complete initial-to-final fiber ceiling. -/
+theorem card_initialGeometricEndpointFiber_le
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j)
+    (rho : Restriction n) (hrho : stars rho = 20 * r) :
+    (initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).card ≤
+      Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) *
+        2 ^ (20 * r) := by
+  calc
+    (initialGeometricEndpointFiber C hKfuel₀ hsupport hAlt fuel hfuel rho).card ≤
+        (restrictionCoarseningShellFiber
+          (K := 20 * (2 * zeroSupportSurvivorScale d r 0)) rho).card *
+          (assignmentsAgreeingRestriction rho).card :=
+      card_initialGeometricEndpointFiber_le_product
+        C hKfuel₀ hsupport hAlt fuel hfuel rho
+    _ ≤ Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) *
+        2 ^ (20 * r) := by
+      rw [card_assignments_agreeing_restriction, hrho]
+      exact Nat.mul_le_mul_right _ (by
+        simpa only [hrho] using
+          (card_restrictionCoarseningShellFiber_le_choose
+            (K := 20 * (2 * zeroSupportSurvivorScale d r 0)) rho))
+
+/-- The exact initial good domain and the direct composed fiber cap give a distinct-final-endpoint
+lower bound after all `d` zero-support rounds. -/
+theorem initialGoodRoots_mul_assignments_le_geometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    (initialGoodRoots C (zeroSupportSurvivorScale d r 0)).card *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0)) ≤
+      (Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by
+  classical
+  let domain := initialGoodRootAssignmentPairDomain C (zeroSupportSurvivorScale d r 0)
+  let endpoint :
+      {p : Restriction n × (Fin n → Bool) //
+        InitialGoodRootAssignmentPair C (zeroSupportSurvivorScale d r 0) p} →
+        Restriction n := fun p ↦
+      selectedInitialGeometricEndpointRestriction C hKfuel₀ hsupport hAlt fuel hfuel p
+  let cap := Nat.choose (n - 20 * r)
+    (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)
+  have hfibers : ∀ rho ∈ domain.image endpoint,
+      (domain.filter fun p ↦ endpoint p = rho).card ≤ cap := by
+    intro rho hrho
+    obtain ⟨p, _hp, hpEndpoint⟩ := Finset.mem_image.mp hrho
+    have hstars : stars rho = 20 * r := by
+      rw [← hpEndpoint]
+      exact stars_selectedInitialGeometricEndpointRestriction
+        C hKfuel₀ hsupport hAlt fuel hfuel p
+    simpa [domain, endpoint, initialGoodRootAssignmentPairDomain,
+      initialGeometricEndpointFiber, cap] using
+      card_initialGeometricEndpointFiber_le
+        C hKfuel₀ hsupport hAlt fuel hfuel rho hstars
+  have hcount := Finset.card_le_mul_card_image domain cap hfibers
+  calc
+    (initialGoodRoots C (zeroSupportSurvivorScale d r 0)).card *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0)) = domain.card := by
+      symm
+      exact card_initialGoodRootAssignmentPairDomain C (zeroSupportSurvivorScale d r 0)
+    _ ≤ cap * (domain.image endpoint).card := hcount
+    _ = (Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by
+      simp [cap, domain, endpoint, initialGoodRootAssignmentPairDomain,
+        initialGeometricEndpointImage]
+
+/-- Final composition with the genuine support-tail contraction.  The only collision loss across
+the complete initial-plus-geometric path is the direct root-coarsening binomial and the terminal
+`20r` assignment cube. -/
+theorem initialRootShell_mul_assignments_le_two_mul_geometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hr : 0 < r)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    (initialRootShell n (zeroSupportSurvivorScale d r 0)).card *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0)) ≤
+      2 * (Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by
+  have hscale : 0 < zeroSupportSurvivorScale d r 0 :=
+    zeroSupportSurvivorScale_pos d r 0 hr
+  have hhalf := initialRootShell_card_le_two_mul_good
+    C (zeroSupportSurvivorScale d r 0) hscale hsupport
+  have himage := initialGoodRoots_mul_assignments_le_geometricEndpointImage
+    C hKfuel₀ hsupport hAlt fuel hfuel
+  calc
+    (initialRootShell n (zeroSupportSurvivorScale d r 0)).card *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0)) ≤
+      (2 * (initialGoodRoots C (zeroSupportSurvivorScale d r 0)).card) *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0)) :=
+          Nat.mul_le_mul_right _ hhalf
+    _ = 2 * ((initialGoodRoots C (zeroSupportSurvivorScale d r 0)).card *
+        2 ^ (20 * (2 * zeroSupportSurvivorScale d r 0))) := by ring
+    _ ≤ 2 * ((Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card) :=
+      Nat.mul_le_mul_left _ himage
+    _ = 2 * (Nat.choose (n - 20 * r)
+          (20 * (2 * zeroSupportSurvivorScale d r 0) - 20 * r) * 2 ^ (20 * r)) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by ring
+
+/-- Exact shell normalization for a coarsening-fiber image bound.  Once the `K`-star source
+shell, its assignment cube, and the direct `K -> L` coarsening cap are all expanded, the ambient
+binomial and Boolean factors cancel.  The only remaining density loss inside the `L`-star shell
+is `2 * choose K L`.
+
+The explicit hypotheses `L ≤ K ≤ n` are essential: without them the source shell may be empty,
+and natural-number subtraction would not describe an actual shell transition. -/
+theorem terminalShell_card_le_two_mul_choose_mul_of_source_bound
+    {n K L imageCard : ℕ} (hLK : L ≤ K) (hKn : K ≤ n)
+    (hbound :
+      (Finset.univ.filter fun sigma : Restriction n => stars sigma = K).card * 2 ^ K ≤
+        2 * (Nat.choose (n - L) (K - L) * 2 ^ L) * imageCard) :
+    (Finset.univ.filter fun rho : Restriction n => stars rho = L).card ≤
+      2 * Nat.choose K L * imageCard := by
+  have hchoose :
+      Nat.choose n L * Nat.choose (n - L) (K - L) =
+        Nat.choose n K * Nat.choose K L := by
+    have hmul := Nat.choose_mul (n := n) (k := K) (s := L) hLK
+    simpa [Nat.mul_comm] using hmul.symm
+  have hnsub : (n - K) + K = n := by omega
+  have hnsubL : (n - L) + L = n := by omega
+  rw [card_stars_eq n K] at hbound
+  rw [card_stars_eq n L]
+  have hpowK : 2 ^ (n - K) * 2 ^ K = 2 ^ n := by
+    rw [← pow_add, hnsub]
+  have hpowL : 2 ^ (n - L) * 2 ^ L = 2 ^ n := by
+    rw [← pow_add, hnsubL]
+  have hbound' : Nat.choose K L * (Nat.choose n K * 2 ^ n) ≤
+      Nat.choose K L * (2 * (Nat.choose (n - L) (K - L) * 2 ^ L) * imageCard) := by
+    apply Nat.mul_le_mul_left
+    simpa only [mul_assoc, hpowK] using hbound
+  have hmult : 0 < Nat.choose (n - L) (K - L) * 2 ^ L := by
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) (pow_pos (by omega) L)
+  apply Nat.le_of_mul_le_mul_left (c := Nat.choose (n - L) (K - L) * 2 ^ L)
+    (hc := hmult)
+  calc
+    (Nat.choose (n - L) (K - L) * 2 ^ L) *
+          (Nat.choose n L * 2 ^ (n - L)) =
+        Nat.choose K L * (Nat.choose n K * 2 ^ n) := by
+          calc
+            _ = (Nat.choose n L * Nat.choose (n - L) (K - L)) *
+                  (2 ^ (n - L) * 2 ^ L) := by ring
+            _ = (Nat.choose n K * Nat.choose K L) * 2 ^ n := by
+              rw [hchoose, hpowL]
+            _ = _ := by ring
+    _ ≤ Nat.choose K L *
+          (2 * (Nat.choose (n - L) (K - L) * 2 ^ L) * imageCard) := hbound'
+    _ = (Nat.choose (n - L) (K - L) * 2 ^ L) *
+          (2 * Nat.choose K L * imageCard) := by ring
+
+/-- Normalized full-path endpoint density.  Relative to the exact terminal `20r` shell, the
+currently verified construction loses precisely the root-coarsening factor
+`choose (40 * 2^d * r) (20r)` and the genuine good-root factor two; all ambient-`n` binomials and
+Boolean assignment cubes cancel. -/
+theorem terminalRootShell_card_le_two_mul_choose_mul_geometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hr : 0 < r)
+    (hKambient : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    (Finset.univ.filter fun rho : Restriction n => stars rho = 20 * r).card ≤
+      2 * Nat.choose (20 * (2 * zeroSupportSurvivorScale d r 0)) (20 * r) *
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by
+  have hrscale : r ≤ zeroSupportSurvivorScale d r 0 := by
+    rw [zeroSupportSurvivorScale_zero]
+    exact Nat.le_mul_of_pos_left r (pow_pos (by omega) d)
+  apply terminalShell_card_le_two_mul_choose_mul_of_source_bound
+    (K := 20 * (2 * zeroSupportSurvivorScale d r 0))
+    (L := 20 * r) (imageCard :=
+      (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card)
+  · omega
+  · exact hKambient
+  · simpa only [initialRootShell] using
+      initialRootShell_mul_assignments_le_two_mul_geometricEndpointImage
+        C hr hKfuel₀ hsupport hAlt fuel hfuel
+
+/-- The normalized density estimate is more than is needed for bare endpoint existence.  Whenever
+the initial shell fits the ambient cube, it supplies an actual selected endpoint with exactly
+`20r` survivors, despite the nonuniform cross-root binomial loss. -/
+theorem exists_mem_initialGeometricEndpointImage
+    {n fuel₀ d r level : ℕ} (C : Layered n)
+    (hr : 0 < r)
+    (hKambient : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (level + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    ∃ rho ∈ initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel,
+      stars rho = 20 * r := by
+  have hrscale : r ≤ zeroSupportSurvivorScale d r 0 := by
+    rw [zeroSupportSurvivorScale_zero]
+    exact Nat.le_mul_of_pos_left r (pow_pos (by omega) d)
+  have hterminalAmbient : 20 * r ≤ n := by omega
+  have hshellPos : 0 <
+      (Finset.univ.filter fun rho : Restriction n => stars rho = 20 * r).card := by
+    rw [card_stars_eq n (20 * r)]
+    exact Nat.mul_pos (Nat.choose_pos hterminalAmbient) (pow_pos (by omega) (n - 20 * r))
+  have hbound := terminalRootShell_card_le_two_mul_choose_mul_geometricEndpointImage
+    C hr hKambient hKfuel₀ hsupport hAlt fuel hfuel
+  have himagePos : 0 <
+      (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card := by
+    by_contra hnot
+    have hzero :
+        (initialGeometricEndpointImage C hKfuel₀ hsupport hAlt fuel hfuel).card = 0 :=
+      Nat.eq_zero_of_not_pos hnot
+    rw [hzero] at hbound
+    simp only [mul_zero] at hbound
+    omega
+  obtain ⟨rho, hrho⟩ := Finset.card_pos.mp himagePos
+  exact ⟨rho, hrho,
+    stars_eq_of_mem_initialGeometricEndpointImage
+      C hKfuel₀ hsupport hAlt fuel hfuel hrho⟩
+
+/-- End-to-end parity contradiction under the audited geometric-shell hypotheses.  Endpoint-image
+existence supplies a preimage in the genuine initial good-pair domain; the localized terminal
+cashout for that selected preimage then produces an ambient disagreement witness. -/
+theorem zeroSupportGeometric_exists_disagrees_parity
+    {n fuel₀ d r : ℕ} (C : Layered n)
+    (hr : 0 < r)
+    (hKambient : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ n)
+    (hKfuel₀ : 20 * (2 * zeroSupportSurvivorScale d r 0) ≤ fuel₀)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
+    (hAlt : AltO (0 + d + 3) C)
+    (fuel : ℕ → ℕ)
+    (hfuel : ∀ j, j < d → 20 * zeroSupportSurvivorScale d r j ≤ fuel j) :
+    ∃ x : Fin n → Bool, Layered.eval C x ≠ DTree.parity x := by
+  classical
+  obtain ⟨rho, hrho, _hstars⟩ := exists_mem_initialGeometricEndpointImage
+    C hr hKambient hKfuel₀ hsupport hAlt fuel hfuel
+  rw [initialGeometricEndpointImage, Finset.mem_image] at hrho
+  obtain ⟨p, _hp, _hrho⟩ := hrho
+  exact selectedInitialGeometricPath_exists_disagrees_parity
+    C hKfuel₀ hsupport hAlt fuel hfuel p hr
+
+/-! ### Applicability audit for the sparse-support hypothesis -/
+
+/-- If the syntactic bottom support omits even one ambient coordinate, the whole layered circuit
+is blind to a flip of that coordinate and therefore cannot compute parity.  This is independent of
+switching, depth, width, fuel, or shell parameters. -/
+theorem exists_disagrees_parity_of_bottomSupport_card_lt
+    {n : ℕ} (C : Layered n)
+    (hcard : (layeredBottomVariableSupport C).card < n) :
+    ∃ x : Fin n → Bool, Layered.eval C x ≠ DTree.parity x := by
+  classical
+  have hmissing : ∃ j : Fin n, j ∉ layeredBottomVariableSupport C := by
+    by_contra hnot
+    push_neg at hnot
+    have hall : layeredBottomVariableSupport C = Finset.univ :=
+      Finset.eq_univ_of_forall hnot
+    rw [hall] at hcard
+    simpa using hcard
+  obtain ⟨j, hj⟩ := hmissing
+  let x : Fin n → Bool := fun _ => false
+  let y : Fin n → Bool := Function.update x j (!x j)
+  have hagree : ∀ v ∈ layeredBottomVariableSupport C, x v = y v := by
+    intro v hv
+    have hvj : v ≠ j := by
+      intro h
+      subst v
+      exact hj hv
+    simp [y, hvj]
+  have heval : Layered.eval C x = Layered.eval C y :=
+    MultiSwitching.Layered.eval_eq_of_agree_on_bottomSupport C hagree
+  have hparity : DTree.parity y = !DTree.parity x := by
+    exact DTree.parity_flip x j
+  by_cases hx : Layered.eval C x = DTree.parity x
+  · refine ⟨y, ?_⟩
+    intro hy
+    have hcontra : DTree.parity x = !DTree.parity x := by
+      calc
+        DTree.parity x = Layered.eval C x := hx.symm
+        _ = Layered.eval C y := heval
+        _ = DTree.parity y := hy
+        _ = !DTree.parity x := hparity
+    cases hpx : DTree.parity x <;> simp [hpx] at hcontra
+  · exact ⟨x, hx⟩
+
+/-- The exact density premise used by the geometric capstone is already a direct parity
+obstruction whenever the ambient cube is nonempty.  Consequently this sparse-support regime
+cannot contain a circuit that computes parity on all inputs; reaching a nontrivial parity lower
+bound requires replacing the initial support-tail hypothesis for dense-support circuits. -/
+theorem sparseSupport16_exists_disagrees_parity
+    {n : ℕ} (C : Layered n) (hn : 0 < n)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n) :
+    ∃ x : Fin n → Bool, Layered.eval C x ≠ DTree.parity x := by
+  apply exists_disagrees_parity_of_bottomSupport_card_lt C
+  omega
+
+/-- The finite image of every *structurally admissible* scheduled path under composed ambient
+restriction.  This deliberately does not claim constructor provenance: the current
+`exists_geometric_path` interface proves inhabitation but does not record which inhabitants arise
+from its fixed branch choices. -/
+noncomputable def admissibleGeometricRootRestrictions
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)) : Finset (Restriction S.n) := by
+  classical
+  exact Finset.univ.filter fun rho =>
+    ∃ path : ZeroSupportGeometricPath d r level M i length S,
+      path.toSemanticPath.rootRestriction = rho
+
+@[simp] theorem mem_admissibleGeometricRootRestrictions_iff
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    {rho : Restriction S.n} :
+    rho ∈ admissibleGeometricRootRestrictions S ↔
+      ∃ path : ZeroSupportGeometricPath d r level M i length S,
+        path.toSemanticPath.rootRestriction = rho := by
+  classical
+  rw [admissibleGeometricRootRestrictions, Finset.mem_filter]
+  simp only [Finset.mem_univ, true_and]
+
+/-- Every restriction in the admissible image has exactly the common scheduled endpoint
+dimension. -/
+theorem stars_eq_of_mem_admissibleGeometricRootRestrictions
+    {d r level M i length : ℕ}
+    {S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i)}
+    {rho : Restriction S.n}
+    (hrho : rho ∈ admissibleGeometricRootRestrictions S) :
+    stars rho = 20 * zeroSupportSurvivorScale d r (i + length) := by
+  obtain ⟨path, rfl⟩ := mem_admissibleGeometricRootRestrictions_iff.mp hrho
+  rw [LocalizedSemanticPath.stars_rootRestriction]
+  exact path.semantic_endpointN
+
+/-- The compatible portion of the admissible root-restriction image.  Keeping its classical
+decidability inside a noncomputable definition avoids imposing a spurious decidability premise on
+the counting theorem. -/
+noncomputable def admissibleGeometricRootRestrictionsAgreeing
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (x : Fin S.n → Bool) : Finset (Restriction S.n) := by
+  classical
+  exact (admissibleGeometricRootRestrictions S).filter fun rho =>
+    DTree.agreeRestriction rho x
+
+/-- Filtering the finite admissible image by one root assignment has degree at most the exact
+ambient binomial ceiling.  This packages the strongest compatibility estimate justified by the
+current path interface; an improvement must use constructor provenance or an additional retained
+label. -/
+theorem card_admissibleGeometricRootRestrictions_agreeing_le_choose
+    {d r level M i length : ℕ}
+    (S : ZeroSupportLocalizedState (zeroSupportSurvivorScale d r i)
+      (level + length) (M * 3 ^ i))
+    (x : Fin S.n → Bool) :
+    (admissibleGeometricRootRestrictionsAgreeing S x).card ≤
+        S.n.choose (20 * zeroSupportSurvivorScale d r (i + length)) := by
+  classical
+  let roots := admissibleGeometricRootRestrictionsAgreeing S x
+  have h := card_distinct_agreeing_restriction_family_le_choose
+    (K := 20 * zeroSupportSurvivorScale d r (i + length))
+    (I := {rho : Restriction S.n // rho ∈ roots}) x Subtype.val
+    Subtype.val_injective
+    (fun rho => by
+      have hrho : rho.1 ∈ admissibleGeometricRootRestrictions S ∧
+          DTree.agreeRestriction rho.1 x := by
+        have hrho' : rho.1 ∈ admissibleGeometricRootRestrictionsAgreeing S x := by
+          simpa only [roots] using rho.2
+        rw [admissibleGeometricRootRestrictionsAgreeing, Finset.mem_filter] at hrho'
+        exact hrho'
+      exact stars_eq_of_mem_admissibleGeometricRootRestrictions hrho.1)
+    (fun rho => by
+      have hrho : rho.1 ∈ admissibleGeometricRootRestrictions S ∧
+          DTree.agreeRestriction rho.1 x := by
+        have hrho' : rho.1 ∈ admissibleGeometricRootRestrictionsAgreeing S x := by
+          simpa only [roots] using rho.2
+        rw [admissibleGeometricRootRestrictionsAgreeing, Finset.mem_filter] at hrho'
+        exact hrho'
+      exact hrho.2)
+  simpa [roots, Nat.card_eq_fintype_card] using h
+
 /-! ### Exact-subcube round packaged on the next coordinate type -/
 
 /-- One actual-margin survivor round, with the reached collapse immediately transported to the
 exact `10 * R`-coordinate cube.  The witness records the four interfaces consumed by another
 round: evaluation, depth, bottom width, and bottom-slot count. -/
 theorem actualMargin_normalizedSurvivorRound_localized
-    {n fuel s R residualDepth : ℕ} {C : Layered n}
+    {n fuel R residualDepth : ℕ} {C : Layered n}
     (hKfuel : 20 * R ≤ fuel)
-    (hw : BottomWidth (s + 1) C)
-    (hmargin :
-      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
+    (hne : NonEmptyGates C)
+    (hexact :
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+          residualDepth).card * 2 ^ (10 * R) ≤
+          (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+        ∀ σ : Restriction n,
+          stars σ = 20 * R →
+          σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
+            (20 * R) (10 * R) residualDepth →
+          ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+            ∃ trunk : CommonTree n (Restriction n),
+              CommonTree.depth trunk ≤ 10 * R ∧
+              let τ := CommonTree.run trunk x
+              ∃ κ : Restriction n,
+                RestrictionExtends τ κ ∧
+                stars κ = 10 * R ∧
+                stars κ ≤ fuel ∧
+                Layered.EquivOn κ C (collapseRound fuel τ C) ∧
+                bottomSlotCount (collapseRound fuel τ C) ≤
+                  bottomSlotCount C * (2 ^ (residualDepth + 1) + 1)) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
+        residualDepth).card * 2 ^ (10 * R) ≤
+        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
+      ∀ σ : Restriction n,
+        stars σ = 20 * R →
+        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
+          (20 * R) (10 * R) residualDepth →
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          ∃ trunk : CommonTree n (Restriction n),
+            CommonTree.depth trunk ≤ 10 * R ∧
+            let τ := CommonTree.run trunk x
+            ∃ κ : Restriction n,
+              RestrictionExtends τ κ ∧
+              stars κ = 10 * R ∧
+              stars κ ≤ fuel ∧
+              let D := localizeLiveLayered κ (collapseRound fuel τ C)
+              (∀ z : Fin (stars κ) → Bool,
+                Layered.eval D z = Layered.eval C (liftLiveAssignment κ z)) ∧
+              Layered.depth D = Layered.depth (collapseRound fuel τ C) ∧
+              BottomWidth (residualDepth + 1) D ∧
+              bottomSlotCount D ≤
+                bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+  obtain ⟨hbad, _⟩ := hexact
+  refine ⟨hbad, ?_⟩
+  intro σ hstars hgood x hx
+  have hcommon : CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
+      (10 * R) residualDepth := by
+    by_contra hnot
+    apply hgood
+    rw [mem_commonShallowBad]
+    exact ⟨hstars, hnot⟩
+  have hfuel : stars σ ≤ fuel := by
+    rw [hstars]
+    exact hKfuel
+  obtain ⟨trunk, hdepth, hlower, hleafStars, hshallow⟩ :=
+    hcommon.leaf_shallows (normalizedLayeredBottomFamily_covers C) x hx
+  have hlive : 10 * R ≤ stars (CommonTree.run trunk x) := by
+    rw [hstars] at hlower
+    omega
+  obtain ⟨κ, hext, hκstars⟩ :=
+    exists_restrictionExtends_stars_eq (CommonTree.run trunk x) hlive
+  have hleafFuel : stars (CommonTree.run trunk x) ≤ fuel := hleafStars.trans hfuel
+  have hκfuel : stars κ ≤ fuel := (stars_le_of_restrictionExtends hext).trans hleafFuel
+  have hequiv : Layered.EquivOn κ C (collapseRound fuel (CommonTree.run trunk x) C) := by
+    intro y hy
+    exact collapseRound_EquivOn fuel hleafFuel C y
+      (fun i b hi => hy i b (hext i b hi))
+  have hwidth : BottomWidth (residualDepth + 1)
+      (collapseRound fuel (CommonTree.run trunk x) C) :=
+    collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow
+  have hslots : bottomSlotCount (collapseRound fuel (CommonTree.run trunk x) C) ≤
+      bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) :=
+    collapseRound_bottomSlotCount_le hne hshallow
+  refine ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, ?_, ?_, ?_, ?_⟩
+  · intro z
+    rw [localizeLiveLayered_eval]
+    exact (hequiv (liftLiveAssignment κ z) (liftLiveAssignment_agrees κ z)).symm
+  · exact localizeLiveLayered_depth κ _
+  · exact localizeLiveLayered_BottomWidth κ _ hwidth
+  · exact (localizeLiveLayered_bottomSlotCount_le κ _).trans hslots
+
+/-- Fully localized survivor round whose density premise counts distinct variables in the
+unpolarized bottom support rather than clause slots.  This is the interface needed by circuits
+with a large syntactic bottom layer but strongly overlapping variable support. -/
+theorem supportDensity_normalizedSurvivorRound_localized
+    {n fuel R residualDepth : ℕ} {C : Layered n}
+    (hKfuel : 20 * R ≤ fuel)
+    (hsupport : 16 * (layeredBottomVariableSupport C).card ≤ n)
     (hne : NonEmptyGates C) :
     (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
         residualDepth).card * 2 ^ (10 * R) ≤
@@ -984,19 +4234,555 @@ theorem actualMargin_normalizedSurvivorRound_localized
               BottomWidth (residualDepth + 1) D ∧
               bottomSlotCount D ≤
                 bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
-  obtain ⟨hbad, hleaf⟩ :=
-    actualMargin_normalizedSurvivorRound_exactSubcube hKfuel hw hmargin hne
-  refine ⟨hbad, ?_⟩
-  intro σ hstars hgood x hx
-  obtain ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, hequiv, hwidth, hslots⟩ :=
-    hleaf σ hstars hgood x hx
-  refine ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, ?_, ?_, ?_, ?_⟩
-  · intro z
-    rw [localizeLiveLayered_eval]
-    exact (hequiv (liftLiveAssignment κ z) (liftLiveAssignment_agrees κ z)).symm
-  · exact localizeLiveLayered_depth κ _
-  · exact localizeLiveLayered_BottomWidth κ _ hwidth
-  · exact (localizeLiveLayered_bottomSlotCount_le κ _).trans hslots
+  exact actualMargin_normalizedSurvivorRound_localized hKfuel hne
+    (supportDensity_normalizedSurvivorRound_exactSubcube hKfuel hsupport hne)
+
+/-- One dense-support parity round at realized rectangular density.  The circuit-specialized good
+root is followed by the existing layered collapse and exact live-coordinate transport.  The
+successor computes parity with the accumulated fixed-coordinate phase, so its normalized bottom
+family again has full support.  This packages the semantic handoff needed by a next-round density
+audit without invoking the incompatible support-tail complement. -/
+theorem exists_denseParity_normalizedCollapseSuccessor_of_realized_density
+    {n m r fuel residualDepth : ℕ} {C : Layered n} (phase : Bool)
+    (hr : 0 < r)
+    (hw : BottomWidth 2 C) (hcount : BottomCount m C)
+    (hKfuel : 20 * r ≤ fuel) (hKn : 20 * r ≤ n)
+    (hdensity :
+      (4 * ((2 + 1) * ((layeredBottomFamilyList C).length * m + 1))) *
+          (20 * r) + 20 * r ≤ n + 1)
+    (hne : NonEmptyGates C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase) :
+    familyVariableSupport (normalizedLayeredBottomFamily C) = Finset.univ ∧
+      ∃ σ : Restriction n,
+        stars σ = 20 * r ∧
+        CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
+          (10 * r) residualDepth ∧
+        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
+          ∃ trunk : CommonTree n (Restriction n),
+            CommonTree.depth trunk ≤ 10 * r ∧
+            let τ := CommonTree.run trunk x
+            ∃ κ : Restriction n,
+              RestrictionExtends τ κ ∧
+              stars κ = 10 * r ∧
+              stars κ ≤ fuel ∧
+              let D := localizeLiveLayered κ (collapseRound fuel τ C)
+              (∀ z : Fin (stars κ) → Bool,
+                Layered.eval D z =
+                  xor (DTree.parity z) (xor (fixedParityPhase κ) phase)) ∧
+              familyVariableSupport (normalizedLayeredBottomFamily D) = Finset.univ ∧
+              BottomWidth (residualDepth + 1) D ∧
+              bottomSlotCount D ≤
+                bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+  refine ⟨normalizedLayeredBottomFamily_support_eq_univ_of_eval_eq_parity_xor
+    C phase hparity, ?_⟩
+  obtain ⟨σ, hstars, hcommon⟩ :=
+    exists_normalizedLayered_commonShallowAt_of_realized_density
+      hr hw hcount hKfuel hKn hdensity
+  refine ⟨σ, hstars, hcommon, ?_⟩
+  intro x hx
+  obtain ⟨trunk, hdepth, hlower, hleafStars, hshallow⟩ :=
+    hcommon.leaf_shallows (normalizedLayeredBottomFamily_covers C) x hx
+  have hlive : 10 * r ≤ stars (CommonTree.run trunk x) := by
+    rw [hstars] at hlower
+    omega
+  obtain ⟨κ, hext, hκstars⟩ :=
+    exists_restrictionExtends_stars_eq (CommonTree.run trunk x) hlive
+  have hfuel : stars σ ≤ fuel := by simpa [hstars] using hKfuel
+  have hleafFuel : stars (CommonTree.run trunk x) ≤ fuel := hleafStars.trans hfuel
+  have hκfuel : stars κ ≤ fuel :=
+    (stars_le_of_restrictionExtends hext).trans hleafFuel
+  have hequiv : Layered.EquivOn κ C
+      (collapseRound fuel (CommonTree.run trunk x) C) := by
+    intro y hy
+    exact collapseRound_EquivOn fuel hleafFuel C y
+      (fun i b hi => hy i b (hext i b hi))
+  let D := localizeLiveLayered κ (collapseRound fuel (CommonTree.run trunk x) C)
+  have hDeval : ∀ z : Fin (stars κ) → Bool,
+      Layered.eval D z =
+        xor (DTree.parity z) (xor (fixedParityPhase κ) phase) := by
+    intro z
+    calc
+      Layered.eval D z = Layered.eval C (liftLiveAssignment κ z) := by
+        rw [show D = localizeLiveLayered κ
+          (collapseRound fuel (CommonTree.run trunk x) C) by rfl,
+          localizeLiveLayered_eval]
+        exact (hequiv (liftLiveAssignment κ z) (liftLiveAssignment_agrees κ z)).symm
+      _ = xor (DTree.parity (liftLiveAssignment κ z)) phase := hparity _
+      _ = xor (xor (DTree.parity z) (fixedParityPhase κ)) phase := by
+        rw [parity_liftLiveAssignment]
+      _ = xor (DTree.parity z) (xor (fixedParityPhase κ) phase) := by
+        rw [Bool.xor_assoc]
+  have hDsupport :
+      familyVariableSupport (normalizedLayeredBottomFamily D) = Finset.univ :=
+    normalizedLayeredBottomFamily_support_eq_univ_of_eval_eq_parity_xor
+      D (xor (fixedParityPhase κ) phase) hDeval
+  have hwidth : BottomWidth (residualDepth + 1) D := by
+    exact localizeLiveLayered_BottomWidth κ _
+      (collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow)
+  have hslots : bottomSlotCount D ≤
+      bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
+    exact (localizeLiveLayered_bottomSlotCount_le κ _).trans
+      (collapseRound_bottomSlotCount_le hne hshallow)
+  exact ⟨trunk, hdepth, κ, hext, hκstars, hκfuel, hDeval, hDsupport, hwidth, hslots⟩
+
+/-! ### Finite backward survivor schedules -/
+
+/-- The exact ambient-coordinate margin demanded by the following normalized round when its
+residual depth is `r` and its current bottom-slot envelope is `M`. -/
+def nextRoundActualMargin (r M : ℕ) : ℕ :=
+  8 * (r + 2) * M * 2 ^ (r + 1) + 4 * (r + 2)
+
+/-- The circuit-owned density premise cannot even start when the bottom-slot envelope is at least
+the ambient dimension.  This preserves the first broad incompatible regime explicitly: the
+present actual-margin theorem requires a genuinely sparse initial bottom layer, not merely a
+polynomial-size one. -/
+theorem nextRoundActualMargin_not_le_ambient_of_ambient_le_slots
+    (r n M : ℕ) (hnM : n ≤ M) : ¬ nextRoundActualMargin r M ≤ n := by
+  have hr : 2 ≤ r + 2 := by omega
+  have hp : 2 ≤ 2 ^ (r + 1) := by
+    simpa using Nat.pow_le_pow_right (by omega : 1 ≤ 2) (by omega : 1 ≤ r + 1)
+  have hlower : 32 * M + 8 ≤ nextRoundActualMargin r M := by
+    simp only [nextRoundActualMargin]
+    apply Nat.add_le_add
+    · calc
+        32 * M = 8 * 2 * M * 2 := by ring
+        _ ≤ 8 * (r + 2) * M * 2 ^ (r + 1) := by gcongr
+    · omega
+  omega
+
+/-- Forward worst-case slot envelope generated by successive residual-depth bounds. -/
+def iteratedSlotBound (M₀ : ℕ) (residual : ℕ → ℕ) : ℕ → ℕ
+  | 0 => M₀
+  | i + 1 => iteratedSlotBound M₀ residual i * (2 ^ (residual i + 1) + 1)
+
+@[simp] theorem iteratedSlotBound_zero (M₀ : ℕ) (residual : ℕ → ℕ) :
+    iteratedSlotBound M₀ residual 0 = M₀ := rfl
+
+@[simp] theorem iteratedSlotBound_succ (M₀ : ℕ) (residual : ℕ → ℕ) (i : ℕ) :
+    iteratedSlotBound M₀ residual (i + 1) =
+      iteratedSlotBound M₀ residual i * (2 ^ (residual i + 1) + 1) := rfl
+
+/-- Closed forward slot envelope for the quantitatively cheapest choice, residual depth zero at
+every round. -/
+def shallowSlotBound (M : ℕ) (i : ℕ) : ℕ := M * 3 ^ i
+
+@[simp] theorem shallowSlotBound_zero (M : ℕ) : shallowSlotBound M 0 = M := by
+  simp [shallowSlotBound]
+
+theorem shallowSlotBound_succ (M i : ℕ) :
+    shallowSlotBound M (i + 1) = shallowSlotBound (M * 3) i := by
+  simp [shallowSlotBound, pow_succ]
+  ring
+
+/-- At residual depth zero the exact forward recurrence is `M_i = M₀ * 3^i`. -/
+theorem iteratedSlotBound_zero_residual (M i : ℕ) :
+    iteratedSlotBound M (fun _ => 0) i = shallowSlotBound M i := by
+  induction i with
+  | zero => simp
+  | succ i ih =>
+      rw [iteratedSlotBound_succ, ih, shallowSlotBound_succ]
+      simp only [shallowSlotBound]
+      ring
+
+/-- The two arithmetic obligations at every transition of a finite localized iteration: the next
+`20 * R` shell fits inside the current exact `10 * R` cube, and that cube also pays the next
+actual-margin premise. -/
+def FiniteBackwardSurvivorSchedule (d : ℕ) (slots residual survivor : ℕ → ℕ) : Prop :=
+  ∀ i < d,
+    20 * survivor (i + 1) ≤ 10 * survivor i ∧
+    nextRoundActualMargin (residual (i + 1)) (slots (i + 1)) ≤ 10 * survivor i
+
+/-- Initial survivor budget used by the explicit backward construction.  The tail is shifted so
+that its zeroth entry represents round one of the original schedule. -/
+def initialBackwardSurvivorBudget : ℕ → (ℕ → ℕ) → (ℕ → ℕ) → ℕ
+  | 0, _, _ => 0
+  | d + 1, slots, residual =>
+      2 * initialBackwardSurvivorBudget d (fun i => slots (i + 1))
+        (fun i => residual (i + 1)) +
+      nextRoundActualMargin (residual 1) (slots 1)
+
+@[simp] theorem initialBackwardSurvivorBudget_zero (slots residual : ℕ → ℕ) :
+    initialBackwardSurvivorBudget 0 slots residual = 0 := rfl
+
+@[simp] theorem initialBackwardSurvivorBudget_succ
+    (d : ℕ) (slots residual : ℕ → ℕ) :
+    initialBackwardSurvivorBudget (d + 1) slots residual =
+      2 * initialBackwardSurvivorBudget d (fun i => slots (i + 1))
+        (fun i => residual (i + 1)) +
+      nextRoundActualMargin (residual 1) (slots 1) := rfl
+
+/-- The existential schedule can be chosen with exactly the displayed recursive initial budget;
+this exposes the quantity that must fit the original ambient shell and fuel. -/
+theorem exists_finiteBackwardSurvivorSchedule_initial_eq
+    (d : ℕ) (slots residual : ℕ → ℕ) :
+    ∃ survivor : ℕ → ℕ,
+      FiniteBackwardSurvivorSchedule d slots residual survivor ∧
+      survivor 0 = initialBackwardSurvivorBudget d slots residual := by
+  induction d generalizing slots residual with
+  | zero =>
+      exact ⟨fun _ => 0, by intro i hi; omega, rfl⟩
+  | succ d ih =>
+      obtain ⟨tail, htail, htail0⟩ :=
+        ih (fun i => slots (i + 1)) (fun i => residual (i + 1))
+      let need := nextRoundActualMargin (residual 1) (slots 1)
+      let survivor : ℕ → ℕ
+        | 0 => 2 * tail 0 + need
+        | i + 1 => tail i
+      refine ⟨survivor, ?_, ?_⟩
+      · intro i hi
+        cases i with
+        | zero =>
+            constructor <;> simp only [survivor, Nat.zero_add]
+            · omega
+            · dsimp only [need]
+              omega
+        | succ i =>
+            have hi : i < d := by omega
+            simpa only [survivor, Nat.add_assoc] using htail i hi
+      · simp only [survivor, initialBackwardSurvivorBudget_succ]
+        rw [htail0]
+
+/-- If every later-round actual margin is at most `A`, the explicit initial budget is bounded by
+the exact geometric multiplier `2^d - 1`. -/
+theorem initialBackwardSurvivorBudget_le_geometric
+    (d A : ℕ) (slots residual : ℕ → ℕ)
+    (hmargin : ∀ i, 1 ≤ i → i ≤ d →
+      nextRoundActualMargin (residual i) (slots i) ≤ A) :
+    initialBackwardSurvivorBudget d slots residual ≤ (2 ^ d - 1) * A := by
+  induction d generalizing slots residual with
+  | zero => simp
+  | succ d ih =>
+      have htail : initialBackwardSurvivorBudget d (fun i => slots (i + 1))
+          (fun i => residual (i + 1)) ≤ (2 ^ d - 1) * A := by
+        apply ih
+        intro i hi hdi
+        simpa only [Nat.add_assoc] using hmargin (i + 1) (by omega) (by omega)
+      have hone : nextRoundActualMargin (residual 1) (slots 1) ≤ A :=
+        hmargin 1 (by omega) (by omega)
+      rw [initialBackwardSurvivorBudget_succ]
+      calc
+        2 * initialBackwardSurvivorBudget d (fun i => slots (i + 1))
+              (fun i => residual (i + 1)) +
+            nextRoundActualMargin (residual 1) (slots 1) ≤
+            2 * ((2 ^ d - 1) * A) + A :=
+          Nat.add_le_add (Nat.mul_le_mul_left 2 htail) hone
+        _ = (2 ^ (d + 1) - 1) * A := by
+          rw [pow_succ]
+          have hpow : 0 < 2 ^ d := pow_pos (by omega) d
+          have hid : 2 ^ d * 2 - 1 = 2 * (2 ^ d - 1) + 1 := by omega
+          rw [hid]
+          ring
+
+/-- Exact two-round calibration at the smallest residual-depth choice.  Even when both residual
+depths are zero, the slot recurrence turns `M₀` into `3*M₀` and then `9*M₀`, so the explicit
+backward initial survivor budget is already linear with coefficient `672`. -/
+theorem initialBackwardSurvivorBudget_two_shallow_rounds (M₀ : ℕ) :
+    initialBackwardSurvivorBudget 2 (iteratedSlotBound M₀ (fun _ => 0)) (fun _ => 0) =
+      672 * M₀ + 24 := by
+  simp [initialBackwardSurvivorBudget, iteratedSlotBound, nextRoundActualMargin]
+  ring
+
+/-- Consequently the initial `20*R₀` shell and fuel floor for that two-round calibration is
+`13440*M₀ + 480`. -/
+theorem initialShell_two_shallow_rounds (M₀ : ℕ) :
+    20 * initialBackwardSurvivorBudget 2
+        (iteratedSlotBound M₀ (fun _ => 0)) (fun _ => 0) =
+      13440 * M₀ + 480 := by
+  rw [initialBackwardSurvivorBudget_two_shallow_rounds]
+  ring
+
+/-- Natural-number ceiling of division by ten, the exact conversion from an ambient margin to
+the least survivor parameter that can pay it on a `10 * R` cube. -/
+def ceilDivTen (x : ℕ) : ℕ := (x + 9) / 10
+
+theorem le_ten_mul_ceilDivTen (x : ℕ) : x ≤ 10 * ceilDivTen x := by
+  have hdiv := Nat.div_add_mod (x + 9) 10
+  have hmod := Nat.mod_lt (x + 9) (by omega : 0 < 10)
+  simp only [ceilDivTen]
+  omega
+
+theorem ceilDivTen_mono {x y : ℕ} (hxy : x ≤ y) : ceilDivTen x ≤ ceilDivTen y := by
+  exact Nat.div_le_div_right (c := 10) (Nat.add_le_add_right hxy 9)
+
+/-- Least recursive initial survivor budget: each round pays exactly the larger of the shell
+nesting demand and the rounded-up next-round actual margin. -/
+def leastBackwardSurvivorBudget : ℕ → (ℕ → ℕ) → (ℕ → ℕ) → ℕ
+  | 0, _, _ => 0
+  | d + 1, slots, residual =>
+      max
+        (2 * leastBackwardSurvivorBudget d (fun i => slots (i + 1))
+          (fun i => residual (i + 1)))
+        (ceilDivTen (nextRoundActualMargin (residual 1) (slots 1)))
+
+@[simp] theorem leastBackwardSurvivorBudget_zero (slots residual : ℕ → ℕ) :
+    leastBackwardSurvivorBudget 0 slots residual = 0 := rfl
+
+@[simp] theorem leastBackwardSurvivorBudget_succ
+    (d : ℕ) (slots residual : ℕ → ℕ) :
+    leastBackwardSurvivorBudget (d + 1) slots residual =
+      max
+        (2 * leastBackwardSurvivorBudget d (fun i => slots (i + 1))
+          (fun i => residual (i + 1)))
+        (ceilDivTen (nextRoundActualMargin (residual 1) (slots 1))) := rfl
+
+/-- The least recursive budget is attained by a finite survivor schedule. -/
+theorem exists_finiteBackwardSurvivorSchedule_least_initial_eq
+    (d : ℕ) (slots residual : ℕ → ℕ) :
+    ∃ survivor : ℕ → ℕ,
+      FiniteBackwardSurvivorSchedule d slots residual survivor ∧
+      survivor 0 = leastBackwardSurvivorBudget d slots residual := by
+  induction d generalizing slots residual with
+  | zero =>
+      exact ⟨fun _ => 0, by intro i hi; omega, rfl⟩
+  | succ d ih =>
+      obtain ⟨tail, htail, htail0⟩ :=
+        ih (fun i => slots (i + 1)) (fun i => residual (i + 1))
+      let margin := nextRoundActualMargin (residual 1) (slots 1)
+      let need := max (2 * tail 0) (ceilDivTen margin)
+      let survivor : ℕ → ℕ
+        | 0 => need
+        | i + 1 => tail i
+      refine ⟨survivor, ?_, ?_⟩
+      · intro i hi
+        cases i with
+        | zero =>
+            have hnested : 2 * tail 0 ≤ need := Nat.le_max_left _ _
+            have hmarginNeed : ceilDivTen margin ≤ need := Nat.le_max_right _ _
+            have hpay : margin ≤ 10 * ceilDivTen margin := le_ten_mul_ceilDivTen margin
+            constructor <;> simp only [survivor, Nat.zero_add]
+            · dsimp only [need]
+              omega
+            · dsimp only [margin] at hpay ⊢
+              exact hpay.trans (Nat.mul_le_mul_left 10 hmarginNeed)
+        | succ i =>
+            have hi : i < d := by omega
+            simpa only [survivor, Nat.add_assoc] using htail i hi
+      · simp only [survivor, leastBackwardSurvivorBudget_succ]
+        dsimp only [need, margin]
+        rw [htail0]
+
+/-- No finite schedule can start below the least recursive budget.  Together with the attainment
+theorem, this justifies comparing this value—not the earlier conservative sum—with ambient `n`
+and fuel. -/
+theorem leastBackwardSurvivorBudget_le_initial
+    (d : ℕ) (slots residual survivor : ℕ → ℕ)
+    (hschedule : FiniteBackwardSurvivorSchedule d slots residual survivor) :
+    leastBackwardSurvivorBudget d slots residual ≤ survivor 0 := by
+  induction d generalizing slots residual survivor with
+  | zero => simp
+  | succ d ih =>
+      have hfirst :
+          20 * survivor 1 ≤ 10 * survivor 0 ∧
+          nextRoundActualMargin (residual 1) (slots 1) ≤ 10 * survivor 0 := by
+        simpa using hschedule 0 (by omega)
+      have htail : FiniteBackwardSurvivorSchedule d (fun i => slots (i + 1))
+          (fun i => residual (i + 1)) (fun i => survivor (i + 1)) := by
+        intro i hi
+        simpa only [Nat.add_assoc] using hschedule (i + 1) (by omega)
+      have hleastTail :
+          leastBackwardSurvivorBudget d (fun i => slots (i + 1))
+              (fun i => residual (i + 1)) ≤ survivor 1 :=
+        ih _ _ _ htail
+      have hnested :
+          2 * leastBackwardSurvivorBudget d (fun i => slots (i + 1))
+              (fun i => residual (i + 1)) ≤ survivor 0 := by
+        omega
+      have hmargin :
+          ceilDivTen (nextRoundActualMargin (residual 1) (slots 1)) ≤ survivor 0 := by
+        rw [ceilDivTen, Nat.div_le_iff_le_mul (by omega : 0 < 10)]
+        omega
+      simpa only [leastBackwardSurvivorBudget_succ, Nat.max_le] using
+        And.intro hnested hmargin
+
+/-- Uniform finite-depth bound for the least schedule.  Compared with the conservative
+`(2^(d+1)-1)*A` estimate, the actual-margin scale is first divided by ten and only shell nesting
+contributes geometrically. -/
+theorem leastBackwardSurvivorBudget_succ_le_geometric
+    (d A : ℕ) (slots residual : ℕ → ℕ)
+    (hmargin : ∀ i, 1 ≤ i → i ≤ d + 1 →
+      nextRoundActualMargin (residual i) (slots i) ≤ A) :
+    leastBackwardSurvivorBudget (d + 1) slots residual ≤
+      2 ^ d * ceilDivTen A := by
+  induction d generalizing slots residual with
+  | zero =>
+      rw [leastBackwardSurvivorBudget_succ]
+      simp only [leastBackwardSurvivorBudget_zero, Nat.mul_zero, max_eq_right (Nat.zero_le _),
+        pow_zero, one_mul]
+      exact ceilDivTen_mono (hmargin 1 (by omega) (by omega))
+  | succ d ih =>
+      have htail :
+          leastBackwardSurvivorBudget (d + 1) (fun i => slots (i + 1))
+              (fun i => residual (i + 1)) ≤ 2 ^ d * ceilDivTen A := by
+        apply ih
+        intro i hi hid
+        simpa only [Nat.add_assoc] using hmargin (i + 1) (by omega) (by omega)
+      have hone : ceilDivTen (nextRoundActualMargin (residual 1) (slots 1)) ≤
+          ceilDivTen A := ceilDivTen_mono (hmargin 1 (by omega) (by omega))
+      rw [leastBackwardSurvivorBudget_succ, Nat.max_le]
+      constructor
+      · calc
+          2 * leastBackwardSurvivorBudget (d + 1) (fun i => slots (i + 1))
+                (fun i => residual (i + 1)) ≤
+              2 * (2 ^ d * ceilDivTen A) := Nat.mul_le_mul_left 2 htail
+          _ = 2 ^ (d + 1) * ceilDivTen A := by rw [pow_succ]; ring
+      · exact hone.trans (by
+          have hp : 1 ≤ 2 ^ (d + 1) := one_le_pow₀ (by omega)
+          nlinarith)
+
+/-- Exact all-depth solution of the least schedule at residual depth zero.  The last round's
+actual margin dominates every earlier margin even after the factor-two nesting charge. -/
+theorem leastBackwardSurvivorBudget_shallow_exact (d M : ℕ) :
+    leastBackwardSurvivorBudget (d + 1) (shallowSlotBound M) (fun _ => 0) =
+      2 ^ d * ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M (d + 1))) := by
+  induction d generalizing M with
+  | zero => simp [leastBackwardSurvivorBudget_succ]
+  | succ d ih =>
+      rw [leastBackwardSurvivorBudget_succ]
+      rw [show (fun i => shallowSlotBound M (i + 1)) = shallowSlotBound (M * 3) by
+        funext i
+        exact shallowSlotBound_succ M i]
+      change max
+          (2 * leastBackwardSurvivorBudget (d + 1) (shallowSlotBound (M * 3)) (fun _ => 0))
+          (ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M 1))) = _
+      rw [ih]
+      have hslot : shallowSlotBound M 1 ≤ shallowSlotBound M (d + 2) := by
+        apply Nat.mul_le_mul_left M
+        exact Nat.pow_le_pow_right (by omega) (by omega)
+      have hneed : ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M 1)) ≤
+          ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M (d + 2))) := by
+        apply ceilDivTen_mono
+        simp only [nextRoundActualMargin]
+        omega
+      rw [max_eq_left]
+      · rw [← shallowSlotBound_succ, pow_succ]
+        ring
+      · calc
+          ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M 1)) ≤
+              ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M (d + 2))) := hneed
+          _ ≤ 2 * (2 ^ d * ceilDivTen
+                (nextRoundActualMargin 0 (shallowSlotBound (M * 3) (d + 1)))) := by
+            rw [← shallowSlotBound_succ]
+            have hpow : 1 ≤ 2 ^ d := one_le_pow₀ (by omega)
+            have hp : 1 ≤ 2 * 2 ^ d := by omega
+            calc
+              ceilDivTen (nextRoundActualMargin 0 (shallowSlotBound M (d + 2))) =
+                  1 * ceilDivTen
+                    (nextRoundActualMargin 0 (shallowSlotBound M (d + 2))) := by ring
+              _ ≤ (2 * 2 ^ d) * ceilDivTen
+                    (nextRoundActualMargin 0 (shallowSlotBound M (d + 2))) :=
+                Nat.mul_le_mul_right _ hp
+              _ = 2 * (2 ^ d * ceilDivTen
+                    (nextRoundActualMargin 0 (shallowSlotBound M (d + 2)))) := by ring
+
+/-- The exact least budget specialized back to the verified forward slot recurrence. -/
+theorem leastBackwardSurvivorBudget_zero_residual_exact (d M : ℕ) :
+    leastBackwardSurvivorBudget (d + 1)
+        (iteratedSlotBound M (fun _ => 0)) (fun _ => 0) =
+      2 ^ d * ((32 * M * 3 ^ (d + 1) + 17) / 10) := by
+  rw [show iteratedSlotBound M (fun _ => 0) = shallowSlotBound M by
+    funext i
+    exact iteratedSlotBound_zero_residual M i]
+  rw [leastBackwardSurvivorBudget_shallow_exact]
+  simp only [ceilDivTen, nextRoundActualMargin, shallowSlotBound]
+  congr 2
+  ring
+
+/-- Consequently `d+1` cheapest rounds have initial shell/fuel demand at most the displayed
+linear expression.  For fixed circuit depth this remains linear in the initial slot envelope, but
+it cannot repair the separate round-zero density failure when that envelope is at least `n`. -/
+theorem leastInitialShell_zero_residual_le (d M : ℕ) :
+    20 * leastBackwardSurvivorBudget (d + 1)
+        (iteratedSlotBound M (fun _ => 0)) (fun _ => 0) ≤
+      32 * 6 ^ (d + 1) * M + 17 * 2 ^ (d + 1) := by
+  rw [leastBackwardSurvivorBudget_zero_residual_exact]
+  have hdiv : 10 * ((32 * M * 3 ^ (d + 1) + 17) / 10) ≤
+      32 * M * 3 ^ (d + 1) + 17 :=
+    Nat.mul_div_le _ _
+  calc
+    20 * (2 ^ d * ((32 * M * 3 ^ (d + 1) + 17) / 10)) =
+        2 ^ (d + 1) * (10 * ((32 * M * 3 ^ (d + 1) + 17) / 10)) := by
+      rw [pow_succ]
+      ring
+    _ ≤ 2 ^ (d + 1) * (32 * M * 3 ^ (d + 1) + 17) :=
+      Nat.mul_le_mul_left _ hdiv
+    _ = 32 * 6 ^ (d + 1) * M + 17 * 2 ^ (d + 1) := by
+      rw [show 6 ^ (d + 1) = 2 ^ (d + 1) * 3 ^ (d + 1) by
+        rw [← Nat.mul_pow]]
+      ring
+
+/-- Exact least-budget two-round calibration at residual depth zero.  The second-round margin
+dominates the first-round demand after shell nesting. -/
+theorem leastBackwardSurvivorBudget_two_shallow_rounds (M₀ : ℕ) :
+    leastBackwardSurvivorBudget 2 (iteratedSlotBound M₀ (fun _ => 0)) (fun _ => 0) =
+      2 * ((288 * M₀ + 17) / 10) := by
+  simp only [leastBackwardSurvivorBudget_succ, leastBackwardSurvivorBudget_zero,
+    iteratedSlotBound_succ, iteratedSlotBound_zero, nextRoundActualMargin, ceilDivTen,
+    pow_one, Nat.mul_zero, Nat.zero_add]
+  simp only [max_eq_right (Nat.zero_le _)]
+  ring_nf
+  rw [max_eq_left]
+  have hnum : 96 * M₀ + 17 ≤ 288 * M₀ + 17 := by omega
+  have hdiv := Nat.div_le_div_right (c := 10) hnum
+  omega
+
+/-- The corresponding exact initial shell/fuel demand is about `1152*M₀`, and in particular is
+bounded by the displayed integral linear envelope. -/
+theorem leastInitialShell_two_shallow_rounds (M₀ : ℕ) :
+    20 * leastBackwardSurvivorBudget 2
+        (iteratedSlotBound M₀ (fun _ => 0)) (fun _ => 0) =
+      40 * ((288 * M₀ + 17) / 10) := by
+  rw [leastBackwardSurvivorBudget_two_shallow_rounds]
+  ring
+
+theorem leastInitialShell_two_shallow_rounds_le (M₀ : ℕ) :
+    20 * leastBackwardSurvivorBudget 2
+        (iteratedSlotBound M₀ (fun _ => 0)) (fun _ => 0) ≤
+      1160 * M₀ + 80 := by
+  rw [leastInitialShell_two_shallow_rounds]
+  have hdiv : (288 * M₀ + 17) / 10 ≤ 29 * M₀ + 2 := by
+    rw [Nat.div_le_iff_le_mul (by omega : 0 < 10)]
+    omega
+  omega
+
+/-- Every finite width/slot horizon has a survivor schedule when constructed backwards.  This is
+deliberately an existence theorem with no initial upper bound: compatibility of the resulting
+`survivor 0` with the original ambient shell and fuel is the remaining quantitative test. -/
+theorem exists_finiteBackwardSurvivorSchedule (d : ℕ) (slots residual : ℕ → ℕ) :
+    ∃ survivor : ℕ → ℕ, FiniteBackwardSurvivorSchedule d slots residual survivor := by
+  induction d generalizing slots residual with
+  | zero =>
+      exact ⟨fun _ => 0, by intro i hi; omega⟩
+  | succ d ih =>
+      obtain ⟨tail, htail⟩ := ih (fun i => slots (i + 1)) (fun i => residual (i + 1))
+      let need := nextRoundActualMargin (residual 1) (slots 1)
+      let survivor : ℕ → ℕ
+        | 0 => 2 * tail 0 + need
+        | i + 1 => tail i
+      refine ⟨survivor, ?_⟩
+      intro i hi
+      cases i with
+      | zero =>
+          constructor <;> simp only [survivor, Nat.zero_add]
+          · omega
+          · dsimp only [need]
+            omega
+      | succ i =>
+          have hi : i < d := by omega
+          simpa only [survivor, Nat.add_assoc] using htail i hi
+
+/-- Specialization to the slot recurrence exported by the localized survivor round. -/
+theorem exists_iteratedSlot_finiteBackwardSurvivorSchedule
+    (d M₀ : ℕ) (residual : ℕ → ℕ) :
+    ∃ survivor : ℕ → ℕ,
+      FiniteBackwardSurvivorSchedule d (iteratedSlotBound M₀ residual) residual survivor :=
+  exists_finiteBackwardSurvivorSchedule d (iteratedSlotBound M₀ residual) residual
+
+/-- Preserve the first small failed parameter choice explicitly: the next-round margin is `104`,
+so `R = 1` cannot pay it on a ten-coordinate survivor cube. -/
+theorem nextRoundActualMargin_zero_one_fails :
+    ¬ nextRoundActualMargin 0 1 ≤ 10 * 1 := by
+  norm_num [nextRoundActualMargin]
 
 /-- Transport a whole indexed bottom-gate family to the current live-coordinate cube. -/
 noncomputable def localizeLiveGates {n G : ℕ} (τ : Restriction n)
@@ -2878,14 +6664,42 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.concreteDeterministicRoundCertificate_subcube
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_liftLiveRestriction
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liveRestrictionEquiv
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.trueCount_liftLiveAssignment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_liftLiveAssignment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.DTree.shallow_dtree_not_parity_xor
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLiteral_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_width_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveDnf_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveCnf_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_depth
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_AltO
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_collapseRound_AltO
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_collapseRound_NonEmptyGates
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_BottomWidth
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveLayered_bottomSlotCount_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.actualMargin_normalizedSurvivorRound_localized
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.supportDensity_normalizedSurvivorRound_localized
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_denseParity_normalizedCollapseSuccessor_of_realized_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.nextRoundActualMargin_not_le_ambient_of_ambient_le_slots
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.iteratedSlotBound_zero_residual
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_finiteBackwardSurvivorSchedule_initial_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialBackwardSurvivorBudget_le_geometric
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialBackwardSurvivorBudget_two_shallow_rounds
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialShell_two_shallow_rounds
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.le_ten_mul_ceilDivTen
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_finiteBackwardSurvivorSchedule_least_initial_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastBackwardSurvivorBudget_le_initial
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastBackwardSurvivorBudget_succ_le_geometric
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastBackwardSurvivorBudget_shallow_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastBackwardSurvivorBudget_zero_residual_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastInitialShell_zero_residual_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastBackwardSurvivorBudget_two_shallow_rounds
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastInitialShell_two_shallow_rounds
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastInitialShell_two_shallow_rounds_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_finiteBackwardSurvivorSchedule
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_iteratedSlot_finiteBackwardSurvivorSchedule
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.nextRoundActualMargin_zero_one_fails
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGates_eval
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_nodup
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.localizeLiveGatesNodup_eval
@@ -2915,3 +6729,93 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedRetryNode_work_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.padded_good_collapseRound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.deterministic_parent_threshold_exceeds_closed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.layeredBottomVariableSupport_localizeLiveLayered_card_le_inter
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.layeredBottomVariableSupport_localizeLiveLayered_collapseRound_card_le_inter
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.freeVars_subset_of_restrictionExtends
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.support_inter_freeVars_card_eq_stars_of_cover
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.sparseSupport16_exact_survivor_overlap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_restrictionExtends_stars_eq_inter_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_assignmentExtending_stars_eq_inter_card_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fifteen_mul_stars_le_sixteen_mul_outside_of_overlap_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_restrictionExtends_factorSixteen_overlap_density
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.normalizedCanonicalPrefix_zeroOverlapSurvivor_of_not_supportTail
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.supportTail_normalizedSurvivorRound_localized
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.InitialSupportTailSuccessor.toState
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_initialSupportTailSuccessor
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.restriction_eq_of_extends_to_of_freeVars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_restrictionCoarseningShellFiber_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialSupportTail_rootFiber_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialSupportTailSuccessorFiber_le_product
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialSupportTailSuccessorFiber_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialGoodRoots_add_bad
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialRootShell_card_le_two_mul_good
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialGoodRootAssignmentPairs
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialGoodRootAssignmentPairDomain
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialGoodRoots_mul_assignments_le_successorImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialRootShell_mul_assignments_le_two_mul_successorImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.InitialSupportTailSuccessor.toInitialGeometricState
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedInitialGeometricPath_eval_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_selectedInitialGeometricEndpointRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedInitialGeometricEndpointRestriction_assignment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedInitialGeometricEndpointRestriction_root_extends
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_eq_of_mem_initialGeometricEndpointImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialGeometricEndpointFiber_le_product
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_initialGeometricEndpointFiber_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialGoodRoots_mul_assignments_le_geometricEndpointImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.initialRootShell_mul_assignments_le_two_mul_geometricEndpointImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.terminalShell_card_le_two_mul_choose_mul_of_source_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.terminalRootShell_card_le_two_mul_choose_mul_geometricEndpointImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_mem_initialGeometricEndpointImage
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.zeroSupportGeometric_exists_disagrees_parity
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_disagrees_parity_of_bottomSupport_card_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.sparseSupport16_exists_disagrees_parity
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.zeroSupportSurvivorScale_shell_exact
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.liveLayeredBottomSupportTail_eq_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.normalizedLayered_commonShallowBad_eq_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedStep.toState
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_next_agreeing
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.selectedNextStep_agreeing
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.generatedNextLabels_complete
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.card_generatedNextLabels
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedTwoStep.eval_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.eval_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.parity_liftAssignment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftLiveAssignment_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.liftAssignment_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.eq_of_liftAssignment_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.liftAssignment_fiber_card_le_one
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.agreeRestriction_liftLiveRestriction_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.stars_rootRestriction
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.exists_liftAssignment_eq_iff_agrees
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.LocalizedSemanticPath.liftAssignment_ranges_overlap_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_liftLiveAssignment_eq_iff_agrees
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.restrictionsCompatible_iff_exists_agrees
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.agreeingRestrictionEquivFreeSet
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_agreeing_restrictions_of_stars_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_distinct_agreeing_restriction_family_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftLiveAssignment_ranges_overlap_iff
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_distinct_restrictions_with_overlapping_lift_ranges
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.endpointState
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_terminalDnf_depth_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.exists_endpointDnf_depth_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.toSemanticPath_endpointN_cons
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.toSemanticPath_endpointN_scheduled
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.semantic_endpointN_eq_endpointState_n
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.exists_semantic_endpointDnf_depth_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.exists_semantic_endpoint_disagrees_parity_xor
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.liftLiveAssignment_restrict_eq_of_agrees
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_geometric_path_lifting_assignment
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.selectedGeometricPath_rootRestriction_agrees
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_geometric_path
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.eval_eq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.selectedInitialGeometricPath_exists_disagrees_parity
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportGeometricPath.semantic_endpointN
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_assignments_agreeing_restriction
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_eq_of_mem_generatedGeometricRootRestrictions
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.generatedGeometricRootFiber_subset_agreeing
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_generatedGeometricRootFiber_le
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.generatedGeometricRootRestrictions_product_lower_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_eq_of_mem_admissibleGeometricRootRestrictions
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_admissibleGeometricRootRestrictions_agreeing_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_next
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_two_step

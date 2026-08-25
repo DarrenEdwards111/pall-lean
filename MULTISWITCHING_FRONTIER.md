@@ -7224,3 +7224,3064 @@ The precise next frontier is to package evaluation, depth, width, and slot prese
 residual widths satisfying both `20*R_(i+1) <= 10*R_i` and the displayed next-margin obligation at
 every round.  If these inequalities fail for the intended depth schedule, retain the first failing
 round and parameter tuple explicitly.  No P-versus-NP conclusion follows.
+
+### The exact-subcube round now exports a localized next-round circuit
+
+The coordinate laws and the exact survivor witness are now packaged by the kernel-checked theorem
+`actualMargin_normalizedSurvivorRound_localized`.  It consumes the conclusion of
+`actualMargin_normalizedSurvivorRound_exactSubcube`; for every good `20R`-shell root it reconstructs
+the common-shallow leaf certificate, selects the same exact `10R`-live coordinate budget, and returns
+the localized collapse
+
+```text
+D = localizeLiveLayered kappa (collapseRound fuel tau C)
+```
+
+with all four iteration interfaces in one witness:
+
+```text
+eval D z = eval C (liftLiveAssignment kappa z)
+depth D = depth (collapseRound fuel tau C)
+BottomWidth (residualDepth+1) D
+bottomSlotCount D <= bottomSlotCount(C) * (2^(residualDepth+1)+1).
+```
+
+The evaluation statement composes exact-subcube collapse equivalence with the canonical assignment
+lift.  Width and slot count are not inferred from semantics: they come respectively from the reached
+leaf's `Shallows` certificate and the proved syntactic localization inequalities.  Thus the next
+round is now represented by an actual `Layered (stars kappa)` circuit, and `stars kappa = 10R` is
+carried alongside it; there is no remaining coordinate-transport interface gap.
+
+Focused elaboration of the full quantitative-iteration source passed.  The capstone reports only
+`propext`, `Classical.choice`, and `Quot.sound`.  A dependency-aware TwoSAT target replayed its
+dependencies and entered the known long final compilation phase; it was manually stopped without
+an error, so no full affected build is claimed.  `git diff --check` passed.  The earlier failing
+abstract tuple `r=0, M=1, R=1` remains recorded and is not promoted to a circuit counterexample.
+
+The precise next frontier is purely the finite-round schedule: define slot bounds
+`M_(i+1) = M_i * (2^(r_i+1)+1)` and choose survivor parameters satisfying, for each transition,
+
+```text
+20*R_(i+1) <= 10*R_i
+8*(r_(i+1)+2)*M_(i+1)*2^(r_(i+1)+1) + 4*(r_(i+1)+2) <= 10*R_i.
+```
+
+The next step should formalize a backward finite-horizon construction, then test whether its required
+initial `R_0` is compatible with the original ambient shell and fuel bounds.  The first incompatible
+round or initial-budget inequality must be retained explicitly.  No P-versus-NP conclusion follows.
+
+### Finite backward schedules exist; initial-budget compatibility is isolated
+
+The arithmetic part of the finite-horizon schedule is now kernel checked.  The quantitative-iteration
+module defines the exact next-round demand
+
+```text
+nextRoundActualMargin(r,M) = 8*(r+2)*M*2^(r+1) + 4*(r+2)
+```
+
+and the forward slot envelope
+
+```text
+M_0 = M₀
+M_(i+1) = M_i * (2^(r_i+1) + 1).
+```
+
+`FiniteBackwardSurvivorSchedule d M r R` records, at every `i < d`, both obligations exposed by
+the localized exact-subcube round:
+
+```text
+20*R_(i+1) <= 10*R_i
+nextRoundActualMargin(r_(i+1), M_(i+1)) <= 10*R_i.
+```
+
+The theorem `exists_finiteBackwardSurvivorSchedule` proves that such an `R` exists for every finite
+horizon and every prescribed width/slot sequence.  Its induction is explicit: after constructing
+the tail, it takes
+
+```text
+R_i = 2*R_(i+1) + nextRoundActualMargin(r_(i+1), M_(i+1)).
+```
+
+The specialization `exists_iteratedSlot_finiteBackwardSurvivorSchedule` feeds this construction the
+actual forward slot recurrence.  Thus there is no finite-horizon inconsistency between survivor
+nesting and the next-margin inequalities themselves.  This theorem intentionally supplies no upper
+bound on `R_0`: making `R_0` large closes later transitions but simultaneously increases the initial
+`20*R_0` shell and fuel requirement.
+
+The earlier small failed choice is now preserved as a theorem rather than prose alone:
+
+```text
+not (nextRoundActualMargin 0 1 <= 10*1),
+```
+
+since its left side is `104`.  It refutes only that particular envelope choice, not the backward
+construction.
+
+Focused elaboration of the full quantitative-iteration source passed.  The three new arithmetic
+capstones report only `propext`.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide`
+was added.  A dependency-aware target build replayed through the large layered-bridge dependency
+without errors and was manually stopped during the known long final compilation phase, so no full
+affected build is claimed for this checkpoint.  `git diff --check` passed.
+
+The precise next frontier is to derive a usable upper bound on the constructed `R_0` (preferably for
+the intended residual-depth sequence), then compare `20*R_0` simultaneously with the original fuel
+and ambient-shell budgets and compare the initial circuit margin with `n`.  The first incompatible
+initial inequality or concrete depth/slot tuple must remain recorded.  No P-versus-NP conclusion
+follows.
+
+### The backward construction now exposes an explicit initial budget
+
+The finite schedule existential has been refined to retain the initial value chosen by the proof.
+The new recursive quantity `initialBackwardSurvivorBudget d M r` is
+
+```text
+B(0; M, r) = 0
+B(d+1; M, r) = 2*B(d; shift M, shift r) + nextRoundActualMargin(r_1, M_1).
+```
+
+`exists_finiteBackwardSurvivorSchedule_initial_eq` constructs a schedule satisfying the same two
+roundwise inequalities as before and proves exactly `R_0 = B(d; M, r)`.  Thus the original shell and
+fuel obligation is no longer hidden behind an existential: it is the concrete test
+
+```text
+20 * B(d; M, r) <= min(n, fuel).
+```
+
+The theorem `initialBackwardSurvivorBudget_le_geometric` supplies the closed bound
+
+```text
+B(d; M, r) <= (2^d - 1) * A
+```
+
+whenever every later-round actual margin is at most `A`.  This separates the unavoidable geometric
+weight from the slot/depth-dependent maximum margin; it does not assert that the resulting bound is
+compatible with a proposed circuit regime.
+
+The smallest residual-depth calibration is already nontrivial.  With `r_i = 0` and the verified
+slot recurrence, two rounds give
+
+```text
+M_1 = 3*M_0,
+M_2 = 9*M_0,
+B(2) = 672*M_0 + 24,
+20*B(2) = 13440*M_0 + 480.
+```
+
+Both equalities are kernel checked.  In particular, even the shallowest two-round use of this
+specific conservative construction requires `n` and `fuel` to be at least
+`13440*M_0 + 480`.  This is a concrete budget floor for the construction, not a lower bound for all
+possible schedules: the recurrence deliberately pays the full margin rather than its division by
+ten, so it is not yet quantitatively tight.
+
+Focused elaboration of the full quantitative-iteration source passed.  The new schedule and
+geometric capstones use only `propext` and `Quot.sound`; the two numerical calibration capstones use
+only `propext`.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to tighten the backward step to the least natural survivor value
+
+```text
+R_i = max(2*R_(i+1), ceil(nextRoundActualMargin(r_(i+1), M_(i+1))/10)),
+```
+
+then recompute the two-round calibration and derive its finite-depth bound.  Only that least-budget
+schedule should be compared against the intended polynomial initial slot envelope and the ambient
+`n`/fuel budget; the present `13440*M_0+480` figure must not be mistaken for an impossibility result.
+No P-versus-NP conclusion follows.
+
+### The least backward survivor budget is attained and minimal
+
+The conservative backward sum has now been replaced for quantitative comparisons by a separate,
+kernel-checked least recurrence:
+
+```text
+ceilDivTen(x) = (x+9)/10,
+L(0; M, r) = 0,
+L(d+1; M, r) = max(2*L(d; shift M, shift r),
+                    ceilDivTen(nextRoundActualMargin(r_1,M_1))).
+```
+
+`le_ten_mul_ceilDivTen` proves that the rounded term pays the exact `10*R` margin.
+`exists_finiteBackwardSurvivorSchedule_least_initial_eq` constructs a schedule with initial value
+exactly `L`, while `leastBackwardSurvivorBudget_le_initial` proves the converse: every schedule
+satisfying `FiniteBackwardSurvivorSchedule` has `L <= R_0`.  Thus this is genuinely the least
+natural initial survivor budget for the two recorded round obligations, rather than merely a
+smaller witness.
+
+There is also a finite-horizon bound.  If all `d+1` later margins are at most `A`, then
+
+```text
+L(d+1; M, r) <= 2^d * ceil(A/10).
+```
+
+This separates the one-time division by ten from the geometric shell nesting.  It is strictly more
+informative than the earlier conservative `(2^(d+1)-1)*A` bound, but still depends on a usable
+common `A` from the forward slot and residual-depth sequences.
+
+For two residual-depth-zero rounds, where `M_1=3*M_0` and `M_2=9*M_0`, the exact calibration is
+
+```text
+L(2) = 2 * floor((288*M_0 + 17)/10),
+20*L(2) = 40 * floor((288*M_0 + 17)/10)
+        <= 1160*M_0 + 80.
+```
+
+The second-round margin dominates the first after shell nesting.  The leading shell coefficient is
+therefore about `1152`, not the conservative `13440`; the earlier theorem remains preserved as an
+audit of that deliberately overpaying route, not as an impossibility claim.
+
+Focused elaboration of the full quantitative-iteration source passed.  Printed new capstones use
+only `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is to instantiate `L` with the intended finite residual-depth sequence
+and its actual forward `iteratedSlotBound`, derive the resulting polynomial expression in the
+initial circuit slot envelope, and test both `20*L <= min(n,fuel)` and the round-zero actual-margin
+premise.  The first failing depth/slot/ambient inequality must be retained explicitly.  No
+P-versus-NP conclusion follows.
+
+### The cheapest all-depth schedule is exact; the initial density premise is now the blocker
+
+The intended quantitatively cheapest residual-depth sequence, `r_i = 0`, has now been evaluated at
+every finite depth.  The kernel-checked forward recurrence is
+
+```text
+M_i = M_0 * 3^i.
+```
+
+For `d+1` collapse rounds, the last actual-margin obligation dominates all earlier obligations even
+after their factor-two nesting charges.  Consequently the least initial survivor budget is exactly
+
+```text
+L(d+1) = 2^d * floor((32*M_0*3^(d+1) + 17)/10).
+```
+
+The corresponding initial shell/fuel demand obeys
+
+```text
+20*L(d+1) <= 32*6^(d+1)*M_0 + 17*2^(d+1).
+```
+
+Thus for fixed circuit depth the survivor schedule itself costs only a constant multiple of the
+initial bottom-slot envelope.  This closes the previously open finite-depth recurrence calculation;
+the earlier two-round formula is its `d=1` instance.
+
+The simultaneous round-zero audit exposes a stricter obstruction.  The actual-margin premise for an
+initial width-`s+1` circuit is
+
+```text
+nextRoundActualMargin(s,M_0)
+  = 8*(s+2)*M_0*2^(s+1) + 4*(s+2) <= n.
+```
+
+`nextRoundActualMargin_not_le_ambient_of_ambient_le_slots` proves that this is false for every
+`s,n,M_0` with `n <= M_0`.  In particular, the present circuit-owned density theorem does not even
+start on the broad linear-or-larger slot regime, hence a generic polynomial-size envelope cannot be
+fed into this iteration merely by choosing the least survivor schedule.  This is a failure of the
+current worst-case support/slot margin, not a circuit counterexample and not an impossibility theorem
+for switching arguments.
+
+Focused elaboration of the full quantitative-iteration source passed.  The new capstones report only
+standard logical axioms; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+`git diff --check` passed.
+
+The precise next frontier is to sharpen the round-zero density interface: replace total bottom-slot
+count by an effective variable-support or overlap-sensitive quantity that can be sublinear in `n`
+even for polynomially many slots, while preserving normalization, localization, and the exact shell
+contraction.  Absent such a refinement, the first-round premise—not the multi-round recurrence—is the
+defensible stopping point.  No P-versus-NP conclusion follows.
+
+### The first-round density interface now charges exact bottom-variable support
+
+The existing hypergeometric support-tail argument has now been promoted through the complete
+survivor-round API.  The new premise is
+
+```text
+16 * |layeredBottomVariableSupport C| <= n,
+```
+
+where `layeredBottomVariableSupport C` is the union of the variables in the unpolarized syntactic
+bottom gates.  In particular, repeated clause occurrences and the normalized De Morgan polarity
+are not charged again.  The new kernel-checked interfaces are:
+
+- `normalizedLayered_commonShallowBad_scaled_le_of_sixteen_support`, the half-shell contraction;
+- `supportDensity_normalizedSurvivorRound`, which also exports the leaf slot recurrence;
+- `supportDensity_normalizedSurvivorRound_exactSubcube`, which selects the exact half shell and
+  transports collapse equivalence;
+- `supportDensity_normalizedSurvivorRound_localized`, which reindexes the reached circuit onto its
+  live coordinate cube while preserving evaluation, depth, bottom width, and the slot bound.
+
+Thus the previously recorded round-zero failure for `n <= M_0` is not intrinsic to a large slot
+envelope: the first round can start with arbitrarily many overlapping clause slots provided their
+distinct bottom-variable union occupies at most one sixteenth of the ambient coordinates.  The old
+slot-based failure theorem remains valid for the stronger historical premise and is retained as a
+failed worst-case route.
+
+Focused elaboration reached beyond all new declarations after resolving a name collision with an
+older, alphabet-envelope theorem.  A dependency-aware target build replayed the project and entered
+the known long final compilation phase without reporting a new source error; it was manually stopped,
+so no completed target or full build is claimed at this checkpoint.  `git diff --check` passed.  No
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to audit support propagation, not slot propagation: prove the strongest
+valid upper bound on `|layeredBottomVariableSupport D|` for the localized collapsed circuit `D`.
+If restriction/localization makes this support nonincreasing, the support-density premise may iterate
+without the polynomial slot obstruction; if collapse introduces genuinely new live support or only
+the ambient `10*R` bound is available, record the first resulting support-budget inequality.  No
+P-versus-NP conclusion follows.
+
+### Canonical leaf collapse is now proved support-nonincreasing
+
+The first structural link in that audit is kernel checked at both bottom-gate polarities.  The new
+clause-level theorems
+
+```text
+dtreeToCNF_canonicalDT_clauseVariableSupport_subset
+dtreeToDNF_negTree_canonicalDT_clauseVariableSupport_subset
+```
+
+prove that every variable in every clause emitted by the canonical rejecting-path CNF, or by the
+dual negated-tree accepting-path DNF, already occurs in the source bottom payload.  Their gate-level
+corollaries state directly
+
+```text
+gateVariableSupport(switchedGate) ⊆ gateVariableSupport(sourceGate).
+```
+
+The proof composes the existing path-clause variable theorem with exact preservation of queried
+variables by `toDTree` and `negTree`, then with
+`canonicalDT_queriedVars_subset_gateVariableSupport`.  Thus the switching conversion itself does
+not introduce new support; this rules out the most serious local failure mode.  It does not yet
+justify a full-circuit cardinal inequality, because the leaf theorem must still be threaded through
+the recursive `leafCollapse`, the flatten-only `mergePass`, and the coordinate map used by
+`localizeLiveLayered`.
+
+Direct elaboration of the large TwoSAT source passed these declarations and continued through the
+later file without a source error.  The run had not completed at this checkpoint, so no completed
+target or full build is claimed.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.
+
+The precise next frontier is to lift the two gate-level subset theorems to
+
+```text
+layeredBottomVariableSupport (collapseRound fuel tau C)
+  ⊆ layeredBottomVariableSupport C,
+```
+
+using a support-valued `BottomPred` invariant through `leafCollapse` and the existing
+`mergePass_BottomPred`; then prove the localized image/intersection law.  That law will show whether
+the chosen exact survivor set `freeVars kappa` can be made mostly disjoint from the old support, which
+is the condition actually needed to recover the factor-16 density premise on the `10R` cube.  No
+P-versus-NP conclusion follows.
+
+### Full recursive collapse is now proved support-nonincreasing
+
+The leaf-level support fact has now been threaded through the actual recursive circuit
+transformation.  The new preservation-style invariant
+
+```text
+leafCollapse_BottomPred_of
+```
+
+differs materially from the older setter-style `leafCollapse_BottomPred`: it assumes a predicate on
+the source bottom clauses and permits each of the two canonical leaf conversions to preserve that
+predicate.  This is the source-sensitive interface needed for support containment.  Instantiating it
+with `clauseVariableSupport T ⊆ layeredBottomVariableSupport C` yields
+
+```text
+layeredBottomVariableSupport (leafCollapse fuel tau C)
+  ⊆ layeredBottomVariableSupport C.
+```
+
+The helper `layeredBottomVariableSupport_subset_of_BottomPred` converts the per-clause invariant
+back to the circuit-wide finite union.  Composing the same invariant with the existing
+`mergePass_BottomPred` then proves the complete round theorem
+
+```text
+layeredBottomVariableSupport (collapseRound fuel tau C)
+  ⊆ layeredBottomVariableSupport C.
+```
+
+Thus neither recursive traversal nor same-polarity flattening reintroduces support; the full
+unlocalized collapse is support-nonincreasing, with no depth, shallowness, fuel, or cleanliness
+hypothesis.  This closes the structural half of the propagation audit.
+
+Focused elaboration of the large TwoSAT source passed all new declarations and continued thousands
+of later lines without an error before the 90-second run was stopped by its time limit.  No completed
+target or full build is claimed.  `git diff --check` passed.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was added.
+
+The precise next frontier is the coordinate-localization law.  Prove that the bottom support of
+`localizeLiveLayered kappa D` is exactly the preimage, under the live-coordinate embedding, of
+`layeredBottomVariableSupport D ∩ freeVars kappa`; at minimum prove the corresponding subset and
+cardinality bound.  Combined with round support monotonicity, this will reduce the next factor-16
+density premise on the `10R` cube to an explicit bound on
+`|layeredBottomVariableSupport C ∩ freeVars kappa|`.  The survivor selector must then be audited to
+determine whether it controls that overlap or merely the total number of survivors.  No P-versus-NP
+conclusion follows.
+
+### Localization charges the old-support/survivor overlap from above
+
+The coordinate-localization audit now has its strongest generally valid direction.  At clause,
+DNF, CNF, and recursively layered levels, mapping localized support back through `liveCoordEquiv`
+gives
+
+```text
+image(embed_kappa,
+  layeredBottomVariableSupport (localizeLiveLayered kappa D))
+    ⊆ layeredBottomVariableSupport D ∩ freeVars kappa.
+```
+
+Injectivity of the embedding gives the cardinal bound
+
+```text
+|layeredBottomVariableSupport (localizeLiveLayered kappa D)|
+  <= |layeredBottomVariableSupport D ∩ freeVars kappa|.
+```
+
+Composing it with unconditional collapse-support monotonicity yields the actual round recurrence
+
+```text
+|layeredBottomVariableSupport
+    (localizeLiveLayered kappa (collapseRound fuel tau C))|
+  <= |layeredBottomVariableSupport C ∩ freeVars kappa|.
+```
+
+The tempting equality is deliberately not asserted: it is false when a variable is live in
+`kappa` but occurs only in an old clause discarded because another literal is already killed.
+Containment and the cardinal upper bound are therefore the correct interfaces.
+
+Focused elaboration exposed and fixed the clause-variable rewrite and CNF-duality proof.  A
+standalone focused harness then passed the complete clause/gate/layered/cardinality argument and
+reported only `propext`, `Classical.choice`, and `Quot.sound`; it also checked the final composition
+against an abstract collapse-support premise.  A
+dependency refresh passed the support/collapse declarations and continued into the preserved late
+counterexample section; that large source then hit its existing late `omega`/heartbeat failures
+around lines 8215--8287, so no completed target or full build is claimed.  `git diff --check`
+passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is the survivor selector.  Audit whether its exact `10*R` survivor set
+proves
+
+```text
+16 * |layeredBottomVariableSupport C ∩ freeVars kappa| <= 10*R.
+```
+
+If current selection controls only total survivor count, the next needed step is an overlap-aware
+shell selection/counting lemma.  No P-versus-NP conclusion follows.
+
+### Exact-size survivor selection alone cannot propagate factor-sixteen support density
+
+The selector audit is now negative and kernel checked.  The pointwise theorem
+`freeVars_subset_of_restrictionExtends` strengthens the earlier live-count monotonicity statement:
+an extension can only remove coordinates from the current live set.  Consequently,
+`support_inter_freeVars_card_eq_stars_of_cover` proves that if the old support already covers all
+coordinates live at a reached leaf, then every further extension has support overlap equal to its
+entire star count.  Choosing a different exact-size subset cannot help.
+
+The concrete witness `sparseSupport16`/`sparseSupportRoot16` shows that this obstruction is compatible
+with the existing global premise.  Its support is the singleton `{0}` in `Fin 16`, so
+
+```text
+16 * |sparseSupport16| <= 16.
+```
+
+But the leaf has exactly that one coordinate live.  For every extension `rho` with `stars rho = 1`,
+`sparseSupport16_exact_survivor_overlap` proves
+
+```text
+|sparseSupport16 ∩ freeVars rho| = 1
+and not (16 * |sparseSupport16 ∩ freeVars rho| <= 1).
+```
+
+Thus the current `exists_restrictionExtends_stars_eq` interface controls only survivor cardinality;
+global support sparsity does not propagate through an adversarially support-concentrated leaf.  The
+counterexample is deliberately retained, so the iteration cannot silently assume the desired
+factor-sixteen overlap inequality.
+
+A focused harness compiled all new declarations and reported only `propext`, `Classical.choice`, and
+`Quot.sound` for the capstone.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.
+
+The precise next frontier is no longer a deterministic subset selector.  It is to strengthen the
+common-trunk counting event so that reached leaves carry an overlap guarantee relative to
+`layeredBottomVariableSupport C` (or to jointly count bad shallowness and support concentration).
+The first quantitative target is a shell/trunk lemma ensuring enough live coordinates outside the
+old support to choose `10*R` survivors with overlap at most `(10*R)/16`; absent such a correlated
+count, support-density iteration fails even though collapse and localization are support-
+nonincreasing.  No P-versus-NP conclusion follows.
+
+### The overlap-aware survivor selector now has an exact leaf-capacity interface
+
+The deterministic part of the correlated-selection problem is now kernel checked.  For a reached
+leaf `base`, old support `S`, survivor target `K`, and overlap allowance `q`,
+`exists_restrictionExtends_stars_eq_inter_card_le` proves that
+
+```text
+K <= stars(base)
+K - q <= |freeVars(base) \ S|
+q <= K
+```
+
+is sufficient to choose an extension `rho` with exactly `K` survivors and
+
+```text
+|S ∩ freeVars(rho)| <= q.
+```
+
+The construction first keeps `K-q` outside-support coordinates and then fills the remaining `q`
+positions from the still-live coordinates.  It is therefore compatible with the existing
+`keepFreeExtension` selector and preserves all values already fixed at the leaf.
+
+The converse capacity charge is also formal.  Every restriction extension satisfies
+
+```text
+stars(rho) <= |freeVars(base) \ S| + |S ∩ freeVars(rho)|.
+```
+
+Consequently, factor-sixteen overlap density forces
+
+```text
+15 * stars(rho) <= 16 * |freeVars(base) \ S|.
+```
+
+Finally, `exists_restrictionExtends_factorSixteen_overlap_density` packages the sufficient side:
+any integer `q` with `16*q <= K` and outside capacity at least `K-q` yields an exact `K`-survivor
+extension satisfying `16*|S ∩ freeVars(rho)| <= K`.  Thus, up to the unavoidable integer
+rounding, the deterministic selector needs and can use a `15/16` outside-support fraction.  The
+retained `Fin 16` counterexample is the zero-outside-capacity endpoint of this criterion.
+
+A standalone focused harness compiled the constructive selector, the necessity theorem, and the
+factor-sixteen corollary.  Their printed axioms are exactly `propext`, `Classical.choice`, and
+`Quot.sound`.  Direct elaboration of the large source reached the new block; after the one local
+proof issue was fixed, the remaining module failures are the preserved earlier dependency-refresh
+errors beginning around line 1013.  No completed target or full build is claimed.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is now purely the correlated trunk count: bound the common-shallow roots
+whose reached leaves have fewer than `K-q` live coordinates outside
+`layeredBottomVariableSupport C`, with `K = 10*R` and an integer `q` satisfying `16*q <= K`.
+Combining that count with the new selector would re-establish the factor-sixteen support premise on
+the next localized cube; without it, the current bad-shallowness count alone does not iterate.  No
+P-versus-NP conclusion follows.
+
+### The correlated leaf-capacity event collapses to the existing root support tail
+
+The missing correlation does not require a new leaf-wise counting argument.  The canonical
+normalized-family prefix queries only coordinates in `familyVariableSupport`, and that support is
+contained in the old unpolarized `layeredBottomVariableSupport`.  Therefore every coordinate that
+is live at the root and outside the old support remains live at every canonical prefix leaf.
+
+This makes the already formalized root event `liveLayeredBottomSupportTail C (20*R) (10*R)` the
+right strengthened bad set.  Outside it, the root has at most `10R` live supported coordinates and
+hence at least `10R` live coordinates outside the old support.  The canonical prefix preserves all
+of those outside coordinates.  The new capstone
+`normalizedCanonicalPrefix_zeroOverlapSurvivor_of_not_supportTail` proves simultaneously that:
+
+```text
+CommonShallowAt (normalizedLayeredBottomFamily C) fuel sigma (10*R) 0
+```
+
+and, at every canonical reached leaf, there is an extending restriction with exactly `10R`
+survivors whose overlap with `layeredBottomVariableSupport C` is zero.  This is stronger than the
+previous `15/16` outside-capacity target and immediately implies the next factor-sixteen support
+density premise after collapse and localization.
+
+The strengthened bad set pays no worse counting exponent.  Under
+
+```text
+16 * |layeredBottomVariableSupport C| <= n,
+```
+
+`liveLayeredBottomSupportTail_scaled_le_sixteen_density` proves that the whole root support tail,
+not just `commonShallowBad`, contracts by `2^(10R)` on the `20R` shell.  Thus the same
+hypergeometric estimate now supplies both residual shallowness and overlap-aware survivors; no
+union bound is needed.  The retained `Fin 16` counterexample remains valid for arbitrary reached
+leaves and explains why selecting the canonical support-respecting trunk is essential.
+
+A focused source-slice harness checked the canonical-prefix support, outside-survival, complete
+support-tail contraction, and zero-overlap survivor capstone.  All four printed only `propext`,
+`Classical.choice`, and `Quot.sound`.  A target build refreshed 8,000+ dependencies and entered the
+final large bridge elaboration but was stopped after producing no target error for several minutes;
+no completed target or full build is claimed.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is to replace the `commonShallowBad` complement in the localized
+survivor-round capstone by the stronger `liveLayeredBottomSupportTail` complement and thread its
+canonical zero-overlap witness through `collapseRound` and `localizeLiveLayered`.  Then verify that
+the resulting next circuit satisfies the same support-density hypothesis and audit the finite
+multi-round recurrence with this strengthened good event.  No P-versus-NP conclusion follows.
+
+### The support-tail complement now propagates through the complete localized round
+
+The one-round interface is now kernel checked.  The pointwise theorem
+`canonicalFamily_prefix_depth_eq_zero_of_live_support_le` exposes the specific canonical prefix
+leaf already used by the zero-overlap selector and proves that every normalized family member has
+residual depth zero there.  This removes the earlier mismatch between an existential
+`CommonShallowAt` trunk and the support-respecting canonical trunk.
+
+The capstone `supportTail_normalizedSurvivorRound_localized` now replaces the old
+`commonShallowBad` complement by
+
+```text
+sigma ∉ liveLayeredBottomSupportTail C (20*R) (10*R).
+```
+
+At every reached assignment it uses that same canonical leaf `tau`, chooses an extending
+restriction `kappa` with exactly `10R` survivors and zero overlap with the old bottom support,
+runs `collapseRound fuel tau C`, and transports the result to the exact live-coordinate cube with
+`localizeLiveLayered kappa`.  The resulting circuit `D` satisfies:
+
+```text
+eval D = eval C on the lifted kappa-subcube,
+BottomWidth 1 D,
+bottomSlotCount D <= 3 * bottomSlotCount C,
+|layeredBottomVariableSupport D| = 0,
+16 * |layeredBottomVariableSupport D| <= stars(kappa).
+```
+
+Thus support density does not merely remain factor sixteen after this round: the localized next
+bottom support is empty.  The complete support-tail bad set still contracts by `2^(10R)` under the
+old factor-sixteen root density premise, so no extra union bound is introduced.
+
+A focused bridge slice compiled the new canonical-prefix theorem and the complete support-tail
+count.  A focused iteration slice then compiled the localized capstone against that bridge.  All
+three printed only `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration of the full
+bridge advanced through its long preserved late section but was interrupted after roughly eleven
+minutes; no full target or full build is claimed.  `git diff --check` passed before this record was
+added.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is the finite recurrence itself.  Package this strengthened localized
+round as an iterable state transition whose next ambient dimension is `10R`, bottom width is one,
+slot count grows by at most three, and bottom support is empty.  Then solve the backward shell/fuel
+schedule across the remaining alternation depth and check that every next `20*R_next` shell fits
+inside the current `10*R` cube.  The retained broad-density and small-parameter counterexamples
+must remain visible during that audit.  No P-versus-NP conclusion follows.
+
+### The zero-support recurrence has an exact geometric shell schedule
+
+The first arithmetic and structural handoffs of the finite recurrence are now formal.  Live-
+coordinate localization preserves `AltO` and `AltA` exactly, including their nonempty internal gate
+lists.  Therefore an `AltO (k+3)` input becomes an `AltO (k+2)` localized collapse output, and
+`localizeLiveLayered_collapseRound_NonEmptyGates` supplies the `NonEmptyGates` premise required by
+the following localized round whenever an alternating layer remains.
+
+For a terminal scale `r` and `d` transitions, define
+
+```text
+R_i = 2^(d-i) * r.
+```
+
+The theorem `zeroSupportSurvivorScale_shell_exact` proves, for every `i < d`,
+
+```text
+20 * R_(i+1) = 10 * R_i.
+```
+
+Thus the next shell is not merely bounded by the current survivor cube: it is exactly that cube.
+Once the first localized round has emptied bottom support, the older slot-dependent
+`nextRoundActualMargin` recurrence is unnecessary for shell fit.  The initial shell scale is
+`20 * 2^d * r`, the terminal survivor parameter is `r`, and positivity propagates at every index.
+This resolves the shell-balance and nonempty-gate portions of the requested iterable state.
+
+Direct elaboration of the large iteration source checked all new declarations before reaching the
+preserved dependency-refresh failures beginning at the old support block (`gateVariableSupport_negDNF`
+and subsequent identifiers).  The printed axioms for the new structural capstones are only
+`propext`, `Classical.choice`, and `Quot.sound`; the exact arithmetic shell theorem uses only
+`propext` and `Quot.sound`.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  No completed target or full build is claimed.
+
+The precise next frontier is to strengthen `supportTail_normalizedSurvivorRound_localized` itself
+with the `AltO (k+3) -> AltO (k+2)` witness and package its existential branch data into a recursive
+localized-round state indexed by `zeroSupportSurvivorScale`.  The remaining audit must compose the
+per-shell bad-set contractions (and fuel choices) across those dependent existential subcubes;
+the exact shell arithmetic alone does not yet provide that global counting composition.  The
+retained broad-density and small-parameter counterexamples remain applicable to the first round.
+No P-versus-NP conclusion follows.
+
+### The support-tail round now carries the alternating-shape handoff
+
+The complete localized support-tail capstone now consumes the actual structural premise
+
+```text
+AltO (k+3) C
+```
+
+rather than only `NonEmptyGates C`.  For every selected canonical leaf and zero-overlap survivor
+restriction, `supportTail_normalizedSurvivorRound_localized` returns both
+
+```text
+AltO (k+2) D
+NonEmptyGates D
+```
+
+for `D = localizeLiveLayered kappa (collapseRound fuel tau C)`.  Thus the dependent circuit witness
+produced by one round has exactly the shape and nonemptiness required to invoke the next round; the
+nonemptiness premise used in the slot bound is now derived from the incoming alternating shape.
+
+The transport lemma was correspondingly generalized to take distinct collapse and localization
+restrictions.  This matters in the real survivor round: the collapse occurs at the canonical prefix
+leaf `tau`, while localization uses its exact-size extension `kappa`.  Conflating those restrictions
+would not type the actual composition.
+
+A focused source-slice harness compiled the generalized transport lemmas and the strengthened
+support-tail capstone.  The capstone printed only `propext`, `Classical.choice`, and `Quot.sound`.
+Direct elaboration of the large source also checked the generalized structural declarations before
+reaching the preserved dependency-refresh failures in the old support block.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to define the dependent recursive localized-round state over
+`zeroSupportSurvivorScale`, using the returned `AltO` witness at each successor step, and then lift
+the one-shell support-tail contraction through that recursion.  The unresolved quantitative issue
+is the global composition of bad-root counts across changing subcube coordinate types and fuel
+choices; the structural handoff and exact shell fit are now both available.  No P-versus-NP
+conclusion follows.
+
+### The recursive localized state now retains its semantic subcube edge
+
+The dependent state interface is now explicit.  `ZeroSupportLocalizedState R level M` stores an
+existential ambient dimension `n`, a circuit on `Fin n`, the exact identity `n = 20*R`, alternating
+shape `AltO (level+2)`, bottom width one, slot bound `M`, and empty bottom support.  Keeping `n` as a
+field avoids casting a circuit produced on the natural coordinate type `Fin (stars κ)`.
+
+More importantly, `ZeroSupportLocalizedStep` stores the actual restriction `κ`, its child circuit
+on `Fin (stars κ)`, and the semantic equation
+
+```text
+eval child z = eval parent (liftLiveAssignment κ z).
+```
+
+Thus the recursive object is an edge-labelled tree of dependent states, not merely a sequence of
+unrelated circuits.  `ZeroSupportLocalizedStep.toState` forgets only this semantic edge when another
+round is invoked.
+
+The first successor constructor, `ZeroSupportLocalizedState.exists_next`, applies the complete
+support-tail capstone at the all-free root of a zero-support state.  The good-event premise is then
+automatic, `zeroSupportSurvivorScale_shell_exact` identifies the child ambient dimension, the
+alternating level drops by one, bottom width remains one, support remains empty, and the slot bound
+changes from `M` to `3*M`.  A focused harness kernel-checked the dependent state/edge packaging,
+the automatic all-free support-tail exclusion, and the exact shell transport; the two capstones
+printed only `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration of the full
+iteration source again reached the preserved dependency-refresh failures beginning at the older
+support block.  A refreshed TwoSAT-bridge build and direct source elaboration were stopped after
+long silent final elaboration, so no completed target or full build is claimed.  `git diff --check`
+passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to define the finite dependent tree/chain generated by repeated
+`exists_next` choices and prove the transitive semantic lifting equation along its edges.  Only
+after that structural recursion is kernel checked should the one-shell contraction be lifted to a
+global bad-root count; that counting step must account for branch-dependent `κ` coordinate maps and
+fuel choices rather than multiplying unrelated shell ratios.  No P-versus-NP conclusion follows.
+
+### Two dependent localized edges now compose semantically
+
+The first nontrivial recursive path is now explicit.  `ZeroSupportLocalizedTwoStep` retains two
+successive edge-labelled steps, with the second restriction living on the first step's dependent
+live-coordinate type.  Its `middleAssignment` performs only the definitional transport exposed by
+`ZeroSupportLocalizedStep.toState`, and `liftAssignment` composes the two canonical live-assignment
+embeddings.
+
+The theorem `ZeroSupportLocalizedTwoStep.eval_eq` proves the transitive equation
+
+```text
+eval grandchild z = eval root (lift kappa0 (lift kappa1 z)).
+```
+
+Here the displayed inner lift includes the definitional `toState` coordinate transport; no
+identification of the two restrictions as restrictions on one ambient type is assumed.
+`ZeroSupportLocalizedState.exists_two_step` also packages two actual `exists_next` invocations at
+successive geometric scales, using separate fuel bounds and yielding slot envelope `((M*3)*3)`.
+Thus the semantic edge data is sufficient for genuine iteration at depth two, not merely for two
+unrelated one-round witnesses.
+
+During dependency verification, the preserved finite-profile proof
+`twoPairLocalCostLive_weighted_sum` exposed an invalid strict-bound route: `cost <= stars <= 4`
+does not imply `cost < 4`.  The proof now uses the already established sharp theorem
+`twoPairFlexibleQueryCost_le_three`.  This failed inference is recorded here because weakening the
+profile range to five would change the six-fiber convolution audit.
+
+A standalone focused harness, importing the real restriction/cardinality and layered-circuit
+definitions, kernel-checked the dependent two-edge package and semantic equation.  Its printed
+axioms were exactly `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration of the full
+iteration source reached the known stale-support dependency block; after correcting the new
+`toState` transport, it reported no further type error in the two-edge declarations.  A refreshed
+full TwoSAT-bridge elaboration passed the old failure and reached the late file, but the process was
+killed with exit 137 before completion, so no target or full build is claimed.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to replace the two-edge special case by a length-indexed dependent
+path whose endpoint assignment embedding folds all retained restrictions, and prove its semantic
+equation by induction.  Only then can the per-shell support-tail counts be lifted through the full
+branch-dependent tree; the counting proof must measure preimages under those composed embeddings
+and cannot simply multiply the one-shell contraction factors.  No P-versus-NP conclusion follows.
+
+### Arbitrary finite dependent semantic paths now compose
+
+The two-edge calculation has now been factored through a genuinely length-indexed object.
+`LocalizedSemanticPath C length` is inductive: every successor stores a restriction on the current
+ambient type, a circuit on that restriction's live-coordinate type, its semantic edge equation,
+and a tail whose ambient type is therefore branch dependent.  The zero-length constructor is the
+identity path.
+
+The recursive projections `endpointN` and `endpointCircuit` expose the final dependent circuit,
+while `liftAssignment` folds every retained `liftLiveAssignment` from the endpoint back to the
+root.  `LocalizedSemanticPath.eval_eq` proves by induction that
+
+```text
+eval endpointCircuit z = eval rootCircuit (foldedLift z)
+```
+
+for every finite length.  Both `ZeroSupportLocalizedStep` and the existing two-step package now
+embed into this uniform path type, so the special semantic calculation is no longer the only
+available composition interface.
+
+A standalone focused harness importing the real restriction/cardinality and layered-circuit
+definitions kernel-checked the arbitrary-length semantic theorem.  Its printed axioms were
+exactly `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration of the large iteration
+source reported no error in the new path declarations before continuing through the preserved
+stale-support dependency failures beginning at `gateVariableSupport_negDNF`; no full target or
+full build is claimed.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to index this semantic path additionally by the geometric shell,
+remaining alternation level, and `M * 3^length` slot envelope, then build it recursively from
+`ZeroSupportLocalizedState.exists_next`.  After that stateful generator is kernel checked, the
+first genuinely quantitative obligation is a preimage bound for the folded assignment embeddings;
+the one-shell contractions still cannot be multiplied without controlling those branch-dependent
+fibers.  No P-versus-NP conclusion follows.
+
+### The full geometric state path is now generated recursively
+
+`ZeroSupportGeometricPath d r level M i length S` now carries all three structural recurrence
+indices in its type.  Its root is on shell `zeroSupportSurvivorScale d r i`, has `length`
+alternation drops remaining, and uses slot envelope `M * 3^i`; every successor is on shell `i+1`
+with envelope `M * 3^(i+1)`.  `endpointState` exposes the exact endpoint state on shell
+`i+length`, at remaining level `level`, with envelope `M * 3^(i+length)`.
+
+`ZeroSupportLocalizedState.exists_geometric_path` proves that every finite prefix satisfying
+`i+length <= d` is inhabited by recursively invoking `exists_next`.  The fuel budget is allowed to
+vary by shell and is required only on the actually traversed interval.  The proof therefore makes
+no unrecorded uniform-fuel assumption.  `ZeroSupportGeometricPath.toSemanticPath` forgets only the
+schedule invariants, and `ZeroSupportGeometricPath.eval_eq` transfers the already proved folded
+semantic equation to every generated state path.
+
+Direct elaboration of the large iteration source reported no error in the new declarations.  It
+still fails earlier in the preserved stale-support dependency block beginning with the missing
+refreshed `gateVariableSupport_negDNF`, so the source elaborator inserts `sorryAx` into later
+dependency reports and no target or full build is claimed.  A separate structural harness, with
+the one-step constructor supplied as an ordinary theorem parameter rather than an axiom,
+kernel-checked the exact geometric recursion, endpoint indices, and semantic fold.  Its three
+printed capstones depend exactly on `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is now quantitative rather than structural: prove that
+`liftLiveAssignment` is injective on each retained live cube, lift injectivity through
+`LocalizedSemanticPath.liftAssignment`, and turn that into a finite-cardinality/preimage theorem
+for the branch-dependent folded embeddings.  That controls assignment fibers along one fixed
+generated path; a subsequent theorem must still relate the different path branches before the
+per-shell support-tail contractions may be multiplied.  No P-versus-NP conclusion follows.
+
+### Folded live-assignment fibers are exactly controlled on every fixed path
+
+The fixed-branch preimage problem is now closed.  `liftLiveAssignment_injective` reads every local
+bit back at `liveCoordEquiv tau i`, so extending a live-cube assignment into its ambient cube loses
+no information.  `LocalizedSemanticPath.liftAssignment_injective` composes this fact through the
+entire dependent path, even though each successive restriction has a branch-dependent coordinate
+type.
+
+The finite consequence is packaged as `liftAssignment_fiber_card_le_one`: for every root Boolean
+assignment, the set of endpoint assignments mapped to it by a fixed folded path has cardinality at
+most one.  Thus no multiplicity factor is required inside one retained branch.  This is stronger
+than a generic finite preimage bound, but it does not compare images belonging to different paths.
+
+A focused harness importing the real restriction/cardinality and layered-circuit definitions
+kernel-checked the one-edge injection, dependent induction, and finite fiber theorem.  All three
+printed capstones depend exactly on `propext`, `Classical.choice`, and `Quot.sound`.  Direct
+elaboration of the full iteration source also reported the same clean axiom sets for the four new
+declarations and no error in their source ranges; as before, the preserved stale-support block
+beginning at `gateVariableSupport_negDNF` prevents clean module elaboration, so no target or full
+build is claimed.  `git diff --check` passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is cross-branch compatibility: define the finite family of generated
+geometric paths at a shell and bound how many distinct path images can contain the same root
+assignment (or prove the images disjoint under an adequate retained label).  Only that theorem can
+justify composing the one-shell contractions across the branch-dependent tree; fixed-path
+injectivity alone does not permit multiplying them.  No P-versus-NP conclusion follows.
+
+### Cross-branch overlap is exactly restriction compatibility, not disjointness
+
+The generic disjoint-image route is now ruled out at the first localized edge.
+`exists_liftLiveAssignment_eq_iff_agrees` identifies the image of `liftLiveAssignment tau` exactly
+with the total assignments agreeing with `tau`.  Defining `RestrictionsCompatible tau upsilon` to
+mean that the two restrictions never fix one coordinate to opposite values,
+`restrictionsCompatible_iff_exists_agrees` proves that compatibility is equivalent to a common
+total extension.  Combining the two gives the exact criterion
+
+```text
+range(liftLiveAssignment tau) intersects range(liftLiveAssignment upsilon)
+  iff RestrictionsCompatible tau upsilon.
+```
+
+The preserved theorem `exists_distinct_restrictions_with_overlapping_lift_ranges` witnesses the
+failure of generic disjointness already on `Fin 2`: one branch fixes coordinate zero to false and
+the other fixes coordinate one to false.  They are distinct but retain a common all-false root
+assignment.  Thus restriction identity or live-set identity cannot serve as an adequate disjoint
+branch label.
+
+Direct source elaboration reported no errors in these new declarations before reaching the
+preserved stale-support dependency block beginning at `gateVariableSupport_negDNF`.  A clean full
+target or full build is therefore not claimed.  Printed dependencies for the new compatibility
+theorem are exactly `propext`; the image characterizations and explicit counterexample use exactly
+`propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is to fold the dependent restrictions along
+`LocalizedSemanticPath` into one ambient root restriction and prove that the folded assignment
+image is exactly its extension cube (up to the canonical live-coordinate equivalence).  The
+cross-branch multiplicity problem then becomes a finite compatibility-degree bound for those
+composed restrictions, or a stronger retained label that separates compatible branches.  The
+one-edge counterexample shows that plain path/restriction distinctness is insufficient.  No
+P-versus-NP conclusion follows.
+
+### Dependent path restrictions now fold to one exact ambient cube
+
+The branch-dependent coordinate transports have now been eliminated from the image statement.
+`agreeRestriction_liftLiveRestriction_iff` proves that agreement with a lifted local restriction
+is exactly ambient agreement together with agreement on the canonical live coordinates.
+`LocalizedSemanticPath.rootRestriction` recursively lifts every tail restriction back to the root
+cube, with exact live dimension `stars path.rootRestriction = path.endpointN`.
+
+`LocalizedSemanticPath.exists_liftAssignment_eq_iff_agrees` proves that the entire folded
+assignment image is precisely the total assignments agreeing with this one root restriction.
+Consequently `LocalizedSemanticPath.liftAssignment_ranges_overlap_iff` gives the arbitrary-path
+criterion: two dependent path images overlap exactly when their composed root restrictions are
+compatible.  This closes the canonical-coordinate bookkeeping gap, but it also confirms that path
+length and path identity provide no separation beyond compatibility.
+
+Direct source elaboration reported no errors in the new declarations.  It still encounters the
+preserved stale-support dependency failures beginning at `gateVariableSupport_negDNF`, so no clean
+target or full build is claimed.  Printed dependencies for all four new capstones are exactly
+`propext`, `Classical.choice`, and `Quot.sound`; `git diff --check` passed.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is now the actual finite compatibility degree: define the finite family
+of composed `rootRestriction`s generated by the geometric path tree and bound, for each total root
+assignment, how many of those restrictions it extends.  If that degree is not small enough to
+compose the shell contractions, the retained branch label must be strengthened with data that
+separates otherwise compatible composed restrictions.  No P-versus-NP conclusion follows.
+
+### The ambient compatibility degree is exactly binomial
+
+The compatibility-degree question now has an exact schedule-independent ceiling.
+`restrictionWithFreeSet x S` is the unique restriction whose live set is `S` and whose fixed
+coordinates agree with the total assignment `x`.  The equivalence
+`agreeingRestrictionEquivFreeSet` therefore identifies all `K`-live restrictions containing `x`
+with the `K`-element subsets of the ambient coordinate set.
+
+Consequently `card_agreeing_restrictions_of_stars_eq` proves the exact count
+
+```text
+|{rho : Restriction n // stars rho = K and rho agrees with x}| = choose(n,K).
+```
+
+The companion theorem `card_distinct_agreeing_restriction_family_le_choose` applies this directly
+to every finite injectively indexed family of distinct composed restrictions.  Thus duplicate path
+descriptions may first be quotiented by `rootRestriction`, after which the universal cross-branch
+multiplicity charge is at most `choose(n,K)`.  The bound is exact for the ambient family, so no
+smaller estimate follows from endpoint live dimension and compatibility alone.  In the central
+half-shell regime this binomial factor is exponentially large; whether the actually generated
+geometric path tree occupies a much sparser subfamily is therefore decisive.
+
+Direct source elaboration reported no errors in the new declarations before reaching the preserved
+stale-support dependency failure at `gateVariableSupport_negDNF`.  A focused harness importing the
+compiled restriction/cardinality kernel checked the equivalence and both counting theorems.  The
+printed dependencies are exactly `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is to define the finite image of generated geometric paths under
+`rootRestriction` and test its per-assignment degree against the product of shell contractions.
+The exact ambient theorem shows that a proof using only common endpoint dimension can pay as much
+as `choose(n,K)` and is therefore too coarse in the half-shell regime; the next useful invariant
+must exploit the canonical tree choices or retain a separating branch label.  No P-versus-NP
+conclusion follows.
+
+### The finite admissible path image is explicit; constructor provenance is the missing invariant
+
+`admissibleGeometricRootRestrictions S` is now the finite set of composed root restrictions of
+all inhabitants of `ZeroSupportGeometricPath ... S`.  The auxiliary endpoint theorem
+`ZeroSupportGeometricPath.semantic_endpointN` proves that every such path lands on the scheduled
+shell, and `stars_eq_of_mem_admissibleGeometricRootRestrictions` transfers that exact dimension to
+every member of the image.  Filtering this image by one total root assignment gives the proved
+bound
+
+```text
+card(admissible roots agreeing with x)
+  <= choose(S.n, 20 * zeroSupportSurvivorScale d r (i + length)).
+```
+
+This closes the literal “finite image” construction, but exposes an important interface boundary.
+`ZeroSupportGeometricPath` is a type of every structurally admissible edge sequence.  In contrast,
+`exists_geometric_path` only returns `Nonempty` after choosing the all-false branch at each round;
+it does not retain a predicate or label saying that a particular path was produced by those
+canonical constructor calls.  Therefore the newly defined finite set is honestly named the
+*admissible* image, not the generated-constructor image.  Its compatibility theorem necessarily
+recovers only the already sharp ambient binomial ceiling.  Any claim that the current interface
+defines a sparser generated family would conflate existence with provenance.
+
+A focused harness over the real restriction/cardinality kernel checked the finite existential
+image and its agreement-degree theorem; the printed capstone axioms were exactly `propext`,
+`Classical.choice`, and `Quot.sound`.  Direct source elaboration, with an increased heartbeat
+budget, accepted the new indexed endpoint reduction before the preserved stale TwoSAT support
+exports contaminated the dependent state with universe metavariables.  Those pre-existing failures
+still begin at the missing refreshed `gateVariableSupport_negDNF` and
+`layeredBottomVariableSupport`.  A dependency-refresh build replayed more than 8,000 jobs and then
+remained silent in the known expensive final elaboration, so it was stopped and no target or full
+build is claimed.  `git diff --check` passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is to replace the existential-only successor interface by a finite,
+provenance-carrying branch generator: define the actual finite choices made by one canonical round,
+prove completeness for the desired root assignments, and retain its choice label through
+`ZeroSupportGeometricPath`.  Only then is there a meaningful generated-image fiber to compare with
+the product of shell contractions.  If that provenance-aware fiber is still binomial in the
+half-shell regime, the branch label must be strengthened rather than discarded.  No P-versus-NP
+conclusion follows.
+
+### The survivor selector now follows its branch assignment
+
+The first provenance loss occurred before `Nonempty`.  The prior exact-size helper used
+`keepFreeExtension`, which fixes every discarded live coordinate to a selector-internal default;
+there was therefore no theorem that its survivor restriction agreed with the assignment used to
+choose the canonical prefix leaf.  A finite branch generator built directly on that helper would
+not have had the required root-assignment completeness property.
+
+`assignmentKeepFreeExtension keep x` now fixes every discarded coordinate to its value in `x`.
+Its free set is exactly `keep`, it extends the base whenever `keep` is base-live and `x` extends the
+base, and it is itself extended by `x`.  The proved selector
+`exists_assignmentExtending_stars_eq_inter_card_le` retains the old exact-size and support-overlap
+bounds while adding this assignment-extension certificate.  The zero-overlap survivor theorem and
+the localized support-tail round thread the certificate through, and
+`ZeroSupportLocalizedState.exists_next_agreeing` exposes it at the state transition; the original
+`exists_next : Nonempty ...` remains as a compatibility wrapper.
+
+A focused harness importing the compiled restriction/common-tree kernel checked the complete new
+selector and printed exactly `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration of
+the iteration source accepted the standalone selector declarations before the preserved stale
+`gateVariableSupport_negDNF`/`layeredBottomVariableSupport` exports contaminated later declarations.
+A dependency refresh replayed more than 8,000 jobs and again stalled silently in expensive final
+elaboration, so it was stopped; no target or full build is claimed.  `git diff --check` passed.  No
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is now a finite one-round generator indexed by total assignments, using
+`exists_next_agreeing` (or a fixed classical choice of it), together with a completeness theorem
+that every root assignment extends the restriction of its selected successor.  That finite label
+must then be threaded dependently through geometric paths and its *distinct root-restriction*
+fibers measured.  Assignment agreement repairs provenance correctness but does not itself improve
+the potentially binomial cross-branch multiplicity.  No P-versus-NP conclusion follows.
+
+### The one-round branch generator is finite and root-assignment complete
+
+`ZeroSupportLocalizedState.selectedNextStep` now fixes one successor for every total Boolean root
+assignment by applying classical choice to `exists_next_agreeing`.  The assignment itself is the
+finite provenance label.  `generatedNextLabels` retains the entire Boolean assignment cube rather
+than prematurely quotienting labels that may select the same restriction.
+
+The capstone `generatedNextLabels_complete` proves that every root assignment both belongs to the
+finite label generator and extends its selected successor restriction.  The companion exact count
+
+```text
+card(generatedNextLabels) = 2^S.n
+```
+
+is only the honest assignment-domain size; no sparsity is inferred from it.  This closes the
+one-round existential-to-generator interface without pretending that different assignments yield
+different restrictions or that compatible branch cubes are disjoint.  An attempted immediate
+`Finset.image` of selected restrictions was rejected in direct elaboration because the preserved
+stale support exports currently leave the dependent step projection universe-metavariable
+contaminated; retaining labels is also the correct provenance interface, so that failed quotient
+route is not hidden.
+
+A focused kernel harness for the generic choice selector, completeness proof, and exact finite
+label count passed; the printed capstone axioms were exactly `propext`, `Classical.choice`, and
+`Quot.sound` (the selector agreement theorem itself used only `Classical.choice`).  Direct source
+elaboration reports no new error in the finite-label declarations, but still fails earlier at the
+preserved stale `gateVariableSupport_negDNF`/`layeredBottomVariableSupport` dependency boundary;
+downstream declarations therefore inherit `sorryAx` from elaborator recovery, and no target or
+full build is claimed.  `git diff --check` passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is to refresh those stale dependency exports, then define an
+assignment-threaded dependent geometric path: at each selected successor, restrict the same root
+assignment to the canonical live coordinates, use that local assignment as the next label, and
+prove that the resulting composed root restriction is extended by the original root assignment.
+Its finite distinct-root image can then be measured against the shell contraction; the present
+one-round count alone does not improve the binomial compatibility charge.  No P-versus-NP
+conclusion follows.
+
+### The stale-export boundary is exact; the monolithic refresh is now the blocker
+
+A direct compiled-interface probe of
+`ComputationalDepthMultiSwitchingTwoSATBridge` located the stale boundary exactly.  The current
+`.olean` exports `gateVariableSupport` and
+`canonicalDT_queriedVars_subset_gateVariableSupport`, but it does not export
+`gateVariableSupport_negDNF`, `layeredBottomVariableSupport`, or
+`layeredBottomVariableSupport_collapseRound_subset`.  Thus the first downstream unknown identifier
+is not an accidental namespace or import error: the compiled artifact ends before the refreshed
+support layer used by quantitative iteration.
+
+Direct source elaboration passed the refreshed support declarations and continued beyond line
+7,600 with warnings only.  An actual targeted `lake build` replayed all 8,485 prerequisites and
+entered the final bridge job, but that last monolithic elaboration produced no further output for
+twelve minutes.  It was stopped without writing a replacement artifact, so no target or full build
+is claimed.  A short-lived export-probe file was removed after use; no proof declarations were
+added by this audit.
+
+This rules out a small import shim as an honest repair: quantitative iteration consumes many
+declarations later than the stale boundary, so restating only the first missing theorem would
+merely move the unknown identifier downstream.  The precise next frontier is to split the bridge
+at a dependency-safe boundary before the expensive exhaustive padded-two-pair proofs, compile the
+support/survivor-round prefix as its own module, and import that prefix from quantitative
+iteration.  Only after that artifact is kernel-checked should the assignment-threaded geometric
+path be added.  The failed long-refresh route is retained here rather than reported as a build
+success.  No P-versus-NP conclusion follows.
+
+### The support/survivor prefix is now an independent kernel-checked module
+
+`ComputationalDepthMultiSwitchingSupportSurvivor.lean` now contains the contiguous support-sensitive
+layer from `clauseVariableSupport` through
+`actualMargin_normalizedSurvivorRound_exactSubcube`.  The monolithic 2-SAT bridge imports this
+module for its later developments, while quantitative iteration imports the prefix directly and no
+longer depends on the stale `ComputationalDepthMultiSwitchingTwoSATBridge.olean`.
+
+The new target built successfully: 8,349 jobs, with its final module completing in 6.6 seconds.
+Its printed survivor-round capstones depend exactly on `propext`, `Classical.choice`, and
+`Quot.sound`.  This independently kernel-checks the refreshed support definitions, collapse-round
+support monotonicity, hypergeometric tail estimates, and normalized survivor interfaces that were
+previously trapped beyond the stale export boundary.
+
+Building quantitative iteration against the new artifact now reaches that file's own source and
+exposes a genuine downstream defect rather than an unknown identifier.  The unused implicit `s`
+in `actualMargin_normalizedSurvivorRound_localized` was removed, closing one inference failure.
+The remaining build error is the dependent eliminator proof
+`ZeroSupportGeometricPath.semantic_endpointN_eq_endpointState_n`: its current induction expands to
+an unsolved dependent `casesOn` goal.  Direct `cases`/recursive simplification and induction on the
+length index were also tested; one times out during weak-head normalization and the other does not
+make the two tactic-defined projections definitionally equal.  Those failed routes are preserved
+here; no quantitative-iteration or full-build success is claimed.
+
+The precise next frontier is to give `toSemanticPath` and `endpointState` explicit constructor
+equation lemmas (or refactor them to equation-style recursive definitions), then prove the endpoint
+dimension theorem by rewriting only those equations.  Once the quantitative target kernel-checks
+without `sorryAx`, proceed to the assignment-threaded geometric path and measure its distinct
+composed-root fibers.  No P-versus-NP conclusion follows.
+
+### The quantitative iteration artifact is refreshed and the endpoint schedule is kernel-checked
+
+`ZeroSupportGeometricPath.toSemanticPath` and `endpointState` are now equation-style recursive
+definitions.  More importantly, `toSemanticPath_endpointN_cons` isolates the only endpoint
+computation needed by the dependent induction: one geometric successor has the same semantic
+endpoint dimension as its tail.  The new theorem `toSemanticPath_endpointN_scheduled` then proves
+directly, from the ambient-shell certificate stored in each state, that
+
+```text
+path.toSemanticPath.endpointN
+  = 20 * zeroSupportSurvivorScale d r (i + length).
+```
+
+`semantic_endpointN_eq_endpointState_n` is now a short transitivity argument between that schedule
+equation and `path.endpointState.ambient_eq`.  This avoids normalizing the proof transports inside
+the dependent endpoint state.  A broader `simp only` induction over both recursive definitions was
+also tested after the equation-style refactor, but still timed out in weak-head normalization; that
+failed route is retained here because it confirms that the useful interface is the scalar semantic
+endpoint equation, not definitional equality of transported state terms.
+
+The quantitative-iteration target built successfully: 8,451 jobs, with the final module completing
+in 34 seconds.  Printed dependencies for the one-step equation, scheduled endpoint theorem,
+semantic/state endpoint equality, semantic endpoint capstone, admissible-image shell theorem, and
+agreement-degree theorem contain only `propext`, `Classical.choice`, and `Quot.sound`; the previous
+`sorryAx` contamination is gone.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide`
+was added.
+
+The precise next frontier is the assignment-threaded dependent geometric path: at each selected
+successor, derive the local live-cube assignment from the same original root assignment, prove the
+composed `rootRestriction` remains extended by that root assignment, and define the finite image of
+these provenance-carrying generated paths.  Its distinct-root fiber must then be compared with the
+product of shell contractions; endpoint schedule bookkeeping and stale support exports are no
+longer blockers.  No P-versus-NP conclusion follows.
+
+### Assignment provenance now composes through every geometric round
+
+`liftLiveAssignment_restrict_eq_of_agrees` records the canonical one-edge retraction: restricting
+an agreeing ambient assignment to the current live coordinates and lifting it again returns the
+same assignment.  The new recursive theorem
+`ZeroSupportLocalizedState.exists_geometric_path_lifting_assignment` uses that retraction at every
+round.  It selects the first successor from the root assignment, passes the root assignment
+restricted to that successor's live coordinates into the recursive call, and returns an endpoint
+assignment whose full dependent lift is exactly the original root assignment.
+
+`selectedGeometricPath` fixes this witness as an assignment-indexed path, and
+`selectedGeometricPath_rootRestriction_agrees` proves the requested end-to-end provenance
+invariant: the original assignment extends the path's composed root restriction.  The only
+arithmetic transport in the recursion is the slot identity
+`(M * 3^i) * 3 = M * 3^(i+1)`.  Casting the whole successor structure across that equality was
+tested first, but projection equality became a stuck dependent-elimination goal.  The successful
+route rebuilds the successor record with the same restriction and circuit and transports only its
+`slots_le` proof; the failed broad cast is retained here because it is a useful warning for later
+dependent image definitions.
+
+The quantitative-iteration target kernel-checks the assignment-threaded path construction.  The
+precise next frontier is to take the finite image of
+`x ↦ (selectedGeometricPath ... x).toSemanticPath.rootRestriction`, prove that every image
+element lies on the scheduled survivor shell, and measure the fibers of this *generated* map.
+The existing admissible-image binomial bound counts all structurally possible paths and therefore
+does not yet show whether assignment provenance absorbs the product of half-shell contractions.
+No P-versus-NP conclusion follows.
+
+### The generated composed-root image has endpoint-sized fibers
+
+The assignment-selected path map is now packaged as the finite image
+`generatedGeometricRootRestrictions`.  Every member has exactly the scheduled final live
+dimension
+
+```text
+20 * zeroSupportSurvivorScale d r (i + length).
+```
+
+The complementary assignment-side count is also exact: a restriction `rho` is extended by
+exactly `2^(stars rho)` total assignments.  Since assignment provenance proves that every input in
+one selected-map fiber extends that fiber's root restriction,
+`card_generatedGeometricRootFiber_le` bounds each generated fiber by the final endpoint cube.
+Fiberwise counting then gives the capstone
+
+```text
+2^S.n <= 2^(20 * zeroSupportSurvivorScale d r (i + length))
+           * card(generatedGeometricRootRestrictions ...).
+```
+
+This resolves the first distinct-root audit decisively: assignment provenance does not collapse
+the scheduled root image below the ordinary endpoint-cube partition scale.  In fact, it forces at
+least `2^(S.n - endpointN)` distinct composed roots whenever that subtraction is interpreted via
+the displayed product inequality.  Thus provenance supplies correctness and an exact fiber
+ceiling, but it cannot by itself absorb an additional product of half-shell switching charges.
+
+The quantitative-iteration target built successfully: 8,451 jobs, with the final module completing
+in 35 seconds.  The full `lake build` also passed: 8,068 jobs.  Printed dependencies for the exact
+assignment count, generated shell theorem, fiber containment, fiber ceiling, and product lower
+bound are exactly `propext`, `Classical.choice`, and `Quot.sound`.  An initial proof wrote a
+`Finset.filter` with a propositional predicate directly in theorem types; Lean correctly rejected
+the missing `DecidablePred` before entering the local `classical` proof.  The preserved repair is
+the explicit noncomputable finite set `assignmentsAgreeingRestriction`, which keeps classical
+decidability inside the definition.  `git diff --check` passed.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was added.
+
+The precise next frontier is no longer basic root-fiber counting.  It is to define a round-by-round
+charged label on the generated roots and prove whether the verified half-shell bad-set savings can
+be charged injectively (or with controlled multiplicity) across *distinct* composed roots.  The
+new lower bound shows that any successful argument must exploit circuit/bad-event structure, not
+merely quotient assignment-selected paths by their final root restriction.  No P-versus-NP
+conclusion follows.
+
+### The zero-support geometric iterator has no bad event left to charge
+
+The proposed next charge was audited against the actual recursive state rather than added as a
+formal label without a source.  Two new kernel-checked theorems make the result exact.  For every
+`ZeroSupportLocalizedState`, every shell size `K`, and every trunk depth, the circuit-owned set
+
+```text
+liveLayeredBottomSupportTail S.circuit K trunkDepth
+```
+
+is empty.  If `K <= fuel`, the normalized-family switching event
+
+```text
+commonShallowBad (normalizedLayeredBottomFamily S.circuit)
+  fuel K trunkDepth residualDepth
+```
+
+is empty as well.  The first statement follows from the state's invariant that the bottom-variable
+support has cardinality zero; the second composes the existing common-shallow-bad-to-support-tail
+reduction with that exact emptiness theorem.
+
+This changes the interpretation of the generated-root fiber lower bound.  The geometric iterator
+begins only *after* the support-tail selection has eliminated bottom support, and each later round
+runs from an all-free local root whose bad event is vacuous.  Therefore there is no nontrivial
+round-by-round support-tail or normalized common-shallow charge available on the generated roots.
+The factor-two shell handoff inside this iterator is survivor partitioning, not another bad-set
+probability saving.  Attaching a nominal bad-event label here would erase this distinction and
+cannot provide the missing contraction.
+
+The precise next frontier is to move the charging boundary earlier: retain provenance for the
+initial nonzero-support shell selection and map its genuinely bad/good bucket structure into the
+zero-support successor roots with controlled multiplicity.  Equivalently, strengthen the recursive
+state to carry the pre-collapse circuit/root event that produced it.  Only that bridge can test
+whether the verified switching saving survives quotienting by distinct composed roots; the current
+zero-support state has intentionally forgotten the only nonempty event that could supply it.  The
+failed route of charging bad events internal to the existing geometric iterator is preserved by
+the two emptiness theorems.  No P-versus-NP conclusion follows.
+
+### The initial good-event boundary now retains its zero-support successor
+
+`InitialSupportTailSuccessor` packages the previously separated sides of the charging boundary.
+It retains the initial `40R` root, proof that the root is outside the genuine support-tail bad
+event, the assignment selecting its canonical prefix leaf, the resulting `20R` restriction, the
+localized collapsed circuit, and all zero-support state invariants.  Crucially, `root_extends`
+composes the root-to-prefix and prefix-to-survivor extension proofs, so the child is now connected
+directly to the event-bearing root rather than only to an unnamed intermediate leaf.
+
+`exists_initialSupportTailSuccessor` constructs this package for every good root and every
+assignment extending it.  `InitialSupportTailSuccessor.toState` then forgets exactly the initial
+event provenance and yields the state consumed by the existing geometric iterator.  This proves
+that strengthening the recursive state is not necessary merely to cross the boundary: the old
+iterator can be entered through an explicit provenance wrapper without changing its internals.
+
+The quantitative-iteration target kernel-checks this bridge.  The precise next frontier is now a
+finite image/fiber count for the map from `(good initial root, extending assignment)` to the
+successor restriction (and then to its composed geometric endpoint).  The relevant multiplicity
+must use `root_extends` and the exact `40R -> 20R` shell sizes; counting assignments alone will
+repeat the already-proved endpoint-cube partition and cannot recover the switching saving.  The
+zero-support internal charging route remains ruled out by the preceding emptiness theorems.  No
+P-versus-NP conclusion follows.
+
+### The exact initial `40R -> 20R` selected-successor fiber is bounded
+
+`restrictionCoarseningShellFiber kappa` isolates the earlier shell roots that can extend to one
+fixed successor.  The live-set difference
+
+```text
+freeVars sigma \ freeVars kappa
+```
+
+injectively labels this fiber: once the predecessor live set is known, every other Boolean value
+is forced by `kappa`.  Consequently a `K`-star coarsening fiber has size at most
+
+```text
+choose (n - stars kappa) (K - stars kappa).
+```
+
+At the actual initial boundary this becomes `choose (n-20R,20R)`.  The proof uses the exact
+extension direction; it introduces no spurious Boolean factor on root restrictions.
+
+The genuine finite domain is now also formalized as `InitialGoodRootAssignmentPair`: a root on the
+`40R` shell, outside the nonempty support-tail bad event, together with an extending total
+assignment.  `initialSupportTailSuccessorImage` maps these pairs to the selected successor supplied
+by `exists_initialSupportTailSuccessor`.  Each map fiber injects into the product of the root
+coarsening fiber and the assignments extending the fixed successor.  Since a `20R` successor has
+exactly `2^(20R)` extending assignments, the verified numerical ceiling is
+
+```text
+fiber(kappa) <= choose (n-20R,20R) * 2^(20R).
+```
+
+This cleanly separates the combinatorial shell multiplicity from the endpoint assignment cube.
+It also confirms that provenance alone retains an unavoidable `2^(20R)` factor; any switching
+saving must enter through the number of good initial roots, not through further quotienting of
+assignments over one successor.
+
+The quantitative-iteration target built successfully (8,451 jobs), and the full `lake build`
+passed (8,068 jobs).  Printed dependencies for the coarsening injection, generic and specialized
+root-fiber bounds, product-fiber bound, and numerical selected-successor ceiling are exactly
+`propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.  The first product-membership proof attempted to rewrite through a
+let-bound finite product; Lean rejected that non-definitional rewrite.  The retained proof applies
+the product-membership equivalence explicitly, avoiding any opacity assumption.
+
+The precise next frontier is to compute the cardinality of `InitialGoodRootAssignmentPair` as the
+number of good `40R` roots times `2^(40R)`, apply the new fiber ceiling to obtain an image lower
+bound, and compare that inequality with the already verified support-tail bad-set contraction.
+Only then should the selected successor be composed with the zero-support geometric endpoint;
+that composition may add endpoint collisions but cannot improve the initial successor bound by
+assignment counting alone.  No P-versus-NP conclusion follows.
+
+### The initial good-domain count and successor-image lower bound now compose
+
+The finite charging boundary is now counted exactly.  `initialGoodRoots` names the good roots on
+the `40R` shell, and `initialGoodRootAssignmentPairs` names the underlying root/assignment pairs.
+Fiberwise counting over the root projection proves
+
+```text
+card(initialGoodRootAssignmentPairs)
+  = card(initialGoodRoots) * 2^(40R).
+```
+
+The same equality is proved for the finite subtype domain consumed by the selected-successor map.
+Combining it with the previously verified uniform fiber ceiling gives
+
+```text
+card(good roots) * 2^(40R)
+  <= (choose(n-20R,20R) * 2^(20R)) * card(selected 20R successors).
+```
+
+The support-tail contraction is now compared to this count without an informal probability
+translation.  Good and bad roots are proved to partition the complete `40R` shell exactly.  For
+`R > 0`, the existing `2^(20R)`-scaled bad-tail estimate implies that at least half the shell is
+good.  Consequently the combined kernel-checked inequality is
+
+```text
+card(40R shell) * 2^(40R)
+  <= 2 * (choose(n-20R,20R) * 2^(20R))
+       * card(selected 20R successors).
+```
+
+This is the first direct distinct-successor lower bound in which the genuine initial switching
+event, its good population, the exact assignment cube, and the exact root-coarsening collision
+cap all occur in one statement.  It also sharpens the interpretation of the switching estimate:
+at this boundary its exponential bad-set saving reduces to a factor-two loss after restricting to
+good roots; the remaining quantitative loss is the explicit coarsening binomial and successor
+assignment cube, not an untracked bad-event charge.
+
+The target module compiled successfully.  The new partition, half-shell, exact-domain, image, and
+combined capstones depend only on `propext`, `Classical.choice`, and `Quot.sound`.
+`git diff --check` passed, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+added.
+
+The precise next frontier is to compose each selected `20R` successor with the existing
+zero-support geometric endpoint and prove a controlled fiber bound for that second map.  The
+initial inequality shows exactly how much additional endpoint collision can be tolerated; a
+successful iteration argument must now bound those collisions using geometric-state structure,
+since assignment provenance has already been fully spent at the initial boundary.  No P-versus-NP
+conclusion follows.
+
+### The initial event now composes through every zero-support geometric round
+
+The selected initial successor and the assignment-generated geometric iterator are now joined by
+`selectedInitialGeometricEndpointRestriction`.  Starting with scale
+
+```text
+R₀ = zeroSupportSurvivorScale d r 0 = 2^d r,
+```
+
+it lifts the geometric path's composed local restriction back through the selected initial
+`20R₀` successor to one restriction on the original ambient `Fin n` cube.  Three provenance
+facts kernel-check across this dependent-coordinate boundary:
+
+- the final ambient restriction has exactly `20r` live coordinates;
+- the original total assignment extends the final restriction;
+- the original `40R₀` shell root coarsens the final restriction.
+
+These facts give a direct full-path fiber bound.  For a fixed final endpoint `rho` with
+`stars rho = 20r`, every preimage injects into the product of its original root and assignment,
+and that product lies in
+
+```text
+restrictionCoarseningShellFiber (K = 40R₀) rho
+  × assignmentsAgreeingRestriction rho.
+```
+
+Consequently
+
+```text
+fiber(rho)
+  ≤ choose(n - 20r, 40R₀ - 20r) * 2^(20r).
+```
+
+This is sharper and structurally cleaner than multiplying the initial successor cap by one cap
+per geometric round: all intermediate live-coordinate collisions disappear from the estimate.
+Combining the exact good-domain count with this ceiling proves
+
+```text
+#goodRoots * 2^(40R₀)
+  ≤ [choose(n - 20r, 40R₀ - 20r) * 2^(20r)] * #finalEndpoints.
+```
+
+For `r > 0`, the genuine support-tail contraction again replaces `#goodRoots` by half of the
+complete initial shell, yielding the capstone
+
+```text
+#shell(40R₀) * 2^(40R₀)
+  ≤ 2 * [choose(n - 20r, 40R₀ - 20r) * 2^(20r)] * #finalEndpoints.
+```
+
+The quantitative-iteration target passed.  Printed dependencies for the endpoint shell,
+assignment and root provenance, direct product and numerical fiber bounds, and both image
+inequalities are exactly `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was added, and `git diff --check` passed.
+
+The precise next frontier is arithmetic and no longer dependent-type composition: normalize this
+endpoint lower bound against the exact cardinalities of the `40R₀` initial shell and the `20r`
+terminal shell.  This will determine whether the remaining coarsening binomial leaves a large
+enough terminal population for the intended depth-reduction cashout, or whether a stronger
+cross-root structural restriction is required.  No P-versus-NP conclusion follows.
+
+### Exact shell normalization exposes the remaining density loss
+
+The full-path endpoint inequality is now normalized against both exact restriction shells.  A
+generic cancellation theorem starts from a `K -> L` image estimate of the verified form
+
+```text
+#Shell(K) * 2^K <= 2 * choose(n-L,K-L) * 2^L * #Image
+```
+
+under `L <= K <= n`.  Expanding `#Shell(t) = choose(n,t) * 2^(n-t)` and applying
+
+```text
+choose(n,L) * choose(n-L,K-L) = choose(n,K) * choose(K,L)
+```
+
+cancels every ambient-`n` binomial and every Boolean assignment factor, leaving the exact
+normalized conclusion
+
+```text
+#Shell(L) <= 2 * choose(K,L) * #Image.
+```
+
+Specializing to the composed geometric schedule gives
+
+```text
+#Shell(20r)
+  <= 2 * choose(40 * 2^d * r, 20r) * #finalEndpoints.
+```
+
+Thus the current construction guarantees terminal-shell density only
+`1 / (2 * choose(40 * 2^d * r,20r))`.  The coarsening binomial does not cancel against the shell
+ratio; it is exactly the surviving loss.  In particular this is not a constant-density terminal
+population as either `r` or `d` grows, so the present count alone is insufficient for any cashout
+that requires a uniformly positive fraction of the terminal shell.
+
+The quantitative-iteration target compiled successfully, and the full `lake build` passed (8,068
+jobs).  Both new capstones print exactly `propext`, `Classical.choice`, and `Quot.sound` as
+dependencies.  `git diff --check` passed, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.
+
+The precise next frontier is now structural rather than arithmetic: determine the weakest terminal
+density actually consumed by the depth-reduction cashout.  If it requires constant or merely
+singly-exponential-in-`r` density independent of `d`, the direct root-coarsening fiber is too coarse
+and must be refined using cross-root provenance (for example, a bounded family of admissible freed
+coordinate sets).  If the cashout tolerates the displayed reciprocal binomial, compose that exact
+threshold directly.  No P-versus-NP conclusion follows.
+
+### The parity endpoint needs existence, not terminal-shell density
+
+The first downstream threshold audit now distinguishes two possible cashouts.  Every member of the
+selected full-path image is proved to have exactly `20r` live coordinates.  More importantly, for
+`r > 0` and whenever the initial `40·2^d·r` shell fits the ambient cube, the normalized endpoint
+inequality proves constructively at the finite-set boundary that this image is nonempty:
+
+```text
+∃ rho ∈ finalEndpoints, stars rho = 20r.
+```
+
+The proof uses positivity of the exact `20r` shell and the already verified inequality
+
+```text
+#Shell(20r) ≤ 2 · choose(40·2^d·r,20r) · #finalEndpoints.
+```
+
+Thus the reciprocal binomial loss does **not** obstruct a parity-style endpoint theorem that only
+needs one surviving subcube.  It remains an obstruction for an enumerative or SAT-algorithm
+cashout that needs a uniformly large terminal population.  This milestone deliberately does not
+claim the parity contradiction itself: the selected endpoint restriction must still be packaged
+together with its terminal localized circuit, composed evaluation equivalence, and the strict
+terminal shallowness inequality consumed by `iterated_not_parity_tight`.
+
+The precise next frontier is to expose that semantic endpoint package from
+`selectedInitialGeometricEndpointRestriction` (or strengthen the selected path API to return it),
+then bridge its final bottom circuit to `iterated_not_parity_tight`.  In parallel, any SAT-speedup
+route must still refine the cross-root fiber or explicitly tolerate the reciprocal binomial.  No
+P-versus-NP conclusion follows.
+
+### The selected terminal circuit and its composed semantics are now exposed
+
+`selectedInitialGeometricPath` retains the complete provenance-carrying path chosen after the
+genuine initial support-tail successor.  Unlike the earlier restriction-only endpoint API, its
+type exposes the terminal localized circuit, the dependent live-coordinate embedding, and the
+terminal structural state.  The new theorem `selectedInitialGeometricPath_eval_eq` proves
+
+```text
+eval terminalCircuit z
+  = eval originalCircuit
+      (liftInitialRestriction (liftGeometricPath z)).
+```
+
+Thus semantic composition is no longer missing: every edge from the original ambient circuit to
+the final localized circuit is present in one kernel-checked equation.  The target build passes,
+and the capstone uses only the standard logical dependencies already present in this development.
+
+This audit also sharpens the parity interface gap.  The terminal circuit is a `Layered` circuit on
+the relabelled `Fin (20r)` live cube, while `iterated_not_parity_tight` requires a sequence of
+circuits all living on the original `Fin n` cube and concludes parity disagreement there.  A direct
+application is therefore not well typed.  Moreover, ambient parity restricted to a subcube equals
+live-coordinate parity only up to the XOR of the fixed ambient bits, so the bridge must carry that
+phase (or use a parity/complement-symmetric terminal contradiction).  Strict terminal shallowness
+is still also required; `width_one` and terminal `AltO` alone do not supply the strict
+`canonicalDT.depth < stars` premise.
+
+The precise next frontier is to prove a localization-aware parity cashout over a dependent semantic
+path: first formalize the fixed-bit parity phase under `liftLiveAssignment`, then combine it with a
+strict shallow bound for the terminal localized bottom gate.  Retrofitting the localized path into
+the same-ambient `iterated_not_parity_tight` API would require an unnecessary circuit transport and
+is not presently justified.  The SAT-density obstruction remains unchanged.  No P-versus-NP
+conclusion follows.
+
+### The fixed-bit parity phase and localized cashout are now formalized
+
+The dependent-coordinate parity obstruction is resolved directly on the live cube.  The new
+definitions `fixedTrueCount` and `fixedParityPhase` record the number and parity of ambient
+coordinates fixed to `true`.  The counting theorem
+
+```text
+trueCount (liftLiveAssignment tau x)
+  = trueCount x + fixedTrueCount tau
+```
+
+is proved by partitioning the ambient true coordinates into live and fixed parts and using the
+canonical live-coordinate equivalence.  Consequently `parity_liftLiveAssignment` kernel-checks
+the exact phase law
+
+```text
+parity (liftLiveAssignment tau x)
+  = xor (parity x) (fixedParityPhase tau).
+```
+
+The phase is harmless for the terminal lower bound: `DTree.shallow_dtree_not_parity_xor` proves
+that every decision tree of depth strictly below the live dimension disagrees with parity xor an
+arbitrary fixed Boolean phase.  Thus transporting the terminal localized circuit back to the
+original `Fin n` cube is unnecessary, and the parity side of a localization-aware cashout no
+longer has an interface gap.
+
+The remaining parity obstruction is now purely structural: expose the terminal localized bottom
+DNF (or an evaluation-equivalent decision tree) and prove its canonical decision-tree depth is
+strictly less than the terminal dimension `20r`.  The existing `width_one` and terminal `AltO`
+facts do not by themselves establish that strict inequality.  The reciprocal-binomial density
+loss remains relevant only to the SAT/enumerative route.  No P-versus-NP conclusion follows.
+
+### Zero support makes the terminal DNF a canonical leaf
+
+The terminal structural inequality is now proved, using the invariant that was stronger than the
+previous frontier assessment recorded.  The reusable theorem
+`canonicalDT_depth_eq_zero_of_gateVariableSupport_card_eq_zero` shows that a DNF gate with empty
+variable support has canonical depth exactly zero for every restriction and every fuel budget.
+Indeed every clause then has an empty literal list, so the DNF either contains a satisfied empty
+clause or has no active clause.
+
+At remaining level zero, `ZeroSupportLocalizedState.exists_terminalDnf_depth_zero` combines
+`AltO 2` with the already-threaded `support_zero` field and exposes the state circuit as
+`Layered.dnf D`, with
+
+```text
+(canonicalDT D fuel sigma).depth = 0
+```
+
+uniformly in `fuel` and `sigma`.  The geometric-path specialization
+`ZeroSupportGeometricPath.exists_endpointDnf_depth_lt` therefore proves, whenever the scheduled
+endpoint scale is positive,
+
+```text
+(canonicalDT D fuel sigma).depth < endpointState.n.
+```
+
+For a full `0 -> d` schedule this endpoint dimension is `20r`.  Thus width one is not doing the
+terminal work: zero bottom support closes the strict shallowness bound outright.
+
+The focused support-survivor and quantitative-iteration modules elaborate successfully.  Printed
+dependencies for the new capstones are limited to the standard logical axioms already accepted in
+this development.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+The precise next frontier is the last dependent presentation bridge: identify (or transport along
+`semantic_endpointN_eq_endpointState_n`) the DNF stored in `path.endpointState.circuit` with
+`path.toSemanticPath.endpointCircuit`, whose evaluation is the one already composed back to the
+original circuit.  Then combine canonical-DT evaluation, the fixed parity phase, and
+`shallow_dtree_not_parity_xor` in one localization-aware contradiction theorem.  The SAT-density
+obstruction remains unchanged.  No P-versus-NP conclusion follows.
+
+### The localization-aware parity contradiction now closes end to end
+
+The dependent presentation bridge is discharged without casting the whole endpoint-state record.
+That cast route was tested and failed at the successor case because `endpointState` itself is
+transported across arithmetic equalities, so projecting its circuit leaves nested dependent casts.
+The cleaner theorem `exists_semantic_endpointDnf_depth_lt` instead recurses directly through the
+retained geometric path.  It produces the terminal DNF definitionally on
+`path.toSemanticPath.endpointN`, exactly the cube consumed by the composed evaluation theorem.
+
+The first attempted cashout also exposed and preserves a genuine correction to the earlier
+frontier: the parity phase is not contributed only by the initial successor.  Every dependent
+localized edge fixes coordinates and contributes its own phase.  `LocalizedSemanticPath.parityPhase`
+now XOR-accumulates those phases, and `parity_liftAssignment` proves
+
+```text
+parity (path.liftAssignment z) = parity z xor path.parityPhase.
+```
+
+With that invariant, `exists_semantic_endpoint_disagrees_parity_xor` combines the semantic DNF,
+canonical-tree evaluation at the all-free endpoint restriction, exact depth-zero shallowness, and
+the parity-XOR lower bound.  Finally
+`selectedInitialGeometricPath_exists_disagrees_parity` proves that for every genuine selected
+initial good root/assignment pair, positive `r`, the stated initial and per-round fuel bounds,
+sparse initial bottom support, and `AltO (d+3)`, there is an ambient assignment `x` with
+
+```text
+Layered.eval C x != parity x.
+```
+
+The explicit good-pair parameter is also eliminated.  Membership in
+`initialGeometricEndpointImage` definitionally exposes a preimage in the genuine initial good-pair
+domain, so `zeroSupportGeometric_exists_disagrees_parity` composes endpoint existence with the
+localized cashout.  Under positive `r`, initial shell fit, initial and per-round fuel bounds, sparse
+bottom support, and `AltO (d+3)`, it concludes
+
+```text
+∃ x, Layered.eval C x != parity x.
+```
+
+This is an end-to-end theorem for the stated zero-support geometric regime, but it is not a general
+ACC0 lower bound and does not establish P versus NP.  In particular, the next audit must determine
+whether the simultaneous hypotheses
+
+```text
+20 * (2 * zeroSupportSurvivorScale d r 0) <= n
+16 * card(layeredBottomVariableSupport C) <= n
+```
+
+and the full fuel schedule cover the intended nontrivial circuit family after preprocessing, rather
+than only circuits whose bottom support is already unusually sparse.  The reciprocal-binomial loss
+continues to obstruct the separate SAT/enumerative route.
+
+The precise next frontier is therefore hypothesis applicability: specialize the new capstone to the
+intended circuit-size/depth parameterization and audit whether sparse bottom support is obtainable
+without changing the computed function or exhausting the ambient shell.  If it is not, the parity
+route returns to the initial support-tail step and needs a mechanism that reaches zero support from
+dense bottom support.  Separately, the SAT route still needs a stronger density/fiber argument.
+
+### Sparse initial support is already a direct parity obstruction
+
+The hypothesis-applicability audit closes decisively for the current parity route.  The new
+semantic-support theorem `Layered.eval_eq_of_agree_on_bottomSupport` proves that a layered circuit's
+value is determined entirely by `layeredBottomVariableSupport C`: two assignments agreeing on that
+set have identical circuit evaluations, regardless of the circuit's depth, width, or gate count.
+
+Consequently `exists_disagrees_parity_of_bottomSupport_card_lt` proves that if the bottom support
+omits one ambient coordinate, flipping that coordinate leaves the circuit fixed but flips parity.
+The capstone premise has the immediate specialization
+
+```text
+0 < n
+16 * card(layeredBottomVariableSupport C) <= n
+------------------------------------------------------
+exists x, Layered.eval C x != parity x.
+```
+
+This is formalized as `sparseSupport16_exists_disagrees_parity`, without any switching, shell,
+fuel, alternation-depth, or survivor hypothesis.  Therefore the existing geometric capstone is
+correct but does not yet reach a nontrivial parity-computing family: on every positive-dimensional
+cube, its sparse initial support premise already excludes exact parity before iteration begins.
+Semantics-preserving preprocessing cannot turn a parity circuit into this sparse syntactic regime,
+because the resulting function would become blind to every omitted coordinate.
+
+The precise next frontier is now narrower: replace the initial sparse-support tail with a dense-
+support mechanism.  It must reduce *live* support after restriction while allowing the original
+bottom support to cover all `n` variables, and it must preserve enough survivor mass to enter the
+verified zero-support geometric schedule.  A useful next audit is the exact hypergeometric tail for
+the number of support coordinates left live when the initial support is full; the current
+zero-overlap event is impossible there.  The separate SAT-density/fiber obstruction is unchanged.
+No P-versus-NP conclusion follows.
+
+### Full initial support makes the hypergeometric tail deterministic
+
+The proposed dense-support audit is now exact.  In
+`ComputationalDepthMultiSwitchingSupportSurvivor.lean`,
+`live_bottomSupport_card_eq_stars_of_eq_univ` proves that when
+
+```text
+layeredBottomVariableSupport C = univ,
+```
+
+every restriction has live support overlap exactly `stars sigma`.  Therefore
+`liveLayeredBottomSupportTail_eq_shell_of_full_support` identifies the complete tail, for
+`trunkDepth < K`, with the whole `K`-star shell:
+
+```text
+liveLayeredBottomSupportTail C K trunkDepth
+  = { sigma | stars sigma = K }.
+```
+
+The companion cardinality theorem specializes the already proved hypergeometric formula to
+
+```text
+#tail = choose(n,K) * 2^(n-K).
+```
+
+Thus the full-support distribution is a point mass at overlap `K`, not a tail with a useful
+small-probability region.  At the geometric parameters `K = 20R`, `trunkDepth = 10R`, and `R > 0`,
+`fullSupport_halfShell_mem_liveLayeredBottomSupportTail` proves that every shell root lies in the
+tail.  The current initial successor needs a root outside this tail, so its good-root domain is
+empty in the full-support case.  This is stronger than merely observing that zero overlap is
+impossible.
+
+The precise next frontier is to replace the initial zero-overlap/support-tail successor, not to
+sharpen its probability estimate.  Any replacement must permit positive (indeed full, for a
+localized parity computation) live support and obtain terminal shallowness from decision-tree
+structure rather than from support becoming zero.  The next useful formal audit is a
+localization-aware necessity theorem: every circuit equivalent on a positive-dimensional live
+cube to parity XOR a fixed phase has full live bottom support.  That will determine exactly which
+support-reduction invariants are incompatible with semantic preservation before designing the
+dense-support round.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP
+conclusion follows.
+
+### Localized parity forces full live bottom support
+
+The localization-aware necessity theorem is now proved directly in the support-survivor module.
+`Layered.bottomSupport_eq_univ_of_eval_eq_parity_xor` states that for any localized dimension `m`,
+fixed Boolean phase `b`, and layered circuit `C : Layered m`,
+
+```text
+(forall x, Layered.eval C x = parity x xor b)
+------------------------------------------------
+layeredBottomVariableSupport C = univ.
+```
+
+The proof flips a coordinate omitted from the bottom support.  Semantic completeness of bottom
+support makes the circuit invariant under that flip, while `parity_flip` changes parity; XOR by a
+fixed phase preserves the contradiction.  The companion theorem
+`Layered.bottomSupport_card_eq_of_eval_eq_parity_xor` records the exact cardinal consequence
+`card(bottomSupport C) = m`.  Applied after localization, these statements say that every still-
+live coordinate must occur in the localized circuit's bottom family.  They also cover dimension
+zero (where both supports are empty), so no positivity side condition is needed in the interface.
+
+This closes the proposed audit and rules out every semantically faithful parity round whose
+progress invariant is a strict reduction in live bottom support.  In particular, weakening the
+current target from zero support to any proper subset of the live cube cannot repair the initial
+successor.  A dense-support round must keep full live support and make progress in a different
+measure, such as simultaneous canonical decision-tree depth or a structural residual-depth
+potential.
+
+The precise next frontier is to formulate a dense-support successor whose good event is common
+canonical shallowness while retaining full localized bottom support, then test whether the
+already-proved common-shallow shell contraction and layered collapse can iterate without invoking
+the support-tail complement.  The first concrete audit should compare the existing
+`commonShallowBad` selector with full-support parity: determine whether its complement is
+nonempty at the geometric parameters, or whether full sensitivity forces every root into that bad
+set as well.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion
+follows.
+
+### Full support is compatible with a good common-shallow root
+
+The proposed selector audit now closes in the nonvacuous direction.  The new theorem
+`exists_commonShallowAt_linearGap_realized` extracts the strict consequence of the existing
+scaled bad-set estimate.  For positive `G`, `m`, and `r`, width-two duplicate-free gates with at
+most `m` clauses, ample fuel, and ambient dimension
+
+```text
+n = 1000 * (G*m) * r,
+```
+
+the `20*r` shell is nonempty and the saving factor `2^(10*r)` is at least two.  Hence the bad set
+has cardinality strictly smaller than the shell, and there exists a root `sigma` with
+
+```text
+stars sigma = 20*r
+CommonShallowAt gates fuel sigma (10*r) residualDepth.
+```
+
+The support-survivor specialization
+`exists_commonShallowAt_linearGap_realized_of_full_support` adds the exact premise
+
+```text
+familyVariableSupport gates = univ
+```
+
+and obtains the same witness.  Thus full variable sensitivity does **not** force every geometric
+shell root into `commonShallowBad`; unlike the zero-support tail, common canonical shallowness is a
+viable progress measure for dense-support parity rounds.  This is an existence result for one
+family at the realized-density scale, not yet a dense-support successor or an iterated parity
+lower bound.
+
+The precise next frontier is to specialize this good-root witness to
+`normalizedLayeredBottomFamily C` for a localized parity-equivalent circuit, with circuit-owned
+positive `G` and clause bound `m`, and construct the semantic collapse successor while retaining
+the forced full bottom support.  Then audit whether the post-collapse actual alphabet/slot
+recurrence still satisfies the realized-density premise at every remaining round.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Dense-support parity has a semantic common-shallow successor
+
+The circuit specialization and semantic handoff are now proved.  First,
+`normalizedLayeredBottomFamily_support_eq_bottomSupport` strengthens the earlier one-way support
+inclusion to the exact identity
+
+```text
+familyVariableSupport (normalizedLayeredBottomFamily C)
+  = layeredBottomVariableSupport C.
+```
+
+The positive copy of every circuit bottom gate supplies the reverse inclusion, while `eraseDups`
+preserves membership.  Consequently
+`normalizedLayeredBottomFamily_support_eq_univ_of_eval_eq_parity_xor` shows that every localized
+parity-XOR circuit gives the exact normalized selector a full-support family.
+
+Next, `exists_normalizedLayered_commonShallowAt_of_realized_density` extracts a good `20*r`-star
+root directly for the circuit-owned two-polarity family under `BottomWidth 2`, `BottomCount m`,
+ample fuel, shell fit, positive `r`, and the rectangular realized-density inequality using the
+exact index count `(layeredBottomFamilyList C).length`.  No separately supplied abstract `G` or
+full-support premise is needed.
+
+Finally, `exists_denseParity_normalizedCollapseSuccessor_of_realized_density` follows that common
+trunk by `collapseRound`, refines to exactly `10*r` live coordinates, and transports the result to
+the live cube.  If `C` computes `parity XOR phase`, the successor `D` computes
+
+```text
+parity XOR (fixedParityPhase kappa XOR phase),
+```
+
+has `BottomWidth (residualDepth+1)`, obeys the existing slot recurrence
+
+```text
+bottomSlotCount D
+  <= bottomSlotCount C * (2^(residualDepth+1) + 1),
+```
+
+and its normalized bottom family is again exactly full support.  Thus dense semantic sensitivity
+survives one proved common-shallow collapse round; support reduction is neither assumed nor
+obtained.
+
+The precise next frontier is quantitative iteration: instantiate the next round's clause bound
+and exact two-polarity index count for this localized successor, then decide whether the available
+`10*r` ambient coordinates can satisfy the next realized-density inequality after the width and
+slot recurrences.  The likely pressure point is that the current theorem reduces width two to
+`residualDepth+1`; retaining the width-two hypothesis roundwise requires residual depth at most one,
+while the clause/slot envelope grows by `2^(residualDepth+1)+1`.  The separate SAT-density/fiber
+obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Full support contradicts the rectangular realized-density premise
+
+The next-round audit fails one step earlier than the width and slot recurrences.  The theorem
+`not_normalizedLayered_realized_density_of_full_support` proves that, for every positive `r`, a
+width-two circuit whose normalized two-polarity family has full support cannot satisfy
+
+```text
+(4 * (3 * (G*m + 1))) * (20*r) + 20*r <= n + 1,
+```
+
+where `G = length(layeredBottomFamilyList C)` and `m` bounds every indexed gate.  Indeed, width
+two and full support give
+
+```text
+n <= 2 * sum_g length(normalizedLayeredBottomFamily C g) <= 2 * G*m.
+```
+
+But even before applying the positive `20*r` shell multiplier, the density base is strictly
+larger than `2*G*m+1`.  The semantic corollary
+`not_normalizedLayered_realized_density_of_eval_eq_parity_xor` derives the same contradiction
+directly from `eval C = parity XOR phase`.
+
+Consequently the hypotheses of
+`exists_denseParity_normalizedCollapseSuccessor_of_realized_density` are inconsistent: its
+successor statement is formally valid but vacuous for parity.  There is no next-round slot
+schedule to optimize under this rectangular density theorem.  This corrects the earlier claim
+that the abstract full-support specialization at ambient size `1000*(G*m)*r` was nonvacuous.
+Its `_hfull` argument was unused by the proof, but width two and the `m` clause bound give support
+capacity at most `2*G*m`, far below that ambient dimension for positive `r`; its combined premises
+are therefore empty as well.
+
+The precise next frontier is to replace the realized-density contraction with a support-compatible
+counting theorem whose ambient requirement does not scale linearly with the full-support clause
+alphabet times a positive shell size.  A sharp next audit is whether the existing canonical
+common-shallow bad-set encoding can be charged to decision-tree queries or overlap structure
+rather than total gate/term occurrences.  Without such a stronger selector theorem, dense-parity
+iteration cannot start.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP
+conclusion follows.
+
+### Exact queried-variable subset charging is still vacuous at full support
+
+The first proposed support-compatible replacement has now been audited without a power or density
+relaxation.  `not_supportSubset_exact_balance_half_of_live_le_supportAlphabet` keeps the exact
+factor
+
+```text
+choose A r
+```
+
+for the set of `r` queried variables.  At `K = 2r`, `d = r`, and saving exponent `r`, its exact
+shell balance is impossible whenever the shell is nonempty and `n <= A`.  After the Boolean fiber
+is cancelled, the smaller shell contributes `choose n r`; support coverage gives another
+`choose n r <= choose A r`; and the standard product identity gives
+`choose n (2r) <= choose n r * choose n r`.  The remaining factor `2^(2r)` makes the proposed
+upper bound strictly larger than the target shell.
+
+The circuit specialization
+`not_normalizedLayered_supportSubset_balance_of_full_support` instantiates
+
+```text
+A = 2 * sum_g length(normalizedLayeredBottomFamily C g),
+K = 20R,
+d = saving = 10R.
+```
+
+For a width-two normalized family with full support, the existing support-cardinality theorem
+forces `n <= A`, so the exact support-subset balance cannot hold.  The semantic corollary
+`not_normalizedLayered_supportSubset_balance_of_eval_eq_parity_xor` obtains the same contradiction
+from `eval C = parity XOR phase`.  Thus replacing stable gate/term keys by the global set of queried
+variables removes occurrence redundancy but still cannot start the dense-parity round; this is an
+exact no-go for that encoder, not an artifact of the earlier rectangular density estimate.
+
+The precise next frontier is endpoint-local rather than global-support counting: seek a bound on
+the average or distribution of realized query-set multiplicities inside each residual endpoint
+fiber, using overlap or fixed-value profile structure.  Any uniform decoder that merely chooses an
+arbitrary `d`-subset of the full live support necessarily pays the impossible `choose n d` factor.
+The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Fixed-value profiles alone do not shrink the semantic bad event
+
+The first endpoint-local fallback has now been separated from the all-false-profile artifact.
+`restrictionFalseCompletion` canonically completes an arbitrary restriction, and
+`restriction_not_commonShallowAt_independentLiteral_zero` proves that for the independent positive
+singleton family every restriction satisfying
+
+```text
+d < stars sigma
+```
+
+fails `CommonShallowAt ... d 0`.  The proof follows an arbitrary fixed profile, flips one live
+coordinate missed by the depth-`d` trunk, and uses leaf agreement to show that coordinate remains
+free; its singleton gate therefore still has canonical depth one.
+
+Consequently `commonShallowBad_independentLiteral_zero_eq_shell` identifies the complete semantic
+bad set with the entire `K`-star restriction shell whenever `d < K`.  This includes every Boolean
+assignment on the fixed coordinates, not just the previously audited all-false roots.  Thus
+conditioning or averaging only on fixed-value profiles cannot supply a uniform endpoint-local
+saving.  As before, the independent family uses one clause occurrence per live coordinate and is
+outside the strict realized-density regime, so this is a regression boundary rather than a
+density-admissible counterexample.
+
+The precise next frontier is to make the endpoint-local estimate genuinely overlap-sensitive and
+density-aware: bound realized query-set multiplicity using repeated ownership of live coordinates
+by a sublinear clause-occurrence alphabet, or construct a density-admissible family that still
+saturates a positive fraction of the endpoint fibers.  Any proposed fixed-profile-only saving is
+now ruled out by the full-shell theorem above.  The separate SAT-density/fiber obstruction is
+unchanged.  No P-versus-NP conclusion follows.
+
+### Singleton endpoint multiplicity is exactly a live-support tail
+
+The overlap-sensitive singleton audit is now exact.  For an arbitrary coordinate selector
+
+```text
+v : Fin G -> Fin n
+```
+
+`selectedLiteralGates v` contains one positive singleton gate per selector entry; `v` need not be
+injective, so repeated ownership is allowed.  The theorem
+`familyVariableSupport_selectedLiteralGates` identifies its actual support with `univ.image v`,
+which quotients repeated owners automatically.
+
+With ample fuel, `commonShallowAt_selectedLiteral_zero_iff` proves
+
+```text
+CommonShallowAt (selectedLiteralGates v) fuel sigma d 0
+  iff card {i in image(v) | sigma(i) is live} <= d.
+```
+
+Both directions are semantic.  The upper direction uses the canonical support-respecting trunk.
+For the lower direction, any shallower trunk misses a live owned coordinate on some path; flipping
+that coordinate preserves the path and forces its singleton residual tree to retain depth one.
+No fixed-value, selector-injectivity, or occurrence-multiplicity assumption is used.
+
+Consequently `commonShallowBad_selectedLiteral_zero_eq_liveSupportTail` identifies the complete
+bad set on every fuel-covered `K`-shell with the exact tail
+
+```text
+card(live(sigma) intersect image(v)) > d.
+```
+
+This sharpens the preceding full-shell regression boundary: fixed profiles are irrelevant, but
+repeated ownership does help exactly to the extent that it shrinks the *distinct* support.  In the
+density-admissible regime the remaining singleton count is therefore a hypergeometric support-tail
+problem, rather than an endpoint-fiber multiplicity problem.
+
+Direct module elaboration passed.  The downstream quantitative-iteration target passed with
+8,451 jobs, and the full build passed with 8,068 jobs.  The two new printed capstones depend only
+on `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was added.  `git diff --check` passed.  Existing counterexamples and unrelated
+worktree changes were preserved.
+
+The precise next frontier is to count this exact tail on a `K`-star restriction shell and derive a
+closed binomial/hypergeometric bound in terms of `n`, `K`, `d`, and `card(image v)`.  Then compare
+that sharp singleton benchmark with width-two families: either lift the charge from distinct live
+support to a clause-overlap statistic, or exhibit a width-two interaction whose bad set is larger
+than every bound predicted by its distinct-support tail.  The separate SAT-density/fiber
+obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### The singleton tail has a closed hypergeometric shell bound
+
+The exact semantic classification now has a quantitative shell theorem.  For an arbitrary owned
+support `A`, `liveSupportTail_card_le` covers every `K`-star restriction having more than `d` live
+owned coordinates by a live `(d+1)`-subset of `A`.  Reusing the exact extension-fiber count gives
+
+```text
+|tail(A,K,d)|
+  <= choose(|A|,d+1) * choose(n-(d+1),K-(d+1)) * 2^(n-K).
+```
+
+The selector specialization `commonShallowBad_selectedLiteral_zero_card_le` applies this directly
+to `A = image(v)`.  The division-free balance theorem
+`commonShallowBad_selectedLiteral_zero_hypergeometric_balance` rewrites the same result against the
+exact shell size:
+
+```text
+choose(n,d+1) * |bad|
+  <= choose(|image(v)|,d+1) * choose(n,K) * choose(K,d+1) * 2^(n-K).
+```
+
+Thus the singleton bad fraction is at most the standard first-moment hypergeometric factor
+
+```text
+choose(|image(v)|,d+1) * choose(K,d+1) / choose(n,d+1).
+```
+
+This count is overlap-sensitive in exactly the right singleton sense: repeated owners disappear
+before the binomial factor is formed.  It also preserves the earlier full-support regression
+boundary.  When `image(v)=univ` and `d<K`, the semantic bad event is the whole shell; the cover
+overlaps heavily, so the first-moment bound correctly supplies no contraction.  The theorem is a
+factorially sharp union bound, not a claim that its overlapping cover is an exact partition.
+
+Direct elaboration of the support-survivor module passed.  The downstream quantitative-iteration
+target passed with 8,451 jobs, and the full build passed with 8,068 jobs.  The three new capstones
+depend only on `propext`, `Classical.choice`, and `Quot.sound`; no prohibited proof device was
+introduced.  `git diff --check` passed, and existing counterexamples and unrelated worktree changes
+were preserved.
+
+The precise next frontier is width two.  Determine whether a width-two family's residual-depth-one
+bad event can be charged to a bounded collection of `(d+1)`-subsets of a distinct-support or
+overlap statistic, so that the same exact shell-fiber count applies.  The decisive alternative is
+an explicit width-two family whose bad set exceeds every singleton-tail prediction based on its
+distinct support.  An exact disjoint hypergeometric layer-sum for singletons would sharpen constants
+if the union bound is borderline, but it does not address this structural question.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Distinct support alone does not control residual-depth-one badness
+
+The decisive width-two comparison is now kernel checked.  First,
+`selectedLiteral_canonicalDT_depth_le_one` proves that every positive singleton gate has canonical
+depth at most one for every fuel and every restriction.  Hence
+`commonShallowAt_selectedLiteral_one` gives every selected-singleton family a zero-query common
+trunk at residual depth one; its semantic bad set is empty at that threshold, independently of
+the number of live support coordinates.
+
+The theorem `widthTwo_residualOne_badness_not_determined_by_distinct_support` compares this family
+with the existing exhaustive two-bit width-two gate at the identical parameters
+
+```text
+n = 2, fuel = 2, K = 2, trunkDepth = 0, residualDepth = 1.
+```
+
+Both families have exactly the full support `{0,1}`.  Nevertheless the fully live root is bad for
+the exhaustive width-two family and good for the two singleton gates.  Thus residual-depth-one
+badness is not a function of the distinct support set, and the singleton hypergeometric tail
+cannot be lifted to width two by merely substituting the same support cardinality.  The missing
+quantity must record clause interaction, polarity, or another structure finer than variable
+ownership.
+
+Direct elaboration of the support-survivor module passed.  The downstream quantitative-iteration
+target passed with 8,451 jobs, and the full build passed with 8,068 jobs.  The three new printed
+capstones depend only on `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.  `git diff --check` passed, and existing
+counterexamples and unrelated worktree changes were preserved.
+
+The precise next frontier is to extract the smallest interaction statistic that separates these
+same-support families and still admits subset-fiber counting.  The first concrete candidate is the
+number (or a fractional packing weight) of simultaneously live width-two clauses after deleting
+gates already canonical-depth at most one.  Prove a shell upper bound in that statistic, or use
+the existing two-polarity gadgets to show that unweighted live-edge counts also fail.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Unweighted live width-two clause count also fails
+
+The suggested raw live-edge statistic is now ruled out by a matched, kernel-checked comparison.
+Define `liveWidthTwoClauseCount gates rho` to count width-two clause occurrences whose two variables
+are both live at `rho`.  At the fully live four-coordinate root, the existing two-pair polarity
+family and a new family consisting of both polarities of two disjoint one-clause gates have:
+
+```text
+the same distinct support = {0,1,2,3},
+the same live width-two clause count = 4,
+fuel = K = 4, trunkDepth = 2, residualDepth = 1.
+```
+
+Their badness is opposite.  The interacting family puts two disjoint clauses inside each polarity
+gate and has exact common-trunk cost three, so the all-live root is bad at budget two.  The matched
+disjoint family puts one clause in each indexed gate; querying coordinates `0` and `2` makes every
+gate residual-depth one, so the same root is good at budget two.  Thus neither distinct support nor
+unweighted live width-two clause count, even taken together, determines residual-depth-one badness.
+The missing information is specifically within-gate clause interaction: regrouping the same four
+live clauses changes the common switching cost.
+
+The new capstones are `localDisjointPairPolarityFamily_commonShallowAt_two`,
+`twoPairPolarity_matched_live_clause_profile`, and
+`widthTwo_residualOne_badness_not_determined_by_live_clause_count` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  They introduce no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide`.
+
+An isolated elaboration of the exact added declarations against the last valid bridge artifact
+passed; all three printed capstones depend only on `propext`, `Classical.choice`, and `Quot.sound`.
+Direct elaboration of the support-survivor module passed, the quantitative-iteration build passed
+with 8,451 jobs, and `git diff --check` passed.  A direct full target rebuild of the much larger
+2-SAT bridge was also attempted.  It elaborated the new section without error, but later failed in
+pre-existing declarations around lines 7311--7417 (`twoPairTenFlexibleCostTailCoefficient_eq_sum`
+and dependents) through heartbeat timeouts followed by an unknown-constant/unsolved-goal cascade;
+the process finally exited with code 137.  Therefore no full-build pass is claimed for this step.
+
+The precise next frontier is to test the smallest within-gate statistic: count (or fractionally
+pack) unordered pairs of simultaneously live clauses belonging to the same indexed gate, after
+discarding gates already residual-depth one.  Either charge every bad trunk to a bounded subset of
+such co-live clause pairs and reuse the exact shell-fiber count, or construct a matched regrouping
+with equal within-gate pair mass but opposite badness.  If the latter exists, the statistic must
+retain polarity-sensitive transversal/conflict structure rather than scalar edge mass.  The
+separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Scalar within-gate co-live pair mass also fails
+
+The smallest proposed within-gate scalar refinement is now ruled out by a matched,
+kernel-checked comparison.  Define `activeWithinGateLivePairMass` by first discarding every
+indexed gate whose canonical tree is already within the requested residual-depth budget, then
+summing `choose(L_g,2)`, where `L_g` is the number of width-two clauses in gate `g` whose two
+variables are live.
+
+At the fully live four-coordinate root, compare the existing `twoPairPolarityFamily` with
+`localOppositePairGroupedFamily`.  The first groups two disjoint clauses by global polarity; the
+second groups the positive and negative clauses of each local coordinate pair.  The two families
+have:
+
+```text
+the same distinct support = {0,1,2,3},
+the same live width-two clause count = 4,
+the same active within-gate co-live pair mass = 2,
+fuel = K = 4, trunkDepth = 2, residualDepth = 1.
+```
+
+Their badness is nevertheless opposite.  The polarity-grouped family has exact common-trunk cost
+three and is bad at budget two.  For the local-pair-grouped family, querying coordinates `0` and
+`2` leaves at most one live singleton clause in each nonterminal gate, so it is good at budget
+two.  Thus scalar within-gate pair mass still forgets decisive structure: which polarities and
+coordinate transversals the paired clauses realize.
+
+The new capstones are `localOppositePairGroupedFamily_commonShallowAt_two`,
+`twoPairPolarity_matched_withinGatePair_profile`,
+`twoPairPolarity_withinGatePairMass_eq_two`, and
+`widthTwo_residualOne_badness_not_determined_by_withinGatePairMass` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  They introduce no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide`.
+
+An isolated elaboration of the exact new declarations against the last valid bridge artifact
+passed.  All four printed capstones depend only on `propext`, `Classical.choice`, and `Quot.sound`.
+A direct elaboration of the large 2-SAT bridge reached and passed the complete new section, then
+continued through line 7024 before it was stopped rather than spending another long cycle in the
+already documented heartbeat-heavy tail; no full bridge build pass is claimed.  The downstream
+quantitative-iteration build passed with 8,451 jobs.  `git diff --check` passed, and existing
+counterexamples and unrelated worktree changes were preserved.
+
+The precise next frontier is no longer a scalar pair count.  Retain a polarity-sensitive
+within-gate conflict/transversal type for each co-live clause pair, and test whether its small
+finite profile determines the local residual-depth-one switching cost.  The decisive alternatives
+are: prove that every bad trunk exposes a bounded subset of incompatible pair types, enabling the
+existing shell-fiber count; or construct another matched example with the same typed pair profile
+but opposite badness, forcing genuine higher-order clause hypergraph data.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Signed conflict/transversal typing separates the scalar-pair counterexample
+
+The first polarity-sensitive co-live pair profile is now defined and kernel checked.  For each
+active within-gate unordered pair of live width-two clauses it records the triple
+
+```text
+(same-polarity shared variables,
+ opposite-polarity shared variables,
+ union-support size).
+```
+
+This is a finite local refinement of scalar pair mass: the first two coordinates retain literal
+conflict and the third retains transversal geometry.  On the previous matched families, the two
+units of scalar mass split into opposite exact types:
+
+```text
+twoPairPolarityFamily:             type (0,0,4) has count 2; type (0,2,2) has count 0,
+localOppositePairGroupedFamily:    type (0,0,4) has count 0; type (0,2,2) has count 2.
+```
+
+Thus the bad polarity-grouped gadget consists of disjoint sign-aligned clause pairs, while the
+good local grouping consists of same-support opposite-sign conflicts.  The new type therefore
+separates the exact counterexample that defeated scalar within-gate mass; that counterexample is
+not evidence against typed charging.  This is only a separation result, not a proof that the type
+profile determines common switching cost.
+
+The new definitions are `clausePositiveVariableSupport`, `clauseNegativeVariableSupport`,
+`clausePairSamePolarityOverlap`, `clausePairOppositePolarityOverlap`, `clausePairTypeCount`, and
+`activeWithinGateLivePairTypeCount`.  The exact capstones are
+`twoPairPolarity_disjointAlignedPairType_eq_two`,
+`localOppositePairGrouped_oppositeConflictPairType_eq_two`, and
+`twoPairPolarity_typedPairProfile_separates_matched_families` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.
+
+Focused elaboration through the complete new section passed.  The three printed capstones depend
+only on `propext`, `Classical.choice`, and `Quot.sound`.  The downstream quantitative-iteration
+build passed with 8,451 jobs, and `git diff --check` passed.  A direct full bridge elaboration was
+started and passed the insertion region but was stopped before its known heartbeat-heavy tail, so
+no full bridge pass is claimed.  Existing counterexamples and failed routes remain in place.  The
+precise next frontier is to test sufficiency rather than separation:
+enumerate the smallest normalized width-two families with the same complete triple-count profile
+and compare their exact flexible common-query costs.  An equal-profile/opposite-cost match would
+force higher-order clause-hypergraph data; if none appears, prove that every residual-depth-one bad
+trunk exposes a bounded collection of disjoint-aligned `(0,0,4)`-type pairs and connect that charge
+to the existing subset-fiber count.  The separate SAT-density/fiber obstruction is unchanged.  No
+P-versus-NP conclusion follows.
+
+### Complete signed pair profiles still do not determine common-query cost
+
+The smallest normalized-family test found and kernel checked an equal-profile/opposite-cost
+comparison.  Both new families use two active indexed gates, exactly two distinct width-two clauses
+per gate, and only coordinates `0,1,2` of an ambient four-coordinate block.  Their active pair types
+are identical as a complete histogram over `Fin 3 × Fin 3 × Fin 5`: one gate contributes type
+`(1,1,2)` and the other contributes type `(0,1,3)`.  They also agree on distinct support, live
+width-two clause count, and scalar within-gate pair mass.
+
+The clause presentations are:
+
+```text
+low cost:  {¬0¬1, ¬0·1}   {¬0¬1, 0¬2}
+high cost: {¬0¬1, ¬0·1}   {¬0¬2, ¬1·2}
+```
+
+Their exact residual-depth-one common-query costs differ.  Querying coordinate zero switches the
+low-cost family, and no zero-query trunk works, so its exact cost is one.  Querying coordinates zero
+and one switches the high-cost family.  Conversely, exhaustive leaf classification proves that any
+restriction shallowing both high-cost gates has at most two live ambient coordinates.  The general
+leaf-agreement lower bound leaves at least three coordinates live after a depth-one trunk from the
+fully live root, so such a trunk is impossible.  Its exact cost is therefore two.  At trunk budget
+one the matched families have opposite semantic badness.
+
+The new capstones are `typedPairFamilies_complete_profile_eq`,
+`typedPairLowCostFamily_exact_cost_one`, `typedPairHighCostFamily_exact_cost_two`, and
+`widthTwo_badness_not_determined_by_complete_typed_pair_profile` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  Focused direct elaboration passed through the
+entire new section and continued into the later finite-game development.  Printed axioms for all
+new capstones are exactly `propext`, `Classical.choice`, and `Quot.sound`.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.  The downstream quantitative-iteration
+build passed with 8,451 jobs.  The direct bridge elaboration's known heartbeat-heavy tail was not
+run to completion, so no separate full direct bridge pass is claimed for this step.
+
+The precise next frontier is higher-order incidence, not another aggregate pair histogram.  Retain
+which active pair-type witnesses share variables across indexed gates (a colored support-incidence
+graph), and test whether a bounded incidence signature controls residual-depth-one cost.  The first
+target is the new matched pair: isolate the cross-gate overlap that distinguishes exact costs one
+and two, then either derive a subset-fiber charge from bounded connected incidence components or
+construct an incidence-matched counterexample forcing triple-of-clauses data.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Signed cross-gate clause incidence separates the equal-pair-profile example
+
+The first higher-order incidence refinement is now defined and kernel checked.  For every ordered
+pair of distinct active indexed gates, `activeCrossGateLivePairTypeCount` counts a live width-two
+clause from each gate by the same bounded signed type used within gates:
+
+```text
+(same-polarity shared variables,
+ opposite-polarity shared variables,
+ union-support size).
+```
+
+The normalized low- and high-cost families from the preceding comparison have exactly the same
+indexed *uncolored* gate supports: corresponding gates use the same variable sets.  Thus even the
+gate-support hypergraph, with gate identities retained, does not distinguish them.  Their signed
+cross-gate clause incidence does.  The low-cost family repeats the identical clause `¬0¬1` across
+its two gates, so it has two ordered cross-gate witnesses of type `(2,0,2)`; the high-cost family
+has none.  Consequently their complete bounded cross-gate signed profiles differ.
+
+The new definitions are `crossClausePairTypeCount`, `activeCrossGateLivePairTypeCount`, and
+`boundedActiveCrossGatePairTypeProfile`.  The principal capstones are
+`typedPairFamilies_indexed_gate_supports_eq`,
+`typedPairFamilies_crossGate_identicalAligned_separates`,
+`typedPairFamilies_crossGate_complete_profiles_ne`, and
+`typedPairFamilies_crossGate_profile_is_new_information` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.
+
+Direct Lean elaboration passed the complete new section and continued into the later finite-game
+development.  The deliberately capped run then stopped before the bridge's already documented
+heartbeat-heavy tail, so no separate full direct bridge pass is claimed.  Printed axioms for all
+four new capstones are exactly `propext`, `Classical.choice`, and `Quot.sound`.  The downstream
+quantitative-iteration build passed with 8,451 jobs.  No `sorry`, `admit`, custom axiom, `unsafe`,
+or `native_decide` was introduced.  Existing counterexamples and failed routes remain in place.
+
+The evidence now supports a sharper boundary: an uncolored cross-gate support graph is still too
+coarse, while signed clause-level cross-gate incidence separates the current minimal matched pair.
+This is a separation result only, not evidence that the aggregate cross-gate profile determines
+common-query cost.  The precise next frontier is to enumerate the smallest normalized families
+matching both the complete within-gate and complete cross-gate signed profiles and compare exact
+residual-depth-one costs.  An opposite-cost match would force witness-identified incidence
+components or triple-of-clauses data; if no small match exists, the next positive step is a bounded
+connected-component charge into the subset-fiber count.  The separate SAT-density/fiber
+obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Aggregate signed cross-gate profiles still do not determine common-query cost
+
+The smallest support-matched counterexample found by the next normalized-family search is now
+kernel checked.  It uses three active indexed gates, two distinct width-two clauses per gate, and
+the common global support `{0,2,3}` inside an ambient four-coordinate block.  Both families agree
+on all aggregate invariants developed so far:
+
+```text
+global variable support,
+live width-two clause count,
+active within-gate pair mass,
+every coordinate of the complete within-gate signed pair profile,
+every coordinate of the complete ordered cross-gate signed pair profile.
+```
+
+The low-cost clauses are
+
+```text
+{0·2, ¬0¬2}   {0·2, ¬2¬3}   {¬2¬3, 2·3},
+```
+
+and the high-cost clauses are
+
+```text
+{0¬2, 2¬3}   {¬0¬3, 0·3}   {0·3, ¬0¬3}.
+```
+
+Coordinate `2` is a common good query for all three low-cost gates, so their exact
+residual-depth-one common-query cost is one.  For the high-cost family, exhaustive restriction
+classification proves that every simultaneously shallow restriction has at most two live ambient
+coordinates.  The general leaf-agreement lower bound therefore rules out a depth-one trunk from
+the fully live root, while querying coordinates `0` and `3` supplies a depth-two trunk.  Its exact
+cost is two.  Hence the matched families have opposite semantic badness at trunk budget one.
+
+The aggregate profile loses exactly the expected witness placement: the functions assigning an
+uncolored variable support to each indexed gate are unequal.  Thus aggregate cross-gate color
+counts cannot support the proposed connected-component charge; gate-pair identity (or an
+equivalent witness-identified colored incidence structure) must be retained before components can
+be defined.
+
+The new definitions are `aggregateCrossLowCostFamily` and
+`aggregateCrossHighCostFamily`.  The principal capstones are
+`aggregateCrossFamilies_complete_profiles_eq`,
+`aggregateCrossFamilies_indexed_gate_supports_ne`, `aggregateCrossFamilies_exact_costs`, and
+`widthTwo_badness_not_determined_by_aggregate_signed_pair_profiles` in
+`ComputationalDepthMultiSwitchingTwoSATBridge.lean`.  Focused elaboration of the complete new
+section passed.  Printed axioms for all four capstones are exactly `propext`,
+`Classical.choice`, and `Quot.sound`.  The downstream quantitative-iteration build passed with
+8,451 jobs, `git diff --check` passed, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  The exhaustive search also preserved two useful negative results: no
+support-matched opposite-cost pair exists in the searched two-gate/two-clause universes on three,
+four, or five variables, while five four-variable matches appear if global support equality is
+dropped.  These search observations guide minimality but are not claimed as Lean theorems.
+
+The precise next frontier is to retain the complete signed profile separately for every indexed
+gate pair (rather than summing over all pairs) and test the new three-gate witness.  If that indexed
+profile separates it, enumerate the smallest indexed-profile match; such a match would force
+triple-of-clauses or explicit connected-component data.  If no small match appears, formulate a
+bounded witness-identified component code and compare its alphabet cost with the existing
+subset-fiber saving.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP
+conclusion follows.
+
+### Indexed gate-pair profiles separate the aggregate witness
+
+The complete signed cross-gate profile has now been retained separately for every ordered indexed
+gate pair.  `indexedActiveCrossGatePairTypeProfile` uses the same active-gate, live-width-two, and
+signed overlap/transversal coordinates as the previous aggregate profile, but does not sum away
+the pair `(g,h)` carrying each witness.
+
+The capstones `aggregateCrossFamilies_indexed_gate_zero_one_separates` and
+`aggregateCrossFamilies_indexed_crossGate_profiles_ne` are kernel checked.  At ordered gate pair
+`(0,1)`, signed type `(same=2, opposite=0, unionSize=2)` has count one in the low-cost family and
+zero in the high-cost family, so the complete indexed profiles are unequal.  Thus the current
+counterexample is fully explained by witness redistribution among indexed gate pairs; it does not
+refute the indexed refinement.  This is only a separation of one witness, not a proof that
+indexed pair profiles determine common-query cost in general.
+
+Focused direct elaboration passed the new definition and capstone and continued beyond them into
+the later finite-game section; the deliberately stopped run is not claimed as a full direct-file
+pass.  The quantitative-iteration target also passed as a separate regression build (8,451 jobs).  No
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced, and the existing
+counterexamples and failed routes remain intact.
+
+The precise next frontier is to search for the smallest normalized opposite-cost families that
+match the complete within-gate profile and the complete signed profile for every indexed gate
+pair.  A match would prove that triple-clause or explicit connected-component incidence is
+necessary.  If no small match exists, formulate a bounded witness-identified component code and
+compare its alphabet cost with the existing subset-fiber saving.  The separate SAT-density/fiber
+obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### The aggregate witness also fails the indexed within-gate profile
+
+Auditing the preceding interpretation exposed a second loss of witness placement.  The complete
+within-gate signed profile used there is still summed over gate indices.  The new
+`indexedActiveWithinGatePairTypeProfile` retains the active gate carrying each signed unordered
+clause-pair type, complementing the already indexed off-diagonal cross-gate profile.
+
+The same three-gate low/high-cost comparison is separated on this diagonal data too.  At gate
+zero and signed type `(same=0, opposite=2, unionSize=2)`, the low-cost family has count one and the
+high-cost family has count zero.  The capstones
+`aggregateCrossFamilies_indexed_within_gate_zero_separates` and
+`aggregateCrossFamilies_indexed_withinGate_profiles_ne` are kernel checked.  Consequently the
+earlier aggregate counterexample cannot be described as failing only because ordered gate-pair
+identities were summed away: it redistributes both within-gate and cross-gate colored witnesses.
+
+As search guidance, exhaustive external enumeration found no opposite one-query-cost pair among
+38,226 canonically ordered two-gate/two-distinct-clause families on four variables, nor among
+50,116 three-gate/two-distinct-clause families on three variables, when global support, the
+complete indexed cross-gate profiles, and the applicable complete within-gate profile were
+matched.  These finite-search observations are not Lean theorems and are not used as proof.
+
+The precise next frontier is therefore to match the *indexed* within-gate profile together with
+every indexed cross-gate signed profile.  Search the three-gate/four-variable normalized universe
+for an opposite-cost pair.  A match would isolate genuinely triple-clause incidence; if none
+appears, define the full indexed pair-incidence matrix (diagonal plus off-diagonal) and bound a
+witness-identified connected-component code against the existing subset-fiber saving.  The
+separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### The normalized three-gate/four-variable indexed-profile search is negative
+
+The next finite frontier has now been exhaustively audited by
+`tools/search_indexed_pair_profiles.cpp`.  The search constructs all 24 signed width-two clauses
+on pairs of distinct variables in `Fin 4`, all 276 canonically clause-ordered gates containing two
+distinct clauses, and all 21,024,576 **ordered** triples of such gates (including repeated gates).
+Keeping ordered triples is essential: two matched families can require different permutations of
+their indexed gates.
+
+The executable recurrence directly mirrors `canonicalDT` with fuel four.  All 276 normalized
+gates are active at residual-depth budget one.  Each family is keyed by:
+
+```text
+global variable support,
+the exact signed within-gate pair type at each of the three gate indices,
+the complete four-witness signed cross-gate histogram at each indexed gate pair.
+```
+
+For each key, the search compares whether some single variable, on both Boolean branches, leaves
+all three canonical gate trees at depth at most one.  It found 60,395 distinct exact signatures
+and no signature containing both a one-query-good family and a one-query-bad family:
+
+```text
+NO_MATCH families=21024576 active_gates=276 signatures=60395
+```
+
+This is exhaustive for the stated normalized universe, including all indexed orders, but it is an
+external finite-search result rather than a Lean theorem.  It neither proves that indexed pair
+profiles determine common-query cost for larger variable sets, more clauses per gate, or more
+gates, nor rules out a triple-incidence counterexample there.  Existing positive counterexamples
+to every coarser aggregate profile remain valid.
+
+The evidence nevertheless changes the best next action.  Another search over the same local
+shape has been exhausted; the precise next frontier is to define the full indexed pair-incidence
+matrix (diagonal within-gate cells and off-diagonal cross-gate cells) as a single bounded object,
+then formulate a witness-identified connected-component code and compare its alphabet cost with
+the verified subset-fiber saving.  In parallel, the first genuinely stronger counterexample
+search should add one clause per gate or one gate, rather than merely adding unused ambient
+coordinates.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP
+conclusion follows.
+
+### The complete indexed pair-incidence matrix has a finite but prohibitive raw alphabet
+
+The diagonal and off-diagonal signed profiles are now packaged into one lossless bounded object.
+`IndexedPairIncidenceMatrix G m` has one coordinate for every ordered indexed gate pair and every
+signed width-two type in `Fin 3 × Fin 3 × Fin 5`.  Under the standard per-gate clause bound
+`length ≤ m`, each coordinate lies in `Fin (m*m+1)`.
+
+The bound is kernel checked rather than imposed by truncation.  The new lemmas
+`clausePairTypeCount_le_length_sq` and `crossClausePairTypeCount_le_length_mul` prove respectively
+that a diagonal unordered-pair count and an off-diagonal ordered-pair count are at most `m²`.
+`indexedPairIncidenceMatrix_diagonal` and `_offDiagonal` then recover the earlier complete indexed
+profiles exactly from the packaged object.
+
+The exact raw alphabet cost is also proved:
+
+```text
+card (IndexedPairIncidenceMatrix G m) = (m²+1)^(45*G²).
+```
+
+This resolves the bounded-object interface but gives a negative quantitative audit of the naive
+code.  In the exhausted normalized search universe `G=3,m=2`, the ambient matrix alphabet already
+has size `5^405`, despite the search realizing only 60,395 exact signatures among 21,024,576
+families.  Charging the entire matrix as an auxiliary label would therefore discard nearly all
+available structure and has no verified comparison that is absorbed by the existing
+prefix-subset fiber saving.  The matrix is a semantic container, not yet a viable encoder.
+
+Focused direct elaboration passed the new section and continued into the later finite-game
+development.  A complete package target build replayed 8,486 dependencies and entered the
+known heartbeat-heavy target tail, but the managed process ended without producing a fresh olean
+or a reliable completion status, so no full direct-file or printed-axiom completion is claimed.
+The separate quantitative-iteration regression build passed with 8,451 jobs.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced; existing counterexamples,
+negative searches, and failed routes remain in place.
+
+The precise next frontier is to replace the raw `G² × 45` array by a sparse
+witness-identified incidence object: define the support of its nonzero cells, form connected
+components through shared clause witnesses, and prove an injective reconstruction from component
+data.  Only then should its realized component alphabet be compared with the subset-fiber saving.
+For counterexample search, the first stronger universe remains three clauses per gate or four
+gates.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion
+follows.
+
+### The nonzero matrix support now has a lossless sparse encoding
+
+The first sparse layer is now formalized.  `IndexedPairIncidenceCoordinate G` bundles the two
+indexed gates and the three signed type coordinates, and `indexedPairIncidenceSupport` retains
+exactly those bundled coordinates whose bounded matrix value is nonzero.
+`SparseIndexedPairIncidenceCode G m` stores a canonical finite support and values only under
+membership proofs for that support; its nonzero invariant prevents padding by irrelevant zero
+coordinates.
+
+The capstones `sparseIndexedPairIncidenceDecode_encode` and
+`sparseIndexedPairIncidenceEncode_injective` prove that this representation loses no matrix
+information.  The coordinate universe is also kernel checked exactly:
+
+```text
+card (IndexedPairIncidenceCoordinate G) = 45 * G * G.
+```
+
+An isolated elaboration of the exact sparse definitions and proofs passed, with all three new
+capstones depending only on `propext`, `Classical.choice`, and `Quot.sound`.  Direct elaboration
+of the complete bridge passed the new section and continued beyond line 6,250 before the known
+heavy tail was deliberately stopped; no full direct-file completion is claimed.  `git diff
+--check` passed, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+
+This separates the two costs that the raw alphabet conflated: choosing the realized nonzero
+cells and storing their nonzero multiplicities.  It does **not** yet prove a useful alphabet
+bound, because no bound on realized support size has been derived.  More importantly, a nonzero
+matrix cell still aggregates all clause-pair witnesses of that type.  Therefore connectedness
+through a shared clause occurrence cannot be recovered from matrix support alone, even though
+the matrix itself is reconstructed exactly.
+
+The precise next frontier is consequently sharper: define indexed live clause occurrences
+(gate index plus term position), define typed incidence witnesses as occurrence pairs, and prove
+that forgetting witness identities recovers `indexedPairIncidenceSupport` and its stored counts.
+Only at that witness level can connected components through shared occurrences be formed and
+their realized component alphabet compared with the subset-fiber saving.  The first stronger
+counterexample universe remains three clauses per gate or four gates.  The separate
+SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion follows.
+
+### Occurrence identities now recover every sparse matrix cell exactly
+
+The matrix aggregation boundary has now been crossed without loss.  `indexedLiveClauses` fixes
+the exact filtered list used by the matrix, and `IndexedLiveClauseOccurrence` records its gate,
+filtered-list position, and clause payload.  The position deliberately distinguishes duplicate
+syntactic clauses.  `indexedLiveClauseOccurrences` is the canonical `zipIdx` enumeration from
+which every incidence witness is built.
+
+`typedIncidenceWitnesses` retains the two occurrence identities behind one bundled signed matrix
+coordinate.  On a diagonal cell it uses the earlier/later list orientation of
+`clausePairTypeCount`; off the diagonal it uses the ordered Cartesian orientation of
+`crossClausePairTypeCount`.  Gates already within the residual-depth budget contribute the empty
+witness list, exactly matching the prior profiles.
+
+The capstone `typedIncidenceWitnesses_length_eq_matrix` proves that forgetting identities by
+taking list length recovers the bounded matrix value at every coordinate.  The companion
+`mem_indexedPairIncidenceSupport_iff_witnesses_nonempty` proves that sparse support membership is
+equivalent to existence of at least one such witness.  Thus both the stored multiplicities and
+the canonical nonzero support are recovered from the witness layer.
+
+Direct elaboration passed both capstones, printed their axioms as exactly `propext`,
+`Classical.choice`, and `Quot.sound`, and continued past line 6,400 before the known heavy tail was
+deliberately stopped; no full direct-file completion is claimed.  `git diff --check` passed, and
+the quantitative-iteration regression build passed with 8,451 jobs.  No `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.  Existing counterexamples, negative searches,
+and failed routes remain intact.
+
+The precise next frontier is now to put an undirected adjacency relation on live occurrences:
+two occurrences are adjacent when they appear together in some typed incidence witness.  Define
+the resulting finite connected components, prove that component data reconstructs the complete
+witness lists (and hence the sparse matrix), and only then audit the realized component alphabet
+against the subset-fiber saving.  A key quantitative question is whether component locality pays
+for occurrence positions without reverting to the prohibitive ambient `45 * G²` coordinate
+charge.  The separate SAT-density/fiber obstruction is unchanged.  No P-versus-NP conclusion
+follows.
+
+### The occurrence graph interface exposes a likely component-locality failure
+
+The undirected witness adjacency is now defined as `TypedIncidenceAdjacent`: two distinct live
+occurrence identities are related exactly when one orientation of their pair belongs to some
+`typedIncidenceWitnesses` coordinate.  `typedIncidenceAdjacent_symm` records the required
+symmetry directly, without quotienting occurrence identities or forgetting duplicate positions.
+
+Inspecting the defining branches before building a connected-component API exposes a more
+important structural fact.  The coordinate alphabet ranges over the exact signed type of every
+width-two clause pair.  Consequently, for two distinct active gate indices `g ≠ h`, every
+canonical live occurrence at `g` pairs with every canonical live occurrence at `h` in the
+off-diagonal Cartesian branch, at the uniquely determined `(same, opposite, unionSize)`
+coordinate.  Thus the proposed graph is complete bipartite across every pair of active gates.
+When at least two active gates have live occurrences, all their occurrences lie in one connected
+component; splitting by connected components cannot provide the hoped-for gate locality.  The
+same-gate unordered branch only strengthens this collapse.
+
+This is presently a definition-level audit, not a newly kernel-checked clique theorem.  The
+current managed shell exposes neither `lean`, `lake`, nor `elan`, and a filesystem search found no
+executable toolchain, so no elaboration or printed-axiom claim is made for the new adjacency
+lines.  `git diff --check` does pass.  The general cross-gate completeness proof was drafted far
+enough to identify its exact obligations--the `Fin 3`, `Fin 3`, and `Fin 5` bounds follow from
+the two width-two clauses--then removed rather than leaving an unverified capstone.  This failed
+verification route is recorded here rather than being silently promoted to evidence.
+
+The precise next frontier is therefore to kernel-check the adjacency definition and formalize
+the cross-gate completeness theorem as soon as the Lean toolchain is available.  If it passes,
+abandon connected components of the *complete typed-pair witness graph* as a compression device.
+The next viable locality test should instead use a strictly sparser edge notion (for example,
+shared variables or signed conflicts only) together with an explicit proof of what additional
+data reconstructs the omitted disjoint-pair witnesses.  Only that reconstruction cost should be
+compared with the subset-fiber saving.  The separate SAT-density/fiber obstruction is unchanged.
+No P-versus-NP conclusion follows.
+
+### Cross-gate Cartesian completeness is now kernel checked modulo the explicit type bounds
+
+The defining structural claim has been separated into two reusable theorems.
+`mem_crossTypedOccurrencePairs_iff` proves that membership in the off-diagonal witness list is
+exactly membership of the two occurrences in their respective canonical live lists together
+with their three signed-type equalities.  Thus the enumerator contains every Cartesian pair at
+its uniquely determined color; there is no hidden filtering condition beyond that color.
+
+`typedIncidenceAdjacent_of_crossGate_mem_of_type_lt` then proves that any two canonical
+occurrences from distinct active gates are adjacent whenever their determined color fits the
+declared `Fin 3 × Fin 3 × Fin 5` alphabet.  The three bounds are left as explicit hypotheses,
+rather than being concealed inside the graph theorem.  This kernel-checks the decisive
+completeness mechanism and confirms that connected components of the complete typed-pair graph
+cannot yield gate locality once those routine width-two bounds are supplied.
+
+The absolute toolchain at `/home/darre/.elan/bin` was used for direct elaboration.  Lean passed
+both new theorems and continued beyond line 7,700 of the bridge without an error before the
+known heavy tail was stopped; therefore no full-file completion or printed-axiom result is
+claimed.  `git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  Existing counterexamples and failed compression routes remain
+in place.
+
+The precise next frontier is to discharge the three finite-color premises directly from
+membership in `indexedLiveClauseOccurrences`: prove same-polarity and opposite-polarity overlap
+at most two and union support at most four for the filtered width-two clauses.  That will give
+the unconditional cross-gate clique theorem.  Once obtained, abandon components of this complete
+graph and test a sparse shared-variable or signed-conflict graph, with an explicit reconstruction
+charge for omitted disjoint-pair witnesses.  No P-versus-NP conclusion follows.
+
+### The complete typed-pair occurrence graph has an unconditional cross-gate clique
+
+The finite-color premises are now discharged from canonical occurrence membership itself.
+`IndexedLiveClauseOccurrence.lits_length_eq_two_of_mem` pulls membership through the mapped
+`zipIdx` enumerator and the live-clause filter, proving that every enumerated payload has literal
+length exactly two.  The two signed-support inclusion lemmas show that positive and negative
+variable supports lie inside the unsigned clause support.  Consequently
+`clausePairSamePolarityOverlap_le_leftSupport` and
+`clausePairOppositePolarityOverlap_le_leftSupport` bound both signed overlaps by the first
+clause's unsigned support.
+
+`liveOccurrence_pair_type_bounds` combines these facts with
+`clauseVariableSupport_card_le_width` and `Finset.card_union_le`: each signed overlap is at most
+two and the union support is at most four.  Therefore every pair of canonical live width-two
+occurrences has a valid color in `Fin 3 × Fin 3 × Fin 5`.
+
+The capstone `typedIncidenceAdjacent_of_crossGate_mem` now removes all three explicit type-bound
+hypotheses from the prior Cartesian theorem.  Any canonical occurrences belonging to distinct
+active gates are adjacent.  This formally rules out connected components of the complete typed
+pair witness graph as a gate-local compression: its off-diagonal active part is a clique across
+gate parts, independent of the particular signed overlaps.
+
+Direct Lean elaboration passed the new support lemmas, occurrence-width theorem, finite-color
+bound, and unconditional clique theorem, then continued beyond line 8,200 before the known heavy
+tail was deliberately stopped.  Thus no full-file completion or printed-axiom result is claimed.
+`git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  Existing counterexamples and failed compression routes remain intact.
+
+The precise next frontier is to define the strictly sparser shared-variable or signed-conflict
+graph and prove an exact decomposition of `typedIncidenceWitnesses` into retained edges plus the
+omitted disjoint-pair witnesses.  The resulting reconstruction payload--especially occurrence
+positions for omitted pairs--must then be counted against the subset-fiber saving.  If that
+payload recreates a quadratic gate-pair charge, this locality route should be abandoned rather
+than hidden behind component notation.  No P-versus-NP conclusion follows.
+
+### Shared-variable sparsification now has an exact lossless witness split
+
+The first sparse locality candidate is now formalized as
+`SharedVariableTypedIncidenceAdjacent`: it restricts the complete typed-incidence graph to pairs
+whose unsigned clause supports have nonempty intersection.  Symmetry is proved, so the relation
+is ready for a finite-component construction if its reconstruction charge proves favorable.
+
+More importantly, sparsification no longer hides the omitted information.
+`typedIncidenceWitnessDecomposition` maps every witness in every matrix coordinate to a tagged
+sum: the left tag retains shared-variable pairs and the right tag records disjoint-support pairs.
+`map_forgetTypedIncidenceWitnessTag_decomposition` proves that forgetting only this tag recovers
+the original witness list exactly, including occurrence identities, duplicate positions, gate
+orientation, and list order.  The companion filtered lists
+`sharedVariableTypedIncidenceWitnesses` and `disjointVariableTypedIncidenceWitnesses` satisfy the
+exact length partition `shared_add_disjoint_witness_lengths_eq`.
+
+Thus the sparse graph itself is cheap only if the right-tagged disjoint payload is cheap.  There
+is presently no such bound: every omitted witness still carries both occurrence identities, and
+the earlier cross-gate Cartesian theorem shows that disjoint pairs can occur across all active
+gate pairs.  Component notation alone therefore provides no compression theorem yet; it merely
+separates the hoped-for local part from the payload that must be counted.
+
+Direct Lean elaboration passed all new definitions and proofs and continued beyond line 7,900
+before the known heavy tail was deliberately stopped.  No full-file completion or printed-axiom
+claim is made.  The quantitative-iteration regression target passed with 8,451 jobs.  A separate
+exact bridge-module build replayed its dependencies and reached the final source job without an
+error, but that heavy job exceeded a six-minute bound; this is recorded as a timeout, not a build
+success.  `git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  Existing counterexamples and failed routes remain intact.
+
+The precise next frontier is quantitative: prove an exact cross-gate formula for the right-tagged
+payload, then construct a width-two family with pairwise disjoint clause supports to test its
+worst case.  If the disjoint payload reaches the full Cartesian product of occurrence lists over
+quadratically many active gate pairs, the shared-variable component route recreates the original
+quadratic witness charge and should be abandoned.  Only if a restriction- or survivor-specific
+bound prevents that worst case should connected components be developed further.  No
+P-versus-NP conclusion follows.
+
+### The disjoint reconstruction payload realizes the full cross-block product
+
+The off-diagonal omitted payload now has an exact formula.
+`disjointVariableTypedIncidenceWitnesses_crossGate` proves that for two distinct active gates,
+one colored cell is exactly the corresponding Cartesian live-occurrence enumerator filtered only
+by disjoint variable support.  There is no additional survivor, orientation, or sparsity filter:
+the three signed statistics merely route each pair to its unique matrix coordinate.
+The parameterized theorem
+`exists_mem_disjointVariableTypedIncidenceWitnesses_of_crossGate` makes the consequence explicit:
+every disjoint pair of canonical live occurrences from any two distinct active gates appears in
+the omitted payload at its determined signed-type coordinate.
+
+The existing two-polarity family of two disjoint width-two blocks provides a kernel-evaluated
+stress test.  At the fully live root with fuel four and residual depth one, all four one-clause
+gates are active.  Each of the two gates on the first block is disjoint from each of the two gates
+on the second block, in both ordered directions.  The theorem
+`localDisjointPairPolarityFamily_total_disjoint_payload` proves that the sum over all 720 colored
+coordinates is exactly eight, namely the complete `2 * 2 * 2` ordered cross-block product.  The
+same-block pairs are retained by the sparse graph and diagonal one-occurrence cells contribute
+nothing.
+
+This closes the proposed stress test negatively: shared-variable components do not compress the
+complete typed-pair certificate in general.  Exact reconstruction restores every omitted
+cross-component Cartesian pair, so families with many disjoint active blocks recreate a
+quadratic block-pair charge.  Developing a connected-component API for this edge notion would
+therefore add notation without improving the worst-case alphabet.
+
+Direct Lean elaboration passed both new theorems and continued beyond line 8,000 before the
+known heavy tail hit a four-minute timeout; no full-file completion or printed-axiom result is
+claimed.  `git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  Existing counterexamples and failed routes remain intact.
+
+The precise next frontier is to abandon shared-variable components as a general compression
+route and ask whether the certificate can charge only witnesses actually used by the canonical
+common-query trunk.  The first defensible test is an ordered first-conflict/first-query selector:
+define a deterministic selected occurrence pair for each non-shallow gate pair, prove whether
+the selected data reconstructs the queried prefix, and measure its multiplicity on the existing
+matched-profile counterexamples.  If reconstruction again requires all unselected pairs, record
+that failure before trying another locality quotient.  No P-versus-NP conclusion follows.
+
+### Canonical root-query selection does not determine common-trunk cost
+
+The first deterministic selector test is now formalized without using a support proxy.
+`activeCanonicalFirstQueryProfile` records, for every residually deep indexed gate, the variable
+chosen by the first free literal of its actual first active term.  Already-shallow gates record
+`none`.  `activeCanonicalFirstQueryMultiplicity` counts the exact indexed multiplicity of any
+selected variable.
+
+The existing normalized matched-profile counterexample defeats this root selector.  In both
+`typedPairLowCostFamily` and `typedPairHighCostFamily`, both active gates canonically select
+coordinate zero at the fully live root.  Thus the complete indexed selector functions are equal,
+and coordinate zero has multiplicity exactly two in each family.  Nevertheless the previously
+proved exact common-query costs remain one for the low-cost family and two for the high-cost
+family.  The capstone
+`canonicalRootQuerySelector_does_not_determine_commonQueryCost` packages these four facts.
+
+This is a narrow negative result: charging one actual root query per active gate avoids the full
+Cartesian occurrence payload, but it loses the branch-conditioned evolution that creates the
+second common query in the high-cost family.  Root first-query identities and their multiplicity
+therefore cannot reconstruct even the length-two queried prefix in general.
+
+The finite selector evaluation was independently elaborated in a minimal scratch module, and
+direct elaboration of the full bridge reached the new section.  The initial whole-function
+decision proof was replaced by gatewise finite reduction and a multiplicity proof derived from
+the resulting profile equality.  `git diff --check` passes, and no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.  Existing counterexamples and failed routes
+remain in place.
+
+The precise next frontier is to define the branch-conditioned selector stream: after the chosen
+root variable is assigned, recompute the active gates' canonical first queries and retain only
+the first newly forced conflict/query at each step.  Prove whether the stream plus branch bits
+reconstructs the common queried prefix, then evaluate its length and per-variable multiplicity on
+the same low/high normalized pair.  If reconstruction needs the full vector of every gate's
+successor query at each branch, record the resulting `G * d` charge before attempting a count.
+No P-versus-NP conclusion follows.
+
+### One selected successor query separates the matched root-profile families
+
+The first branch-conditioned selector level is now formalized.  `activeCanonicalFirstFamilyQuery`
+scans the indexed canonical root-query profile in gate order and retains only its first present
+query.  `branchConditionedCanonicalQueryStep` records that selected root query and recomputes the
+same single selection after each Boolean value of the root variable.  It therefore stores one
+chosen query per reached branch, rather than the complete `G`-entry successor vector.
+
+Exact evaluation on the existing normalized matched pair is decisive at this level.  Both
+families select coordinate zero at the root.  The low-cost family then selects no successor on
+either branch, matching its depth-one common trunk.  The high-cost family selects coordinate two
+after `0 := false` and coordinate one after `0 := true`, matching the need for a second common
+query.  `branchConditionedCanonicalQueryStep_separates_typedPairFamilies` packages the contrast:
+the indexed root profiles are identical, while the one-step branch-conditioned selectors differ.
+
+This rules out the strongest immediate negative forecast on the current counterexample: its
+branch evolution does not require storing all gates' successor queries.  One gate-order selected
+query per branch suffices to distinguish the one-query and two-query costs.  This is not yet a
+reconstruction theorem, and a full selector tree may still have exponential branch payload or
+lose information when the first selected gate is not compatible with a globally shallow trunk.
+
+Direct elaboration passed all new definitions and theorems and continued beyond line 6,900 before
+the known heavy tail was deliberately stopped; no full-file completion or printed-axiom result is
+claimed.  The quantitative-iteration regression build passed with 8,451 jobs.  `git diff --check`
+passed, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+Existing counterexamples and failed compression routes remain intact.
+
+The precise next frontier is to define the recursive branch-conditioned selector tree, prove its
+queries reconstruct a valid `CommonTree` whose leaves make every gate residually shallow, and
+bound its depth by the selected-stream length.  The critical audit is then its certificate count:
+determine whether branch sharing yields a prefix code charged per realized path, or whether
+recording the full selector tree incurs `2^d` nodes.  Preserve a counterexample if the greedy
+gate-order selector can exceed optimal common-trunk depth.  No P-versus-NP conclusion follows.
+
+### Recursive selector accounting separates path cost from stored-tree cost
+
+The branch-conditioned selector is now recursively materialized as
+`branchConditionedCanonicalSelectorTree`.  At each state it stores only the first active
+gate-order query, fixes that variable separately on the false and true branches, and recomputes
+the selector from the resulting restriction.  Its leaf payload is exactly the accumulated
+restriction.  No semantic optimality or leaf-shallowness claim is built into the definition.
+
+Two unconditional structural bounds now isolate the accounting issue.  The selector tree has
+depth at most its recursion budget `d`, so every realized assignment sees at most `d` selected
+queries.  In contrast, the newly defined `CommonTree.queryNodeCount` is bounded only by
+`2^d - 1` for the complete stored certificate.  Thus realized-path scale and explicit-tree scale
+are genuinely different resources; branch conditioning alone does not supply a compact shared
+representation.
+
+The existing matched pair already realizes the distinction at the first nontrivial depth.  With
+budget two, the low-cost family stops at depth one and stores one query node.  The high-cost
+family has depth two and stores all three query nodes: root query zero, successor two on the false
+branch, and successor one on the true branch.  This is an exact finite evaluation, not merely the
+general upper bound.
+
+An isolated elaboration of the generic node-count induction passed.  Direct elaboration of the
+full bridge then passed the new definitions, structural theorems, and exact finite evaluations,
+continuing beyond line 7,700 before the known expensive tail was deliberately stopped.  The
+quantitative-iteration regression build passed with 8,451 jobs.  Existing counterexamples and
+failed compression routes remain intact.  `git diff --check` passes, and no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is semantic: prove a stopping-to-`CommonShallowAt` bridge for this
+specific greedy tree, including root extension and leaf agreement, and determine whether every
+family admitting a depth-`d` common trunk makes the greedy selector stop within comparable depth.
+If not, preserve the smallest counterexample and replace gate-order greediness by a selector with
+a proved winning-query invariant.  Only after that should the counting argument decide whether a
+realized-path encoding can avoid paying for the explicit `2^d` tree.  No P-versus-NP conclusion
+follows.
+
+### Greedy stopping now has exact common-shallow semantics
+
+The recursive selector's semantic interface is now proved rather than assumed.
+`activeCanonicalFirstFamilyQuery_eq_none_iff` shows that the gate-order selector returns `none`
+exactly when every indexed canonical tree has depth at most the requested residual threshold.
+The proof closes the apparent `activeTermLit = none` corner case: the new theorem
+`canonicalDT_depth_eq_zero_of_activeTermLit_eq_none` proves that this can only leave a constant
+canonical tree, at every fuel budget.
+
+Every selected coordinate is also proved live in the current restriction by
+`activeCanonicalFirstFamilyQuery_var_free`.  Induction on the recursion budget then gives
+`branchConditionedCanonicalSelectorTree_run_spec`: every realized selector leaf extends the root
+restriction and agrees with the assignment that reaches it.  Consequently
+`commonShallowAt_of_branchConditionedCanonicalSelectorTree_stops` packages any budget whose
+reached leaves all stop into a genuine `CommonShallowAt` certificate of the same depth.  No
+semantic weakening or arbitrary leaf payload is used.
+
+The new theorem section elaborated independently in a focused scratch module.  Direct elaboration
+of the full bridge passed the new definitions and proofs and continued beyond line 8,400 before
+the known expensive tail was deliberately stopped; no whole-file completion claim is made.  The
+quantitative-iteration regression then passed with 8,451 jobs.  Existing counterexamples and
+failed compression routes remain intact.  `git diff --check` passes, and no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is now purely competitive: compare the first budget at which this
+gate-order greedy selector stops with the minimum `CommonShallowAt` trunk depth.  The smallest
+defensible test is the already exhaustive 81-state two-pair family, using its flexible-game cost
+as the exact semantic optimum.  Prove equality there or preserve the first state where greedy is
+strictly worse; then generalize only if a winning-query invariant emerges.  The exponential
+stored-tree count remains a separate later obstacle.  No P-versus-NP conclusion follows.
+
+### The greedy selector is pointwise optimal on the exhaustive two-pair family
+
+The first stopping budget of the specific gate-order selector is now executable.  The new
+`twoPairGreedySelectorStops` recurrence follows exactly one
+`activeCanonicalFirstFamilyQuery` at each nonterminal state and requires both Boolean children
+to stop.  This avoids both an enumeration of total assignments and the explicit `2^d` selector
+tree.  `twoPairGreedySelectorCost` records its first stopping budget in the complete local range
+zero through three, and `twoPairGreedySelectorStops_three_code` checks that the final fallback
+really stops on all 81 restrictions.
+
+The competitive audit found no counterexample.  The kernel-checkable statement
+`twoPairGreedySelectorCost_eq_flexibleQueryCost_code` compares the greedy and flexible costs
+pointwise on every base-three state, rather than merely comparing histograms.  The decoding
+surjectivity theorem then gives the presentation-free equality for every four-coordinate
+restriction.  Both costs have the exact distribution `(56,16,8,1)` at budgets `(0,1,2,3)`.
+Thus gate-order greediness is exactly optimal on this family, including the unique cost-three
+fully live root.  This finite positive result does not establish a general competitive theorem.
+
+The local definitions and comparison were independently mirrored by a read-only Python
+evaluation, which returned no unequal state and the same histogram.  `git diff --check` passes,
+and a source scan finds no newly introduced `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide`.  The current execution environment does not expose a Lean or Lake executable,
+so fresh elaboration of the added declarations is not claimed in this step.
+
+The precise next frontier is to prove, generically in the gate family, that the executable
+stopping recurrence is equivalent to universal stopping of
+`branchConditionedCanonicalSelectorTree` on all root-compatible assignments.  Composing that
+equivalence with `commonShallowAt_of_branchConditionedCanonicalSelectorTree_stops` will turn the
+finite cost equality into a fully connected semantic optimality theorem for the two-pair family.
+Only then should one extract the winning-query invariant suggested by the 81-state equality and
+test it on the next-smallest normalized width-two families.  The exponential stored-tree count
+remains separate.  No P-versus-NP conclusion follows.
+
+### Executable greedy stopping is now connected to realized-tree semantics
+
+The greedy stopping recurrence is now generic in the indexed gate family rather than existing
+only as a two-pair evaluator.  `branchConditionedCanonicalSelectorStops` follows the same
+gate-order query and Boolean children as `branchConditionedCanonicalSelectorTree`, but computes a
+Boolean conjunction without exposing the complete stored tree.
+
+The theorem `branchConditionedCanonicalSelectorStops_eq_true_iff` proves exact equivalence between
+that executable recurrence and universal stopping of the realized selector tree over every total
+assignment compatible with the root restriction.  Both directions are substantive at the
+interface: the forward direction routes assignments into the corresponding fixed child, while
+the reverse direction transports each child-compatible assignment back through the live root
+query.  The zero-budget converse uses the canonical `getD` completion, so it does not assume the
+compatible-assignment set is inhabited without proof.
+
+`commonShallowAt_of_branchConditionedCanonicalSelectorStops` composes the equivalence with the
+existing run-specification and shallow-leaf bridge.  The former two-pair recurrence is now a
+specialization of the generic predicate, and `twoPairCommonShallowAt_greedySelectorCost` proves
+that its computed first stopping budget supplies an actual `CommonShallowAt` certificate.  Thus
+the exhaustive equality with `twoPairFlexibleQueryCost` is connected to the semantic certificate
+layer rather than remaining a detached finite calculation.
+
+Direct Lean elaboration passed the new generic recurrence, both directions of the equivalence,
+the common-shallow corollary, the specialized cost certificate, and continued beyond line 8,600.
+The run was then stopped by its five-minute bound in the known expensive tail, so no whole-file
+completion or printed-axiom result is claimed.  `git diff --check` passes, and a scan of the added
+source finds no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide`.  Existing
+counterexamples and failed compression routes remain intact.
+
+The precise next frontier is to extract a structural winning-query invariant from the two-pair
+equality and test it on the next-smallest normalized width-two families.  The first useful audit
+should enumerate three two-literal terms (and both polarities where relevant), compare greedy
+stopping cost with the flexible semantic optimum pointwise, and preserve the first strict gap if
+one exists.  A positive finite result should only be generalized after identifying an invariant
+that explains the greedy choice.  The exponential stored-tree count remains a separate later
+obstacle.  No P-versus-NP conclusion follows.
+
+### The two-pair greedy selector is now semantically optimal
+
+`twoPairFlexibleQueryCost_le_of_commonShallowAt` proves that the executable flexible-game cost is
+no larger than the depth of any semantic `CommonShallowAt` certificate.  The proof uses the
+verified game/semantics equivalence and audits all four possible first-winning budgets, including
+the depth-three fallback.
+
+Combining this lower bound with `twoPairGreedySelectorCost_eq_flexibleQueryCost` gives
+`twoPairGreedySelectorCost_le_of_commonShallowAt`.  Together with the existing attainability
+theorem `twoPairCommonShallowAt_greedySelectorCost`, the gate-order selector therefore has exact
+minimum semantic common-trunk depth on every one of the 81 restrictions.
+
+Direct Lean elaboration passed the new declarations and continued beyond line 8,500 before the
+four-minute whole-file timeout.  No error occurred in or after the edited section; the timeout is
+not claimed as a whole-file build success.  `git diff --check` passes, and no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The next defensible step remains the three-term or four-gate normalized width-two audit.  It must
+either expose a strict greedy/semantic gap or identify a structural winning-query invariant.
+The exponential stored-tree count and independent SAT-density/fiber obstruction remain open.
+No P-versus-NP conclusion follows.

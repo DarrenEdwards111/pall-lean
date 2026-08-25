@@ -1004,6 +1004,50 @@ theorem commonShallowBad_scaled_le_linearGap_realized
   have hhalf : (20 * r) / 2 = 10 * r := by omega
   simpa [hhalf] using hbound
 
+/-- The concrete realized-prefix contraction has a genuine good root.  This is the strict
+nonemptiness consequence missing from the scaled cardinality statement: positivity of `r` makes
+the saving factor at least two, while positivity of `G`, `m`, and `r` makes the `20*r` shell
+nonempty. -/
+theorem exists_commonShallowAt_linearGap_realized
+    {G m r fuel residualDepth : ℕ}
+    {gates : Fin G → List (Clause (1000 * (G * m) * r))}
+    (hG : 0 < G) (hm : 0 < m) (hr : 0 < r)
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ 2)
+    (hgate : ∀ g, (gates g).length ≤ m)
+    (hKfuel : 20 * r ≤ fuel) :
+    ∃ σ : Restriction (1000 * (G * m) * r),
+      stars σ = 20 * r ∧
+      CommonShallowAt gates fuel σ (10 * r) residualDepth := by
+  let shell := Finset.univ.filter fun σ : Restriction (1000 * (G * m) * r) ↦
+    stars σ = 20 * r
+  let bad := commonShallowBad gates fuel (20 * r) (10 * r) residualDepth
+  have hscaled : bad.card * 2 ^ (10 * r) ≤ shell.card := by
+    exact commonShallowBad_scaled_le_linearGap_realized
+      hG hm hr hnd hw hgate hKfuel
+  have hKn : 20 * r ≤ 1000 * (G * m) * r := by
+    have hA : 0 < G * m := Nat.mul_pos hG hm
+    have : 20 ≤ 1000 * (G * m) := by nlinarith
+    exact Nat.mul_le_mul_right r this
+  have hshellPos : 0 < shell.card := by
+    rw [show shell.card = Nat.choose (1000 * (G * m) * r) (20 * r) *
+        2 ^ (1000 * (G * m) * r - 20 * r) by
+      simpa [shell] using card_stars_eq (1000 * (G * m) * r) (20 * r)]
+    exact Nat.mul_pos (Nat.choose_pos hKn) (pow_pos (by omega) _)
+  have hsaving : 2 ≤ 2 ^ (10 * r) := by
+    calc
+      2 = 2 ^ 1 := by norm_num
+      _ ≤ 2 ^ (10 * r) := Nat.pow_le_pow_right (by omega) (by omega)
+  have hcard : bad.card < shell.card := by
+    nlinarith
+  obtain ⟨σ, hσshell, hσbad⟩ := Finset.exists_mem_notMem_of_card_lt_card hcard
+  have hstars : stars σ = 20 * r := by
+    simpa [shell] using hσshell
+  refine ⟨σ, hstars, ?_⟩
+  by_contra hnot
+  apply hσbad
+  simpa [bad, mem_commonShallowBad] using ⟨hstars, hnot⟩
+
 /-- A positive shell contraction theorem with the arithmetic balance discharged.  Its remaining
 quantitative assumptions are explicit: the saving exponent fits within the trunk, and every
 nontrivial shell lies in the sparse-density regime dictated by the current encoder base. -/
@@ -1099,5 +1143,6 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_realized_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_of_actual_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_scaled_le_linearGap_realized
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_commonShallowAt_linearGap_realized
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_of_sparse_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowShellContraction_densityAdaptive

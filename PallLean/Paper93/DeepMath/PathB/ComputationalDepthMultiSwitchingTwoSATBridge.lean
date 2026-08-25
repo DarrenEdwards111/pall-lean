@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingLayeredBridge
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingSupportSurvivor
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTwoSATSimpleWalkCutoff
 
 /-!
@@ -1486,781 +1487,6 @@ theorem independentLiteralGates_not_actualDensity
     (hbase.trans hmul).trans_lt (Nat.lt_add_of_pos_right hK)
   exact (Nat.not_lt_of_ge hdensity) hstrict
 
-/-! ### Density-aware support code for realized prefixes
-
-The exact ragged alphabet counts clause occurrences, while the variables queried by a canonical
-prefix must occur inside those clauses.  The following support code makes that relationship
-explicit.  It bounds the number of distinct realized `d`-variable prefix sets, not the number of
-roots in an endpoint fiber; reconstructing roots still requires the endpoint injection already
-proved in the witness-label development. -/
-
-/-- Variables occurring in one clause. -/
-def clauseVariableSupport {n : ℕ} (T : Depth3.Clause n) : Finset (Fin n) :=
-  (T.lits.map litVar).toFinset
-
-/-- Variables occurring in one DNF gate. -/
-def gateVariableSupport {n : ℕ} (cs : List (Depth3.Clause n)) : Finset (Fin n) :=
-  cs.toFinset.biUnion clauseVariableSupport
-
-/-- Variables occurring anywhere in the exact indexed gate family. -/
-def familyVariableSupport {n G : ℕ} (gates : Fin G → List (Depth3.Clause n)) :
-    Finset (Fin n) :=
-  Finset.univ.biUnion fun g => gateVariableSupport (gates g)
-
-/-- Literal negation changes polarity but not the variable support of a clause. -/
-@[simp] theorem clauseVariableSupport_negClause {n : ℕ} (T : Depth3.Clause n) :
-    clauseVariableSupport (⟨T.lits.map negLit⟩ : Depth3.Clause n) =
-      clauseVariableSupport T := by
-  have hmap : T.lits.map (litVar ∘ negLit) = T.lits.map litVar := by
-    apply List.map_congr_left
-    intro ell _hell
-    cases ell <;> rfl
-  simpa [clauseVariableSupport, List.map_map] using congrArg List.toFinset hmap
-
-/-- De Morgan dualization preserves the complete variable support of a bottom gate. -/
-@[simp] theorem gateVariableSupport_negDNF {n : ℕ} (cs : List (Depth3.Clause n)) :
-    gateVariableSupport (negDNF cs) = gateVariableSupport cs := by
-  ext v
-  simp [gateVariableSupport, negDNF]
-
-/-- The unpolarized support owned by the circuit's syntactic bottom gates. -/
-def layeredBottomVariableSupport {n : ℕ} (C : Layered n) : Finset (Fin n) :=
-  (bottomGates C).toFinset.biUnion gateVariableSupport
-
-/-- Duplicate normalization and adjoining the De Morgan polarity introduce no new variables. -/
-theorem normalizedLayeredBottomFamily_support_subset_bottomSupport {n : ℕ}
-    (C : Layered n) :
-    familyVariableSupport (normalizedLayeredBottomFamily C) ⊆
-      layeredBottomVariableSupport C := by
-  intro v hv
-  rw [familyVariableSupport] at hv
-  obtain ⟨g, _hg, hvg⟩ := Finset.mem_biUnion.mp hv
-  rw [gateVariableSupport] at hvg
-  obtain ⟨T, hT, hvT⟩ := Finset.mem_biUnion.mp hvg
-  have hTraw : T ∈ layeredBottomFamily C g :=
-    (PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_eraseDups_iff
-      T _).mp (List.mem_toFinset.mp hT)
-  have hgmem : layeredBottomFamily C g ∈ layeredBottomFamilyList C := by
-    exact List.get_mem _ _
-  rw [layeredBottomFamilyList, List.mem_append] at hgmem
-  rw [layeredBottomVariableSupport]
-  apply Finset.mem_biUnion.mpr
-  rcases hgmem with hpos | hneg
-  · exact ⟨layeredBottomFamily C g, List.mem_toFinset.mpr hpos,
-      Finset.mem_biUnion.mpr ⟨T, List.mem_toFinset.mpr hTraw, hvT⟩⟩
-  · obtain ⟨cs, hcs, hcsEq⟩ := List.mem_map.mp hneg
-    refine ⟨cs, List.mem_toFinset.mpr hcs, ?_⟩
-    rw [← gateVariableSupport_negDNF cs]
-    rw [hcsEq]
-    exact Finset.mem_biUnion.mpr ⟨T, List.mem_toFinset.mpr hTraw, hvT⟩
-
-/-- Every coordinate queried anywhere in a canonical gate tree occurs syntactically in that
-gate.  Unlike the existing freshness theorem, this records the static support restriction and is
-therefore useful when many ambient live variables are irrelevant to the family. -/
-theorem canonicalDT_queriedVars_subset_gateVariableSupport {n : ℕ}
-    (cs : List (Depth3.Clause n)) :
-    ∀ fuel σ, queriedVars (canonicalDT cs fuel σ) ⊆ gateVariableSupport cs := by
-  intro fuel
-  induction fuel with
-  | zero =>
-      intro σ
-      rw [canonicalDT]
-      split <;> simp [queriedVars]
-  | succ fuel ih =>
-      intro σ
-      rw [canonicalDT]
-      split
-      · simp [queriedVars]
-      · split
-        · simp [queriedVars]
-        · rename_i T hactive
-          obtain ⟨ell, hhead, _hfree⟩ := activeTerm_first_free hactive
-          simp only [hhead, queriedVars]
-          intro v hv
-          rw [Finset.mem_insert, Finset.mem_union] at hv
-          rcases hv with rfl | hv | hv
-          · apply Finset.mem_biUnion.mpr
-            refine ⟨T, List.mem_toFinset.mpr
-              (SwitchingCounting.activeTerm_mem hactive), ?_⟩
-            apply List.mem_toFinset.mpr
-            apply List.mem_map.mpr
-            refine ⟨ell, ?_, rfl⟩
-            have hellFree : ell ∈ freeLits σ T := List.mem_of_mem_head? hhead
-            exact (List.mem_filter.mp hellFree).1
-          · exact ih _ hv
-          · exact ih _ hv
-
-/-- A read-once common-family path pays only for coordinates that are both live and actually
-owned by the gate family.  This sharpens the ambient `stars` bound when padding coordinates are
-live but irrelevant to every gate. -/
-theorem canonicalFamily_trace_length_le_live_support {n G : ℕ}
-    (gates : Fin G → List (Depth3.Clause n)) (fuel : ℕ) (σ : Restriction n)
-    (x : Fin n → Bool) (hext : Rung4Restriction.Extends σ x) :
-    (CommonTree.trace
-      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length ≤
-      ((familyVariableSupport gates).filter fun i ↦ σ i = none).card := by
-  rw [CommonTree.trace_length_eq_queryVars_length]
-  have hnd := CommonTree.queryVars_readOnce_nodup σ
-    (canonicalFamilyTree gates fuel σ) x hext
-  rw [← List.toFinset_card_of_nodup hnd]
-  apply Finset.card_le_card
-  intro v hv
-  rw [Finset.mem_filter]
-  have hvList : v ∈ CommonTree.queryVars
-      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x :=
-    List.mem_toFinset.mp hv
-  constructor
-  · have hvRaw := CommonTree.mem_queryVars_of_mem_readOnce σ
-      (canonicalFamilyTree gates fuel σ) x hext hvList
-    rw [canonicalFamilyTree, CommonTree.queryVars_commonRefineFin] at hvRaw
-    obtain ⟨segment, hsegment, hvSegment⟩ := List.mem_flatten.mp hvRaw
-    obtain ⟨tree, htree, rfl⟩ := List.mem_map.mp hsegment
-    obtain ⟨g, rfl⟩ := List.mem_ofFn.mp htree
-    apply Finset.mem_biUnion.mpr
-    refine ⟨g, Finset.mem_univ g, ?_⟩
-    apply canonicalDT_queriedVars_subset_gateVariableSupport (gates g) fuel σ
-    exact CommonTree.queryVars_ofBool_toFinset_subset_queriedVars
-      (canonicalDT (gates g) fuel σ) x (List.mem_toFinset.mpr hvSegment)
-  · exact mem_freeVars.mp
-      (CommonTree.mem_queryVars_readOnce_freeVars σ
-        (canonicalFamilyTree gates fuel σ) x hext hvList)
-
-/-- If the trunk budget covers the live part of the actual family support, irrelevant ambient
-survivors need not be charged.  Ample fuel is still stated using the full live count because it
-is what makes each completed canonical member path semantically terminal. -/
-theorem commonShallowAt_zero_of_live_support_le {n G : ℕ}
-    (gates : Fin G → List (Depth3.Clause n)) (fuel : ℕ) (σ : Restriction n)
-    (trunkDepth : ℕ) (hstarsFuel : stars σ ≤ fuel)
-    (hsupport : ((familyVariableSupport gates).filter fun i ↦ σ i = none).card ≤
-      trunkDepth) :
-    CommonShallowAt gates fuel σ trunkDepth 0 := by
-  apply commonShallowAt_of_prefix_residual gates fuel σ trunkDepth 0
-  intro x hext g
-  have htrace : (CommonTree.trace
-      (CommonTree.readOnce σ (canonicalFamilyTree gates fuel σ)) x).length ≤
-      trunkDepth :=
-    (canonicalFamily_trace_length_le_live_support gates fuel σ x hext).trans hsupport
-  have hend := CommonTree.prefixEndpoint_eq_pathEndpoint_of_trace_length_le
-    σ (canonicalFamilyTree gates fuel σ) trunkDepth x htrace
-  rw [CommonTree.prefixEndpoint] at hend
-  rw [hend]
-  exact Nat.le_of_eq (canonicalDT_depth_eq_zero_of_terminal (gates g)
-    (CommonTree.pathEndpoint σ (canonicalFamilyTree gates fuel σ) x)
-    (canonicalFamily_pathEndpoint_terminal gates fuel σ x hext hstarsFuel g) fuel)
-
-/-- The root-local support tail on the exact `K`-star shell.  This is intentionally independent
-of fixed Boolean values: it is a necessary envelope for the bad event, not an exact semantic
-classification. -/
-noncomputable def liveFamilySupportTail {n G : ℕ}
-    (gates : Fin G → List (Depth3.Clause n)) (K trunkDepth : ℕ) :
-    Finset (Restriction n) :=
-  Finset.univ.filter fun σ =>
-    stars σ = K ∧
-      trunkDepth < ((familyVariableSupport gates).filter fun i ↦ σ i = none).card
-
-theorem mem_liveFamilySupportTail_iff {n G : ℕ}
-    {gates : Fin G → List (Depth3.Clause n)} {K trunkDepth : ℕ}
-    {σ : Restriction n} :
-    σ ∈ liveFamilySupportTail gates K trunkDepth ↔
-      stars σ = K ∧
-        trunkDepth < ((familyVariableSupport gates).filter fun i ↦ σ i = none).card := by
-  simp [liveFamilySupportTail]
-
-/-- With ample fuel, querying all live family-support coordinates proves that every bad root lies
-in the strict live-support tail.  The conclusion holds for every requested residual depth because
-the support trunk actually leaves residual depth zero. -/
-theorem commonShallowBad_subset_liveFamilySupportTail
-    {n G fuel K trunkDepth residualDepth : ℕ}
-    {gates : Fin G → List (Depth3.Clause n)} (hKfuel : K ≤ fuel) :
-    commonShallowBad gates fuel K trunkDepth residualDepth ⊆
-      liveFamilySupportTail gates K trunkDepth := by
-  intro σ hσ
-  rw [mem_liveFamilySupportTail_iff]
-  obtain ⟨hstars, hbad⟩ := mem_commonShallowBad.mp hσ
-  refine ⟨hstars, ?_⟩
-  by_contra hnot
-  apply hbad
-  apply CommonShallowAt.mono
-    (commonShallowAt_zero_of_live_support_le gates fuel σ trunkDepth
-      (by simpa [hstars] using hKfuel) (Nat.le_of_not_gt hnot))
-  · exact Nat.le_refl _
-  · exact Nat.zero_le _
-
-/-- The corresponding tail measured using the circuit's unpolarized syntactic bottom support.
-This is the sharp circuit-owned event: adjoining the second polarity and erasing duplicates do not
-enlarge its support. -/
-noncomputable def liveLayeredBottomSupportTail {n : ℕ}
-    (C : Layered n) (K trunkDepth : ℕ) : Finset (Restriction n) :=
-  Finset.univ.filter fun σ =>
-    stars σ = K ∧
-      trunkDepth < ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card
-
-theorem mem_liveLayeredBottomSupportTail_iff {n : ℕ} {C : Layered n}
-    {K trunkDepth : ℕ} {σ : Restriction n} :
-    σ ∈ liveLayeredBottomSupportTail C K trunkDepth ↔
-      stars σ = K ∧
-        trunkDepth < ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card := by
-  simp [liveLayeredBottomSupportTail]
-
-/-! ### Exact hypergeometric support-tail count
-
-The semantic reduction above leaves a purely support-theoretic event.  We expose its fixed-overlap
-classes separately: this keeps the exact binomial summand available even when the final tail sum
-is too coarse for the circuit recurrence. -/
-
-/-- Restrictions on the `K`-star shell with exactly `q` live coordinates in a fixed support. -/
-noncomputable def liveSupportOverlap {n : ℕ} (support : Finset (Fin n))
-    (K q : ℕ) : Finset (Restriction n) :=
-  Finset.univ.filter fun σ =>
-    stars σ = K ∧ (support.filter fun i ↦ σ i = none).card = q
-
-theorem mem_liveSupportOverlap_iff {n K q : ℕ} {support : Finset (Fin n)}
-    {σ : Restriction n} :
-    σ ∈ liveSupportOverlap support K q ↔
-      stars σ = K ∧ (support.filter fun i ↦ σ i = none).card = q := by
-  simp [liveSupportOverlap]
-
-/-- Free-variable sets underlying one fixed support-overlap class. -/
-def liveSupportOverlapFreeSets {n : ℕ} (support : Finset (Fin n))
-    (K q : ℕ) : Finset (Finset (Fin n)) :=
-  occupancySizeFiber (fun _ : Fin 1 => support) (fun _ => q) (K - q)
-
-theorem mem_liveSupportOverlapFreeSets_iff {n K q : ℕ}
-    {support : Finset (Fin n)} {S : Finset (Fin n)} :
-    S ∈ liveSupportOverlapFreeSets support K q ↔
-      (S ∩ support).card = q ∧ (S \ support).card = K - q := by
-  rw [liveSupportOverlapFreeSets, mem_occupancySizeFiber]
-  simp [supportUnion]
-
-/-- The free-set part of a fixed overlap class is the usual hypergeometric product. -/
-theorem liveSupportOverlapFreeSets_card {n K q : ℕ}
-    (support : Finset (Fin n)) :
-    (liveSupportOverlapFreeSets support K q).card =
-      support.card.choose q * (n - support.card).choose (K - q) := by
-  rw [liveSupportOverlapFreeSets,
-    occupancySizeFiber_card_uniform
-      (fun _ : Fin 1 => support)
-      (fun g h hne => False.elim (hne (Subsingleton.elim g h)))
-      (fun _ => rfl)]
-  simp
-
-theorem mem_liveSupportOverlap_iff_freeSet {n K q : ℕ}
-    {support : Finset (Fin n)} (hq : q ≤ K) (σ : Restriction n) :
-    σ ∈ liveSupportOverlap support K q ↔
-      freeVars σ ∈ liveSupportOverlapFreeSets support K q := by
-  rw [mem_liveSupportOverlap_iff, mem_liveSupportOverlapFreeSets_iff]
-  have hinter : (freeVars σ ∩ support).card =
-      (support.filter fun i ↦ σ i = none).card := by
-    apply congrArg Finset.card
-    ext i
-    simp [mem_freeVars, and_comm]
-  rw [hinter]
-  constructor
-  · rintro ⟨hstars, hoverlap⟩
-    refine ⟨hoverlap, ?_⟩
-    have hpartition := Finset.card_sdiff_add_card_inter (freeVars σ) support
-    rw [stars] at hstars
-    omega
-  · rintro ⟨hoverlap, houtside⟩
-    refine ⟨?_, hoverlap⟩
-    rw [stars]
-    have hpartition := Finset.card_sdiff_add_card_inter (freeVars σ) support
-    omega
-
-/-- Exact cardinality of one support-overlap class.  Boolean values on all `n-K` fixed
-coordinates are unrestricted, so every free set contributes the common factor `2^(n-K)`. -/
-theorem liveSupportOverlap_card {n K q : ℕ} (support : Finset (Fin n))
-    (hq : q ≤ K) :
-    (liveSupportOverlap support K q).card =
-      support.card.choose q * (n - support.card).choose (K - q) * 2 ^ (n - K) := by
-  classical
-  have hmaps : Set.MapsTo (fun σ : Restriction n => freeVars σ)
-      (liveSupportOverlap support K q : Set (Restriction n))
-      (liveSupportOverlapFreeSets support K q : Set (Finset (Fin n))) := by
-    intro σ hσ
-    rw [Finset.mem_coe] at hσ ⊢
-    exact (mem_liveSupportOverlap_iff_freeSet hq σ).mp hσ
-  rw [Finset.card_eq_sum_card_fiberwise hmaps]
-  have hterm : ∀ S ∈ liveSupportOverlapFreeSets support K q,
-      ((liveSupportOverlap support K q).filter (fun σ => freeVars σ = S)).card =
-        2 ^ (n - K) := by
-    intro S hS
-    have hScard : S.card = K := by
-      have hoverlap := (mem_liveSupportOverlapFreeSets_iff).mp hS
-      have hpartition := Finset.card_sdiff_add_card_inter S support
-      omega
-    have heq : (liveSupportOverlap support K q).filter (fun σ => freeVars σ = S) =
-        Finset.univ.filter (fun σ : Restriction n => freeVars σ = S) := by
-      ext σ
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-      constructor
-      · exact fun h => h.2
-      · intro hfree
-        refine ⟨?_, hfree⟩
-        rw [mem_liveSupportOverlap_iff_freeSet hq, hfree]
-        exact hS
-    rw [heq, card_freeVars_eq, hScard]
-  rw [Finset.sum_congr rfl hterm, Finset.sum_const, smul_eq_mul,
-    liveSupportOverlapFreeSets_card]
-
-/-- The circuit-owned tail is the disjoint union of its exact overlap classes. -/
-theorem liveLayeredBottomSupportTail_eq_biUnion_overlap {n K trunkDepth : ℕ}
-    (C : Layered n) :
-    liveLayeredBottomSupportTail C K trunkDepth =
-      (Finset.Icc (trunkDepth + 1) K).biUnion
-        (liveSupportOverlap (layeredBottomVariableSupport C) K) := by
-  ext σ
-  rw [mem_liveLayeredBottomSupportTail_iff]
-  simp only [Finset.mem_biUnion, Finset.mem_Icc]
-  constructor
-  · rintro ⟨hstars, hlive⟩
-    let q := ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none).card
-    have hqle : q ≤ K := by
-      have hfilter :
-          ((layeredBottomVariableSupport C).filter fun i ↦ σ i = none) ⊆ freeVars σ := by
-        intro i hi
-        exact mem_freeVars.mpr (Finset.mem_filter.mp hi).2
-      calc q ≤ (freeVars σ).card := Finset.card_le_card hfilter
-        _ = K := hstars
-    refine ⟨q, ⟨by omega, hqle⟩, ?_⟩
-    rw [mem_liveSupportOverlap_iff]
-    exact ⟨hstars, rfl⟩
-  · rintro ⟨q, hq, hσ⟩
-    rw [mem_liveSupportOverlap_iff] at hσ
-    exact ⟨hσ.1, by omega⟩
-
-/-- Exact hypergeometric cardinality of the circuit-owned live-support tail. -/
-theorem liveLayeredBottomSupportTail_card {n K trunkDepth : ℕ} (C : Layered n) :
-    (liveLayeredBottomSupportTail C K trunkDepth).card =
-      ∑ q ∈ Finset.Icc (trunkDepth + 1) K,
-        (layeredBottomVariableSupport C).card.choose q *
-          (n - (layeredBottomVariableSupport C).card).choose (K - q) * 2 ^ (n - K) := by
-  have hpair : ((Finset.Icc (trunkDepth + 1) K : Finset ℕ) : Set ℕ).PairwiseDisjoint
-      (liveSupportOverlap (layeredBottomVariableSupport C) K) := by
-    intro q hq r hr hne
-    change Disjoint (liveSupportOverlap (layeredBottomVariableSupport C) K q)
-      (liveSupportOverlap (layeredBottomVariableSupport C) K r)
-    rw [Finset.disjoint_left]
-    intro σ hσq hσr
-    rw [mem_liveSupportOverlap_iff] at hσq hσr
-    exact hne (hσq.2.symm.trans hσr.2)
-  rw [liveLayeredBottomSupportTail_eq_biUnion_overlap,
-    Finset.card_biUnion hpair]
-  apply Finset.sum_congr rfl
-  intro q hq
-  exact liveSupportOverlap_card _ (Finset.mem_Icc.mp hq).2
-
-/-- Circuit-specialized support-tail reduction.  Every normalized-family bad root is charged to
-more than `trunkDepth` live coordinates in the original, unpolarized bottom-gate support. -/
-theorem normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
-    {n fuel K trunkDepth residualDepth : ℕ} {C : Layered n}
-    (hKfuel : K ≤ fuel) :
-    commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth residualDepth ⊆
-      liveLayeredBottomSupportTail C K trunkDepth := by
-  intro σ hσ
-  rw [mem_liveLayeredBottomSupportTail_iff]
-  obtain ⟨hstars, hbad⟩ := mem_commonShallowBad.mp hσ
-  refine ⟨hstars, ?_⟩
-  by_contra hnot
-  apply hbad
-  apply CommonShallowAt.mono
-    (commonShallowAt_zero_of_live_support_le
-      (normalizedLayeredBottomFamily C) fuel σ trunkDepth
-      (by simpa [hstars] using hKfuel) ?_)
-  · exact Nat.le_refl _
-  · exact Nat.zero_le _
-  apply (Finset.card_le_card ?_).trans (Nat.le_of_not_gt hnot)
-  intro i hi
-  simp only [Finset.mem_filter] at hi ⊢
-  exact ⟨normalizedLayeredBottomFamily_support_subset_bottomSupport C hi.1, hi.2⟩
-
-/-- After the common fixed-value factor is cancelled, the exact hypergeometric coefficient is
-the only numerical obligation needed to contract the normalized circuit bad set.  This packages
-the support-tail reduction and keeps the remaining estimate independent of the `2^(n-K)` Boolean
-fibers. -/
-theorem normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail
-    {n fuel K trunkDepth residualDepth savingExponent : ℕ} {C : Layered n}
-    (hKfuel : K ≤ fuel)
-    (htail :
-      (∑ q ∈ Finset.Icc (trunkDepth + 1) K,
-          (layeredBottomVariableSupport C).card.choose q *
-            (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
-          2 ^ savingExponent ≤ n.choose K) :
-    (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
-        residualDepth).card * 2 ^ savingExponent ≤
-      (Finset.univ.filter fun σ : Restriction n ↦ stars σ = K).card := by
-  have hsubset := normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
-    (C := C) (trunkDepth := trunkDepth) (residualDepth := residualDepth) hKfuel
-  have hcard :
-      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
-          residualDepth).card ≤
-        (liveLayeredBottomSupportTail C K trunkDepth).card :=
-    Finset.card_le_card hsubset
-  rw [liveLayeredBottomSupportTail_card] at hcard
-  rw [SwitchingCounting.card_stars_eq]
-  rw [← Finset.sum_mul] at hcard
-  calc
-    (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth
-        residualDepth).card * 2 ^ savingExponent ≤
-        ((∑ q ∈ Finset.Icc (trunkDepth + 1) K,
-            (layeredBottomVariableSupport C).card.choose q *
-              (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
-            2 ^ (n - K)) * 2 ^ savingExponent := Nat.mul_le_mul_right _ hcard
-    _ = ((∑ q ∈ Finset.Icc (trunkDepth + 1) K,
-            (layeredBottomVariableSupport C).card.choose q *
-              (n - (layeredBottomVariableSupport C).card).choose (K - q)) *
-            2 ^ savingExponent) * 2 ^ (n - K) := by ring
-    _ ≤ n.choose K * 2 ^ (n - K) := Nat.mul_le_mul_right _ htail
-
-/-- Replicating every ambient coordinate `c` times contains, as a distinguished subfamily, every
-`r`-subset of the original coordinates with one of `c` labels independently attached to each
-member.  The descending-factorial proof avoids any division. -/
-theorem pow_mul_choose_le_choose_mul (c a r : ℕ) :
-    c ^ r * a.choose r ≤ (c * a).choose r := by
-  by_cases hc : c = 0
-  · subst c
-    cases r <;> simp
-  have hcpos : 0 < c := Nat.pos_of_ne_zero hc
-  have hdesc : c ^ r * a.descFactorial r ≤ (c * a).descFactorial r := by
-    induction r with
-    | zero => simp
-    | succ r ih =>
-        rw [Nat.descFactorial_succ, Nat.descFactorial_succ, pow_succ]
-        by_cases hra : r ≤ a
-        · have hfactor : c * (a - r) ≤ c * a - r := by
-            rw [Nat.mul_sub_left_distrib c a r]
-            exact Nat.sub_le_sub_left (Nat.le_mul_of_pos_left r hcpos) _
-          calc
-            c ^ r * c * ((a - r) * a.descFactorial r) =
-                (c * (a - r)) * (c ^ r * a.descFactorial r) := by ring
-            _ ≤ (c * a - r) * (c ^ r * a.descFactorial r) :=
-              Nat.mul_le_mul_right _ hfactor
-            _ ≤ (c * a - r) * (c * a).descFactorial r :=
-              Nat.mul_le_mul_left _ ih
-        · have har : a - r = 0 := Nat.sub_eq_zero_of_le (Nat.le_of_not_ge hra)
-          simp [har]
-  rw [Nat.descFactorial_eq_factorial_mul_choose,
-    Nat.descFactorial_eq_factorial_mul_choose] at hdesc
-  have hcanc : (c ^ r * a.choose r) * r.factorial ≤
-      (c * a).choose r * r.factorial := by
-    simpa [mul_assoc, mul_left_comm, mul_comm] using hdesc
-  exact Nat.le_of_mul_le_mul_right hcanc (Nat.factorial_pos _)
-
-/-- In the nonzero support-tail regime, sixteenfold ambient density makes the enlarged
-`n + 31*a` binomial row cost at most four choices per selected coordinate. -/
-theorem choose_add_thirtyone_mul_le_four_pow_choose
-    {n a d : ℕ} (hdensity : 16 * a ≤ n) (hsupport : d + 1 ≤ a) :
-    (n + 31 * a).choose (2 * d) ≤ 4 ^ (2 * d) * n.choose (2 * d) := by
-  have hdesc : ∀ r ≤ 2 * d,
-      (n + 31 * a).descFactorial r ≤ 4 ^ r * n.descFactorial r := by
-    intro r hr
-    induction r with
-    | zero => simp
-    | succ r ih =>
-        rw [Nat.descFactorial_succ, Nat.descFactorial_succ, pow_succ]
-        have hrlt : r < 2 * d := by omega
-        have hrn : r ≤ n := by omega
-        have hfactor : n + 31 * a - r ≤ 4 * (n - r) := by omega
-        calc
-          (n + 31 * a - r) * (n + 31 * a).descFactorial r ≤
-              (4 * (n - r)) * (n + 31 * a).descFactorial r :=
-            Nat.mul_le_mul_right _ hfactor
-          _ ≤ (4 * (n - r)) * (4 ^ r * n.descFactorial r) :=
-            Nat.mul_le_mul_left _ (ih (by omega))
-          _ = 4 ^ r * 4 * ((n - r) * n.descFactorial r) := by ring
-  have h := hdesc (2 * d) (Nat.le_refl _)
-  simp only [Nat.descFactorial_eq_factorial_mul_choose] at h
-  have hcanc : (n + 31 * a).choose (2 * d) * (2 * d).factorial ≤
-      (4 ^ (2 * d) * n.choose (2 * d)) * (2 * d).factorial := by
-    simpa [mul_assoc, mul_left_comm, mul_comm] using h
-  exact Nat.le_of_mul_le_mul_right hcanc (Nat.factorial_pos _)
-
-/-- A weighted Vandermonde envelope for the without-replacement upper tail.  Each selected support
-coordinate receives one of `32` labels, and the resulting distinguished subsets live inside an
-ambient set of size `n + 31*a`. -/
-theorem hypergeometric_upper_tail_mul_thirtytwo_pow_le
-    {n a d : ℕ} (ha : a ≤ n) :
-    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
-        a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) ≤
-      (n + 31 * a).choose (2 * d) := by
-  calc
-    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
-        a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) =
-        ∑ q ∈ Finset.Icc (d + 1) (2 * d),
-          (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) := by
-            rw [Finset.sum_mul]
-    _ ≤ ∑ q ∈ Finset.Icc (d + 1) (2 * d),
-          (32 * a).choose q * (n - a).choose (2 * d - q) := by
-      apply Finset.sum_le_sum
-      intro q hq
-      have hpow : 32 ^ (d + 1) ≤ 32 ^ q :=
-        pow_le_pow_right' (by norm_num) (Finset.mem_Icc.mp hq).1
-      calc
-        (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ (d + 1) ≤
-            (a.choose q * (n - a).choose (2 * d - q)) * 32 ^ q :=
-          Nat.mul_le_mul_left _ hpow
-        _ = (32 ^ q * a.choose q) * (n - a).choose (2 * d - q) := by ring
-        _ ≤ (32 * a).choose q * (n - a).choose (2 * d - q) :=
-          Nat.mul_le_mul_right _ (pow_mul_choose_le_choose_mul 32 a q)
-    _ ≤ ∑ q ∈ Finset.range (2 * d + 1),
-          (32 * a).choose q * (n - a).choose (2 * d - q) := by
-      apply Finset.sum_le_sum_of_subset
-      intro q hq
-      rw [Finset.mem_Icc] at hq
-      simpa [Finset.mem_range] using hq.2
-    _ = (32 * a + (n - a)).choose (2 * d) := by
-      rw [Nat.add_choose_eq, Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
-    _ = (n + 31 * a).choose (2 * d) := by
-      apply congrArg (fun x : ℕ => Nat.choose x (2 * d))
-      calc
-        32 * a + (n - a) = (n - a) + a + 31 * a := by ring
-        _ = n + 31 * a := by rw [Nat.sub_add_cancel ha]
-
-/-- Generic without-replacement half-shell tail bound.  A support occupying at most one sixteenth
-of the ambient coordinates has probability at most `2^-d` of contributing more than half of a
-`2*d` sample.  The statement remains valid when `2*d > n` (both relevant binomial rows vanish). -/
-theorem hypergeometric_upper_tail_sixteen_density
-    {n a d : ℕ} (hdensity : 16 * a ≤ n) :
-    (∑ q ∈ Finset.Icc (d + 1) (2 * d),
-        a.choose q * (n - a).choose (2 * d - q)) * 2 ^ d ≤ n.choose (2 * d) := by
-  by_cases hsmall : a ≤ d
-  · have hzero : ∑ q ∈ Finset.Icc (d + 1) (2 * d),
-        a.choose q * (n - a).choose (2 * d - q) = 0 := by
-      apply Finset.sum_eq_zero
-      intro q hq
-      simp [Nat.choose_eq_zero_of_lt
-        (lt_of_le_of_lt hsmall (Finset.mem_Icc.mp hq).1)]
-    simp [hzero]
-  have hsupport : d + 1 ≤ a := by omega
-  have ha : a ≤ n := by omega
-  let tail := ∑ q ∈ Finset.Icc (d + 1) (2 * d),
-      a.choose q * (n - a).choose (2 * d - q)
-  have hweighted : tail * 32 ^ (d + 1) ≤
-      4 ^ (2 * d) * n.choose (2 * d) :=
-    (hypergeometric_upper_tail_mul_thirtytwo_pow_le ha).trans
-      (choose_add_thirtyone_mul_le_four_pow_choose hdensity hsupport)
-  have hscale : 2 ^ d * 4 ^ (2 * d) ≤ 32 ^ (d + 1) := by
-    calc
-      2 ^ d * 4 ^ (2 * d) = 2 ^ d * (4 ^ 2) ^ d := by rw [pow_mul]
-      _ = (2 * 4 ^ 2) ^ d := by rw [mul_pow]
-      _ = 32 ^ d := by norm_num
-      _ ≤ 32 ^ (d + 1) := pow_le_pow_right' (by norm_num) (by omega)
-  have hmul : (tail * 2 ^ d) * (4 ^ (2 * d)) ≤
-      n.choose (2 * d) * (4 ^ (2 * d)) := by
-    calc
-      (tail * 2 ^ d) * 4 ^ (2 * d) = tail * (2 ^ d * 4 ^ (2 * d)) := by ring
-      _ ≤ tail * 32 ^ (d + 1) := Nat.mul_le_mul_left _ hscale
-      _ ≤ 4 ^ (2 * d) * n.choose (2 * d) := hweighted
-      _ = n.choose (2 * d) * 4 ^ (2 * d) := by ring
-  exact Nat.le_of_mul_le_mul_right hmul (pow_pos (by norm_num) _)
-
-theorem clauseVariableSupport_card_le_width {n w : ℕ} {T : Depth3.Clause n}
-    (hw : T.lits.length ≤ w) : (clauseVariableSupport T).card ≤ w := by
-  exact (List.toFinset_card_le _).trans (by simpa using hw)
-
-theorem gateVariableSupport_card_le {n w : ℕ} {cs : List (Depth3.Clause n)}
-    (hw : ∀ T ∈ cs, T.lits.length ≤ w) :
-    (gateVariableSupport cs).card ≤ w * cs.length := by
-  calc
-    (gateVariableSupport cs).card ≤
-        ∑ T ∈ cs.toFinset, (clauseVariableSupport T).card :=
-      Finset.card_biUnion_le
-    _ ≤ ∑ _T ∈ cs.toFinset, w := by
-      apply Finset.sum_le_sum
-      intro T hT
-      exact clauseVariableSupport_card_le_width (hw T (List.mem_toFinset.mp hT))
-    _ = cs.toFinset.card * w := by simp
-    _ ≤ cs.length * w := Nat.mul_le_mul_right w (List.toFinset_card_le cs)
-    _ = w * cs.length := Nat.mul_comm _ _
-
-/-- Width times the exact ragged alphabet bounds the family's complete coordinate support. -/
-theorem familyVariableSupport_card_le {n G w : ℕ}
-    {gates : Fin G → List (Depth3.Clause n)}
-    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w) :
-    (familyVariableSupport gates).card ≤ w * ∑ g, (gates g).length := by
-  calc
-    (familyVariableSupport gates).card ≤
-        ∑ g, (gateVariableSupport (gates g)).card :=
-      Finset.card_biUnion_le
-    _ ≤ ∑ g, w * (gates g).length := by
-      apply Finset.sum_le_sum
-      intro g _
-      exact gateVariableSupport_card_le (hw g)
-    _ = w * ∑ g, (gates g).length := by rw [Finset.mul_sum]
-
-/-- A list of width-`w` gates owns at most width times its number of clause occurrences.  The list
-form deliberately avoids charging duplicate gates twice merely to pass through `toFinset`. -/
-private theorem listGateVariableSupport_card_le {n w : ℕ} :
-    ∀ css : List (List (Depth3.Clause n)),
-      (∀ cs ∈ css, ∀ T ∈ cs, T.lits.length ≤ w) →
-      (css.toFinset.biUnion gateVariableSupport).card ≤
-        w * (css.map List.length).sum
-  | [] => by simp
-  | cs :: css => by
-      intro hw
-      have hhead : (gateVariableSupport cs).card ≤ w * cs.length :=
-        gateVariableSupport_card_le (hw cs (by simp))
-      have htail : (css.toFinset.biUnion gateVariableSupport).card ≤
-          w * (css.map List.length).sum :=
-        listGateVariableSupport_card_le css (by
-          intro cs' hcs'
-          exact hw cs' (by simp [hcs']))
-      rw [List.toFinset_cons, Finset.biUnion_insert, List.map_cons, List.sum_cons]
-      calc
-        (gateVariableSupport cs ∪ css.toFinset.biUnion gateVariableSupport).card ≤
-            (gateVariableSupport cs).card +
-              (css.toFinset.biUnion gateVariableSupport).card :=
-          Finset.card_union_le _ _
-        _ ≤ w * cs.length + w * (css.map List.length).sum := Nat.add_le_add hhead htail
-        _ = w * (cs.length + (css.map List.length).sum) := by rw [Nat.mul_add]
-
-/-- The variables owned by the unpolarized bottom gates cost at most width times their actual
-clause occurrences. -/
-theorem layeredBottomVariableSupport_card_le {n w : ℕ} {C : Layered n}
-    (hw : BottomWidth w C) :
-    (layeredBottomVariableSupport C).card ≤ w * bottomClauseCount C := by
-  exact listGateVariableSupport_card_le (bottomGates C) hw
-
-/-- The circuit-owned recurrence margin forces a strong support-density gap: even at the maximal
-width/slot charge, the unpolarized bottom support occupies at most one sixteenth of the ambient
-coordinates.  This is the quantitative regime needed by the remaining hypergeometric tail lemma;
-unlike the earlier prefix estimate, it contains no extra factor of the shell size. -/
-theorem sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin
-    {n s : ℕ} {C : Layered n} (hw : BottomWidth (s + 1) C)
-    (hmargin :
-      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n) :
-    16 * (layeredBottomVariableSupport C).card ≤ n := by
-  have hsupport :
-      (layeredBottomVariableSupport C).card ≤ (s + 1) * bottomSlotCount C :=
-    (layeredBottomVariableSupport_card_le hw).trans
-      (Nat.mul_le_mul_left (s + 1) (bottomClauseCount_le_bottomSlotCount C))
-  have hpow : 2 ≤ 2 ^ (s + 1) := by
-    rw [pow_succ]
-    exact Nat.le_mul_of_pos_left 2 (pow_pos (by omega) s)
-  calc
-    16 * (layeredBottomVariableSupport C).card ≤
-        16 * ((s + 1) * bottomSlotCount C) := Nat.mul_le_mul_left 16 hsupport
-    _ ≤ 8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) := by
-      nlinarith
-    _ ≤ 8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) :=
-      Nat.le_add_right _ _
-    _ ≤ n := hmargin
-
-/-- The actual circuit-owned recurrence margin now closes the support-only contraction at the
-intended half-shell parameters `K = 20*R`, `d = 10*R`. -/
-theorem normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
-    {n fuel s R residualDepth : ℕ} {C : Layered n}
-    (hKfuel : 20 * R ≤ fuel)
-    (hw : BottomWidth (s + 1) C)
-    (hmargin :
-      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n) :
-    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
-        residualDepth).card * 2 ^ (10 * R) ≤
-      (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card := by
-  apply normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail hKfuel
-  simpa [show 20 * R = 2 * (10 * R) by ring] using
-    hypergeometric_upper_tail_sixteen_density
-      (sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin hw hmargin)
-
-/-- One complete normalized survivor-round interface at the actual circuit-owned margin.  The
-first conjunct is the half-shell bad-set contraction.  The second says that every root outside
-that bad set supplies the common trunk and, at every reached leaf, the slot-count recurrence
-needed to formulate the following round's margin. -/
-theorem actualMargin_normalizedSurvivorRound
-    {n fuel s R residualDepth : ℕ} {C : Layered n}
-    (hKfuel : 20 * R ≤ fuel)
-    (hw : BottomWidth (s + 1) C)
-    (hmargin :
-      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
-    (hne : NonEmptyGates C) :
-    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
-        residualDepth).card * 2 ^ (10 * R) ≤
-        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
-      ∀ σ : Restriction n,
-        stars σ = 20 * R →
-        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
-          (20 * R) (10 * R) residualDepth →
-        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
-          ∃ trunk : CommonTree n (Restriction n),
-            CommonTree.depth trunk ≤ 10 * R ∧
-            let τ := CommonTree.run trunk x
-            10 * R ≤ stars τ ∧
-            stars τ ≤ fuel ∧
-            BottomWidth (residualDepth + 1) (collapseRound fuel τ C) ∧
-            bottomSlotCount (collapseRound fuel τ C) ≤
-              bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
-  constructor
-  · exact normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
-      hKfuel hw hmargin
-  · intro σ hstars hgood x hx
-    have hcommon : CommonShallowAt (normalizedLayeredBottomFamily C) fuel σ
-        (10 * R) residualDepth := by
-      by_contra hnot
-      apply hgood
-      rw [mem_commonShallowBad]
-      exact ⟨hstars, hnot⟩
-    have hfuel : stars σ ≤ fuel := by
-      calc
-        stars σ = 20 * R := hstars
-        _ ≤ fuel := hKfuel
-    obtain ⟨trunk, hdepth, hlower, hleafStars, hshallow⟩ :=
-      hcommon.leaf_shallows (normalizedLayeredBottomFamily_covers C) x hx
-    have hleafFuel : stars (CommonTree.run trunk x) ≤ fuel := hleafStars.trans hfuel
-    refine ⟨trunk, hdepth, ?_, hleafFuel,
-      collapseRound_BottomWidth fuel (CommonTree.run trunk x) hshallow,
-      collapseRound_bottomSlotCount_le hne hshallow⟩
-    rw [hstars] at hlower
-    omega
-
-#print axioms actualMargin_normalizedSurvivorRound
-
-/-- The actual-margin survivor round admits an exact half-shell subcube at every reached leaf.
-Besides selecting an extension with exactly `10*R` live coordinates, the conclusion transports
-the existing collapse equivalence from the trunk leaf to that finer subcube.  The circuit still
-lives over the original ambient coordinate type; reindexing its live coordinates is a separate
-interface. -/
-theorem actualMargin_normalizedSurvivorRound_exactSubcube
-    {n fuel s R residualDepth : ℕ} {C : Layered n}
-    (hKfuel : 20 * R ≤ fuel)
-    (hw : BottomWidth (s + 1) C)
-    (hmargin :
-      8 * (s + 2) * bottomSlotCount C * 2 ^ (s + 1) + 4 * (s + 2) ≤ n)
-    (hne : NonEmptyGates C) :
-    (commonShallowBad (normalizedLayeredBottomFamily C) fuel (20 * R) (10 * R)
-        residualDepth).card * 2 ^ (10 * R) ≤
-        (Finset.univ.filter fun σ : Restriction n ↦ stars σ = 20 * R).card ∧
-      ∀ σ : Restriction n,
-        stars σ = 20 * R →
-        σ ∉ commonShallowBad (normalizedLayeredBottomFamily C) fuel
-          (20 * R) (10 * R) residualDepth →
-        ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x →
-          ∃ trunk : CommonTree n (Restriction n),
-            CommonTree.depth trunk ≤ 10 * R ∧
-            let tau := CommonTree.run trunk x
-            ∃ kappa : Restriction n,
-              RestrictionExtends tau kappa ∧
-              stars kappa = 10 * R ∧
-              stars kappa ≤ fuel ∧
-              Layered.EquivOn kappa C (collapseRound fuel tau C) ∧
-              BottomWidth (residualDepth + 1) (collapseRound fuel tau C) ∧
-              bottomSlotCount (collapseRound fuel tau C) ≤
-                bottomSlotCount C * (2 ^ (residualDepth + 1) + 1) := by
-  obtain ⟨hbad, hleaf⟩ :=
-    actualMargin_normalizedSurvivorRound hKfuel hw hmargin hne
-  refine ⟨hbad, ?_⟩
-  intro σ hstars hgood x hx
-  obtain ⟨trunk, hdepth, hlive, hleafFuel, hwidth, hslot⟩ :=
-    hleaf σ hstars hgood x hx
-  obtain ⟨kappa, hext, hkappaStars⟩ :=
-    exists_restrictionExtends_stars_eq (CommonTree.run trunk x) hlive
-  refine ⟨trunk, hdepth, kappa, hext, hkappaStars, ?_, ?_, hwidth, hslot⟩
-  · rw [hkappaStars]
-    omega
-  · intro y hy
-    exact collapseRound_EquivOn fuel hleafFuel C y
-      (fun i b hi => hy i b (hext i b hi))
-
-#print axioms actualMargin_normalizedSurvivorRound_exactSubcube
 
 /-- Sharp support-level slot charge: the dual polarity is free because `negDNF` preserves every
 variable support exactly. -/
@@ -5506,6 +4732,1690 @@ theorem twoPairPolarities_exact_trunk_cost_three :
   ⟨twoPairPolarities_not_commonShallowAt_two,
     twoPairPolarities_commonShallowAt_three⟩
 
+/-! ### Unweighted live width-two clause count does not determine badness
+
+The support-survivor separation changes the number of genuinely width-two clauses, so raw
+live-clause count still separates that particular pair.  The next matched comparison closes this
+escape.  The two-pair polarity gadget has two clauses in each of two indexed gates.  We compare
+it with the two polarities of each of two disjoint one-clause gates.  At the fully live root both
+families have the same four-variable support and exactly four live width-two clause occurrences.
+Nevertheless two shared queries switch the disjoint family, while the interacting family needs
+three. -/
+
+/-- First coordinate of disjoint pair `g` in the four-coordinate matched example. -/
+def localDisjointPairFirst (g : Fin 2) : Fin 4 :=
+  ⟨2 * g.val, by omega⟩
+
+/-- Second coordinate of disjoint pair `g` in the four-coordinate matched example. -/
+def localDisjointPairSecond (g : Fin 2) : Fin 4 :=
+  ⟨2 * g.val + 1, by omega⟩
+
+/-- Both polarities of two disjoint one-clause width-two gates. -/
+def localDisjointPairPolarityFamily : Fin 4 → List (Depth3.Clause 4) := fun idx =>
+  let key : Fin 2 × Fin 2 := finProdFinEquiv.symm idx
+  if key.1 = 0 then
+    orderedConjunctionBlock [localDisjointPairFirst key.2, localDisjointPairSecond key.2]
+  else
+    [⟨[Rung4Literal.neg (localDisjointPairFirst key.2),
+      Rung4Literal.neg (localDisjointPairSecond key.2)]⟩]
+
+/-- Number of clause occurrences that are width two and have both variables live. -/
+def liveWidthTwoClauseCount {n G : ℕ} (gates : Fin G → List (Depth3.Clause n))
+    (ρ : Restriction n) : ℕ :=
+  ∑ g, ((gates g).filter fun T =>
+    T.lits.length = 2 ∧ ∀ ell ∈ T.lits, ρ (litVar ell) = none).length
+
+/-- Querying the first coordinate of each disjoint pair makes all four indexed gates
+residual-depth one. -/
+theorem localDisjointPairPolarityFamily_commonShallowAt_two :
+    CommonShallowAt localDisjointPairPolarityFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro idx
+  let key : Fin 2 × Fin 2 := finProdFinEquiv.symm idx
+  have hmem : localDisjointPairFirst key.2 ∈ ([0, 2] : List (Fin 4)) := by
+    have hklt : key.2.val < 2 := key.2.isLt
+    interval_cases hval : key.2.val <;> simp [localDisjointPairFirst, hval]
+  have hfixed : CommonTree.run trunk x (localDisjointPairFirst key.2) ≠ none := by
+    rw [show trunk = queryRestrictionList (fun _ : Fin 4 => none) [0, 2] by rfl,
+      queryRestrictionList_run_eq_some_of_mem _ _ x hmem]
+    simp
+  change (canonicalDT (if key.1 = 0 then
+    orderedConjunctionBlock [localDisjointPairFirst key.2, localDisjointPairSecond key.2]
+    else [⟨[Rung4Literal.neg (localDisjointPairFirst key.2),
+      Rung4Literal.neg (localDisjointPairSecond key.2)]⟩]) 4
+      (CommonTree.run trunk x)).depth ≤ 1
+  by_cases hk : key.1 = 0
+  · rw [if_pos hk]
+    exact positiveOrderedPair_depth_le_one_of_first_fixed _ _ _ hfixed
+  · rw [if_neg hk]
+    exact negativeOrderedPair_depth_le_one_of_first_fixed _ _ _ hfixed
+
+set_option maxHeartbeats 2000000 in
+/-- The matched families have equal distinct support and equal unweighted live width-two clause
+count at the fully live root. -/
+theorem twoPairPolarity_matched_live_clause_profile :
+    familyVariableSupport twoPairPolarityFamily =
+        familyVariableSupport localDisjointPairPolarityFamily ∧
+      liveWidthTwoClauseCount twoPairPolarityFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount localDisjointPairPolarityFamily (fun _ : Fin 4 => none) := by
+  decide
+
+/-- Kernel-checked matched separation: support and unweighted live width-two clause count agree,
+but residual-depth-one badness at trunk budget two is opposite. -/
+theorem widthTwo_residualOne_badness_not_determined_by_live_clause_count :
+    familyVariableSupport twoPairPolarityFamily =
+        familyVariableSupport localDisjointPairPolarityFamily ∧
+      liveWidthTwoClauseCount twoPairPolarityFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount localDisjointPairPolarityFamily (fun _ : Fin 4 => none) ∧
+      (fun _ : Fin 4 => none) ∈
+        commonShallowBad twoPairPolarityFamily 4 4 2 1 ∧
+      (fun _ : Fin 4 => none) ∉
+        commonShallowBad localDisjointPairPolarityFamily 4 4 2 1 := by
+  refine ⟨twoPairPolarity_matched_live_clause_profile.1,
+    twoPairPolarity_matched_live_clause_profile.2,
+    allFreeFour_mem_twoPairPolarityBad_two, ?_⟩
+  rw [mem_commonShallowBad]
+  rintro ⟨_hstars, hbad⟩
+  exact hbad localDisjointPairPolarityFamily_commonShallowAt_two
+
+/-! ### Scalar within-gate co-live pair mass does not determine badness
+
+The next scalar refinement remembers which live clauses share an indexed gate.  Gates already
+within the requested residual-depth budget are discarded, and every remaining gate is charged
+by the number of unordered pairs of its live width-two clauses.  This still loses the polarity
+and transversal geometry of those pairs.  The matched example below keeps the scalar charge
+exactly two but changes the common switching cost: grouping by global polarity is bad at depth
+two, whereas grouping the two polarities of each local pair is good. -/
+
+/-- Scalar mass of unordered co-live width-two clause pairs inside gates that are not already
+within the requested residual-depth budget. -/
+def activeWithinGateLivePairMass {n G : ℕ} (gates : Fin G → List (Depth3.Clause n))
+    (fuel residualDepth : ℕ) (rho : Restriction n) : ℕ :=
+  ∑ g, if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then 0 else
+    Nat.choose (((gates g).filter fun T =>
+      T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none).length) 2
+
+/-- One indexed gate for each disjoint coordinate pair, containing both the positive and the
+negative width-two clause on that pair. -/
+def localOppositePairGroupedFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  orderedConjunctionBlock [localDisjointPairFirst g, localDisjointPairSecond g] ++
+    [⟨[Rung4Literal.neg (localDisjointPairFirst g),
+      Rung4Literal.neg (localDisjointPairSecond g)]⟩]
+
+/-- Querying one coordinate from each local pair leaves exactly one live singleton clause in
+each nonterminal gate, so the polarity-grouped alternative is common-shallow at depth two. -/
+theorem localOppositePairGroupedFamily_commonShallowAt_two :
+    CommonShallowAt localOppositePairGroupedFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx0, hx2, localOppositePairGroupedFamily,
+      localDisjointPairFirst, localDisjointPairSecond, orderedConjunctionBlock, canonicalDT,
+      anyTermSat, termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth]
+
+set_option maxHeartbeats 2000000 in
+/-- The polarity-grouped and local-pair-grouped families agree on distinct support, live
+width-two clause count, and active within-gate co-live pair mass at the fully live root. -/
+theorem twoPairPolarity_matched_withinGatePair_profile :
+    familyVariableSupport twoPairPolarityFamily =
+        familyVariableSupport localOppositePairGroupedFamily ∧
+      liveWidthTwoClauseCount twoPairPolarityFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount localOppositePairGroupedFamily (fun _ : Fin 4 => none) ∧
+      activeWithinGateLivePairMass twoPairPolarityFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeWithinGateLivePairMass localOppositePairGroupedFamily 4 1
+          (fun _ : Fin 4 => none) := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- In the matched profile, each family has scalar active within-gate pair mass exactly two. -/
+theorem twoPairPolarity_withinGatePairMass_eq_two :
+    activeWithinGateLivePairMass twoPairPolarityFamily 4 1
+        (fun _ : Fin 4 => none) = 2 ∧
+      activeWithinGateLivePairMass localOppositePairGroupedFamily 4 1
+        (fun _ : Fin 4 => none) = 2 := by
+  decide
+
+/-- Kernel-checked matched separation: even after support, live-clause count, and scalar
+within-gate co-live pair mass are fixed, residual-depth-one badness can be opposite. -/
+theorem widthTwo_residualOne_badness_not_determined_by_withinGatePairMass :
+    familyVariableSupport twoPairPolarityFamily =
+        familyVariableSupport localOppositePairGroupedFamily ∧
+      liveWidthTwoClauseCount twoPairPolarityFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount localOppositePairGroupedFamily (fun _ : Fin 4 => none) ∧
+      activeWithinGateLivePairMass twoPairPolarityFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeWithinGateLivePairMass localOppositePairGroupedFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      (fun _ : Fin 4 => none) ∈
+        commonShallowBad twoPairPolarityFamily 4 4 2 1 ∧
+      (fun _ : Fin 4 => none) ∉
+        commonShallowBad localOppositePairGroupedFamily 4 4 2 1 := by
+  refine ⟨twoPairPolarity_matched_withinGatePair_profile.1,
+    twoPairPolarity_matched_withinGatePair_profile.2.1,
+    twoPairPolarity_matched_withinGatePair_profile.2.2,
+    allFreeFour_mem_twoPairPolarityBad_two, ?_⟩
+  rw [mem_commonShallowBad]
+  rintro ⟨_hstars, hbad⟩
+  exact hbad localOppositePairGroupedFamily_commonShallowAt_two
+
+/-! ### A polarity-sensitive conflict/transversal profile
+
+The scalar pair mass above forgets why two clauses interact.  The following finite type records
+three pieces of a co-live width-two pair: how many variables occur with the same polarity, how
+many occur with opposite polarity, and how many variables occur in the union of the two clauses.
+The first two coordinates retain signed conflict, while the last retains transversal size. -/
+
+/-- Variables occurring positively in one clause. -/
+def clausePositiveVariableSupport {n : ℕ} (T : Depth3.Clause n) : Finset (Fin n) :=
+  (T.lits.filterMap fun ell => match ell with
+    | Rung4Literal.pos i => some i
+    | Rung4Literal.neg _ => none).toFinset
+
+/-- Variables occurring negatively in one clause. -/
+def clauseNegativeVariableSupport {n : ℕ} (T : Depth3.Clause n) : Finset (Fin n) :=
+  (T.lits.filterMap fun ell => match ell with
+    | Rung4Literal.pos _ => none
+    | Rung4Literal.neg i => some i).toFinset
+
+/-- Number of shared variables appearing with the same sign in a clause pair. -/
+def clausePairSamePolarityOverlap {n : ℕ}
+    (T U : Depth3.Clause n) : ℕ :=
+  ((clausePositiveVariableSupport T ∩ clausePositiveVariableSupport U) ∪
+    (clauseNegativeVariableSupport T ∩ clauseNegativeVariableSupport U)).card
+
+/-- Number of shared variables appearing with opposite signs in a clause pair. -/
+def clausePairOppositePolarityOverlap {n : ℕ}
+    (T U : Depth3.Clause n) : ℕ :=
+  ((clausePositiveVariableSupport T ∩ clauseNegativeVariableSupport U) ∪
+    (clauseNegativeVariableSupport T ∩ clausePositiveVariableSupport U)).card
+
+/-- Count unordered pairs in a list having one exact signed-overlap/transversal type. -/
+def clausePairTypeCount {n : ℕ} :
+    List (Depth3.Clause n) → ℕ → ℕ → ℕ → ℕ
+  | [], _, _, _ => 0
+  | T :: rest, same, opposite, unionSize =>
+      (rest.filter fun U =>
+        clausePairSamePolarityOverlap T U = same ∧
+        clausePairOppositePolarityOverlap T U = opposite ∧
+        (clauseVariableSupport T ∪ clauseVariableSupport U).card = unionSize).length +
+      clausePairTypeCount rest same opposite unionSize
+
+/-- Active co-live width-two pairs of one exact polarity-sensitive conflict/transversal type.
+As in the scalar mass, gates already within the residual-depth budget contribute nothing. -/
+def activeWithinGateLivePairTypeCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (same opposite unionSize : ℕ) : ℕ :=
+  ∑ g, if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then 0 else
+    clausePairTypeCount ((gates g).filter fun T =>
+      T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+      same opposite unionSize
+
+set_option maxHeartbeats 2000000 in
+/-- The bad polarity-grouped gadget consists of two disjoint, sign-aligned active pairs. -/
+theorem twoPairPolarity_disjointAlignedPairType_eq_two :
+    activeWithinGateLivePairTypeCount twoPairPolarityFamily 4 1
+        (fun _ : Fin 4 => none) 0 0 4 = 2 ∧
+      activeWithinGateLivePairTypeCount localOppositePairGroupedFamily 4 1
+        (fun _ : Fin 4 => none) 0 0 4 = 0 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The good local grouping instead consists of two same-support, opposite-sign active pairs. -/
+theorem localOppositePairGrouped_oppositeConflictPairType_eq_two :
+    activeWithinGateLivePairTypeCount twoPairPolarityFamily 4 1
+        (fun _ : Fin 4 => none) 0 2 2 = 0 ∧
+      activeWithinGateLivePairTypeCount localOppositePairGroupedFamily 4 1
+        (fun _ : Fin 4 => none) 0 2 2 = 2 := by
+  decide
+
+/-- The first signed conflict/transversal profile separates the scalar-mass counterexample:
+the bad family has disjoint aligned pairs, while the good family has local opposite conflicts. -/
+theorem twoPairPolarity_typedPairProfile_separates_matched_families :
+    activeWithinGateLivePairMass twoPairPolarityFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeWithinGateLivePairMass localOppositePairGroupedFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      activeWithinGateLivePairTypeCount twoPairPolarityFamily 4 1
+          (fun _ : Fin 4 => none) 0 0 4 ≠
+        activeWithinGateLivePairTypeCount localOppositePairGroupedFamily 4 1
+          (fun _ : Fin 4 => none) 0 0 4 := by
+  refine ⟨twoPairPolarity_matched_withinGatePair_profile.2.2, ?_⟩
+  rw [twoPairPolarity_disjointAlignedPairType_eq_two.1,
+    twoPairPolarity_disjointAlignedPairType_eq_two.2]
+  norm_num
+
+/-! ### Complete signed pair profiles do not determine common-query cost
+
+The triple-count refinement above separates the first scalar counterexample, but it still sums
+local pair types across indexed gates and forgets how their supports meet across gates.  The next
+three-variable comparison is normalized: every gate has exactly two distinct, ordered
+width-two clauses, and both gates are active at the fully live root.  The two families have the
+same complete bounded triple-count profile, but exact residual-depth-one common-query costs one
+and two. -/
+
+/-- The lower-cost normalized family.  Its first gate contains `¬0¬1, ¬0·1`; its second contains
+`¬0¬1, 0¬2`. -/
+def typedPairLowCostFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+      ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩]
+  else
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+      ⟨[Rung4Literal.pos 0, Rung4Literal.neg 2]⟩]
+
+/-- The matched higher-cost normalized family.  The shared first gate is unchanged; the second
+gate contains `¬0¬2, ¬1·2`. -/
+def typedPairHighCostFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+      ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩]
+  else
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩,
+      ⟨[Rung4Literal.neg 1, Rung4Literal.pos 2]⟩]
+
+/-- The finite complete type profile.  Width-two pairs can have at most two same-sign overlaps,
+two opposite-sign overlaps, and union support at most four, so `Fin 3 × Fin 3 × Fin 5` loses no
+possible triple-count coordinate. -/
+def boundedActivePairTypeProfile {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Fin 3 → Fin 3 → Fin 5 → ℕ :=
+  fun same opposite unionSize =>
+    activeWithinGateLivePairTypeCount gates fuel residualDepth rho
+      same.val opposite.val unionSize.val
+
+/-- The signed within-gate profile before summing over gate indices.  This is the diagonal
+counterpart of `indexedActiveCrossGatePairTypeProfile`: it records which active gate carries each
+colored unordered clause-pair witness. -/
+def indexedActiveWithinGatePairTypeProfile {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Fin G → Fin 3 → Fin 3 → Fin 5 → ℕ :=
+  fun g same opposite unionSize =>
+    if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then 0 else
+      clausePairTypeCount ((gates g).filter fun T =>
+        T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+        same.val opposite.val unionSize.val
+
+set_option maxHeartbeats 2000000 in
+/-- The normalized families agree on support, live-clause count, scalar pair mass, and every
+coordinate of the complete signed conflict/transversal profile. -/
+theorem typedPairFamilies_complete_profile_eq :
+    familyVariableSupport typedPairLowCostFamily =
+        familyVariableSupport typedPairHighCostFamily ∧
+      liveWidthTwoClauseCount typedPairLowCostFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount typedPairHighCostFamily (fun _ : Fin 4 => none) ∧
+      activeWithinGateLivePairMass typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeWithinGateLivePairMass typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      boundedActivePairTypeProfile typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActivePairTypeProfile typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) := by
+  decide
+
+/-! ### Signed cross-gate clause incidence
+
+The complete within-gate profile still forgets how clauses in different indexed gates meet.
+Merely recording the overlap of the two gate support unions is not enough for the normalized
+comparison above: both gates meet on the same two coordinates in both families.  The following
+ordered cross-gate profile retains the same signed overlap/transversal color for a clause from
+one active gate and a clause from another.  Ordered gate pairs avoid choosing an arbitrary order
+on the family index; every undirected witness is consequently counted twice. -/
+
+/-- Count ordered clause pairs, one from each list, of one exact signed-overlap/transversal type. -/
+def crossClausePairTypeCount {n : ℕ}
+    (left right : List (Depth3.Clause n))
+    (same opposite unionSize : ℕ) : ℕ :=
+  (left.flatMap fun T => right.filter fun U =>
+    clausePairSamePolarityOverlap T U = same ∧
+    clausePairOppositePolarityOverlap T U = opposite ∧
+    (clauseVariableSupport T ∪ clauseVariableSupport U).card = unionSize).length
+
+/-- Signed clause-incidence profile across distinct active indexed gates.  Only co-live
+width-two clauses contribute, exactly as in the within-gate profile. -/
+def activeCrossGateLivePairTypeCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (same opposite unionSize : ℕ) : ℕ :=
+  ∑ g, ∑ h, if g = h then 0 else
+    if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then 0 else
+    if (canonicalDT (gates h) fuel rho).depth ≤ residualDepth then 0 else
+      crossClausePairTypeCount
+        ((gates g).filter fun T =>
+          T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+        ((gates h).filter fun T =>
+          T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+        same opposite unionSize
+
+/-- Complete bounded signed cross-gate profile for width-two clauses. -/
+def boundedActiveCrossGatePairTypeProfile {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Fin 3 → Fin 3 → Fin 5 → ℕ :=
+  fun same opposite unionSize =>
+    activeCrossGateLivePairTypeCount gates fuel residualDepth rho
+      same.val opposite.val unionSize.val
+
+/-- The signed cross-gate profile before summing over gate pairs.  Retaining the ordered indices
+records where each colored clause-pair witness occurs; diagonal and already-shallow pairs are
+zeroed exactly as in `activeCrossGateLivePairTypeCount`. -/
+def indexedActiveCrossGatePairTypeProfile {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Fin G → Fin G → Fin 3 → Fin 3 → Fin 5 → ℕ :=
+  fun g h same opposite unionSize =>
+    if g = h then 0 else
+    if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then 0 else
+    if (canonicalDT (gates h) fuel rho).depth ≤ residualDepth then 0 else
+      crossClausePairTypeCount
+        ((gates g).filter fun T =>
+          T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+        ((gates h).filter fun T =>
+          T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none)
+        same.val opposite.val unionSize.val
+
+/-! ### One finite indexed pair-incidence matrix
+
+The diagonal and off-diagonal profiles above were previously separate `ℕ`-valued objects.  The
+following lemmas first expose their exact finite alphabet under the usual per-gate term bound,
+then package every indexed gate pair into one matrix.  This is the bounded object needed before a
+witness-identified component code can be counted honestly. -/
+
+/-- An unordered typed-pair count is at most the square of the source-list length. -/
+theorem clausePairTypeCount_le_length_sq {n : ℕ} (cs : List (Depth3.Clause n))
+    (same opposite unionSize : ℕ) :
+    clausePairTypeCount cs same opposite unionSize ≤ cs.length * cs.length := by
+  induction cs with
+  | nil => simp [clausePairTypeCount]
+  | cons T rest ih =>
+      rw [clausePairTypeCount]
+      have hfilter :
+          (rest.filter fun U =>
+            clausePairSamePolarityOverlap T U = same ∧
+            clausePairOppositePolarityOverlap T U = opposite ∧
+            (clauseVariableSupport T ∪ clauseVariableSupport U).card = unionSize).length ≤
+            rest.length := List.length_filter_le _ _
+      simp only [List.length_cons]
+      nlinarith
+
+/-- An ordered typed cross-pair count is at most the product of the two list lengths. -/
+theorem crossClausePairTypeCount_le_length_mul {n : ℕ}
+    (left right : List (Depth3.Clause n)) (same opposite unionSize : ℕ) :
+    crossClausePairTypeCount left right same opposite unionSize ≤
+      left.length * right.length := by
+  induction left with
+  | nil => simp [crossClausePairTypeCount]
+  | cons T rest ih =>
+      simp only [crossClausePairTypeCount, List.flatMap_cons, List.length_append,
+        List.length_cons] at ih ⊢
+      have hfilter :
+          (right.filter fun U =>
+            clausePairSamePolarityOverlap T U = same ∧
+            clausePairOppositePolarityOverlap T U = opposite ∧
+            (clauseVariableSupport T ∪ clauseVariableSupport U).card = unionSize).length ≤
+            right.length := List.length_filter_le _ _
+      rw [Nat.add_mul, one_mul]
+      omega
+
+/-- The finite alphabet of the complete indexed signed pair-incidence matrix.  Diagonal cells
+store within-gate unordered-pair counts; off-diagonal cells store ordered cross-gate counts. -/
+abbrev IndexedPairIncidenceMatrix (G m : ℕ) :=
+  Fin G → Fin G → Fin 3 → Fin 3 → Fin 5 → Fin (m * m + 1)
+
+/-- Package all diagonal and off-diagonal signed pair profiles into the finite matrix alphabet. -/
+noncomputable def indexedPairIncidenceMatrix {n G m : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (hm : ∀ g, (gates g).length ≤ m) :
+    IndexedPairIncidenceMatrix G m :=
+  fun g h same opposite unionSize =>
+    if hgh : g = h then
+      ⟨indexedActiveWithinGatePairTypeProfile gates fuel residualDepth rho g
+          same opposite unionSize,
+        Nat.lt_succ_of_le <| by
+          rw [indexedActiveWithinGatePairTypeProfile]
+          split
+          · exact Nat.zero_le _
+          · exact (clausePairTypeCount_le_length_sq _ _ _ _).trans <|
+              Nat.mul_le_mul
+                ((List.length_filter_le _ _).trans (hm g))
+                ((List.length_filter_le _ _).trans (hm g))⟩
+    else
+      ⟨indexedActiveCrossGatePairTypeProfile gates fuel residualDepth rho g h
+          same opposite unionSize,
+        Nat.lt_succ_of_le <| by
+          rw [indexedActiveCrossGatePairTypeProfile]
+          simp only [hgh, ↓reduceIte]
+          split
+          · exact Nat.zero_le _
+          · split
+            · exact Nat.zero_le _
+            · exact (crossClausePairTypeCount_le_length_mul _ _ _ _ _).trans <|
+                Nat.mul_le_mul
+                  ((List.length_filter_le _ _).trans (hm g))
+                  ((List.length_filter_le _ _).trans (hm h))⟩
+
+/-- Reading the diagonal of the packaged matrix recovers the complete indexed within-gate
+profile without loss. -/
+@[simp] theorem indexedPairIncidenceMatrix_diagonal {n G m : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (hm : ∀ g, (gates g).length ≤ m)
+    (g : Fin G) (same opposite : Fin 3) (unionSize : Fin 5) :
+    (indexedPairIncidenceMatrix gates fuel residualDepth rho hm g g
+      same opposite unionSize).val =
+      indexedActiveWithinGatePairTypeProfile gates fuel residualDepth rho g
+        same opposite unionSize := by
+  simp [indexedPairIncidenceMatrix]
+
+/-- Reading an off-diagonal cell recovers the complete indexed cross-gate profile without loss. -/
+@[simp] theorem indexedPairIncidenceMatrix_offDiagonal {n G m : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (hm : ∀ g, (gates g).length ≤ m)
+    (g h : Fin G) (hgh : g ≠ h) (same opposite : Fin 3) (unionSize : Fin 5) :
+    (indexedPairIncidenceMatrix gates fuel residualDepth rho hm g h
+      same opposite unionSize).val =
+      indexedActiveCrossGatePairTypeProfile gates fuel residualDepth rho g h
+        same opposite unionSize := by
+  simp [indexedPairIncidenceMatrix, hgh]
+
+/-- The raw matrix alphabet has exactly 45 signed coordinates for each of the `G²` indexed gate
+pairs.  This is an upper bound for any subsequent component quotient, not yet a useful charge. -/
+theorem card_indexedPairIncidenceMatrix (G m : ℕ) :
+    Fintype.card (IndexedPairIncidenceMatrix G m) =
+      (m * m + 1) ^ (45 * G * G) := by
+  simp only [IndexedPairIncidenceMatrix, Fintype.card_fun, Fintype.card_fin]
+  rw [← pow_mul, ← pow_mul, ← pow_mul, ← pow_mul]
+  congr 1 <;> ring
+
+/-! ### Lossless sparse support of the indexed matrix
+
+The raw alphabet above charges all `45 * G²` coordinates even when nearly every incidence count
+is zero.  The next object separates the finite nonzero support from the values stored on that
+support.  It is deliberately still matrix-level: clause-witness connectivity has not yet been
+quotiented.  Its role is to make the precise input to that quotient explicit and lossless. -/
+
+/-- One coordinate of the complete indexed signed pair-incidence matrix. -/
+structure IndexedPairIncidenceCoordinate (G : ℕ) where
+  leftGate : Fin G
+  rightGate : Fin G
+  same : Fin 3
+  opposite : Fin 3
+  unionSize : Fin 5
+deriving DecidableEq, Fintype
+
+/-- Evaluation of a curried indexed matrix at one bundled coordinate. -/
+def indexedPairIncidenceMatrixAt {G m : ℕ} (M : IndexedPairIncidenceMatrix G m)
+    (c : IndexedPairIncidenceCoordinate G) : Fin (m * m + 1) :=
+  M c.leftGate c.rightGate c.same c.opposite c.unionSize
+
+/-- The realized support consists exactly of the nonzero matrix coordinates. -/
+def indexedPairIncidenceSupport {G m : ℕ} (M : IndexedPairIncidenceMatrix G m) :
+    Finset (IndexedPairIncidenceCoordinate G) :=
+  Finset.univ.filter fun c => indexedPairIncidenceMatrixAt M c ≠ 0
+
+@[simp] theorem mem_indexedPairIncidenceSupport_iff {G m : ℕ}
+    (M : IndexedPairIncidenceMatrix G m) (c : IndexedPairIncidenceCoordinate G) :
+    c ∈ indexedPairIncidenceSupport M ↔ indexedPairIncidenceMatrixAt M c ≠ 0 := by
+  simp [indexedPairIncidenceSupport]
+
+/-- A sparse matrix code stores values only at its declared coordinates.  Requiring those values
+to be nonzero makes the support canonical rather than merely an arbitrary superset. -/
+structure SparseIndexedPairIncidenceCode (G m : ℕ) where
+  support : Finset (IndexedPairIncidenceCoordinate G)
+  value : (c : IndexedPairIncidenceCoordinate G) →
+    c ∈ support → Fin (m * m + 1)
+  value_ne_zero : ∀ c hc, value c hc ≠ 0
+
+/-- Canonical sparse encoding of a complete indexed matrix. -/
+noncomputable def sparseIndexedPairIncidenceEncode {G m : ℕ}
+    (M : IndexedPairIncidenceMatrix G m) : SparseIndexedPairIncidenceCode G m where
+  support := indexedPairIncidenceSupport M
+  value := fun c _ => indexedPairIncidenceMatrixAt M c
+  value_ne_zero := fun c hc =>
+    (mem_indexedPairIncidenceSupport_iff M c).mp hc
+
+/-- Decode a sparse support/value code back to the curried matrix representation. -/
+noncomputable def sparseIndexedPairIncidenceDecode {G m : ℕ}
+    (code : SparseIndexedPairIncidenceCode G m) : IndexedPairIncidenceMatrix G m :=
+  fun g h same opposite unionSize =>
+    let c : IndexedPairIncidenceCoordinate G := ⟨g, h, same, opposite, unionSize⟩
+    if hc : c ∈ code.support then code.value c hc else 0
+
+/-- Sparse encoding is lossless: decoding recovers every matrix coordinate exactly. -/
+@[simp] theorem sparseIndexedPairIncidenceDecode_encode {G m : ℕ}
+    (M : IndexedPairIncidenceMatrix G m) :
+    sparseIndexedPairIncidenceDecode (sparseIndexedPairIncidenceEncode M) = M := by
+  funext g h same opposite unionSize
+  let c : IndexedPairIncidenceCoordinate G := ⟨g, h, same, opposite, unionSize⟩
+  by_cases hc : c ∈ indexedPairIncidenceSupport M
+  · simp [sparseIndexedPairIncidenceDecode, sparseIndexedPairIncidenceEncode, c, hc,
+      indexedPairIncidenceMatrixAt]
+  · have hzero : indexedPairIncidenceMatrixAt M c = 0 := by
+      simpa using hc
+    simp [sparseIndexedPairIncidenceDecode, sparseIndexedPairIncidenceEncode, c, hc,
+      indexedPairIncidenceMatrixAt] at hzero ⊢
+    exact hzero.symm
+
+/-- Consequently two matrices with the same canonical sparse code are equal. -/
+theorem sparseIndexedPairIncidenceEncode_injective {G m : ℕ} :
+    Function.Injective
+      (sparseIndexedPairIncidenceEncode :
+        IndexedPairIncidenceMatrix G m → SparseIndexedPairIncidenceCode G m) := by
+  intro M N h
+  have := congrArg sparseIndexedPairIncidenceDecode h
+  simpa using this
+
+/-- The bundled coordinate universe has exactly `45 * G²` elements.  A sparse code pays only
+for a chosen subset of this universe and a nonzero value at each chosen coordinate. -/
+theorem card_indexedPairIncidenceCoordinate (G : ℕ) :
+    Fintype.card (IndexedPairIncidenceCoordinate G) = 45 * G * G := by
+  let e : IndexedPairIncidenceCoordinate G ≃
+      ((Fin G × Fin G) × ((Fin 3 × Fin 3) × Fin 5)) :=
+    { toFun := fun (c : IndexedPairIncidenceCoordinate G) =>
+        ((c.leftGate, c.rightGate), ((c.same, c.opposite), c.unionSize))
+      invFun := fun c => ⟨c.1.1, c.1.2, c.2.1.1, c.2.1.2, c.2.2⟩
+      left_inv := by intro c; cases c; rfl
+      right_inv := by
+        intro c
+        rcases c with ⟨⟨g, h⟩, ⟨⟨same, opposite⟩, unionSize⟩⟩
+        rfl }
+  rw [Fintype.card_congr e]
+  simp only [Fintype.card_prod, Fintype.card_fin]
+  ring
+
+/-! ### Clause-occurrence witnesses behind the sparse matrix
+
+Matrix entries retain multiplicity but identify neither clause occurrence contributing to that
+multiplicity.  The following layer restores those identities.  Positions are taken in the
+filtered live width-two list used by the matrix itself, so repeated syntactically equal clauses
+remain distinct occurrences. -/
+
+/-- The live width-two clauses of one indexed gate, in their inherited list order. -/
+def indexedLiveClauses {n G : ℕ} (gates : Fin G → List (Depth3.Clause n))
+    (rho : Restriction n) (g : Fin G) : List (Depth3.Clause n) :=
+  (gates g).filter fun T =>
+    T.lits.length = 2 ∧ ∀ ell ∈ T.lits, rho (litVar ell) = none
+
+/-- A live clause occurrence is identified by its gate and its position in that gate's filtered
+live list.  The clause payload makes later component constructions independent of list lookup;
+the canonical enumerator below is the only source used by incidence witnesses. -/
+structure IndexedLiveClauseOccurrence {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) where
+  gate : Fin G
+  position : ℕ
+  clause : Depth3.Clause n
+deriving DecidableEq
+
+/-- All live occurrences in one gate, retaining a distinct dependent index for every position. -/
+def indexedLiveClauseOccurrences {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (g : Fin G) :
+    List (IndexedLiveClauseOccurrence gates rho) :=
+  (indexedLiveClauses gates rho g).zipIdx.map fun p => ⟨g, p.2, p.1⟩
+
+@[simp] theorem map_clause_indexedLiveClauseOccurrences {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (g : Fin G) :
+    (indexedLiveClauseOccurrences gates rho g).map
+        IndexedLiveClauseOccurrence.clause = indexedLiveClauses gates rho g := by
+  simp [indexedLiveClauseOccurrences, List.map_map, Function.comp_def]
+
+/-- Enumerate unordered typed pairs by retaining the earlier occurrence and a later occurrence.
+This is the witness-level counterpart of `clausePairTypeCount`. -/
+def unorderedTypedOccurrencePairs {n : ℕ} {α : Type}
+    (clause : α → Depth3.Clause n) :
+    List α → ℕ → ℕ → ℕ → List (α × α)
+  | [], _, _, _ => []
+  | x :: rest, same, opposite, unionSize =>
+      (rest.filter fun y =>
+        clausePairSamePolarityOverlap (clause x) (clause y) = same ∧
+        clausePairOppositePolarityOverlap (clause x) (clause y) = opposite ∧
+        (clauseVariableSupport (clause x) ∪ clauseVariableSupport (clause y)).card =
+          unionSize).map (x, ·) ++
+      unorderedTypedOccurrencePairs clause rest same opposite unionSize
+
+/-- Forgetting occurrence identities from the unordered witness list recovers the old recursive
+typed-pair count exactly. -/
+theorem length_unorderedTypedOccurrencePairs {n : ℕ} {α : Type}
+    (clause : α → Depth3.Clause n) (xs : List α) (same opposite unionSize : ℕ) :
+    (unorderedTypedOccurrencePairs clause xs same opposite unionSize).length =
+      clausePairTypeCount (xs.map clause) same opposite unionSize := by
+  induction xs with
+  | nil => simp [unorderedTypedOccurrencePairs, clausePairTypeCount]
+  | cons x rest ih =>
+      simp only [unorderedTypedOccurrencePairs, List.length_append, List.length_map,
+        List.map_cons, clausePairTypeCount, ih]
+      congr 1
+      rw [List.filter_map]
+      rw [List.length_map]
+      rfl
+
+/-- Enumerate ordered typed occurrence pairs across two indexed gates. -/
+def crossTypedOccurrencePairs {n : ℕ} {α β : Type}
+    (leftClause : α → Depth3.Clause n) (rightClause : β → Depth3.Clause n)
+    (left : List α) (right : List β) (same opposite unionSize : ℕ) :
+    List (α × β) :=
+  left.flatMap fun x =>
+    (right.filter fun y =>
+      clausePairSamePolarityOverlap (leftClause x) (rightClause y) = same ∧
+      clausePairOppositePolarityOverlap (leftClause x) (rightClause y) = opposite ∧
+      (clauseVariableSupport (leftClause x) ∪ clauseVariableSupport (rightClause y)).card =
+        unionSize).map (x, ·)
+
+/-- Forgetting occurrence identities from a cross-gate witness list recovers the old Cartesian
+typed-pair count exactly. -/
+theorem length_crossTypedOccurrencePairs {n : ℕ} {α β : Type}
+    (leftClause : α → Depth3.Clause n) (rightClause : β → Depth3.Clause n)
+    (left : List α) (right : List β) (same opposite unionSize : ℕ) :
+    (crossTypedOccurrencePairs leftClause rightClause left right
+      same opposite unionSize).length =
+      crossClausePairTypeCount (left.map leftClause) (right.map rightClause)
+        same opposite unionSize := by
+  induction left with
+  | nil => simp [crossTypedOccurrencePairs, crossClausePairTypeCount]
+  | cons x rest ih =>
+      simp only [crossTypedOccurrencePairs, List.flatMap_cons, List.length_append,
+        List.length_map, List.map_cons, crossClausePairTypeCount, ih]
+      congr 1
+      rw [List.filter_map]
+      rw [List.length_map]
+      rfl
+
+/-- Membership in the cross-gate witness enumerator is exactly Cartesian membership together
+with the three requested signed-type equalities.  This exposes the structural fact hidden by
+the earlier length-only theorem. -/
+theorem mem_crossTypedOccurrencePairs_iff {n : ℕ} {α β : Type}
+    (leftClause : α → Depth3.Clause n) (rightClause : β → Depth3.Clause n)
+    (left : List α) (right : List β) (x : α) (y : β)
+    (same opposite unionSize : ℕ) :
+    (x, y) ∈ crossTypedOccurrencePairs leftClause rightClause left right
+        same opposite unionSize ↔
+      x ∈ left ∧ y ∈ right ∧
+        clausePairSamePolarityOverlap (leftClause x) (rightClause y) = same ∧
+        clausePairOppositePolarityOverlap (leftClause x) (rightClause y) = opposite ∧
+        (clauseVariableSupport (leftClause x) ∪
+          clauseVariableSupport (rightClause y)).card = unionSize := by
+  simp [crossTypedOccurrencePairs, and_assoc]
+
+/-- The occurrence-pair witnesses stored behind one bundled matrix coordinate.  Diagonal cells
+use the canonical earlier/later orientation; off-diagonal cells use the matrix's ordered gate
+orientation.  Already-shallow gates contribute no witnesses, exactly as before. -/
+def typedIncidenceWitnesses {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :
+    List (IndexedLiveClauseOccurrence gates rho ×
+      IndexedLiveClauseOccurrence gates rho) :=
+  if c.leftGate = c.rightGate then
+    if (canonicalDT (gates c.leftGate) fuel rho).depth ≤ residualDepth then [] else
+      unorderedTypedOccurrencePairs IndexedLiveClauseOccurrence.clause
+        (indexedLiveClauseOccurrences gates rho c.leftGate)
+        c.same.val c.opposite.val c.unionSize.val
+  else
+    if (canonicalDT (gates c.leftGate) fuel rho).depth ≤ residualDepth then [] else
+    if (canonicalDT (gates c.rightGate) fuel rho).depth ≤ residualDepth then [] else
+      crossTypedOccurrencePairs IndexedLiveClauseOccurrence.clause
+        IndexedLiveClauseOccurrence.clause
+        (indexedLiveClauseOccurrences gates rho c.leftGate)
+        (indexedLiveClauseOccurrences gates rho c.rightGate)
+        c.same.val c.opposite.val c.unionSize.val
+
+/-- Exact count recovery: the bounded matrix value is the number of its identity-bearing
+occurrence-pair witnesses. -/
+theorem typedIncidenceWitnesses_length_eq_matrix {n G m : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (hm : ∀ g, (gates g).length ≤ m)
+    (c : IndexedPairIncidenceCoordinate G) :
+    (typedIncidenceWitnesses gates fuel residualDepth rho c).length =
+      (indexedPairIncidenceMatrixAt
+        (indexedPairIncidenceMatrix gates fuel residualDepth rho hm) c).val := by
+  rcases c with ⟨g, h, same, opposite, unionSize⟩
+  by_cases hgh : g = h
+  · subst h
+    simp only [typedIncidenceWitnesses, ↓reduceIte, indexedPairIncidenceMatrixAt,
+      indexedPairIncidenceMatrix_diagonal, indexedActiveWithinGatePairTypeProfile]
+    split
+    · rfl
+    · rw [length_unorderedTypedOccurrencePairs,
+        map_clause_indexedLiveClauseOccurrences]
+      rfl
+  · simp only [typedIncidenceWitnesses, hgh, ↓reduceIte, indexedPairIncidenceMatrixAt,
+      indexedPairIncidenceMatrix_offDiagonal _ _ _ _ _ _ _ hgh,
+      indexedActiveCrossGatePairTypeProfile]
+    split
+    · rfl
+    · split
+      · rfl
+      · rw [length_crossTypedOccurrencePairs,
+          map_clause_indexedLiveClauseOccurrences,
+          map_clause_indexedLiveClauseOccurrences]
+        rfl
+
+/-- Exact support recovery: a sparse matrix coordinate is present precisely when it has at least
+one identity-bearing occurrence-pair witness. -/
+theorem mem_indexedPairIncidenceSupport_iff_witnesses_nonempty {n G m : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (hm : ∀ g, (gates g).length ≤ m)
+    (c : IndexedPairIncidenceCoordinate G) :
+    c ∈ indexedPairIncidenceSupport
+        (indexedPairIncidenceMatrix gates fuel residualDepth rho hm) ↔
+      typedIncidenceWitnesses gates fuel residualDepth rho c ≠ [] := by
+  rw [mem_indexedPairIncidenceSupport_iff]
+  constructor
+  · intro hmatrix hwitness
+    apply hmatrix
+    apply Fin.ext
+    rw [← typedIncidenceWitnesses_length_eq_matrix gates fuel residualDepth rho hm c]
+    simp [hwitness]
+  · intro hwitness hmatrix
+    apply hwitness
+    apply List.eq_nil_of_length_eq_zero
+    rw [typedIncidenceWitnesses_length_eq_matrix gates fuel residualDepth rho hm c]
+    exact congrArg Fin.val hmatrix
+
+/-! ### The witness graph is already complete across active gates
+
+The proposed next quotient was to connect live occurrences whenever they share a typed
+incidence witness.  Before constructing components, it is important to test whether this graph
+has any locality to exploit.  Since the type coordinate records the type of *every* clause pair,
+the off-diagonal part is complete: every occurrence in one active gate is adjacent to every
+occurrence in every other active gate. -/
+
+/-- Two occurrence identities are adjacent when one orientation of their pair occurs in one of
+the bounded typed witness lists.  The explicit inequality removes loops. -/
+def TypedIncidenceAdjacent {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (x y : IndexedLiveClauseOccurrence gates rho) : Prop :=
+  x ≠ y ∧ ∃ c : IndexedPairIncidenceCoordinate G,
+    (x, y) ∈ typedIncidenceWitnesses gates fuel residualDepth rho c ∨
+      (y, x) ∈ typedIncidenceWitnesses gates fuel residualDepth rho c
+
+theorem typedIncidenceAdjacent_symm {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) {x y : IndexedLiveClauseOccurrence gates rho}
+    (hxy : TypedIncidenceAdjacent gates fuel residualDepth rho x y) :
+    TypedIncidenceAdjacent gates fuel residualDepth rho y x := by
+  rcases hxy with ⟨hne, c, hxy | hyx⟩
+  · exact ⟨Ne.symm hne, c, Or.inr hxy⟩
+  · exact ⟨Ne.symm hne, c, Or.inl hyx⟩
+
+/-- Positive occurrences of variables in a clause are contained in its unsigned support. -/
+theorem clausePositiveVariableSupport_subset_variableSupport {n : ℕ}
+    (T : Depth3.Clause n) :
+    clausePositiveVariableSupport T ⊆ clauseVariableSupport T := by
+  intro i hi
+  simp only [clausePositiveVariableSupport, List.mem_toFinset,
+    List.mem_filterMap] at hi
+  rcases hi with ⟨ell, hell, hi⟩
+  simp only [clauseVariableSupport, List.mem_toFinset, List.mem_map]
+  cases ell with
+  | pos j =>
+      simp only [Option.some.injEq] at hi
+      exact ⟨Rung4Literal.pos j, hell, by simpa [litVar] using hi⟩
+  | neg j => simp at hi
+
+/-- Negative occurrences of variables in a clause are contained in its unsigned support. -/
+theorem clauseNegativeVariableSupport_subset_variableSupport {n : ℕ}
+    (T : Depth3.Clause n) :
+    clauseNegativeVariableSupport T ⊆ clauseVariableSupport T := by
+  intro i hi
+  simp only [clauseNegativeVariableSupport, List.mem_toFinset,
+    List.mem_filterMap] at hi
+  rcases hi with ⟨ell, hell, hi⟩
+  simp only [clauseVariableSupport, List.mem_toFinset, List.mem_map]
+  cases ell with
+  | pos j => simp at hi
+  | neg j =>
+      simp only [Option.some.injEq] at hi
+      exact ⟨Rung4Literal.neg j, hell, by simpa [litVar] using hi⟩
+
+/-- Same-polarity overlap is bounded by the unsigned support of either source clause. -/
+theorem clausePairSamePolarityOverlap_le_leftSupport {n : ℕ}
+    (T U : Depth3.Clause n) :
+    clausePairSamePolarityOverlap T U ≤ (clauseVariableSupport T).card := by
+  apply Finset.card_mono
+  intro i hi
+  simp only [Finset.mem_union, Finset.mem_inter] at hi
+  exact hi.elim
+    (fun h => clausePositiveVariableSupport_subset_variableSupport T h.1)
+    (fun h => clauseNegativeVariableSupport_subset_variableSupport T h.1)
+
+/-- Opposite-polarity overlap is bounded by the unsigned support of either source clause. -/
+theorem clausePairOppositePolarityOverlap_le_leftSupport {n : ℕ}
+    (T U : Depth3.Clause n) :
+    clausePairOppositePolarityOverlap T U ≤ (clauseVariableSupport T).card := by
+  apply Finset.card_mono
+  intro i hi
+  simp only [Finset.mem_union, Finset.mem_inter] at hi
+  exact hi.elim
+    (fun h => clausePositiveVariableSupport_subset_variableSupport T h.1)
+    (fun h => clauseNegativeVariableSupport_subset_variableSupport T h.1)
+
+/-- Membership in the canonical live-occurrence enumerator certifies width exactly two. -/
+theorem IndexedLiveClauseOccurrence.lits_length_eq_two_of_mem {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (x : IndexedLiveClauseOccurrence gates rho)
+    (hx : x ∈ indexedLiveClauseOccurrences gates rho x.gate) :
+    x.clause.lits.length = 2 := by
+  have hmem : x.clause ∈ indexedLiveClauses gates rho x.gate := by
+    rw [← map_clause_indexedLiveClauseOccurrences gates rho x.gate]
+    exact List.mem_map_of_mem hx
+  exact (of_decide_eq_true (List.mem_filter.mp hmem).2).1
+
+/-- Every pair of canonical live occurrences has a color in the complete width-two alphabet. -/
+theorem liveOccurrence_pair_type_bounds {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (x y : IndexedLiveClauseOccurrence gates rho)
+    (hx : x ∈ indexedLiveClauseOccurrences gates rho x.gate)
+    (hy : y ∈ indexedLiveClauseOccurrences gates rho y.gate) :
+    clausePairSamePolarityOverlap x.clause y.clause < 3 ∧
+      clausePairOppositePolarityOverlap x.clause y.clause < 3 ∧
+      (clauseVariableSupport x.clause ∪ clauseVariableSupport y.clause).card < 5 := by
+  have hxw := x.lits_length_eq_two_of_mem gates rho hx
+  have hyw := y.lits_length_eq_two_of_mem gates rho hy
+  have hxcard : (clauseVariableSupport x.clause).card ≤ 2 :=
+    clauseVariableSupport_card_le_width (by omega)
+  have hycard : (clauseVariableSupport y.clause).card ≤ 2 :=
+    clauseVariableSupport_card_le_width (by omega)
+  refine
+    ⟨(clausePairSamePolarityOverlap_le_leftSupport x.clause y.clause).trans_lt (by omega),
+      (clausePairOppositePolarityOverlap_le_leftSupport x.clause y.clause).trans_lt (by omega),
+      ?_⟩
+  exact (Finset.card_union_le _ _).trans_lt (by omega)
+
+/-- Every canonical occurrence from one active gate is adjacent to every canonical occurrence
+from a distinct active gate, provided its uniquely determined signed type lies in the declared
+`Fin 3 × Fin 3 × Fin 5` width-two alphabet.  The alphabet premises are deliberately explicit:
+the next lemma can discharge them from canonical-list membership without obscuring this
+Cartesian completeness statement. -/
+theorem typedIncidenceAdjacent_of_crossGate_mem_of_type_lt {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (x y : IndexedLiveClauseOccurrence gates rho)
+    (hgate : x.gate ≠ y.gate)
+    (hx : x ∈ indexedLiveClauseOccurrences gates rho x.gate)
+    (hy : y ∈ indexedLiveClauseOccurrences gates rho y.gate)
+    (hactiveX : ¬ (canonicalDT (gates x.gate) fuel rho).depth ≤ residualDepth)
+    (hactiveY : ¬ (canonicalDT (gates y.gate) fuel rho).depth ≤ residualDepth)
+    (hsame : clausePairSamePolarityOverlap x.clause y.clause < 3)
+    (hopposite : clausePairOppositePolarityOverlap x.clause y.clause < 3)
+    (hunion : (clauseVariableSupport x.clause ∪
+      clauseVariableSupport y.clause).card < 5) :
+    TypedIncidenceAdjacent gates fuel residualDepth rho x y := by
+  let c : IndexedPairIncidenceCoordinate G :=
+    ⟨x.gate, y.gate,
+      ⟨clausePairSamePolarityOverlap x.clause y.clause, hsame⟩,
+      ⟨clausePairOppositePolarityOverlap x.clause y.clause, hopposite⟩,
+      ⟨(clauseVariableSupport x.clause ∪ clauseVariableSupport y.clause).card,
+        hunion⟩⟩
+  refine ⟨?_, c, Or.inl ?_⟩
+  · intro hxy
+    apply hgate
+    exact congrArg IndexedLiveClauseOccurrence.gate hxy
+  · simp only [typedIncidenceWitnesses, c, hgate, reduceIte, hactiveX, hactiveY]
+    rw [mem_crossTypedOccurrencePairs_iff]
+    exact ⟨hx, hy, rfl, rfl, rfl⟩
+
+/-- Unconditional cross-gate clique theorem: canonical occurrences in distinct active gates are
+adjacent.  The width-two filter itself discharges every finite-color obligation. -/
+theorem typedIncidenceAdjacent_of_crossGate_mem {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (x y : IndexedLiveClauseOccurrence gates rho)
+    (hgate : x.gate ≠ y.gate)
+    (hx : x ∈ indexedLiveClauseOccurrences gates rho x.gate)
+    (hy : y ∈ indexedLiveClauseOccurrences gates rho y.gate)
+    (hactiveX : ¬ (canonicalDT (gates x.gate) fuel rho).depth ≤ residualDepth)
+    (hactiveY : ¬ (canonicalDT (gates y.gate) fuel rho).depth ≤ residualDepth) :
+    TypedIncidenceAdjacent gates fuel residualDepth rho x y := by
+  rcases liveOccurrence_pair_type_bounds gates rho x y hx hy with
+    ⟨hsame, hopposite, hunion⟩
+  exact typedIncidenceAdjacent_of_crossGate_mem_of_type_lt gates fuel residualDepth rho x y
+    hgate hx hy hactiveX hactiveY hsame hopposite hunion
+
+/-! ### Exact shared-variable/disjoint-witness split
+
+The complete typed-pair graph is too dense because it also connects clauses with disjoint
+variable supports.  The following strictly sparser relation keeps only shared-variable edges.
+Crucially, we do not discard the other witnesses: an order-preserving tagged decomposition
+records on which side every original occurrence pair lies, and forgetting the tag reconstructs
+the original witness list exactly.  This makes the reconstruction charge explicit before any
+connected-component quotient is attempted. -/
+
+/-- Two live clause occurrences share at least one underlying variable. -/
+def LiveOccurrencesShareVariable {n G : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} {rho : Restriction n}
+    (x y : IndexedLiveClauseOccurrence gates rho) : Prop :=
+  (clauseVariableSupport x.clause ∩ clauseVariableSupport y.clause).Nonempty
+
+theorem liveOccurrencesShareVariable_symm {n G : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} {rho : Restriction n}
+    {x y : IndexedLiveClauseOccurrence gates rho}
+    (hxy : LiveOccurrencesShareVariable x y) :
+    LiveOccurrencesShareVariable y x := by
+  simpa [LiveOccurrencesShareVariable, Finset.inter_comm] using hxy
+
+/-- The sparse candidate graph is the complete typed-incidence graph restricted to occurrence
+pairs that actually share a variable. -/
+def SharedVariableTypedIncidenceAdjacent {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (x y : IndexedLiveClauseOccurrence gates rho) : Prop :=
+  TypedIncidenceAdjacent gates fuel residualDepth rho x y ∧
+    LiveOccurrencesShareVariable x y
+
+theorem sharedVariableTypedIncidenceAdjacent_symm {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) {x y : IndexedLiveClauseOccurrence gates rho}
+    (hxy : SharedVariableTypedIncidenceAdjacent gates fuel residualDepth rho x y) :
+    SharedVariableTypedIncidenceAdjacent gates fuel residualDepth rho y x := by
+  exact ⟨typedIncidenceAdjacent_symm gates fuel residualDepth rho hxy.1,
+    liveOccurrencesShareVariable_symm hxy.2⟩
+
+/-- Tag one typed witness by whether the two occurrences share a variable. -/
+def tagTypedIncidenceWitness {n G : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} {rho : Restriction n}
+    (p : IndexedLiveClauseOccurrence gates rho ×
+      IndexedLiveClauseOccurrence gates rho) :
+    Sum (IndexedLiveClauseOccurrence gates rho ×
+      IndexedLiveClauseOccurrence gates rho)
+      (IndexedLiveClauseOccurrence gates rho ×
+        IndexedLiveClauseOccurrence gates rho) :=
+  if clauseVariableSupport p.1.clause ∩
+      clauseVariableSupport p.2.clause = ∅ then Sum.inr p else Sum.inl p
+
+/-- The exact order-preserving shared/disjoint classification of one matrix cell's witnesses. -/
+def typedIncidenceWitnessDecomposition {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :
+    List (Sum (IndexedLiveClauseOccurrence gates rho ×
+      IndexedLiveClauseOccurrence gates rho)
+      (IndexedLiveClauseOccurrence gates rho ×
+        IndexedLiveClauseOccurrence gates rho)) :=
+  (typedIncidenceWitnesses gates fuel residualDepth rho c).map tagTypedIncidenceWitness
+
+/-- Forget whether a witness was retained by the sparse graph or belongs to the disjoint
+reconstruction payload. -/
+def forgetTypedIncidenceWitnessTag {α : Type} : Sum α α → α :=
+  Sum.elim id id
+
+/-- Exact reconstruction theorem: the tagged sparse/disjoint decomposition loses neither
+occurrence identities nor their original list order. -/
+theorem map_forgetTypedIncidenceWitnessTag_decomposition {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :
+    (typedIncidenceWitnessDecomposition gates fuel residualDepth rho c).map
+        forgetTypedIncidenceWitnessTag =
+      typedIncidenceWitnesses gates fuel residualDepth rho c := by
+  unfold typedIncidenceWitnessDecomposition
+  generalize typedIncidenceWitnesses gates fuel residualDepth rho c = xs
+  induction xs with
+  | nil => rfl
+  | cons p xs ih =>
+      simp only [List.map_cons]
+      rw [ih]
+      by_cases hp : clauseVariableSupport p.1.clause ∩
+        clauseVariableSupport p.2.clause = ∅ <;>
+        simp [tagTypedIncidenceWitness, forgetTypedIncidenceWitnessTag, hp]
+
+/-- Witnesses retained as edges of the shared-variable graph. -/
+def sharedVariableTypedIncidenceWitnesses {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :=
+  (typedIncidenceWitnesses gates fuel residualDepth rho c).filter fun p =>
+    !decide (clauseVariableSupport p.1.clause ∩
+      clauseVariableSupport p.2.clause = ∅)
+
+/-- The omitted payload: every typed occurrence pair with disjoint variable supports. -/
+def disjointVariableTypedIncidenceWitnesses {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :=
+  (typedIncidenceWitnesses gates fuel residualDepth rho c).filter fun p =>
+    decide (clauseVariableSupport p.1.clause ∩
+      clauseVariableSupport p.2.clause = ∅)
+
+/-- The sparse edge list and omitted disjoint payload partition the complete witness
+multiplicity exactly. -/
+theorem shared_add_disjoint_witness_lengths_eq {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G) :
+    (sharedVariableTypedIncidenceWitnesses gates fuel residualDepth rho c).length +
+        (disjointVariableTypedIncidenceWitnesses gates fuel residualDepth rho c).length =
+      (typedIncidenceWitnesses gates fuel residualDepth rho c).length := by
+  simp only [sharedVariableTypedIncidenceWitnesses,
+    disjointVariableTypedIncidenceWitnesses]
+  generalize typedIncidenceWitnesses gates fuel residualDepth rho c = xs
+  induction xs with
+  | nil => simp
+  | cons p xs ih =>
+      by_cases hp : clauseVariableSupport p.1.clause ∩
+        clauseVariableSupport p.2.clause = ∅ <;> simp [hp] <;> omega
+
+/-! ### Exact cross-gate charge and a disjoint-support stress test
+
+For an off-diagonal active gate pair, the omitted payload is not merely bounded by a Cartesian
+product: it is exactly the typed Cartesian occurrence list filtered by disjoint support.  The
+concrete four-gate family below then realizes all cross-block products.  This is the smallest
+existing width-two example that retains both polarities while making the quadratic gate-pair
+charge visible. -/
+
+/-- Exact off-diagonal formula for one colored disjoint-payload cell. -/
+theorem disjointVariableTypedIncidenceWitnesses_crossGate {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (c : IndexedPairIncidenceCoordinate G)
+    (hgate : c.leftGate ≠ c.rightGate)
+    (hactiveLeft : ¬ (canonicalDT (gates c.leftGate) fuel rho).depth ≤ residualDepth)
+    (hactiveRight : ¬ (canonicalDT (gates c.rightGate) fuel rho).depth ≤ residualDepth) :
+    disjointVariableTypedIncidenceWitnesses gates fuel residualDepth rho c =
+      (crossTypedOccurrencePairs IndexedLiveClauseOccurrence.clause
+        IndexedLiveClauseOccurrence.clause
+        (indexedLiveClauseOccurrences gates rho c.leftGate)
+        (indexedLiveClauseOccurrences gates rho c.rightGate)
+        c.same.val c.opposite.val c.unionSize.val).filter fun p =>
+          decide (clauseVariableSupport p.1.clause ∩
+            clauseVariableSupport p.2.clause = ∅) := by
+  simp [disjointVariableTypedIncidenceWitnesses, typedIncidenceWitnesses, hgate,
+    hactiveLeft, hactiveRight]
+
+/-- Every disjoint Cartesian occurrence pair from distinct active gates occurs in the omitted
+payload, at the coordinate determined by its signed type. -/
+theorem exists_mem_disjointVariableTypedIncidenceWitnesses_of_crossGate {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (x y : IndexedLiveClauseOccurrence gates rho)
+    (hgate : x.gate ≠ y.gate)
+    (hx : x ∈ indexedLiveClauseOccurrences gates rho x.gate)
+    (hy : y ∈ indexedLiveClauseOccurrences gates rho y.gate)
+    (hactiveX : ¬ (canonicalDT (gates x.gate) fuel rho).depth ≤ residualDepth)
+    (hactiveY : ¬ (canonicalDT (gates y.gate) fuel rho).depth ≤ residualDepth)
+    (hdisjoint : clauseVariableSupport x.clause ∩
+      clauseVariableSupport y.clause = ∅) :
+    ∃ c : IndexedPairIncidenceCoordinate G,
+      (x, y) ∈ disjointVariableTypedIncidenceWitnesses
+        gates fuel residualDepth rho c := by
+  rcases liveOccurrence_pair_type_bounds gates rho x y hx hy with
+    ⟨hsame, hopposite, hunion⟩
+  let c : IndexedPairIncidenceCoordinate G :=
+    ⟨x.gate, y.gate,
+      ⟨clausePairSamePolarityOverlap x.clause y.clause, hsame⟩,
+      ⟨clausePairOppositePolarityOverlap x.clause y.clause, hopposite⟩,
+      ⟨(clauseVariableSupport x.clause ∪ clauseVariableSupport y.clause).card,
+        hunion⟩⟩
+  refine ⟨c, ?_⟩
+  simp only [disjointVariableTypedIncidenceWitnesses, List.mem_filter]
+  constructor
+  · simp only [typedIncidenceWitnesses, c, hgate, reduceIte, hactiveX, hactiveY]
+    rw [mem_crossTypedOccurrencePairs_iff]
+    exact ⟨hx, hy, rfl, rfl, rfl⟩
+  · simpa [hdisjoint]
+
+/-- Total omitted multiplicity over the complete colored incidence matrix. -/
+def totalDisjointVariableTypedIncidencePayload {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : ℕ :=
+  ∑ c : IndexedPairIncidenceCoordinate G,
+    (disjointVariableTypedIncidenceWitnesses gates fuel residualDepth rho c).length
+
+set_option maxHeartbeats 4000000 in
+/-- In the two-polarity family of two disjoint width-two blocks, every ordered cross-block gate
+pair contributes its full one-by-one occurrence product.  There are two gates over each block,
+so the omitted payload contains exactly `2 * 2 * 2 = 8` witnesses. -/
+theorem localDisjointPairPolarityFamily_total_disjoint_payload :
+    totalDisjointVariableTypedIncidencePayload localDisjointPairPolarityFamily 4 1
+      (fun _ : Fin 4 => none) = 8 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Even the fully indexed, uncolored gate-support hypergraph is identical in the normalized
+comparison: corresponding gates have exactly the same variable support. -/
+theorem typedPairFamilies_indexed_gate_supports_eq :
+    (fun g => gateVariableSupport (typedPairLowCostFamily g)) =
+      (fun g => gateVariableSupport (typedPairHighCostFamily g)) := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The low-cost family has an identical, sign-aligned clause across its two active gates;
+counting both gate directions gives two cross-gate witnesses of type `(2,0,2)`.  The high-cost
+family has none. -/
+theorem typedPairFamilies_crossGate_identicalAligned_separates :
+    activeCrossGateLivePairTypeCount typedPairLowCostFamily 4 1
+        (fun _ : Fin 4 => none) 2 0 2 = 2 ∧
+      activeCrossGateLivePairTypeCount typedPairHighCostFamily 4 1
+        (fun _ : Fin 4 => none) 2 0 2 = 0 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Consequently the complete bounded signed cross-gate profiles are unequal. -/
+theorem typedPairFamilies_crossGate_complete_profiles_ne :
+    boundedActiveCrossGatePairTypeProfile typedPairLowCostFamily 4 1
+        (fun _ : Fin 4 => none) ≠
+      boundedActiveCrossGatePairTypeProfile typedPairHighCostFamily 4 1
+        (fun _ : Fin 4 => none) := by
+  intro h
+  have hcoord := congrFun (congrFun (congrFun h (2 : Fin 3)) (0 : Fin 3)) (2 : Fin 5)
+  change activeCrossGateLivePairTypeCount typedPairLowCostFamily 4 1
+      (fun _ : Fin 4 => none) 2 0 2 =
+    activeCrossGateLivePairTypeCount typedPairHighCostFamily 4 1
+      (fun _ : Fin 4 => none) 2 0 2 at hcoord
+  rw [typedPairFamilies_crossGate_identicalAligned_separates.1,
+    typedPairFamilies_crossGate_identicalAligned_separates.2] at hcoord
+  omega
+
+/-- The first cross-gate colored incidence coordinate separates the normalized families whose
+complete aggregate within-gate profiles and exact common-query costs differ. -/
+theorem typedPairFamilies_crossGate_profile_is_new_information :
+    (fun g => gateVariableSupport (typedPairLowCostFamily g)) =
+        (fun g => gateVariableSupport (typedPairHighCostFamily g)) ∧
+      boundedActivePairTypeProfile typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActivePairTypeProfile typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      activeCrossGateLivePairTypeCount typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) 2 0 2 ≠
+        activeCrossGateLivePairTypeCount typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) 2 0 2 := by
+  refine ⟨typedPairFamilies_indexed_gate_supports_eq,
+    typedPairFamilies_complete_profile_eq.2.2.2, ?_⟩
+  rw [typedPairFamilies_crossGate_identicalAligned_separates.1,
+    typedPairFamilies_crossGate_identicalAligned_separates.2]
+  norm_num
+
+/-- One query of coordinate zero makes both lower-cost gates residual-depth one on every branch. -/
+theorem typedPairLowCostFamily_commonShallowAt_one :
+    CommonShallowAt typedPairLowCostFamily 4
+      (fun _ : Fin 4 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;>
+    simp [trunk, queryRestrictionList, hx0, typedPairLowCostFamily, canonicalDT,
+      anyTermSat, termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth]
+
+set_option maxHeartbeats 2000000 in
+/-- Simultaneous residual depth one for the lower-cost family requires at least one fixed
+coordinate. -/
+theorem typedPairLowCostFamily_shallow_stars_le_three (rho : Restriction 4)
+    (h : ∀ g, (canonicalDT (typedPairLowCostFamily g) 4 rho).depth ≤ 1) :
+    stars rho ≤ 3 := by
+  revert rho
+  decide
+
+/-- The lower-cost root is not already shallow, so its exact common-query cost is one. -/
+theorem typedPairLowCostFamily_exact_cost_one :
+    (¬ CommonShallowAt typedPairLowCostFamily 4
+        (fun _ : Fin 4 => none) 0 1) ∧
+      CommonShallowAt typedPairLowCostFamily 4
+        (fun _ : Fin 4 => none) 1 1 := by
+  refine ⟨?_, typedPairLowCostFamily_commonShallowAt_one⟩
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let sigma : Restriction 4 := fun _ => none
+  let x : Fin 4 → Bool := fun _ => true
+  have hx : Rung4Restriction.Extends sigma x := by
+    intro i b hi
+    simp [sigma] at hi
+  obtain ⟨_hext, _hagree, hshallow⟩ := hleaf x hx
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk sigma 0 x hx hdepth (fun y hy => (hleaf y hy).2.1)
+  have hfour : 4 ≤ stars (CommonTree.run trunk x) := by
+    simpa [sigma, stars, freeVars] using hlower
+  have hthree : stars (CommonTree.run trunk x) ≤ 3 :=
+    typedPairLowCostFamily_shallow_stars_le_three _ hshallow
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- Exhaustive leaf characterization for the higher-cost family: simultaneous residual depth one
+requires fixing at least two of the four ambient coordinates. -/
+theorem typedPairHighCostFamily_shallow_stars_le_two (rho : Restriction 4)
+    (h : ∀ g, (canonicalDT (typedPairHighCostFamily g) 4 rho).depth ≤ 1) :
+    stars rho ≤ 2 := by
+  revert rho
+  decide
+
+/-- A depth-one common trunk cannot reach those leaves from the fully live root: leaf agreement
+leaves at least three coordinates live along every path. -/
+theorem typedPairHighCostFamily_not_commonShallowAt_one :
+    ¬ CommonShallowAt typedPairHighCostFamily 4
+      (fun _ : Fin 4 => none) 1 1 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let sigma : Restriction 4 := fun _ => none
+  let x : Fin 4 → Bool := fun _ => true
+  have hx : Rung4Restriction.Extends sigma x := by
+    intro i b hi
+    simp [sigma] at hi
+  obtain ⟨_hext, _hagree, hshallow⟩ := hleaf x hx
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk sigma 1 x hx hdepth (fun y hy => (hleaf y hy).2.1)
+  have hthree : 3 ≤ stars (CommonTree.run trunk x) := by
+    simpa [sigma, stars, freeVars] using hlower
+  have htwo : stars (CommonTree.run trunk x) ≤ 2 :=
+    typedPairHighCostFamily_shallow_stars_le_two _ hshallow
+  omega
+
+/-- Querying coordinates zero and one supplies a matching depth-two common trunk. -/
+theorem typedPairHighCostFamily_commonShallowAt_two :
+    CommonShallowAt typedPairHighCostFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 1]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 1] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;> cases hx1 : x 1 <;>
+    simp [trunk, queryRestrictionList, hx0, hx1, typedPairHighCostFamily, canonicalDT,
+      anyTermSat, termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth]
+
+/-- The higher-cost normalized family has exact common-query cost two. -/
+theorem typedPairHighCostFamily_exact_cost_two :
+    (¬ CommonShallowAt typedPairHighCostFamily 4
+        (fun _ : Fin 4 => none) 1 1) ∧
+      CommonShallowAt typedPairHighCostFamily 4
+        (fun _ : Fin 4 => none) 2 1 :=
+  ⟨typedPairHighCostFamily_not_commonShallowAt_one,
+    typedPairHighCostFamily_commonShallowAt_two⟩
+
+/-- Equal complete signed pair profiles can have opposite badness at trunk budget one.  Therefore
+the profile is not sufficient; cross-gate support incidence or genuinely higher-order data is
+required. -/
+theorem widthTwo_badness_not_determined_by_complete_typed_pair_profile :
+    boundedActivePairTypeProfile typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActivePairTypeProfile typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      (fun _ : Fin 4 => none) ∉
+        commonShallowBad typedPairLowCostFamily 4 4 1 1 ∧
+      (fun _ : Fin 4 => none) ∈
+        commonShallowBad typedPairHighCostFamily 4 4 1 1 := by
+  refine ⟨typedPairFamilies_complete_profile_eq.2.2.2, ?_, ?_⟩
+  · rw [mem_commonShallowBad]
+    rintro ⟨_hstars, hbad⟩
+    exact hbad typedPairLowCostFamily_commonShallowAt_one
+  · rw [mem_commonShallowBad]
+    exact ⟨by decide, typedPairHighCostFamily_not_commonShallowAt_one⟩
+
+/-! ### Canonical root-query selection is still too coarse
+
+The complete incidence route above records every live occurrence pair, while the proposed sparse
+replacement should charge only data actually used by a canonical query.  The smallest honest
+test is the root selector: for every currently deep indexed gate, retain the variable chosen by
+the first free literal of its first active term.  This is genuine canonical-walk data, rather
+than a support proxy.  The matched normalized families show that even this indexed selector,
+including its exact multiplicity, does not determine the common-trunk cost. -/
+
+/-- The actual first canonical query of each residually deep indexed gate.  Gates already within
+the residual-depth target contribute `none`. -/
+def activeCanonicalFirstQueryProfile {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Fin G → Option (Fin n) := fun g =>
+  if (canonicalDT (gates g) fuel rho).depth ≤ residualDepth then none
+  else (activeTermLit (gates g) rho).map litVar
+
+/-- Multiplicity of one queried variable in the indexed canonical root-query profile. -/
+def activeCanonicalFirstQueryMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (i : Fin n) : ℕ :=
+  (List.finRange G).countP fun g =>
+    activeCanonicalFirstQueryProfile gates fuel residualDepth rho g == some i
+
+set_option maxHeartbeats 2000000 in
+/-- Both gates in both matched families make the same canonical root query, coordinate zero. -/
+theorem typedPairFamilies_activeCanonicalFirstQueryProfile_eq :
+    activeCanonicalFirstQueryProfile typedPairLowCostFamily 4 1
+        (fun _ : Fin 4 => none) = (fun _ => some 0) ∧
+      activeCanonicalFirstQueryProfile typedPairHighCostFamily 4 1
+        (fun _ : Fin 4 => none) = (fun _ => some 0) := by
+  constructor <;> funext g <;> fin_cases g <;> decide
+
+set_option maxHeartbeats 2000000 in
+/-- The selected query also has the same exact indexed multiplicity, two, in both families. -/
+theorem typedPairFamilies_activeCanonicalFirstQueryMultiplicity_eq :
+    activeCanonicalFirstQueryMultiplicity typedPairLowCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 = 2 ∧
+      activeCanonicalFirstQueryMultiplicity typedPairHighCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 = 2 := by
+  constructor
+  · simp [activeCanonicalFirstQueryMultiplicity,
+      typedPairFamilies_activeCanonicalFirstQueryProfile_eq.1]
+  · simp [activeCanonicalFirstQueryMultiplicity,
+      typedPairFamilies_activeCanonicalFirstQueryProfile_eq.2]
+
+/-- Indexed canonical root-query data, even with multiplicity, is identical although the exact
+common-query costs are one and two.  A viable selector must therefore retain branch-conditioned
+prefix evolution (or equivalent conflict information), not just the first root choice. -/
+theorem canonicalRootQuerySelector_does_not_determine_commonQueryCost :
+    activeCanonicalFirstQueryProfile typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeCanonicalFirstQueryProfile typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      activeCanonicalFirstQueryMultiplicity typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) 0 =
+        activeCanonicalFirstQueryMultiplicity typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) 0 ∧
+      CommonShallowAt typedPairLowCostFamily 4
+          (fun _ : Fin 4 => none) 1 1 ∧
+      ¬ CommonShallowAt typedPairHighCostFamily 4
+          (fun _ : Fin 4 => none) 1 1 := by
+  refine ⟨?_, ?_, typedPairLowCostFamily_exact_cost_one.2,
+    typedPairHighCostFamily_exact_cost_two.1⟩
+  · rw [typedPairFamilies_activeCanonicalFirstQueryProfile_eq.1,
+      typedPairFamilies_activeCanonicalFirstQueryProfile_eq.2]
+  · rw [typedPairFamilies_activeCanonicalFirstQueryMultiplicity_eq.1,
+      typedPairFamilies_activeCanonicalFirstQueryMultiplicity_eq.2]
+
+/-! ### The first branch-conditioned selector step
+
+The root profile failure does not yet force storage of every gate's successor query.  A strictly
+sparser deterministic choice scans the indexed profile in gate order and retains only its first
+actual query.  Recomputing that single choice after each value of the selected root variable is
+the first level of a branch-conditioned selector stream.  On the matched counterexample this
+one-query-per-branch payload already detects exactly the extra common-trunk step. -/
+
+/-- The first present entry of an option list. -/
+def firstSome {alpha : Type*} : List (Option alpha) → Option alpha
+  | [] => none
+  | none :: xs => firstSome xs
+  | some x :: _ => some x
+
+/-- The gate-order deterministic first query selected from the active canonical gate profile. -/
+def activeCanonicalFirstFamilyQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  firstSome (List.ofFn (activeCanonicalFirstQueryProfile gates fuel residualDepth rho))
+
+/-- One branch-conditioned selector step: retain the selected root query and, after fixing it to
+either Boolean value, recompute just the first selected family query. -/
+def branchConditionedCanonicalQueryStep {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Option (Fin n) × (Bool → Option (Fin n)) :=
+  match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+  | none => (none, fun _ => none)
+  | some i =>
+      (some i, fun b =>
+        activeCanonicalFirstFamilyQuery gates fuel residualDepth (fixVar rho i b))
+
+set_option maxHeartbeats 2000000 in
+/-- The low-cost family stops after the common root query on both branches. -/
+theorem typedPairLowCost_branchConditionedCanonicalQueryStep :
+    branchConditionedCanonicalQueryStep typedPairLowCostFamily 4 1
+      (fun _ : Fin 4 => none) = (some 0, fun _ => none) := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The high-cost family exposes one new selected query on each root branch.  The identity is
+branch-dependent: coordinate two after `0 := false`, and coordinate one after `0 := true`. -/
+theorem typedPairHighCost_branchConditionedCanonicalQueryStep :
+    branchConditionedCanonicalQueryStep typedPairHighCostFamily 4 1
+      (fun _ : Fin 4 => none) =
+        (some 0, fun b => if b then some 1 else some 2) := by
+  decide
+
+/-- Recomputing only the first family query after each root branch separates the normalized
+families that identical indexed root selectors could not distinguish.  Thus this example does
+not require the full two-gate successor vector; it is encoded by one selected query per branch. -/
+theorem branchConditionedCanonicalQueryStep_separates_typedPairFamilies :
+    activeCanonicalFirstQueryProfile typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeCanonicalFirstQueryProfile typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      branchConditionedCanonicalQueryStep typedPairLowCostFamily 4 1
+          (fun _ : Fin 4 => none) ≠
+        branchConditionedCanonicalQueryStep typedPairHighCostFamily 4 1
+          (fun _ : Fin 4 => none) := by
+  refine ⟨?_, ?_⟩
+  · rw [typedPairFamilies_activeCanonicalFirstQueryProfile_eq.1,
+      typedPairFamilies_activeCanonicalFirstQueryProfile_eq.2]
+  · rw [typedPairLowCost_branchConditionedCanonicalQueryStep,
+      typedPairHighCost_branchConditionedCanonicalQueryStep]
+    intro h
+    have hfalse := congrFun (congrArg Prod.snd h) false
+    simp at hfalse
+
+/-! ### The recursive branch-conditioned selector tree
+
+Iterating the preceding step produces an honest common query carrier.  Its leaf payload is the
+restriction accumulated on that branch.  This construction deliberately makes no semantic
+claim yet that the greedy gate-order choice is optimal, or even that a given budget always makes
+all gates shallow; the structural accounting below is unconditional. -/
+
+/-- Recursively query the first canonical family variable, recomputing it independently after
+each branch.  The recursion budget bounds the number of selected queries on every realized path. -/
+def branchConditionedCanonicalSelectorTree {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → CommonTree n (Restriction n)
+  | 0, rho => CommonTree.leaf rho
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => CommonTree.leaf rho
+      | some i => CommonTree.query i
+          (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget
+            (fixVar rho i false))
+          (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget
+            (fixVar rho i true))
+
+/-- Number of query nodes stored in a complete common-tree certificate. -/
+def CommonTree.queryNodeCount {n : ℕ} {alpha : Type} : CommonTree n alpha → ℕ
+  | .leaf _ => 0
+  | .query _ lo hi => queryNodeCount lo + queryNodeCount hi + 1
+
+/-- `firstSome` stops exactly when every entry of the scanned profile is absent. -/
+theorem firstSome_eq_none_iff {alpha : Type*} (xs : List (Option alpha)) :
+    firstSome xs = none ↔ ∀ x ∈ xs, x = none := by
+  induction xs with
+  | nil => simp [firstSome]
+  | cons x xs ih =>
+      cases x <;> simp [firstSome, ih]
+
+/-- If the canonical active-literal selector has stopped, the canonical tree is constant. -/
+theorem canonicalDT_depth_eq_zero_of_activeTermLit_eq_none {n : ℕ}
+    (cs : List (Depth3.Clause n)) (fuel : ℕ) (rho : Restriction n)
+    (h : activeTermLit cs rho = none) :
+    (canonicalDT cs fuel rho).depth = 0 := by
+  cases fuel with
+  | zero =>
+      rw [canonicalDT]
+      split <;> rfl
+  | succ fuel =>
+      unfold activeTermLit at h
+      cases hany : anyTermSat cs rho with
+      | true => simp [canonicalDT, hany]
+      | false =>
+          cases hact : activeTerm cs rho with
+          | none => simp [canonicalDT, hany, hact]
+          | some T =>
+              obtain ⟨ell, hell, _⟩ := activeTerm_first_free hact
+              simp only [hact, hell] at h
+              contradiction
+
+/-- The greedy family selector stops exactly when every indexed canonical gate is already within
+the requested residual-depth target. -/
+theorem activeCanonicalFirstFamilyQuery_eq_none_iff {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) :
+    activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none ↔
+      ∀ g, (canonicalDT (gates g) fuel rho).depth ≤ residualDepth := by
+  rw [activeCanonicalFirstFamilyQuery, firstSome_eq_none_iff]
+  constructor
+  · intro h g
+    have hg := h _ (List.mem_ofFn.mpr ⟨g, rfl⟩)
+    simp only [activeCanonicalFirstQueryProfile] at hg
+    by_cases hdepth : (canonicalDT (gates g) fuel rho).depth ≤ residualDepth
+    · exact hdepth
+    · simp only [hdepth, if_false] at hg
+      cases hactive : activeTermLit (gates g) rho with
+      | none =>
+          have hz := canonicalDT_depth_eq_zero_of_activeTermLit_eq_none
+            (gates g) fuel rho hactive
+          omega
+      | some ell => simp [hactive] at hg
+  · intro h x hx
+    obtain ⟨g, rfl⟩ := List.mem_ofFn.mp hx
+    simp [activeCanonicalFirstQueryProfile, h g]
+
+/-- A successful `firstSome` result is one of the scanned profile entries. -/
+theorem firstSome_eq_some_mem {alpha : Type*} {xs : List (Option alpha)} {a : alpha}
+    (h : firstSome xs = some a) : some a ∈ xs := by
+  induction xs with
+  | nil => simp [firstSome] at h
+  | cons x xs ih =>
+      cases x with
+      | none => exact List.mem_cons_of_mem _ (ih h)
+      | some b =>
+          simp only [firstSome, Option.some.injEq] at h
+          subst b
+          exact List.mem_cons_self
+
+/-- Every variable chosen by the greedy family selector is live in the current restriction. -/
+theorem activeCanonicalFirstFamilyQuery_var_free {n G : ℕ}
+    {gates : Fin G → List (Depth3.Clause n)} {fuel residualDepth : ℕ}
+    {rho : Restriction n} {i : Fin n}
+    (h : activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = some i) :
+    rho i = none := by
+  have hmem := firstSome_eq_some_mem h
+  obtain ⟨g, hg⟩ := List.mem_ofFn.mp hmem
+  simp only [activeCanonicalFirstQueryProfile] at hg
+  by_cases hdepth : (canonicalDT (gates g) fuel rho).depth ≤ residualDepth
+  · simp [hdepth] at hg
+  · simp only [hdepth, if_false] at hg
+    cases hactive : activeTermLit (gates g) rho with
+    | none => simp [hactive] at hg
+    | some ell =>
+        simp only [hactive, Option.map_some, Option.some.injEq] at hg
+        subst i
+        exact activeTermLit_var_free hactive
+
+/-- Fixing a currently live coordinate preserves every value already fixed by the restriction. -/
+theorem restrictionExtends_fixVar_of_free {n : ℕ} {rho : Restriction n}
+    {i : Fin n} (hfree : rho i = none) (b : Bool) :
+    RestrictionExtends rho (fixVar rho i b) := by
+  intro j c hj
+  by_cases hji : j = i
+  · subst j
+    rw [hfree] at hj
+    contradiction
+  · simpa [fixVar, Function.update_of_ne hji] using hj
+
+/-- Along every realized branch, the selector leaf extends the root and agrees with the followed
+assignment.  This is unconditional: it does not assume that the recursion budget was sufficient
+to make the gate family shallow. -/
+theorem branchConditionedCanonicalSelectorTree_run_spec {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n) (x : Fin n → Bool)
+    (hx : Rung4Restriction.Extends rho x) :
+    RestrictionExtends rho
+        (CommonTree.run
+          (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho) x) ∧
+      Rung4Restriction.Extends
+        (CommonTree.run
+          (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho) x) x := by
+  induction budget generalizing rho with
+  | zero => exact ⟨fun _ _ h => h, hx⟩
+  | succ budget ih =>
+      simp only [branchConditionedCanonicalSelectorTree]
+      cases hquery : activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => exact ⟨fun _ _ h => h, hx⟩
+      | some i =>
+          have hfree := activeCanonicalFirstFamilyQuery_var_free hquery
+          cases hxi : x i with
+          | false =>
+              have hx' := extends_fixVar hx hxi
+              have child := ih (fixVar rho i false) hx'
+              simp only [CommonTree.run, hxi, Bool.false_eq_true, if_false]
+              exact ⟨fun j b hj => child.1 j b
+                (restrictionExtends_fixVar_of_free hfree false j b hj), child.2⟩
+          | true =>
+              have hx' := extends_fixVar hx hxi
+              have child := ih (fixVar rho i true) hx'
+              simp only [CommonTree.run, hxi, if_true]
+              exact ⟨fun j b hj => child.1 j b
+                (restrictionExtends_fixVar_of_free hfree true j b hj), child.2⟩
+
+/-- The recursive selector has realized-path depth at most its recursion budget. -/
+theorem branchConditionedCanonicalSelectorTree_depth_le {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n) :
+    (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho).depth ≤
+      budget := by
+  induction budget generalizing rho with
+  | zero => simp [branchConditionedCanonicalSelectorTree, CommonTree.depth]
+  | succ budget ih =>
+      simp only [branchConditionedCanonicalSelectorTree]
+      split
+      · simp [CommonTree.depth]
+      · simp only [CommonTree.depth]
+        exact Nat.succ_le_succ (max_le (ih _) (ih _))
+
+/-- If the greedy selector has stopped at every reached leaf, its stored tree is a genuine
+`CommonShallowAt` certificate.  This isolates semantic soundness from the separate optimality
+question of how much recursion budget is needed to force stopping. -/
+theorem commonShallowAt_of_branchConditionedCanonicalSelectorTree_stops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n)
+    (hstops : ∀ x : Fin n → Bool, Rung4Restriction.Extends rho x →
+      activeCanonicalFirstFamilyQuery gates fuel residualDepth
+        (CommonTree.run
+          (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho) x) = none) :
+    CommonShallowAt gates fuel rho budget residualDepth := by
+  refine ⟨branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho,
+    branchConditionedCanonicalSelectorTree_depth_le gates fuel residualDepth budget rho, ?_⟩
+  intro x hx
+  obtain ⟨hext, hagree⟩ := branchConditionedCanonicalSelectorTree_run_spec
+    gates fuel residualDepth budget rho x hx
+  exact ⟨hext, hagree,
+    (activeCanonicalFirstFamilyQuery_eq_none_iff gates fuel residualDepth _).mp
+      (hstops x hx)⟩
+
+/-- Storing the complete recursive selector can cost a full binary tree: at budget `d` its query
+node count is bounded by `2^d - 1`, despite every realized branch containing at most `d` queries. -/
+theorem branchConditionedCanonicalSelectorTree_queryNodeCount_le {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n) :
+    CommonTree.queryNodeCount
+        (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho) ≤
+      2 ^ budget - 1 := by
+  induction budget generalizing rho with
+  | zero => simp [branchConditionedCanonicalSelectorTree, CommonTree.queryNodeCount]
+  | succ budget ih =>
+      cases hquery : activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => simp [branchConditionedCanonicalSelectorTree, hquery,
+          CommonTree.queryNodeCount]
+      | some i =>
+        simp only [branchConditionedCanonicalSelectorTree, hquery,
+          CommonTree.queryNodeCount, pow_succ]
+        have hlo := ih (fixVar rho i false)
+        have hhi := ih (fixVar rho i true)
+        have hpow : 0 < 2 ^ budget := pow_pos (by decide) _
+        calc
+          _ ≤ (2 ^ budget - 1) + (2 ^ budget - 1) + 1 :=
+            Nat.add_le_add_right (Nat.add_le_add hlo hhi) 1
+          _ ≤ 2 ^ budget * 2 - 1 := by omega
+
+set_option maxHeartbeats 2000000 in
+/-- At budget two the low-cost example stops after one stored query node and has depth one. -/
+theorem typedPairLowCost_selectorTree_cost :
+    let tree := branchConditionedCanonicalSelectorTree typedPairLowCostFamily 4 1 2
+      (fun _ : Fin 4 => none)
+    tree.depth = 1 ∧ CommonTree.queryNodeCount tree = 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- At budget two the high-cost example realizes the full depth-two binary shape: its two paths
+have two queries, while the stored certificate has three query nodes. -/
+theorem typedPairHighCost_selectorTree_cost :
+    let tree := branchConditionedCanonicalSelectorTree typedPairHighCostFamily 4 1 2
+      (fun _ : Fin 4 => none)
+    tree.depth = 2 ∧ CommonTree.queryNodeCount tree = 3 := by
+  decide
+
 /-- A zero-depth common trunk cannot secretly strengthen its root restriction.  Hence every gate
 must already be residually shallow at the root.  This converse is also the base case of the finite
 query-game normalization below. -/
@@ -5549,6 +6459,248 @@ theorem CommonShallowAt.root_shallow_of_trunkDepth_zero {n G fuel residualDepth 
         simp [hi])).2.2 g
   | query i left right =>
       simp [CommonTree.depth] at hdepth
+
+/-! ### Aggregate signed cross-gate profiles still forget witness incidence
+
+The preceding two-gate comparison was separated by its aggregate cross-gate histogram.  With
+three active gates, that histogram can be matched while redistributing the colored witnesses
+among different indexed gate pairs.  The following support-matched comparison has exact
+residual-depth-one common-query costs one and two. -/
+
+/-- A three-gate family whose three local good-query sets have coordinate two in common. -/
+def aggregateCrossLowCostFamily : Fin 3 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then
+    [⟨[Rung4Literal.pos 0, Rung4Literal.pos 2]⟩,
+      ⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩]
+  else if g = 1 then
+    [⟨[Rung4Literal.pos 0, Rung4Literal.pos 2]⟩,
+      ⟨[Rung4Literal.neg 2, Rung4Literal.neg 3]⟩]
+  else
+    [⟨[Rung4Literal.neg 2, Rung4Literal.neg 3]⟩,
+      ⟨[Rung4Literal.pos 2, Rung4Literal.pos 3]⟩]
+
+/-- A matched three-gate family whose local good-query sets have empty intersection. -/
+def aggregateCrossHighCostFamily : Fin 3 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then
+    [⟨[Rung4Literal.pos 0, Rung4Literal.neg 2]⟩,
+      ⟨[Rung4Literal.pos 2, Rung4Literal.neg 3]⟩]
+  else if g = 1 then
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg 3]⟩,
+      ⟨[Rung4Literal.pos 0, Rung4Literal.pos 3]⟩]
+  else
+    [⟨[Rung4Literal.pos 0, Rung4Literal.pos 3]⟩,
+      ⟨[Rung4Literal.neg 0, Rung4Literal.neg 3]⟩]
+
+set_option maxHeartbeats 2000000 in
+/-- The comparison matches every aggregate invariant developed so far, including global support
+and every coordinate of both complete signed pair profiles. -/
+theorem aggregateCrossFamilies_complete_profiles_eq :
+    familyVariableSupport aggregateCrossLowCostFamily =
+        familyVariableSupport aggregateCrossHighCostFamily ∧
+      liveWidthTwoClauseCount aggregateCrossLowCostFamily (fun _ : Fin 4 => none) =
+        liveWidthTwoClauseCount aggregateCrossHighCostFamily (fun _ : Fin 4 => none) ∧
+      activeWithinGateLivePairMass aggregateCrossLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        activeWithinGateLivePairMass aggregateCrossHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      boundedActivePairTypeProfile aggregateCrossLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActivePairTypeProfile aggregateCrossHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      boundedActiveCrossGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActiveCrossGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+          (fun _ : Fin 4 => none) := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The missing information is witness placement: the corresponding indexed gate supports are
+not equal even though their union and both aggregate colored histograms are equal. -/
+theorem aggregateCrossFamilies_indexed_gate_supports_ne :
+    (fun g => gateVariableSupport (aggregateCrossLowCostFamily g)) ≠
+      (fun g => gateVariableSupport (aggregateCrossHighCostFamily g)) := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The aggregate-profile witness also redistributes its within-gate colors.  At gate zero the
+low-cost family has one same-support, fully opposite pair of type `(0,2,2)`, while the high-cost
+family has none. -/
+theorem aggregateCrossFamilies_indexed_within_gate_zero_separates :
+    indexedActiveWithinGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 0 2 2 = 1 ∧
+      indexedActiveWithinGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 0 2 2 = 0 := by
+  decide
+
+/-- Thus the three-gate counterexample does not match the complete within-gate profile after gate
+identity is retained.  Both diagonal (within-gate) and off-diagonal (cross-gate) witness placement
+must be indexed before testing whether pairwise signed incidence controls common-query cost. -/
+theorem aggregateCrossFamilies_indexed_withinGate_profiles_ne :
+    indexedActiveWithinGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+        (fun _ : Fin 4 => none) ≠
+      indexedActiveWithinGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+        (fun _ : Fin 4 => none) := by
+  intro h
+  have hcoord := congrFun (congrFun (congrFun (congrFun h
+    (0 : Fin 3)) (0 : Fin 3)) (2 : Fin 3)) (2 : Fin 5)
+  rw [aggregateCrossFamilies_indexed_within_gate_zero_separates.1,
+    aggregateCrossFamilies_indexed_within_gate_zero_separates.2] at hcoord
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- At ordered gate pair `(0,1)`, the low-cost family has one identical sign-aligned clause pair
+of type `(2,0,2)`, while the high-cost family has none. -/
+theorem aggregateCrossFamilies_indexed_gate_zero_one_separates :
+    indexedActiveCrossGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 1 2 0 2 = 1 ∧
+      indexedActiveCrossGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+        (fun _ : Fin 4 => none) 0 1 2 0 2 = 0 := by
+  decide
+
+/-- Retaining the complete signed profile separately for every ordered indexed gate pair
+distinguishes the aggregate-profile counterexample.  Thus the previous failure is exactly a loss
+from summing witness colors over gate-pair identities, not a failure of this indexed refinement
+on the current minimal witness. -/
+theorem aggregateCrossFamilies_indexed_crossGate_profiles_ne :
+    indexedActiveCrossGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+        (fun _ : Fin 4 => none) ≠
+      indexedActiveCrossGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+        (fun _ : Fin 4 => none) := by
+  intro h
+  have hcoord := congrFun (congrFun (congrFun (congrFun (congrFun h
+    (0 : Fin 3)) (1 : Fin 3)) (2 : Fin 3)) (0 : Fin 3)) (2 : Fin 5)
+  rw [aggregateCrossFamilies_indexed_gate_zero_one_separates.1,
+    aggregateCrossFamilies_indexed_gate_zero_one_separates.2] at hcoord
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- Querying coordinate two simultaneously leaves every low-cost gate at residual depth one. -/
+theorem aggregateCrossLowCostFamily_commonShallowAt_one :
+    CommonShallowAt aggregateCrossLowCostFamily 4
+      (fun _ : Fin 4 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx2, aggregateCrossLowCostFamily, canonicalDT,
+      anyTermSat, termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth]
+
+set_option maxHeartbeats 2000000 in
+/-- A restriction shallowing the low-cost family must fix at least one ambient coordinate. -/
+theorem aggregateCrossLowCostFamily_shallow_stars_le_three (rho : Restriction 4)
+    (h : ∀ g, (canonicalDT (aggregateCrossLowCostFamily g) 4 rho).depth ≤ 1) :
+    stars rho ≤ 3 := by
+  revert rho
+  decide
+
+/-- The fully live low-cost root is not already residually shallow. -/
+theorem aggregateCrossLowCostFamily_not_commonShallowAt_zero :
+    ¬ CommonShallowAt aggregateCrossLowCostFamily 4
+      (fun _ : Fin 4 => none) 0 1 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let sigma : Restriction 4 := fun _ => none
+  let x : Fin 4 → Bool := fun _ => true
+  have hx : Rung4Restriction.Extends sigma x := by
+    intro i b hi
+    simp [sigma] at hi
+  obtain ⟨_hext, _hagree, hshallow⟩ := hleaf x hx
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk sigma 0 x hx hdepth (fun y hy => (hleaf y hy).2.1)
+  have hfour : 4 ≤ stars (CommonTree.run trunk x) := by
+    simpa [sigma, stars, freeVars] using hlower
+  have hthree : stars (CommonTree.run trunk x) ≤ 3 :=
+    aggregateCrossLowCostFamily_shallow_stars_le_three _ hshallow
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- Simultaneously shallowing the high-cost family fixes at least two ambient coordinates. -/
+theorem aggregateCrossHighCostFamily_shallow_stars_le_two (rho : Restriction 4)
+    (h : ∀ g, (canonicalDT (aggregateCrossHighCostFamily g) 4 rho).depth ≤ 1) :
+    stars rho ≤ 2 := by
+  revert rho
+  decide
+
+/-- Hence a depth-one common trunk cannot shallow the high-cost family from the live root. -/
+theorem aggregateCrossHighCostFamily_not_commonShallowAt_one :
+    ¬ CommonShallowAt aggregateCrossHighCostFamily 4
+      (fun _ : Fin 4 => none) 1 1 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let sigma : Restriction 4 := fun _ => none
+  let x : Fin 4 → Bool := fun _ => true
+  have hx : Rung4Restriction.Extends sigma x := by
+    intro i b hi
+    simp [sigma] at hi
+  obtain ⟨_hext, _hagree, hshallow⟩ := hleaf x hx
+  have hlower := CommonTree.stars_run_ge_sub_of_leaf_agreement
+    trunk sigma 1 x hx hdepth (fun y hy => (hleaf y hy).2.1)
+  have hthree : 3 ≤ stars (CommonTree.run trunk x) := by
+    simpa [sigma, stars, freeVars] using hlower
+  have htwo : stars (CommonTree.run trunk x) ≤ 2 :=
+    aggregateCrossHighCostFamily_shallow_stars_le_two _ hshallow
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- Querying coordinates zero and three gives the high-cost family a depth-two common trunk. -/
+theorem aggregateCrossHighCostFamily_commonShallowAt_two :
+    CommonShallowAt aggregateCrossHighCostFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 3]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 3] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;> cases hx3 : x 3 <;>
+    simp [trunk, queryRestrictionList, hx0, hx3, aggregateCrossHighCostFamily, canonicalDT,
+      anyTermSat, termSat, activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar,
+      litFixedVal, litFalse, litFree, fixVar, BoolDecisionTree.depth]
+
+/-- The matched families have exact common-query costs one and two. -/
+theorem aggregateCrossFamilies_exact_costs :
+    (¬ CommonShallowAt aggregateCrossLowCostFamily 4
+        (fun _ : Fin 4 => none) 0 1) ∧
+      CommonShallowAt aggregateCrossLowCostFamily 4
+        (fun _ : Fin 4 => none) 1 1 ∧
+      (¬ CommonShallowAt aggregateCrossHighCostFamily 4
+        (fun _ : Fin 4 => none) 1 1) ∧
+      CommonShallowAt aggregateCrossHighCostFamily 4
+        (fun _ : Fin 4 => none) 2 1 :=
+  ⟨aggregateCrossLowCostFamily_not_commonShallowAt_zero,
+    aggregateCrossLowCostFamily_commonShallowAt_one,
+    aggregateCrossHighCostFamily_not_commonShallowAt_one,
+    aggregateCrossHighCostFamily_commonShallowAt_two⟩
+
+/-- Complete aggregate within-gate and cross-gate signed profiles, even together with global
+support, do not determine residual-depth-one badness at trunk budget one. -/
+theorem widthTwo_badness_not_determined_by_aggregate_signed_pair_profiles :
+    familyVariableSupport aggregateCrossLowCostFamily =
+        familyVariableSupport aggregateCrossHighCostFamily ∧
+      boundedActivePairTypeProfile aggregateCrossLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActivePairTypeProfile aggregateCrossHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      boundedActiveCrossGatePairTypeProfile aggregateCrossLowCostFamily 4 1
+          (fun _ : Fin 4 => none) =
+        boundedActiveCrossGatePairTypeProfile aggregateCrossHighCostFamily 4 1
+          (fun _ : Fin 4 => none) ∧
+      (fun _ : Fin 4 => none) ∉
+        commonShallowBad aggregateCrossLowCostFamily 4 4 1 1 ∧
+      (fun _ : Fin 4 => none) ∈
+        commonShallowBad aggregateCrossHighCostFamily 4 4 1 1 := by
+  refine ⟨aggregateCrossFamilies_complete_profiles_eq.1,
+    aggregateCrossFamilies_complete_profiles_eq.2.2.2.1,
+    aggregateCrossFamilies_complete_profiles_eq.2.2.2.2, ?_, ?_⟩
+  · rw [mem_commonShallowBad]
+    rintro ⟨_hstars, hbad⟩
+    exact hbad aggregateCrossLowCostFamily_commonShallowAt_one
+  · rw [mem_commonShallowBad]
+    exact ⟨by decide, aggregateCrossHighCostFamily_not_commonShallowAt_one⟩
 
 /-! ### Executable classification of all 81 local restrictions
 
@@ -6009,6 +7161,274 @@ theorem twoPairFlexibleQueryWin_cost (rho : Restriction 4) :
   by_cases htwo : twoPairFlexibleQueryWin rho 2 rho = true
   · simpa [twoPairFlexibleQueryCost, hzero, hone, htwo] using htwo
   · simpa [twoPairFlexibleQueryCost, hzero, hone, htwo] using hthree
+
+/-! ### Exact 81-state audit of the greedy family selector
+
+The flexible game computes the semantic optimum but may choose any live coordinate.  The
+following recurrence instead makes the unique gate-order choice used by
+`branchConditionedCanonicalSelectorTree`, and succeeds only when both resulting branches stop.
+It therefore computes the first stopping budget of the specific greedy selector without
+enumerating total assignments or materializing its complete binary tree. -/
+
+/-- Executable stopping recurrence for the gate-order selector on an arbitrary indexed family.
+Unlike the stored selector tree, this predicate only follows the recursive Boolean conjunction
+and therefore does not expose an explicit `2^budget` certificate. -/
+def branchConditionedCanonicalSelectorStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho =>
+      decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some i =>
+          branchConditionedCanonicalSelectorStops gates fuel residualDepth budget
+              (fixVar rho i false) &&
+            branchConditionedCanonicalSelectorStops gates fuel residualDepth budget
+              (fixVar rho i true)
+
+/-- The executable recurrence stops exactly when every assignment compatible with the root
+reaches a stopped leaf of the realized selector tree.  This is the generic semantic connection
+between pathwise Boolean evaluation and the explicit `CommonTree` carrier. -/
+theorem branchConditionedCanonicalSelectorStops_eq_true_iff {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n) :
+    branchConditionedCanonicalSelectorStops gates fuel residualDepth budget rho = true ↔
+      ∀ x : Fin n → Bool, Rung4Restriction.Extends rho x →
+        activeCanonicalFirstFamilyQuery gates fuel residualDepth
+          (CommonTree.run
+            (branchConditionedCanonicalSelectorTree gates fuel residualDepth budget rho) x) =
+          none := by
+  induction budget generalizing rho with
+  | zero =>
+      simp only [branchConditionedCanonicalSelectorStops,
+        branchConditionedCanonicalSelectorTree, decide_eq_true_eq, CommonTree.run]
+      constructor
+      · exact fun h _ _ => h
+      · intro h
+        exact h (fun i => (rho i).getD false) (extends_getD rho)
+  | succ budget ih =>
+      simp only [branchConditionedCanonicalSelectorStops,
+        branchConditionedCanonicalSelectorTree]
+      cases hquery : activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => simp [hquery]
+      | some i =>
+          have hfree := activeCanonicalFirstFamilyQuery_var_free hquery
+          simp only [Bool.and_eq_true]
+          rw [ih (fixVar rho i false), ih (fixVar rho i true)]
+          constructor
+          · rintro ⟨hlo, hhi⟩ x hx
+            cases hxi : x i with
+            | false =>
+                simpa [CommonTree.run, hxi] using hlo x (extends_fixVar hx hxi)
+            | true =>
+                simpa [CommonTree.run, hxi] using hhi x (extends_fixVar hx hxi)
+          · intro h
+            constructor
+            · intro x hx
+              have hxi : x i = false := hx i false (by simp [fixVar])
+              have hxroot : Rung4Restriction.Extends rho x := by
+                intro j b hj
+                exact hx j b (restrictionExtends_fixVar_of_free hfree false j b hj)
+              simpa [CommonTree.run, hxi] using h x hxroot
+            · intro x hx
+              have hxi : x i = true := hx i true (by simp [fixVar])
+              have hxroot : Rung4Restriction.Extends rho x := by
+                intro j b hj
+                exact hx j b (restrictionExtends_fixVar_of_free hfree true j b hj)
+              simpa [CommonTree.run, hxi] using h x hxroot
+
+/-- Executable stopping is sufficient for a genuine common-shallow certificate at the same
+budget; the proof now factors through the exact universal-stopping equivalence. -/
+theorem commonShallowAt_of_branchConditionedCanonicalSelectorStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth budget : ℕ)
+    (rho : Restriction n)
+    (hstops : branchConditionedCanonicalSelectorStops gates fuel residualDepth budget rho =
+      true) :
+    CommonShallowAt gates fuel rho budget residualDepth :=
+  commonShallowAt_of_branchConditionedCanonicalSelectorTree_stops
+    gates fuel residualDepth budget rho
+    ((branchConditionedCanonicalSelectorStops_eq_true_iff
+      gates fuel residualDepth budget rho).mp hstops)
+
+/-- The gate-order greedy selector stops on every branch within the given remaining budget. -/
+def twoPairGreedySelectorStops : Nat → Restriction 4 → Bool :=
+  branchConditionedCanonicalSelectorStops twoPairPolarityFamily 4 1
+
+/-- First stopping budget of the gate-order greedy selector in the exhaustive range
+`0,1,2,3`. -/
+def twoPairGreedySelectorCost (rho : Restriction 4) : Nat :=
+  if twoPairGreedySelectorStops 0 rho then 0 else
+    if twoPairGreedySelectorStops 1 rho then 1 else
+      if twoPairGreedySelectorStops 2 rho then 2 else 3
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- Four live coordinates are enough to guarantee that the greedy selector has stopped by
+budget three on every one of the 81 local restrictions. -/
+theorem twoPairGreedySelectorStops_three_code :
+    ∀ code : Fin 81, twoPairGreedySelectorStops 3 (twoPairLocalRestriction code) = true := by
+  decide +revert
+
+/-- The computed first greedy budget is an actual stopping budget, including its depth-three
+fallback. -/
+theorem twoPairGreedySelectorStops_cost (rho : Restriction 4) :
+    twoPairGreedySelectorStops (twoPairGreedySelectorCost rho) rho = true := by
+  have hthree := twoPairGreedySelectorStops_three_code (twoPairRestrictionCode rho)
+  rw [twoPairLocalRestriction_code] at hthree
+  by_cases hzero : twoPairGreedySelectorStops 0 rho = true
+  · simpa [twoPairGreedySelectorCost, hzero] using hzero
+  by_cases hone : twoPairGreedySelectorStops 1 rho = true
+  · simpa [twoPairGreedySelectorCost, hzero, hone] using hone
+  by_cases htwo : twoPairGreedySelectorStops 2 rho = true
+  · simpa [twoPairGreedySelectorCost, hzero, hone, htwo] using htwo
+  · simpa [twoPairGreedySelectorCost, hzero, hone, htwo] using hthree
+
+/-- The executable first greedy budget yields a fully connected semantic common-shallow
+certificate for every two-pair restriction. -/
+theorem twoPairCommonShallowAt_greedySelectorCost (rho : Restriction 4) :
+    CommonShallowAt twoPairPolarityFamily 4 rho (twoPairGreedySelectorCost rho) 1 :=
+  commonShallowAt_of_branchConditionedCanonicalSelectorStops
+    twoPairPolarityFamily 4 1 (twoPairGreedySelectorCost rho) rho
+    (twoPairGreedySelectorStops_cost rho)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- Exhaustive pointwise comparison finds no competitive gap: on every local restriction, the
+gate-order greedy selector first stops at exactly the flexible-game optimum. -/
+theorem twoPairGreedySelectorCost_eq_flexibleQueryCost_code :
+    ∀ code : Fin 81,
+      twoPairGreedySelectorCost (twoPairLocalRestriction code) =
+        twoPairFlexibleQueryCost (twoPairLocalRestriction code) := by
+  decide +revert
+
+/-- Presentation-free form of the exhaustive equality: the 81-state decoding covers every
+four-coordinate restriction. -/
+theorem twoPairGreedySelectorCost_eq_flexibleQueryCost (rho : Restriction 4) :
+    twoPairGreedySelectorCost rho = twoPairFlexibleQueryCost rho := by
+  rw [← twoPairLocalRestriction_code rho]
+  exact twoPairGreedySelectorCost_eq_flexibleQueryCost_code (twoPairRestrictionCode rho)
+
+/-- The finite flexible-game cost is a lower bound for every semantic common-shallow trunk.
+Together with `twoPairFlexibleQueryWin_cost`, this makes it the exact minimum trunk depth rather
+than only the first winning budget found by the executable search. -/
+theorem twoPairFlexibleQueryCost_le_of_commonShallowAt (rho : Restriction 4) (k : Nat)
+    (h : CommonShallowAt twoPairPolarityFamily 4 rho k 1) :
+    twoPairFlexibleQueryCost rho ≤ k := by
+  have hwin : twoPairFlexibleQueryWin rho k rho = true :=
+    (twoPairFlexibleQueryWin_iff_commonShallowAt rho k).mpr h
+  by_cases hzero : twoPairFlexibleQueryWin rho 0 rho = true
+  · simp [twoPairFlexibleQueryCost, hzero]
+  by_cases hone : twoPairFlexibleQueryWin rho 1 rho = true
+  · simp [twoPairFlexibleQueryCost, hzero, hone]
+    by_contra hk
+    have : k = 0 := by omega
+    subst k
+    exact hzero hwin
+  by_cases htwo : twoPairFlexibleQueryWin rho 2 rho = true
+  · simp [twoPairFlexibleQueryCost, hzero, hone, htwo]
+    by_contra hk
+    have hk' : k = 0 ∨ k = 1 := by omega
+    rcases hk' with rfl | rfl
+    · exact hzero hwin
+    · exact hone hwin
+  · simp [twoPairFlexibleQueryCost, hzero, hone, htwo]
+    by_contra hk
+    have hk' : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk' with rfl | rfl | rfl
+    · exact hzero hwin
+    · exact hone hwin
+    · exact htwo hwin
+
+/-- On the exhaustive two-pair family, the gate-order greedy selector is semantically optimal:
+its stopping cost is no larger than the depth of any valid common-shallow certificate. -/
+theorem twoPairGreedySelectorCost_le_of_commonShallowAt (rho : Restriction 4) (k : Nat)
+    (h : CommonShallowAt twoPairPolarityFamily 4 rho k 1) :
+    twoPairGreedySelectorCost rho ≤ k := by
+  rw [twoPairGreedySelectorCost_eq_flexibleQueryCost]
+  exact twoPairFlexibleQueryCost_le_of_commonShallowAt rho k h
+
+/-! ### A three-term strict gap for gate-order greediness
+
+The exhaustive two-pair equality does not extend even to the next three-term width-two test.
+The positive gate below is ordered deliberately: its first active term makes the greedy selector
+query coordinate zero, while coordinate one is a common winning query for both termwise
+polarities.  This is a normalized family (the three clauses are distinct and every clause has
+two distinct variables); the failure is therefore not caused by duplicate syntax. -/
+
+/-- The smallest three-term width-two gate found by the competitive audit. -/
+def threeTermGreedyGapPositiveGate : List (Depth3.Clause 3) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.pos 1, Rung4Literal.neg 2]⟩]
+
+/-- The exact two-polarity family associated with the three-term test gate. -/
+def threeTermGreedyGapFamily : Fin 2 → List (Depth3.Clause 3) := fun g =>
+  if g = 0 then threeTermGreedyGapPositiveGate
+  else negDNF threeTermGreedyGapPositiveGate
+
+/-- Querying coordinate one makes both polarities residual-depth one on both branches. -/
+theorem threeTermGreedyGapFamily_commonShallowAt_one :
+    CommonShallowAt threeTermGreedyGapFamily 3
+      (fun _ : Fin 3 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 3 => none) [1]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 3 => none) [1] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx1 : x 1 <;>
+    simp [trunk, queryRestrictionList, hx1, threeTermGreedyGapFamily,
+      threeTermGreedyGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxHeartbeats 2000000 in
+/-- The family is genuinely deep at the fully live root, so its semantic optimum is exactly one
+query rather than zero. -/
+theorem threeTermGreedyGapFamily_exact_semantic_cost_one :
+    (¬ CommonShallowAt threeTermGreedyGapFamily 3
+        (fun _ : Fin 3 => none) 0 1) ∧
+      CommonShallowAt threeTermGreedyGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 := by
+  refine ⟨?_, threeTermGreedyGapFamily_commonShallowAt_one⟩
+  intro h
+  have hroot := h.root_shallow_of_trunkDepth_zero
+  have hdepth :
+      (canonicalDT (threeTermGreedyGapFamily 0) 3
+        (fun _ : Fin 3 => none)).depth = 3 := by
+    decide
+  have := hroot (0 : Fin 2)
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- Gate-order greediness does not stop at the semantic optimum budget: it queries coordinate
+zero first, after which both Boolean branches still require coordinate one. -/
+theorem threeTermGreedyGapFamily_greedy_stops_exactly_two :
+    branchConditionedCanonicalSelectorStops threeTermGreedyGapFamily 3 1 1
+        (fun _ : Fin 3 => none) = false ∧
+      branchConditionedCanonicalSelectorStops threeTermGreedyGapFamily 3 1 2
+        (fun _ : Fin 3 => none) = true := by
+  decide
+
+/-- Strict competitive counterexample: a valid depth-one common trunk exists, but the specific
+gate-order selector needs budget two. -/
+theorem threeTermGreedyGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermGreedyGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 ∧
+      branchConditionedCanonicalSelectorStops threeTermGreedyGapFamily 3 1 1
+        (fun _ : Fin 3 => none) = false :=
+  ⟨threeTermGreedyGapFamily_commonShallowAt_one,
+    threeTermGreedyGapFamily_greedy_stops_exactly_two.1⟩
+
+set_option maxHeartbeats 2000000 in
+/-- The exact greedy stopping-cost distribution agrees with the semantic optimum distribution. -/
+theorem twoPairGreedySelectorCost_multiplicity_exact :
+    let costs := List.ofFn fun code : Fin 81 =>
+      twoPairGreedySelectorCost (twoPairLocalRestriction code)
+    (costs.count 0, costs.count 1, costs.count 2, costs.count 3) = (56, 16, 8, 1) := by
+  decide
 
 set_option maxHeartbeats 2000000 in
 /-- Despite the genuine nonmonotonicity above, exhaustive arbitrary-leaf search has the same
@@ -7940,11 +9360,7 @@ theorem twoPairLocalCostLive_weighted_sum (F : ℕ → ℕ → ℕ) :
         rw [stars]
         exact Finset.card_le_univ _
       omega
-    · exact lt_of_le_of_lt (twoPairFlexibleQueryCost_le_stars rho) (by
-        have hstars : stars rho ≤ 4 := by
-          rw [stars]
-          exact Finset.card_le_univ _
-        omega)
+    · exact Nat.lt_succ_iff.mpr (twoPairFlexibleQueryCost_le_three rho)
   have hfiber (q c : ℕ) :
       (∑ rho ∈ (Finset.univ : Finset (Restriction 4)) with
         stars rho = q ∧ twoPairFlexibleQueryCost rho = c,
@@ -9569,10 +10985,21 @@ theorem InclusionMinimalUnsatisfiableCore.card_le_four_mul_sub_two
 #print axioms independentLiteralGates_actualAlphabet_eq
 #print axioms independentLiteralGates_not_actualDensity
 #print axioms canonicalDT_queriedVars_subset_gateVariableSupport
+#print axioms dtreeToCNF_canonicalDT_clauseVariableSupport_subset
+#print axioms dtreeToDNF_negTree_canonicalDT_clauseVariableSupport_subset
+#print axioms gateVariableSupport_dtreeToCNF_canonicalDT_subset
+#print axioms gateVariableSupport_dtreeToDNF_negTree_canonicalDT_subset
+#print axioms leafCollapse_BottomPred_of
+#print axioms layeredBottomVariableSupport_subset_of_BottomPred
+#print axioms layeredBottomVariableSupport_leafCollapse_subset
+#print axioms layeredBottomVariableSupport_collapseRound_subset
 #print axioms canonicalFamily_trace_length_le_live_support
 #print axioms commonShallowAt_zero_of_live_support_le
 #print axioms commonShallowBad_subset_liveFamilySupportTail
 #print axioms normalizedLayered_commonShallowBad_subset_liveBottomSupportTail
+#print axioms normalizedLayered_commonShallowBad_scaled_le_of_sixteen_support
+#print axioms supportDensity_normalizedSurvivorRound
+#print axioms supportDensity_normalizedSurvivorRound_exactSubcube
 #print axioms liveSupportOverlapFreeSets_card
 #print axioms liveSupportOverlap_card
 #print axioms liveLayeredBottomSupportTail_eq_biUnion_overlap
@@ -9581,6 +11008,7 @@ theorem InclusionMinimalUnsatisfiableCore.card_le_four_mul_sub_two
 #print axioms clauseVariableSupport_negClause
 #print axioms gateVariableSupport_negDNF
 #print axioms normalizedLayeredBottomFamily_support_subset_bottomSupport
+#print axioms canonicalFamily_prefix_depth_eq_zero_of_live_support_le
 #print axioms layeredBottomVariableSupport_card_le
 #print axioms normalizedLayeredBottomFamily_liveSupport_card_le_sharpSlotCharge
 #print axioms normalizedLayeredBottomFamily_commonShallowAt_sharpSlotCharge
@@ -9742,6 +11170,9 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairFlexibleQueryWin_sound_aux
 #print axioms twoPairFlexibleQueryWin_iff_commonShallowAt
 #print axioms twoPairLocalQueryCost_multiplicity_exact
+#print axioms localDisjointPairPolarityFamily_commonShallowAt_two
+#print axioms twoPairPolarity_matched_live_clause_profile
+#print axioms widthTwo_residualOne_badness_not_determined_by_live_clause_count
 #print axioms CommonShallowAt.root_shallow_of_trunkDepth_zero
 #print axioms twoPairSameClauseMixedRestriction_root_depths
 #print axioms twoPairSameClauseMixedRestriction_not_commonShallowAt_zero
@@ -9821,6 +11252,64 @@ set_option maxRecDepth 16384 in
 #print axioms normalizedLayered_commonShallowBad_scaled_le_of_hypergeometric_tail
 #print axioms sixteen_mul_layeredBottomVariableSupport_card_le_of_actual_margin
 #print axioms hypergeometric_upper_tail_sixteen_density
+#print axioms canonicalFamily_prefixVars_subset_familyVariableSupport
+#print axioms freeVars_sdiff_familySupport_subset_canonicalPrefixEndpoint
+#print axioms liveLayeredBottomSupportTail_scaled_le_sixteen_density
 #print axioms normalizedLayered_commonShallowBad_scaled_le_of_actual_margin
+#print axioms localOppositePairGroupedFamily_commonShallowAt_two
+#print axioms twoPairPolarity_matched_withinGatePair_profile
+#print axioms twoPairPolarity_withinGatePairMass_eq_two
+#print axioms widthTwo_residualOne_badness_not_determined_by_withinGatePairMass
+#print axioms typedPairFamilies_complete_profile_eq
+#print axioms typedPairLowCostFamily_shallow_stars_le_three
+#print axioms typedPairLowCostFamily_exact_cost_one
+#print axioms typedPairHighCostFamily_shallow_stars_le_two
+#print axioms typedPairHighCostFamily_exact_cost_two
+#print axioms widthTwo_badness_not_determined_by_complete_typed_pair_profile
+#print axioms aggregateCrossFamilies_complete_profiles_eq
+#print axioms aggregateCrossFamilies_indexed_gate_supports_ne
+#print axioms aggregateCrossFamilies_indexed_within_gate_zero_separates
+#print axioms aggregateCrossFamilies_indexed_withinGate_profiles_ne
+#print axioms aggregateCrossFamilies_indexed_gate_zero_one_separates
+#print axioms aggregateCrossFamilies_indexed_crossGate_profiles_ne
+#print axioms aggregateCrossFamilies_exact_costs
+#print axioms widthTwo_badness_not_determined_by_aggregate_signed_pair_profiles
+#print axioms clausePairTypeCount_le_length_sq
+#print axioms crossClausePairTypeCount_le_length_mul
+#print axioms indexedPairIncidenceMatrix_diagonal
+#print axioms indexedPairIncidenceMatrix_offDiagonal
+#print axioms card_indexedPairIncidenceMatrix
+#print axioms sparseIndexedPairIncidenceDecode_encode
+#print axioms sparseIndexedPairIncidenceEncode_injective
+#print axioms card_indexedPairIncidenceCoordinate
+#print axioms typedIncidenceWitnesses_length_eq_matrix
+#print axioms mem_indexedPairIncidenceSupport_iff_witnesses_nonempty
+#print axioms mem_crossTypedOccurrencePairs_iff
+#print axioms typedIncidenceAdjacent_symm
+#print axioms typedIncidenceAdjacent_of_crossGate_mem_of_type_lt
+#print axioms IndexedLiveClauseOccurrence.lits_length_eq_two_of_mem
+#print axioms liveOccurrence_pair_type_bounds
+#print axioms typedIncidenceAdjacent_of_crossGate_mem
+#print axioms sharedVariableTypedIncidenceAdjacent_symm
+#print axioms map_forgetTypedIncidenceWitnessTag_decomposition
+#print axioms shared_add_disjoint_witness_lengths_eq
+#print axioms disjointVariableTypedIncidenceWitnesses_crossGate
+#print axioms exists_mem_disjointVariableTypedIncidenceWitnesses_of_crossGate
+#print axioms localDisjointPairPolarityFamily_total_disjoint_payload
+#print axioms typedPairFamilies_activeCanonicalFirstQueryProfile_eq
+#print axioms typedPairFamilies_activeCanonicalFirstQueryMultiplicity_eq
+#print axioms canonicalRootQuerySelector_does_not_determine_commonQueryCost
+#print axioms typedPairLowCost_branchConditionedCanonicalQueryStep
+#print axioms typedPairHighCost_branchConditionedCanonicalQueryStep
+#print axioms branchConditionedCanonicalQueryStep_separates_typedPairFamilies
+#print axioms branchConditionedCanonicalSelectorStops_eq_true_iff
+#print axioms commonShallowAt_of_branchConditionedCanonicalSelectorStops
+#print axioms twoPairGreedySelectorStops_three_code
+#print axioms twoPairGreedySelectorStops_cost
+#print axioms twoPairCommonShallowAt_greedySelectorCost
+#print axioms twoPairGreedySelectorCost_eq_flexibleQueryCost
+#print axioms twoPairFlexibleQueryCost_le_of_commonShallowAt
+#print axioms twoPairGreedySelectorCost_le_of_commonShallowAt
+#print axioms twoPairGreedySelectorCost_multiplicity_exact
 
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
