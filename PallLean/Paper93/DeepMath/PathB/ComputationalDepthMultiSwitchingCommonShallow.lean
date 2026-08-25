@@ -19,6 +19,68 @@ open PallLean.Paper93.DeepMath.PathB.SwitchingCounting
 def RestrictionExtends {n : ℕ} (σ τ : Restriction n) : Prop :=
   ∀ v b, σ v = some b → τ v = some b
 
+/-- Fixing the same coordinate to the same value preserves restriction extension. -/
+theorem restrictionExtends_fixVar_fixVar {n : ℕ} {σ τ : Restriction n}
+    (h : RestrictionExtends σ τ) (i : Fin n) (b : Bool) :
+    RestrictionExtends (fixVar σ i b) (fixVar τ i b) := by
+  intro j c hj
+  by_cases hji : j = i
+  · subst j
+    simpa [fixVar] using hj
+  · rw [fixVar, Function.update_of_ne hji] at hj ⊢
+    exact h j c hj
+
+/-- If an extension has already fixed a root-live coordinate, it extends the root with that
+same fixing made explicit. -/
+theorem restrictionExtends_fixVar_left_of_eq {n : ℕ} {σ τ : Restriction n}
+    (h : RestrictionExtends σ τ) {i : Fin n} {β : Bool}
+    (hτ : τ i = some β) :
+    RestrictionExtends (fixVar σ i β) τ := by
+  intro j c hj
+  by_cases hji : j = i
+  · subst j
+    simp [fixVar] at hj
+    subst c
+    exact hτ
+  · rw [fixVar, Function.update_of_ne hji] at hj
+    exact h j c hj
+
+/-- Restricting one already-stored decision tree is depth-monotone: a stronger restriction can
+only resolve more of its queries.  This statement deliberately keeps the tree fixed; it does not
+assert the corresponding false claim for a freshly recomputed canonical tree. -/
+theorem CommonTree.depth_readOnce_anti {n : ℕ} {α : Type}
+    (t : CommonTree n α) {σ τ : Restriction n} (h : RestrictionExtends σ τ) :
+    CommonTree.depth (CommonTree.readOnce τ t) ≤
+      CommonTree.depth (CommonTree.readOnce σ t) := by
+  induction t generalizing σ τ with
+  | leaf a => simp [CommonTree.readOnce, CommonTree.depth]
+  | query i lo hi ihlo ihhi =>
+      cases hσ : σ i with
+      | some b =>
+          have hτ : τ i = some b := h i b hσ
+          cases b <;> simp only [CommonTree.readOnce, hσ, hτ]
+          · exact ihlo h
+          · exact ihhi h
+      | none =>
+          cases hτ : τ i with
+          | none =>
+              simp only [CommonTree.readOnce, hσ, hτ, CommonTree.depth]
+              exact Nat.succ_le_succ <| max_le_max
+                (ihlo (restrictionExtends_fixVar_fixVar h i false))
+                (ihhi (restrictionExtends_fixVar_fixVar h i true))
+          | some b =>
+              cases b with
+              | false =>
+                  simp only [CommonTree.readOnce, hσ, hτ, CommonTree.depth]
+                  exact le_trans
+                    (ihlo (restrictionExtends_fixVar_left_of_eq h hτ))
+                    (Nat.le_succ_of_le (Nat.le_max_left _ _))
+              | true =>
+                  simp only [CommonTree.readOnce, hσ, hτ, CommonTree.depth]
+                  exact le_trans
+                    (ihhi (restrictionExtends_fixVar_left_of_eq h hτ))
+                    (Nat.le_succ_of_le (Nat.le_max_right _ _))
+
 /-- Extending a restriction can only consume live variables.  This is the fuel invariant needed
 when a common-shallow leaf is used as the root of a later switching round. -/
 theorem stars_le_of_restrictionExtends {n : ℕ} {σ τ : Restriction n}
@@ -178,6 +240,50 @@ theorem prefixEndpoint_restrictionExtends {n : ℕ} {α : Type}
   split
   · next hmem => simpa [hext v b hv]
   · exact hv
+
+/-- Extending the root restriction also extends the endpoint reached through one fixed stored
+tree.  Queries newly resolved by the stronger root are harmless: if a coordinate on the old
+normalized path remains free, it remains on the new normalized path; otherwise its value is
+already stored in the stronger root. -/
+theorem CommonTree.pathEndpoint_restrictionExtends_of_restrictionExtends
+    {n : ℕ} {α : Type} {σ τ : Restriction n} (t : CommonTree n α)
+    (hστ : RestrictionExtends σ τ) (x : Fin n → Bool)
+    (hx : Rung4Restriction.Extends τ x) :
+    RestrictionExtends (CommonTree.pathEndpoint σ t x)
+      (CommonTree.pathEndpoint τ t x) := by
+  have hxσ : Rung4Restriction.Extends σ x := by
+    intro v b hv
+    exact hx v b (hστ v b hv)
+  intro v b hv
+  by_cases hvσ : v ∈ CommonTree.pathVars σ t x
+  · have hxb : x v = b := by
+      simpa [CommonTree.pathEndpoint, fixOn, hvσ] using hv
+    by_cases hvτ : v ∈ CommonTree.pathVars τ t x
+    · simp [CommonTree.pathEndpoint, fixOn, hvτ, hxb]
+    · have hτfixed : τ v ≠ none := by
+        intro hfree
+        apply hvτ
+        rw [CommonTree.pathVars]
+        apply List.mem_toFinset.mpr
+        apply CommonTree.mem_queryVars_readOnce_of_mem_of_free τ t x hx
+        · exact mem_freeVars.mpr hfree
+        · exact CommonTree.mem_queryVars_of_mem_readOnce σ t x hxσ
+            (List.mem_toFinset.mp hvσ)
+      cases hτv : τ v with
+      | none => exact (hτfixed hτv).elim
+      | some c =>
+          have hxc : x v = c := hx v c hτv
+          have hcb : c = b := hxc.symm.trans hxb
+          subst c
+          simpa [CommonTree.pathEndpoint, fixOn, hvτ, hτv] using hxb
+  · have hσv : σ v = some b := by
+      simpa [CommonTree.pathEndpoint, fixOn, hvσ] using hv
+    have hτv : τ v = some b := hστ v b hσv
+    have hxb : x v = b := hx v b hτv
+    by_cases hvτ : v ∈ CommonTree.pathVars τ t x
+    · simp [CommonTree.pathEndpoint, fixOn, hvτ, hxb]
+    · simp [CommonTree.pathEndpoint, fixOn, hvτ, hτv]
+
 
 /-- The canonical prefix trunk is a `CommonShallowAt` certificate as soon as all of its reached
 restrictions have the requested residual gate-depth bound. -/
@@ -676,6 +782,8 @@ theorem commonShallowBad_card_le_of_contraction {n G : ℕ}
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.depth_readOnce_anti
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.pathEndpoint_restrictionExtends_of_restrictionExtends
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonTree.stars_run_ge_sub_of_leaf_agreement
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_stars_ge_sub

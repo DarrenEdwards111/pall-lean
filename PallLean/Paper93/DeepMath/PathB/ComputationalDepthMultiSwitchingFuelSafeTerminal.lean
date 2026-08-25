@@ -179,6 +179,89 @@ theorem canonicalDT_depth_eq_zero_of_terminal {n : ℕ} (cs : List (Clause n))
           · simp [canonicalDT, hany]
           · simp [canonicalDT, hany, hactive]
 
+/-- At ample fuel, a depth-zero canonical tree is not an artificial fuel-exhaustion leaf: the
+root restriction is already semantically terminal.  This is the converse of
+`canonicalDT_depth_eq_zero_of_terminal` under the exact hypothesis needed by iteration. -/
+theorem canonicalTerminal_of_canonicalDT_depth_eq_zero_of_stars_le_fuel {n : ℕ}
+    (cs : List (Clause n)) (fuel : ℕ) (sigma : Restriction n)
+    (hstars : stars sigma ≤ fuel) (hdepth : (canonicalDT cs fuel sigma).depth = 0) :
+    CanonicalTerminal cs sigma := by
+  by_cases hany : anyTermSat cs sigma = true
+  · exact Or.inl hany
+  · right
+    cases hactive : activeTerm cs sigma with
+    | none => rfl
+    | some T =>
+        obtain ⟨ell, hhead, hfree⟩ := activeTerm_first_free hactive
+        cases fuel with
+        | zero =>
+            have hzero : stars sigma = 0 := Nat.eq_zero_of_le_zero hstars
+            have hmem : litVar ell ∈ freeVars sigma := mem_freeVars.mpr hfree
+            rw [Finset.card_eq_zero.mp hzero] at hmem
+            simp at hmem
+        | succ fuel =>
+            simp [canonicalDT, hany, hactive, hhead, BoolDecisionTree.depth] at hdepth
+
+/-- Forget a common tree's leaf payload while retaining exactly its query shape. -/
+def CommonTree.erasePayload {n : ℕ} {alpha : Type} :
+    CommonTree n alpha → CommonTree n Bool
+  | .leaf _ => .leaf false
+  | .query i lo hi => .query i (erasePayload lo) (erasePayload hi)
+
+@[simp] theorem CommonTree.depth_erasePayload {n : ℕ} {alpha : Type}
+    (t : CommonTree n alpha) :
+    CommonTree.depth (CommonTree.erasePayload t) = CommonTree.depth t := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi => simp [CommonTree.erasePayload, CommonTree.depth, ihlo, ihhi]
+
+@[simp] theorem CommonTree.readOnce_erasePayload {n : ℕ} {alpha : Type}
+    (sigma : Restriction n) (t : CommonTree n alpha) :
+    CommonTree.readOnce sigma (CommonTree.erasePayload t) =
+      CommonTree.erasePayload (CommonTree.readOnce sigma t) := by
+  induction t generalizing sigma with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      cases hsigma : sigma i with
+      | none => simp [CommonTree.erasePayload, CommonTree.readOnce, hsigma, ihlo, ihhi]
+      | some b => cases b <;>
+          simp [CommonTree.erasePayload, CommonTree.readOnce, hsigma, ihlo, ihhi]
+
+@[simp] theorem CommonTree.queryVars_erasePayload {n : ℕ} {alpha : Type}
+    (t : CommonTree n alpha) (x : Fin n → Bool) :
+    CommonTree.queryVars (CommonTree.erasePayload t) x = CommonTree.queryVars t x := by
+  induction t with
+  | leaf a => rfl
+  | query i lo hi ihlo ihhi =>
+      by_cases hx : x i <;>
+        simp [CommonTree.erasePayload, CommonTree.queryVars, hx, ihlo, ihhi]
+
+@[simp] theorem CommonTree.pathEndpoint_erasePayload {n : ℕ} {alpha : Type}
+    (sigma : Restriction n) (t : CommonTree n alpha) (x : Fin n → Bool) :
+    CommonTree.pathEndpoint sigma (CommonTree.erasePayload t) x =
+      CommonTree.pathEndpoint sigma t x := by
+  simp [CommonTree.pathEndpoint, CommonTree.pathVars]
+
+/-- Read-once normalization can only remove queries from a fixed stored tree. -/
+theorem CommonTree.depth_readOnce_le {n : ℕ} {alpha : Type}
+    (sigma : Restriction n) (t : CommonTree n alpha) :
+    CommonTree.depth (CommonTree.readOnce sigma t) ≤ CommonTree.depth t := by
+  induction t generalizing sigma with
+  | leaf a => simp [CommonTree.readOnce, CommonTree.depth]
+  | query i lo hi ihlo ihhi =>
+      cases hsigma : sigma i with
+      | none =>
+          simp only [CommonTree.readOnce, hsigma, CommonTree.depth]
+          exact Nat.succ_le_succ (max_le_max (ihlo _) (ihhi _))
+      | some b =>
+          cases b with
+          | false =>
+              simp only [CommonTree.readOnce, hsigma]
+              exact (ihlo _).trans (Nat.le_succ_of_le (Nat.le_max_left _ _))
+          | true =>
+              simp only [CommonTree.readOnce, hsigma]
+              exact (ihhi _).trans (Nat.le_succ_of_le (Nat.le_max_right _ _))
+
 /-- Ample initial fuel makes the reached canonical restriction stable under rebuilding with any
 new fuel. -/
 theorem canonicalDT_depth_canonicalEnd_eq_zero {n : ℕ} (cs : List (Clause n))
@@ -284,6 +367,125 @@ theorem CanonicalTerminal.mono {n : ℕ} {cs : List (Clause n)} {σ τ : Restric
           exact hpσ (by simp [hnotfσ, hlenσ])
         exact List.eq_nil_of_subset_nil
           (hfreeσ ▸ freeLits_subset_of_restrictionExtends hext T)
+
+/-- A stored semantic common trunk: after read-once normalization at the stated root it has the
+advertised depth, and every reached endpoint is terminal for every indexed gate.  Unlike a bound
+on freshly rebuilt canonical depth at an intermediate restriction, this certificate speaks only
+about the actual leaves reached through the stored tree. -/
+def StoredCommonTerminalAt {n G : ℕ} (gates : Fin G → List (Clause n))
+    (σ : Restriction n) (trunkDepth : ℕ) : Prop :=
+  ∃ trunk : CommonTree n Bool,
+    CommonTree.depth (CommonTree.readOnce σ trunk) ≤ trunkDepth ∧
+    ∀ x : Fin n → Bool, Rung4Restriction.Extends σ x → ∀ g,
+      CanonicalTerminal (gates g) (CommonTree.pathEndpoint σ trunk x)
+
+/-- The endpoint determined by a certificate's query path extends the restriction stored in its
+reached leaf.  The global leaf-agreement condition rules out hidden fixings of unqueried live
+coordinates; queried coordinates agree with the followed assignment. -/
+theorem CommonTree.run_restrictionExtends_pathEndpoint_of_leaf_agreement {n : ℕ}
+    (trunk : CommonTree n (Restriction n)) (sigma : Restriction n)
+    (hroot : ∀ x : Fin n → Bool, Rung4Restriction.Extends sigma x →
+      RestrictionExtends sigma (CommonTree.run trunk x))
+    (hagree : ∀ x : Fin n → Bool, Rung4Restriction.Extends sigma x →
+      Rung4Restriction.Extends (CommonTree.run trunk x) x)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends sigma x) :
+    RestrictionExtends (CommonTree.run trunk x) (CommonTree.pathEndpoint sigma trunk x) := by
+  let norm := CommonTree.readOnce sigma trunk
+  have hrunnorm : ∀ y : Fin n → Bool, Rung4Restriction.Extends sigma y →
+      CommonTree.run norm y = CommonTree.run trunk y := by
+    intro y hy
+    exact CommonTree.run_readOnce sigma trunk y hy
+  rw [← hrunnorm x hx]
+  change RestrictionExtends (CommonTree.run norm x)
+    (fixOn sigma (CommonTree.queryVars norm x).toFinset x)
+  intro v b hv
+  by_cases hmem : v ∈ (CommonTree.queryVars norm x).toFinset
+  · have hxb : x v = b := by
+      apply hagree x hx v b
+      simpa [hrunnorm x hx] using hv
+    simp [fixOn, hmem, hxb]
+  · cases hsigma : sigma v with
+    | none =>
+        have hnone := CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
+          norm sigma x hx
+          (fun y hy => by simpa [hrunnorm y hy] using hagree y hy) hsigma hmem
+        rw [hnone] at hv
+        contradiction
+    | some c =>
+        have hrun : CommonTree.run norm x v = some c := by
+          rw [hrunnorm x hx]
+          exact hroot x hx v c hsigma
+        have hbc : b = c := by
+          rw [hrun] at hv
+          exact Option.some.inj hv.symm
+        subst b
+        simp [fixOn, hmem, hsigma]
+
+/-- A residual-depth-zero common-shallow certificate at ample fuel already contains a stored
+semantic terminal trunk.  The leaf payload is forgotten but its query shape is retained; semantic
+terminality transfers from each stored leaf to the corresponding path endpoint. -/
+theorem CommonShallowAt.toStoredCommonTerminalAt_zero {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {fuel : ℕ} {sigma : Restriction n}
+    {trunkDepth : ℕ} (h : CommonShallowAt gates fuel sigma trunkDepth 0)
+    (hfuel : stars sigma ≤ fuel) :
+    StoredCommonTerminalAt gates sigma trunkDepth := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  refine ⟨CommonTree.erasePayload trunk, ?_, ?_⟩
+  · rw [CommonTree.readOnce_erasePayload, CommonTree.depth_erasePayload]
+    exact (CommonTree.depth_readOnce_le sigma trunk).trans hdepth
+  · intro x hx g
+    obtain ⟨hroot, hagree, hzero⟩ := hleaf x hx
+    rw [CommonTree.pathEndpoint_erasePayload]
+    apply CanonicalTerminal.mono
+      (CommonTree.run_restrictionExtends_pathEndpoint_of_leaf_agreement
+        trunk sigma (fun y hy => (hleaf y hy).1)
+          (fun y hy => (hleaf y hy).2.1) x hx)
+    apply canonicalTerminal_of_canonicalDT_depth_eq_zero_of_stars_le_fuel
+      (gates g) fuel (CommonTree.run trunk x)
+    · exact (stars_le_of_restrictionExtends hroot).trans hfuel
+    · exact Nat.eq_zero_of_le_zero (hzero g)
+
+/-- Stored semantic terminality is stable when the root restriction is extended.  The same tree
+is retained, its read-once depth can only decrease, and terminality transfers along the endpoint
+extension theorem. -/
+theorem StoredCommonTerminalAt.mono {n G : ℕ} {gates : Fin G → List (Clause n)}
+    {σ τ : Restriction n} {trunkDepth : ℕ}
+    (hστ : RestrictionExtends σ τ)
+    (h : StoredCommonTerminalAt gates σ trunkDepth) :
+    StoredCommonTerminalAt gates τ trunkDepth := by
+  obtain ⟨trunk, hdepth, hterminal⟩ := h
+  refine ⟨trunk, (CommonTree.depth_readOnce_anti trunk hστ).trans hdepth, ?_⟩
+  intro x hx g
+  apply CanonicalTerminal.mono
+    (CommonTree.pathEndpoint_restrictionExtends_of_restrictionExtends trunk hστ x hx)
+  apply hterminal x
+  intro v b hv
+  exact hx v b (hστ v b hv)
+
+/-- A stored terminal trunk is a residual-depth-zero `CommonShallowAt` certificate for every
+rebuild fuel.  `prefixEndpoints` decorates the stored tree with its reached restrictions; the
+stored depth bound guarantees that the chosen prefix is the complete normalized path. -/
+theorem StoredCommonTerminalAt.toCommonShallowAt {n G : ℕ}
+    {gates : Fin G → List (Clause n)} {σ : Restriction n} {trunkDepth : ℕ}
+    (h : StoredCommonTerminalAt gates σ trunkDepth) (fuel : ℕ) :
+    CommonShallowAt gates fuel σ trunkDepth 0 := by
+  obtain ⟨trunk, hdepth, hterminal⟩ := h
+  refine ⟨CommonTree.prefixEndpoints σ trunk trunkDepth,
+    CommonTree.depth_prefixEndpoints_le σ trunk trunkDepth, ?_⟩
+  intro x hx
+  have htrace :
+      (CommonTree.trace (CommonTree.readOnce σ trunk) x).length ≤ trunkDepth :=
+    (CommonTree.trace_length_le_depth _ _).trans hdepth
+  have hend : CommonTree.run (CommonTree.prefixEndpoints σ trunk trunkDepth) x =
+      CommonTree.pathEndpoint σ trunk x :=
+    CommonTree.prefixEndpoint_eq_pathEndpoint_of_trace_length_le
+      σ trunk trunkDepth x htrace
+  refine ⟨prefixEndpoint_restrictionExtends σ trunk trunkDepth x hx,
+    CommonTree.run_prefixEndpoints_extends σ trunk trunkDepth x hx, ?_⟩
+  intro g
+  rw [hend]
+  exact Nat.le_of_eq
+    (canonicalDT_depth_eq_zero_of_terminal (gates g) _ (hterminal x hx g) fuel)
 
 /-- Fixing a larger coordinate set along a compatible assignment extends the smaller endpoint. -/
 theorem fixOn_restrictionExtends_of_subset {n : ℕ} (σ : Restriction n)
@@ -1109,11 +1311,15 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_eq_pathEndpoint
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalEnd_terminal_of_stars_le_fuel
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_eq_zero_of_terminal
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalTerminal_of_canonicalDT_depth_eq_zero_of_stars_le_fuel
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.toStoredCommonTerminalAt_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.trunkDepth_lt_stars_of_not_commonShallowAt
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_canonicalEnd_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalDT_depth_pathEndpoint_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalGate_deep_prefix_implies_long_trace
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CanonicalTerminal.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.StoredCommonTerminalAt.mono
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.StoredCommonTerminalAt.toCommonShallowAt
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.gate_pathVars_subset_canonicalFamily
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_pathEndpoint_terminal
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.canonicalFamily_deep_prefix_implies_long_trace

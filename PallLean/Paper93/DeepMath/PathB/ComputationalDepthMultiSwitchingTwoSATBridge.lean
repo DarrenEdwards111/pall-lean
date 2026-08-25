@@ -7367,6 +7367,12 @@ def threeTermGreedyGapFamily : Fin 2 → List (Depth3.Clause 3) := fun g =>
   if g = 0 then threeTermGreedyGapPositiveGate
   else negDNF threeTermGreedyGapPositiveGate
 
+/-- Both polarities have distinct clauses, and every clause uses two distinct variables. -/
+theorem threeTermGreedyGapFamily_normalized :
+    ∀ g, (threeTermGreedyGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermGreedyGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
 /-- Querying coordinate one makes both polarities residual-depth one on both branches. -/
 theorem threeTermGreedyGapFamily_commonShallowAt_one :
     CommonShallowAt threeTermGreedyGapFamily 3
@@ -7421,6 +7427,2495 @@ theorem threeTermGreedyGapFamily_strict_competitive_gap :
         (fun _ : Fin 3 => none) = false :=
   ⟨threeTermGreedyGapFamily_commonShallowAt_one,
     threeTermGreedyGapFamily_greedy_stops_exactly_two.1⟩
+
+/-! ### One-step greedy-rollout minimax audit
+
+The strict gap suggests scoring each live root query by the worse greedy stopping cost of its
+two children.  The following bounded executable score deliberately uses the already verified
+greedy recurrence in the children.  It is therefore a one-step rollout heuristic, not a claim
+that the resulting recursive selector computes the flexible semantic game. -/
+
+/-- First greedy stopping budget visible through `cap`, with `cap + 1` as the failure sentinel. -/
+def cappedGreedyStoppingCost {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ)
+    (rho : Restriction n) : ℕ :=
+  ((List.range (cap + 1)).find? fun k =>
+      branchConditionedCanonicalSelectorStops gates fuel residualDepth k rho).getD (cap + 1)
+
+/-- One-step rollout score of a proposed root query: the worse capped greedy cost of its two
+children.  Fixed coordinates receive the failure sentinel and are not eligible minimizers. -/
+def greedyRolloutQueryScore {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ)
+    (rho : Restriction n) (i : Fin n) : ℕ :=
+  if rho i = none then
+    max (cappedGreedyStoppingCost gates fuel residualDepth cap (fixVar rho i false))
+      (cappedGreedyStoppingCost gates fuel residualDepth cap (fixVar rho i true))
+  else cap + 1
+
+/-- The first live coordinate attaining rollout score zero.  Score zero is globally minimal,
+so whenever this returns a coordinate it agrees with every genuine minimization of the score. -/
+def firstZeroGreedyRolloutQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  firstSome ((List.ofFn id : List (Fin n)).map fun i =>
+    if greedyRolloutQueryScore gates fuel residualDepth cap rho i = 0 then some i else none)
+
+/-- A genuine rollout minimizer: fixed coordinates are filtered before scoring, so a capped
+failure sentinel can never make an already fixed coordinate win a tie. -/
+def minimumGreedyRolloutQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmin
+    (greedyRolloutQueryScore gates fuel residualDepth cap rho)
+
+/-- Recursive stopping test for the one-step rollout policy.  At every nonterminal state it
+minimizes the capped *gate-order greedy* cost of the two children, then recursively reapplies the
+same rollout policy below that query. -/
+def branchConditionedGreedyRolloutStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match minimumGreedyRolloutQuery gates fuel residualDepth cap rho with
+          | none => false
+          | some i =>
+              branchConditionedGreedyRolloutStops gates fuel residualDepth cap budget
+                  (fixVar rho i false) &&
+                branchConditionedGreedyRolloutStops gates fuel residualDepth cap budget
+                  (fixVar rho i true)
+
+/-- Base-three enumeration of the 27 restrictions on the counterexample's three coordinates. -/
+def threeTermLocalRestriction (code : Fin 27) : Restriction 3 := fun i =>
+  twoPairLocalDigitState ⟨(code.val / (3 ^ i.val)) % 3, by omega⟩
+
+/-- Compact base-three code for an arbitrary three-coordinate restriction. -/
+def threeTermRestrictionCode (rho : Restriction 3) : Fin 27 :=
+  ⟨twoPairRestrictionDigit (rho 0) + 3 * twoPairRestrictionDigit (rho 1) +
+    9 * twoPairRestrictionDigit (rho 2), by
+      have hd (i : Fin 3) : twoPairRestrictionDigit (rho i) ≤ 2 := by
+        cases h : rho i with
+        | none => simp [twoPairRestrictionDigit]
+        | some b => cases b <;> simp [twoPairRestrictionDigit]
+      have h0 := hd 0
+      have h1 := hd 1
+      have h2 := hd 2
+      omega⟩
+
+/-- Base-three coding is onto the full three-coordinate restriction space. -/
+theorem threeTermLocalRestriction_code (rho : Restriction 3) :
+    threeTermLocalRestriction (threeTermRestrictionCode rho) = rho := by
+  funext i
+  generalize h0 : rho 0 = x0
+  generalize h1 : rho 1 = x1
+  generalize h2 : rho 2 = x2
+  fin_cases i <;> fin_cases x0 <;> fin_cases x1 <;> fin_cases x2 <;>
+    simp_all [threeTermLocalRestriction, threeTermRestrictionCode,
+      twoPairRestrictionDigit, twoPairLocalDigitState]
+
+/-- The recursive one-step rollout policy, using the smallest cap that distinguishes the
+preserved root counterexample. -/
+def threeTermGreedyRolloutStops : ℕ → Restriction 3 → Bool :=
+  branchConditionedGreedyRolloutStops threeTermGreedyGapFamily 3 1 1
+
+set_option maxHeartbeats 2000000 in
+/-- Exhaustive 27-state audit: one rollout query suffices from every restriction. -/
+theorem threeTermGreedyRolloutStops_one_code :
+    ∀ code : Fin 27,
+      threeTermGreedyRolloutStops 1 (threeTermLocalRestriction code) = true := by
+  decide +revert
+
+/-- Exact rollout cost on this family.  The exhaustive theorem above proves the fallback branch
+is always a genuine depth-one stopping budget. -/
+def threeTermGreedyRolloutCost (rho : Restriction 3) : ℕ :=
+  if threeTermGreedyRolloutStops 0 rho then 0 else 1
+
+/-- A successful one-step rollout recurrence is already a semantic common-trunk certificate.
+This small-depth bridge is generic in the family and does not materialize deeper rollout trees. -/
+theorem commonShallowAt_of_branchConditionedGreedyRolloutStops_one {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth cap : ℕ)
+    (rho : Restriction n)
+    (hstops : branchConditionedGreedyRolloutStops gates fuel residualDepth cap 1 rho = true) :
+    CommonShallowAt gates fuel rho 1 residualDepth := by
+  cases hquery : activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+  | none =>
+      refine ⟨CommonTree.leaf rho, by simp [CommonTree.depth], ?_⟩
+      intro x hx
+      exact ⟨fun _ _ h => h, hx,
+        (activeCanonicalFirstFamilyQuery_eq_none_iff gates fuel residualDepth rho).mp hquery⟩
+  | some q =>
+      cases hminimum : minimumGreedyRolloutQuery gates fuel residualDepth cap rho with
+      | none => simp [branchConditionedGreedyRolloutStops, hquery, hminimum] at hstops
+      | some i =>
+          have hchildren :
+              branchConditionedGreedyRolloutStops gates fuel residualDepth cap 0
+                  (fixVar rho i false) = true ∧
+                branchConditionedGreedyRolloutStops gates fuel residualDepth cap 0
+                  (fixVar rho i true) = true := by
+            simpa [branchConditionedGreedyRolloutStops, hquery, hminimum,
+              Bool.and_eq_true] using hstops
+          let trunk := queryRestrictionList rho [i]
+          refine ⟨trunk, by simp [trunk], ?_⟩
+          intro x hx
+          obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec rho [i] x hx
+          refine ⟨hroot, hleaf, ?_⟩
+          intro g
+          cases hxi : x i with
+          | false =>
+              have hnone : activeCanonicalFirstFamilyQuery gates fuel residualDepth
+                  (fixVar rho i false) = none := by
+                simpa [branchConditionedGreedyRolloutStops] using hchildren.1
+              have hdepth :=
+                (activeCanonicalFirstFamilyQuery_eq_none_iff gates fuel residualDepth
+                  (fixVar rho i false)).mp hnone g
+              simpa [trunk, queryRestrictionList, hxi] using hdepth
+          | true =>
+              have hnone : activeCanonicalFirstFamilyQuery gates fuel residualDepth
+                  (fixVar rho i true) = none := by
+                simpa [branchConditionedGreedyRolloutStops] using hchildren.2
+              have hdepth :=
+                (activeCanonicalFirstFamilyQuery_eq_none_iff gates fuel residualDepth
+                  (fixVar rho i true)).mp hnone g
+              simpa [trunk, queryRestrictionList, hxi] using hdepth
+
+/-- The computed rollout cost is attained by an actual common trunk on every restriction of the
+normalized three-term family. -/
+theorem threeTermCommonShallowAt_greedyRolloutCost (rho : Restriction 3) :
+    CommonShallowAt threeTermGreedyGapFamily 3 rho
+      (threeTermGreedyRolloutCost rho) 1 := by
+  have hone := threeTermGreedyRolloutStops_one_code (threeTermRestrictionCode rho)
+  rw [threeTermLocalRestriction_code] at hone
+  by_cases hzero : threeTermGreedyRolloutStops 0 rho = true
+  · have hnone : activeCanonicalFirstFamilyQuery threeTermGreedyGapFamily 3 1 rho = none := by
+      simpa [threeTermGreedyRolloutStops, branchConditionedGreedyRolloutStops] using hzero
+    refine ⟨CommonTree.leaf rho, by simp [threeTermGreedyRolloutCost, hzero,
+      CommonTree.depth], ?_⟩
+    intro x hx
+    exact ⟨fun _ _ h => h, hx,
+      (activeCanonicalFirstFamilyQuery_eq_none_iff threeTermGreedyGapFamily 3 1 rho).mp
+        hnone⟩
+  · have hcost : threeTermGreedyRolloutCost rho = 1 := by
+      simp [threeTermGreedyRolloutCost, hzero]
+    rw [hcost]
+    exact commonShallowAt_of_branchConditionedGreedyRolloutStops_one
+      threeTermGreedyGapFamily 3 1 1 rho hone
+
+/-- Exact semantic optimality on all 27 restrictions: no common trunk is shallower than the
+recursively realized rollout cost.  Since this family's cost range is only zero or one, the
+lower bound follows from the already proved zero-depth root characterization. -/
+theorem threeTermGreedyRolloutCost_le_of_commonShallowAt (rho : Restriction 3) (k : ℕ)
+    (h : CommonShallowAt threeTermGreedyGapFamily 3 rho k 1) :
+    threeTermGreedyRolloutCost rho ≤ k := by
+  by_cases hzero : threeTermGreedyRolloutStops 0 rho = true
+  · simp [threeTermGreedyRolloutCost, hzero]
+  · have hk : 0 < k := by
+      by_contra hk
+      have hk0 : k = 0 := by omega
+      subst k
+      have hroot := h.root_shallow_of_trunkDepth_zero
+      have hnone : activeCanonicalFirstFamilyQuery threeTermGreedyGapFamily 3 1 rho = none :=
+        (activeCanonicalFirstFamilyQuery_eq_none_iff
+          threeTermGreedyGapFamily 3 1 rho).mpr hroot
+      apply hzero
+      simpa [threeTermGreedyRolloutStops, branchConditionedGreedyRolloutStops] using hnone
+    simp [threeTermGreedyRolloutCost, hzero]
+    omega
+
+/-! ### Recursive rollout audit on the depth-three two-pair gadget
+
+The three-term counterexample only has semantic costs zero and one after restriction, so it
+cannot test whether recursively reapplying the rollout choice remains competitive at depth two
+or beyond.  The existing normalized two-pair gadget supplies an already verified exact semantic
+cost on all 81 restrictions, including the fully live cost-three state. -/
+
+/-- Recursive one-step rollout on the two-pair family.  Cap three exposes the entire known range
+of child greedy costs for this four-coordinate gadget. -/
+def twoPairGreedyRolloutStops : ℕ → Restriction 4 → Bool :=
+  branchConditionedGreedyRolloutStops twoPairPolarityFamily 4 1 3
+
+/-- First recursive-rollout stopping budget in the exhaustive range `0,1,2,3`, with four as a
+failure sentinel. -/
+def twoPairGreedyRolloutCost (rho : Restriction 4) : ℕ :=
+  if twoPairGreedyRolloutStops 0 rho then 0 else
+    if twoPairGreedyRolloutStops 1 rho then 1 else
+      if twoPairGreedyRolloutStops 2 rho then 2 else
+        if twoPairGreedyRolloutStops 3 rho then 3 else 4
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- Exhaustive recursive audit: rollout attains the exact flexible-game optimum on every one of
+the 81 restrictions, including the semantic cost-two and cost-three states. -/
+theorem twoPairGreedyRolloutCost_eq_flexibleQueryCost_code :
+    ∀ code : Fin 81,
+      twoPairGreedyRolloutCost (twoPairLocalRestriction code) =
+        twoPairFlexibleQueryCost (twoPairLocalRestriction code) := by
+  decide +revert
+
+/-- Presentation-free form of the exhaustive rollout/optimum equality. -/
+theorem twoPairGreedyRolloutCost_eq_flexibleQueryCost (rho : Restriction 4) :
+    twoPairGreedyRolloutCost rho = twoPairFlexibleQueryCost rho := by
+  rw [← twoPairLocalRestriction_code rho]
+  exact twoPairGreedyRolloutCost_eq_flexibleQueryCost_code (twoPairRestrictionCode rho)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 2000000 in
+/-- The computed recursive-rollout cost is an actual stopping budget; in particular the failure
+sentinel branch in its definition is unreachable on this family. -/
+theorem twoPairGreedyRolloutStops_cost_code :
+    ∀ code : Fin 81,
+      twoPairGreedyRolloutStops
+        (twoPairGreedyRolloutCost (twoPairLocalRestriction code))
+        (twoPairLocalRestriction code) = true := by
+  decide +revert
+
+/-- Presentation-free actual-stopping theorem for recursive rollout. -/
+theorem twoPairGreedyRolloutStops_cost (rho : Restriction 4) :
+    twoPairGreedyRolloutStops (twoPairGreedyRolloutCost rho) rho = true := by
+  rw [← twoPairLocalRestriction_code rho]
+  exact twoPairGreedyRolloutStops_cost_code (twoPairRestrictionCode rho)
+
+/-- The exact rollout cost is attained by a genuine semantic common trunk.  This uses the
+independently proved flexible-game soundness, rather than identifying the rollout evaluator with
+the older gate-order tree. -/
+theorem twoPairCommonShallowAt_greedyRolloutCost (rho : Restriction 4) :
+    CommonShallowAt twoPairPolarityFamily 4 rho (twoPairGreedyRolloutCost rho) 1 := by
+  rw [twoPairGreedyRolloutCost_eq_flexibleQueryCost]
+  exact (twoPairFlexibleQueryWin_iff_commonShallowAt rho
+    (twoPairFlexibleQueryCost rho)).mp (twoPairFlexibleQueryWin_cost rho)
+
+/-- Exact semantic optimality of recursive rollout across the full depth-zero-through-three
+range of the two-pair gadget. -/
+theorem twoPairGreedyRolloutCost_le_of_commonShallowAt (rho : Restriction 4) (k : ℕ)
+    (h : CommonShallowAt twoPairPolarityFamily 4 rho k 1) :
+    twoPairGreedyRolloutCost rho ≤ k := by
+  rw [twoPairGreedyRolloutCost_eq_flexibleQueryCost]
+  exact twoPairFlexibleQueryCost_le_of_commonShallowAt rho k h
+
+/-! ### A strict recursive-rollout gap on a three-term path
+
+The two-pair equality is not stable under the next normalized three-term width-two audit.  A
+four-coordinate path of three negative conjunctions has a depth-two common trunk on its two
+middle coordinates, but the rollout score follows an endpoint first and needs budget three. -/
+
+/-- Three consecutive negative width-two terms on four coordinates. -/
+def threeTermPathRolloutGapPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 1, Rung4Literal.neg 2]⟩,
+    ⟨[Rung4Literal.neg 2, Rung4Literal.neg 3]⟩]
+
+/-- The exact two-polarity family used by the recursive-rollout counterexample. -/
+def threeTermPathRolloutGapFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then threeTermPathRolloutGapPositiveGate
+  else negDNF threeTermPathRolloutGapPositiveGate
+
+/-- The counterexample survives duplicate normalization: its terms are distinct and every term
+uses two distinct coordinates, in both polarities. -/
+theorem threeTermPathRolloutGapFamily_normalized :
+    ∀ g, (threeTermPathRolloutGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermPathRolloutGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying the two middle path coordinates leaves both polarities at canonical depth at most
+one on every branch. -/
+theorem threeTermPathRolloutGapFamily_commonShallowAt_two :
+    CommonShallowAt threeTermPathRolloutGapFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [1, 2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [1, 2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx1 : x 1 <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx1, hx2, threeTermPathRolloutGapFamily,
+      threeTermPathRolloutGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxHeartbeats 2000000 in
+/-- With child cap four, recursive rollout fails at the available semantic budget two and first
+stops at budget three. -/
+theorem threeTermPathRolloutGapFamily_rollout_stops_exactly_three :
+    branchConditionedGreedyRolloutStops threeTermPathRolloutGapFamily 4 1 4 2
+        (fun _ : Fin 4 => none) = false ∧
+      branchConditionedGreedyRolloutStops threeTermPathRolloutGapFamily 4 1 4 3
+        (fun _ : Fin 4 => none) = true := by
+  decide
+
+/-- Strict competitive gap for the recursive rollout rule: a genuine depth-two common trunk
+exists, but rollout has not stopped at that same budget. -/
+theorem threeTermPathRolloutGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermPathRolloutGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedGreedyRolloutStops threeTermPathRolloutGapFamily 4 1 4 2
+        (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermPathRolloutGapFamily_commonShallowAt_two,
+    threeTermPathRolloutGapFamily_rollout_stops_exactly_three.1⟩
+
+/-! ### A bounded live-incidence certificate repairs the path root
+
+The rollout failure is a score collision, not a strict local preference for the endpoint.  All
+four root coordinates receive the same child-greedy score, so the generic `argmin` falls back to
+the first coordinate.  Counting currently free literal occurrences across the indexed family is
+a strictly bounded alternative: on this three-term path it distinguishes endpoints from middle
+coordinates without evaluating either child recurrence. -/
+
+/-- Number of currently free literal occurrences of one variable across the indexed family.
+This is an occurrence count, rather than a support count: repeated clauses or literals remain
+visible until a separate normalization theorem justifies erasing them. -/
+def liveLiteralIncidenceMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  ((List.finRange G).flatMap fun g =>
+      (gates g).flatMap fun T => T.lits).countP fun ell =>
+        (litVar ell == i) && litFree rho ell
+
+/-- First live coordinate of maximum free-literal incidence.  The payload is only the bounded
+root occurrence profile; it does not run a child stopping game. -/
+def maximumLiveIncidenceQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax
+    (liveLiteralIncidenceMultiplicity gates rho)
+
+set_option maxHeartbeats 2000000 in
+/-- Exact diagnosis of the rollout failure: every root coordinate has score two, and the
+first-index tie breaker therefore chooses the endpoint coordinate zero. -/
+theorem threeTermPathRolloutGapFamily_root_score_collision :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        greedyRolloutQueryScore threeTermPathRolloutGapFamily 4 1 4 rho i) =
+        [2, 2, 2, 2] ∧
+      minimumGreedyRolloutQuery threeTermPathRolloutGapFamily 4 1 4 rho = some 0 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The bounded incidence profile separates the two path endpoints from its two middle
+coordinates, and its deterministic first maximum is coordinate one. -/
+theorem threeTermPathRolloutGapFamily_incidence_profile :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        liveLiteralIncidenceMultiplicity threeTermPathRolloutGapFamily rho i) =
+        [2, 4, 4, 2] ∧
+      maximumLiveIncidenceQuery threeTermPathRolloutGapFamily rho = some 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- After the first incidence-selected middle query, the same bounded rule selects the other
+middle coordinate on both Boolean branches.  Together with
+`threeTermPathRolloutGapFamily_commonShallowAt_two`, this reproduces the winning path trunk
+without any capped child recurrence. -/
+theorem threeTermPathRolloutGapFamily_incidence_second_query :
+    let rho : Restriction 4 := fun _ => none
+    maximumLiveIncidenceQuery threeTermPathRolloutGapFamily (fixVar rho 1 false) = some 2 ∧
+      maximumLiveIncidenceQuery threeTermPathRolloutGapFamily (fixVar rho 1 true) = some 2 := by
+  decide
+
+/-! ### Maximum live incidence has a strict three-term gap -/
+
+/-- Recursive stopping test for the bounded maximum-live-incidence selector. -/
+def branchConditionedMaximumLiveIncidenceStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumLiveIncidenceQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumLiveIncidenceStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumLiveIncidenceStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+/-- Two clauses on coordinates zero and one, followed by an independent clause on two and
+three.  Clause and literal order are part of the canonical-tree input and are left explicit. -/
+def threeTermIncidenceGapPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩,
+    ⟨[Rung4Literal.neg 2, Rung4Literal.neg 3]⟩]
+
+/-- The two-polarity family for the maximum-incidence counterexample. -/
+def threeTermIncidenceGapFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then threeTermIncidenceGapPositiveGate
+  else negDNF threeTermIncidenceGapPositiveGate
+
+/-- The incidence counterexample is normalized in both polarities. -/
+theorem threeTermIncidenceGapFamily_normalized :
+    ∀ g, (threeTermIncidenceGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermIncidenceGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying one coordinate from each syntactic component leaves every reached polarity with
+canonical residual depth at most one. -/
+theorem threeTermIncidenceGapFamily_commonShallowAt_two :
+    CommonShallowAt threeTermIncidenceGapFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx0, hx2, threeTermIncidenceGapFamily,
+      threeTermIncidenceGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxHeartbeats 2000000 in
+/-- Both leading coordinates have incidence four.  The rule chooses zero and then one on either
+branch, despite the winning second query being coordinate two. -/
+theorem threeTermIncidenceGapFamily_profile_and_queries :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        liveLiteralIncidenceMultiplicity threeTermIncidenceGapFamily rho i) =
+        [4, 4, 2, 2] ∧
+      maximumLiveIncidenceQuery threeTermIncidenceGapFamily rho = some 0 ∧
+      maximumLiveIncidenceQuery threeTermIncidenceGapFamily (fixVar rho 0 false) = some 1 ∧
+      maximumLiveIncidenceQuery threeTermIncidenceGapFamily (fixVar rho 0 true) = some 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Maximum live incidence has not stopped at the available depth-two budget, but does stop
+after a third query. -/
+theorem threeTermIncidenceGapFamily_selector_stops_exactly_three :
+    branchConditionedMaximumLiveIncidenceStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false ∧
+      branchConditionedMaximumLiveIncidenceStops threeTermIncidenceGapFamily 4 1 3
+        (fun _ : Fin 4 => none) = true := by
+  decide
+
+/-- A normalized depth-two semantic certificate exists where the incidence selector fails. -/
+theorem threeTermIncidenceGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermIncidenceGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumLiveIncidenceStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermIncidenceGapFamily_commonShallowAt_two,
+    threeTermIncidenceGapFamily_selector_stops_exactly_three.1⟩
+
+/-! ### Fully-live term coverage repairs incidence but has a root collision -/
+
+/-- Number of fully live clause occurrences containing a coordinate. -/
+def fullyLiveTermCoverageMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  ((List.finRange G).flatMap fun g => gates g).countP fun T =>
+    (T.lits.all fun ell => litFree rho ell) &&
+      (T.lits.any fun ell => litVar ell == i)
+
+/-- First live coordinate of maximum fully-live term coverage. -/
+def maximumFullyLiveTermCoverageQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax
+    (fullyLiveTermCoverageMultiplicity gates rho)
+
+/-- Recursive stopping test for maximum fully-live term coverage. -/
+def branchConditionedMaximumFullyLiveTermCoverageStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumFullyLiveTermCoverageQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumFullyLiveTermCoverageStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumFullyLiveTermCoverageStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+set_option maxHeartbeats 2000000 in
+/-- Discounting touched clauses repairs the preceding incidence example. -/
+theorem threeTermIncidenceGapFamily_fullyLiveCoverage_repairs :
+    let rho : Restriction 4 := fun _ => none
+    maximumFullyLiveTermCoverageQuery threeTermIncidenceGapFamily rho = some 0 ∧
+      maximumFullyLiveTermCoverageQuery threeTermIncidenceGapFamily
+          (fixVar rho 0 false) = some 2 ∧
+      maximumFullyLiveTermCoverageQuery threeTermIncidenceGapFamily
+          (fixVar rho 0 true) = some 2 ∧
+      branchConditionedMaximumFullyLiveTermCoverageStops
+          threeTermIncidenceGapFamily 4 1 2 rho = true := by
+  decide
+
+/-- Adjacent three-term family with the same unsigned root coverage. -/
+def threeTermCoverageCollisionPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 2, Rung4Literal.neg 3]⟩]
+
+def threeTermCoverageCollisionFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then threeTermCoverageCollisionPositiveGate
+  else negDNF threeTermCoverageCollisionPositiveGate
+
+theorem threeTermCoverageCollisionFamily_normalized :
+    ∀ g, (threeTermCoverageCollisionFamily g).Nodup ∧
+      ∀ T ∈ threeTermCoverageCollisionFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- The correct depth-two trunk queries the common-literal coordinate and the independent block. -/
+theorem threeTermCoverageCollisionFamily_commonShallowAt_two :
+    CommonShallowAt threeTermCoverageCollisionFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [1, 2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [1, 2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx1 : x 1 <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx1, hx2, threeTermCoverageCollisionFamily,
+      threeTermCoverageCollisionPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxHeartbeats 2000000 in
+/-- The repaired and failing families collide at root score `(4,4,2,2)`. -/
+theorem threeTermCoverageCollisionFamily_profile_and_queries :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        fullyLiveTermCoverageMultiplicity threeTermIncidenceGapFamily rho i) =
+        [4, 4, 2, 2] ∧
+      (List.ofFn fun i : Fin 4 =>
+        fullyLiveTermCoverageMultiplicity threeTermCoverageCollisionFamily rho i) =
+        [4, 4, 2, 2] ∧
+      maximumFullyLiveTermCoverageQuery threeTermCoverageCollisionFamily rho = some 0 ∧
+      maximumFullyLiveTermCoverageQuery threeTermCoverageCollisionFamily
+          (fixVar rho 0 false) = some 2 ∧
+      maximumFullyLiveTermCoverageQuery threeTermCoverageCollisionFamily
+          (fixVar rho 0 true) = some 2 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+theorem threeTermCoverageCollisionFamily_selector_stops_exactly_three :
+    branchConditionedMaximumFullyLiveTermCoverageStops
+        threeTermCoverageCollisionFamily 4 1 2 (fun _ : Fin 4 => none) = false ∧
+      branchConditionedMaximumFullyLiveTermCoverageStops
+        threeTermCoverageCollisionFamily 4 1 3 (fun _ : Fin 4 => none) = true := by
+  decide
+
+/-- Strict normalized collision for the proposed component-aware local selector. -/
+theorem threeTermCoverageCollisionFamily_strict_competitive_gap :
+    CommonShallowAt threeTermCoverageCollisionFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumFullyLiveTermCoverageStops
+        threeTermCoverageCollisionFamily 4 1 2 (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermCoverageCollisionFamily_commonShallowAt_two,
+    threeTermCoverageCollisionFamily_selector_stops_exactly_three.1⟩
+
+/-! ### Within-gate polarity concentration separates the unsigned collision -/
+
+/-- Fully-live terms of one indexed gate containing a specified signed occurrence of `i`.
+The sign bit is interpreted as positive when true and negative when false. -/
+def fullyLiveSignedTermCoverageMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (g : Fin G) (i : Fin n) (positive : Bool) : ℕ :=
+  (gates g).countP fun T =>
+    (T.lits.all fun ell => litFree rho ell) &&
+      (if positive then T.lits.contains (Rung4Literal.pos i)
+        else T.lits.contains (Rung4Literal.neg i))
+
+/-- Polarity-sensitive local score.  Within each indexed gate it retains the larger of the
+positive and negative fully-live term counts, then adds those concentrations across gates.
+Thus adjoining the De Morgan polarity does not erase the distinction between a coordinate
+whose sign is constant inside a gate and one whose sign is mixed there. -/
+def fullyLivePolarityConcentrationMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  ((List.finRange G).map fun g =>
+    max (fullyLiveSignedTermCoverageMultiplicity gates rho g i true)
+      (fullyLiveSignedTermCoverageMultiplicity gates rho g i false)).sum
+
+/-- First live coordinate of maximum within-gate fully-live polarity concentration. -/
+def maximumFullyLivePolarityConcentrationQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax
+    (fullyLivePolarityConcentrationMultiplicity gates rho)
+
+/-- Recursive stopping test for the polarity-concentration selector. -/
+def branchConditionedMaximumFullyLivePolarityConcentrationStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumFullyLivePolarityConcentrationQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumFullyLivePolarityConcentrationStops
+                  gates fuel residualDepth budget (fixVar rho i false) &&
+                branchConditionedMaximumFullyLivePolarityConcentrationStops
+                  gates fuel residualDepth budget (fixVar rho i true)
+
+set_option maxHeartbeats 2000000 in
+/-- The polarity score separates the two families that collide at unsigned profile
+`(4,4,2,2)`: their concentrated profiles are respectively `(4,2,2,2)` and `(2,4,2,2)`,
+so the deterministic selector chooses the correct tied coordinate in each family. -/
+theorem threeTermCoverageCollision_polarity_profiles_separate :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        fullyLivePolarityConcentrationMultiplicity threeTermIncidenceGapFamily rho i) =
+        [4, 2, 2, 2] ∧
+      maximumFullyLivePolarityConcentrationQuery threeTermIncidenceGapFamily rho = some 0 ∧
+      (List.ofFn fun i : Fin 4 =>
+        fullyLivePolarityConcentrationMultiplicity threeTermCoverageCollisionFamily rho i) =
+        [2, 4, 2, 2] ∧
+      maximumFullyLivePolarityConcentrationQuery threeTermCoverageCollisionFamily rho = some 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The polarity-sensitive refinement realizes the known depth-two semantic budget on both
+sides of the unsigned collision.  This is a repair of the preserved collision, not a universal
+selector theorem. -/
+theorem threeTermCoverageCollision_polarity_selector_repairs_both :
+    let rho : Restriction 4 := fun _ => none
+    branchConditionedMaximumFullyLivePolarityConcentrationStops
+        threeTermIncidenceGapFamily 4 1 2 rho = true ∧
+      branchConditionedMaximumFullyLivePolarityConcentrationStops
+        threeTermCoverageCollisionFamily 4 1 2 rho = true := by
+  decide
+
+/-! ### Within-gate polarity concentration has a strict normalized three-term gap -/
+
+/-- Exhaustive-audit witness: a common negative literal occurs in all three terms, while the
+last two terms disagree only on coordinate two.  Querying that disagreement coordinate resolves
+the family in one step, although raw polarity concentration prefers coordinate zero. -/
+def threeTermPolarityConcentrationGapPositiveGate : List (Depth3.Clause 3) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.pos 2]⟩]
+
+def threeTermPolarityConcentrationGapFamily : Fin 2 → List (Depth3.Clause 3) := fun g =>
+  if g = 0 then threeTermPolarityConcentrationGapPositiveGate
+  else negDNF threeTermPolarityConcentrationGapPositiveGate
+
+/-- The audit witness survives the established duplicate normalization: both polarity lists have
+distinct clauses, and no clause repeats a coordinate. -/
+theorem threeTermPolarityConcentrationGapFamily_normalized :
+    ∀ g, (threeTermPolarityConcentrationGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermPolarityConcentrationGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying the coordinate on which the last two clauses disagree leaves both indexed
+polarities with canonical residual depth at most one on either branch. -/
+theorem threeTermPolarityConcentrationGapFamily_commonShallowAt_one :
+    CommonShallowAt threeTermPolarityConcentrationGapFamily 3
+      (fun _ : Fin 3 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 3 => none) [2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 3 => none) [2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx2, threeTermPolarityConcentrationGapFamily,
+      threeTermPolarityConcentrationGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+/-- The flexible semantic common-trunk cost of the fully live witness is exactly one. -/
+theorem threeTermPolarityConcentrationGapFamily_exact_semantic_cost_one :
+    (¬ CommonShallowAt threeTermPolarityConcentrationGapFamily 3
+        (fun _ : Fin 3 => none) 0 1) ∧
+      CommonShallowAt threeTermPolarityConcentrationGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 := by
+  refine ⟨?_, threeTermPolarityConcentrationGapFamily_commonShallowAt_one⟩
+  intro h
+  have hroot := h.root_shallow_of_trunkDepth_zero
+  have hdepth :
+      (canonicalDT (threeTermPolarityConcentrationGapFamily 0) 3
+        (fun _ : Fin 3 => none)).depth = 3 := by
+    decide
+  have := hroot (0 : Fin 2)
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- The local score strictly prefers the wrong coordinate: the root concentration profile is
+`(6,2,2)`, so the deterministic maximum selects zero rather than the winning coordinate two. -/
+theorem threeTermPolarityConcentrationGapFamily_profile_and_query :
+    let rho : Restriction 3 := fun _ => none
+    (List.ofFn fun i : Fin 3 =>
+        fullyLivePolarityConcentrationMultiplicity
+          threeTermPolarityConcentrationGapFamily rho i) = [6, 2, 2] ∧
+      maximumFullyLivePolarityConcentrationQuery
+        threeTermPolarityConcentrationGapFamily rho = some 0 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Polarity concentration misses the available depth-one budget and first stops after a second
+query. -/
+theorem threeTermPolarityConcentrationGapFamily_selector_stops_exactly_two :
+    branchConditionedMaximumFullyLivePolarityConcentrationStops
+        threeTermPolarityConcentrationGapFamily 3 1 1 (fun _ : Fin 3 => none) = false ∧
+      branchConditionedMaximumFullyLivePolarityConcentrationStops
+        threeTermPolarityConcentrationGapFamily 3 1 2 (fun _ : Fin 3 => none) = true := by
+  decide
+
+/-- Strict normalized competitive gap for the polarity-sensitive local selector. -/
+theorem threeTermPolarityConcentrationGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermPolarityConcentrationGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 ∧
+      branchConditionedMaximumFullyLivePolarityConcentrationStops
+        threeTermPolarityConcentrationGapFamily 3 1 1
+          (fun _ : Fin 3 => none) = false :=
+  ⟨threeTermPolarityConcentrationGapFamily_commonShallowAt_one,
+    threeTermPolarityConcentrationGapFamily_selector_stops_exactly_two.1⟩
+
+/-! ### Complementary residual pairs also have a strict normalized three-term gap -/
+
+/-- Count, for one live coordinate, unordered fully-live width-two clause pairs in the same gate
+that share one signed literal and contain opposite signs of the queried coordinate as their
+residual literals.  The existing typed-pair enumerator makes both clause occurrences explicit. -/
+def fullyLiveComplementaryResidualPairMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  ((List.finRange G).map fun g =>
+    (unorderedTypedOccurrencePairs id (indexedLiveClauses gates rho g) 1 1 2).countP fun p =>
+      (p.1.lits.contains (Rung4Literal.pos i) &&
+          p.2.lits.contains (Rung4Literal.neg i)) ||
+        (p.1.lits.contains (Rung4Literal.neg i) &&
+          p.2.lits.contains (Rung4Literal.pos i))).sum
+
+/-- First live coordinate maximizing complementary residual-pair count, with the preceding
+polarity-concentration score as a deterministic fallback. -/
+def maximumComplementaryResidualPairQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    fullyLiveComplementaryResidualPairMultiplicity gates rho i *
+        (((List.finRange G).map fun g => (gates g).length).sum + 1) +
+      fullyLivePolarityConcentrationMultiplicity gates rho i
+
+/-- Recursive stopping test for the complementary-pair selector. -/
+def branchConditionedMaximumComplementaryResidualPairStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumComplementaryResidualPairQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumComplementaryResidualPairStops
+                  gates fuel residualDepth budget (fixVar rho i false) &&
+                branchConditionedMaximumComplementaryResidualPairStops
+                  gates fuel residualDepth budget (fixVar rho i true)
+
+/-- First exhaustive-audit witness against complementary residual-pair priority.  The first two
+clauses form the advertised cancellation pair on coordinate one, but the third clause has the
+opposite shared-literal sign.  Querying that shared coordinate zero is semantically optimal. -/
+def threeTermComplementaryPairGapPositiveGate : List (Depth3.Clause 3) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩,
+    ⟨[Rung4Literal.pos 0, Rung4Literal.neg 2]⟩]
+
+def threeTermComplementaryPairGapFamily : Fin 2 → List (Depth3.Clause 3) := fun g =>
+  if g = 0 then threeTermComplementaryPairGapPositiveGate
+  else negDNF threeTermComplementaryPairGapPositiveGate
+
+theorem threeTermComplementaryPairGapFamily_normalized :
+    ∀ g, (threeTermComplementaryPairGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermComplementaryPairGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying the shared coordinate leaves both polarities at canonical residual depth one. -/
+theorem threeTermComplementaryPairGapFamily_commonShallowAt_one :
+    CommonShallowAt threeTermComplementaryPairGapFamily 3
+      (fun _ : Fin 3 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 3 => none) [0]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 3 => none) [0] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;>
+    simp [trunk, queryRestrictionList, hx0, threeTermComplementaryPairGapFamily,
+      threeTermComplementaryPairGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+/-- The fully-live witness is not already residual-depth one, so its semantic cost is exactly one. -/
+theorem threeTermComplementaryPairGapFamily_exact_semantic_cost_one :
+    (¬ CommonShallowAt threeTermComplementaryPairGapFamily 3
+        (fun _ : Fin 3 => none) 0 1) ∧
+      CommonShallowAt threeTermComplementaryPairGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 := by
+  refine ⟨?_, threeTermComplementaryPairGapFamily_commonShallowAt_one⟩
+  intro h
+  have hroot := h.root_shallow_of_trunkDepth_zero
+  have hdepth :
+      (canonicalDT (threeTermComplementaryPairGapFamily 0) 3
+        (fun _ : Fin 3 => none)).depth = 2 := by
+    decide
+  have := hroot (0 : Fin 2)
+  omega
+
+set_option maxHeartbeats 2000000 in
+/-- The pair certificate strictly selects coordinate one even though zero is the unique
+one-query semantic winner. -/
+theorem threeTermComplementaryPairGapFamily_profile_and_query :
+    let rho : Restriction 3 := fun _ => none
+    (List.ofFn fun i : Fin 3 =>
+        fullyLiveComplementaryResidualPairMultiplicity
+          threeTermComplementaryPairGapFamily rho i) = [0, 2, 0] ∧
+      (List.ofFn fun i : Fin 3 =>
+        fullyLivePolarityConcentrationMultiplicity
+          threeTermComplementaryPairGapFamily rho i) = [4, 2, 2] ∧
+      maximumComplementaryResidualPairQuery
+        threeTermComplementaryPairGapFamily rho = some 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+theorem threeTermComplementaryPairGapFamily_selector_stops_exactly_two :
+    branchConditionedMaximumComplementaryResidualPairStops
+        threeTermComplementaryPairGapFamily 3 1 1 (fun _ : Fin 3 => none) = false ∧
+      branchConditionedMaximumComplementaryResidualPairStops
+        threeTermComplementaryPairGapFamily 3 1 2 (fun _ : Fin 3 => none) = true := by
+  decide
+
+/-- Strict normalized competitive gap for complementary residual-pair priority. -/
+theorem threeTermComplementaryPairGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermComplementaryPairGapFamily 3
+        (fun _ : Fin 3 => none) 1 1 ∧
+      branchConditionedMaximumComplementaryResidualPairStops
+        threeTermComplementaryPairGapFamily 3 1 1
+          (fun _ : Fin 3 => none) = false :=
+  ⟨threeTermComplementaryPairGapFamily_commonShallowAt_one,
+    threeTermComplementaryPairGapFamily_selector_stops_exactly_two.1⟩
+
+/-! ### External shared-sign incidence still has a strict normalized gap -/
+
+/-- A signed two-coordinate cancellation motif contributes to its shared coordinate when a
+third fully-live clause occurrence in the same gate contains the opposite shared sign.  Clause
+positions ensure that the external witness is distinct from both paired occurrences. -/
+def fullyLiveExternallyOpposedSharedPairMultiplicity {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  ((List.finRange G).map fun g =>
+    let occurrences := indexedLiveClauseOccurrences gates rho g
+    (unorderedTypedOccurrencePairs IndexedLiveClauseOccurrence.clause
+        occurrences 1 1 2).countP fun p =>
+      ((p.1.clause.lits.contains (Rung4Literal.pos i) &&
+            p.2.clause.lits.contains (Rung4Literal.pos i)) &&
+          occurrences.any fun third =>
+            (third.position != p.1.position) && (third.position != p.2.position) &&
+              third.clause.lits.contains (Rung4Literal.neg i)) ||
+        ((p.1.clause.lits.contains (Rung4Literal.neg i) &&
+            p.2.clause.lits.contains (Rung4Literal.neg i)) &&
+          occurrences.any fun third =>
+            (third.position != p.1.position) && (third.position != p.2.position) &&
+              third.clause.lits.contains (Rung4Literal.pos i))).sum
+
+/-- First live coordinate maximizing external shared-sign incidence, then complementary
+residual-pair count, then polarity concentration.  The scalar bases are strict bounds for the
+lower-priority occurrence counts, so this implements the advertised lexicographic priority
+without evaluating either recursive child game. -/
+def maximumExternallyOpposedSharedPairQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    fullyLiveExternallyOpposedSharedPairMultiplicity gates rho i * pairBase *
+          concentrationBase +
+      fullyLiveComplementaryResidualPairMultiplicity gates rho i * concentrationBase +
+        fullyLivePolarityConcentrationMultiplicity gates rho i
+
+/-- Recursive stopping test for the external shared-sign selector. -/
+def branchConditionedMaximumExternallyOpposedSharedPairStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumExternallyOpposedSharedPairQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumExternallyOpposedSharedPairStops
+                  gates fuel residualDepth budget (fixVar rho i false) &&
+                branchConditionedMaximumExternallyOpposedSharedPairStops
+                  gates fuel residualDepth budget (fixVar rho i true)
+
+set_option maxHeartbeats 2000000 in
+/-- The signed external-incidence motif repairs the immediately preceding counterexample by
+strictly selecting its shared coordinate zero. -/
+theorem threeTermComplementaryPairGapFamily_external_profile_repairs :
+    let rho : Restriction 3 := fun _ => none
+    (List.ofFn fun i : Fin 3 =>
+        fullyLiveExternallyOpposedSharedPairMultiplicity
+          threeTermComplementaryPairGapFamily rho i) = [2, 0, 0] ∧
+      maximumExternallyOpposedSharedPairQuery
+        threeTermComplementaryPairGapFamily rho = some 0 ∧
+      branchConditionedMaximumExternallyOpposedSharedPairStops
+        threeTermComplementaryPairGapFamily 3 1 1 rho = true := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- On the disconnected normalized family there is no external opposite shared sign.  The
+fallback residual-pair score therefore selects coordinate one. -/
+theorem threeTermIncidenceGapFamily_external_profile_and_query :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        fullyLiveExternallyOpposedSharedPairMultiplicity
+          threeTermIncidenceGapFamily rho i) = [0, 0, 0, 0] ∧
+      (List.ofFn fun i : Fin 4 =>
+        fullyLiveComplementaryResidualPairMultiplicity
+          threeTermIncidenceGapFamily rho i) = [0, 2, 0, 0] ∧
+      maximumExternallyOpposedSharedPairQuery
+        threeTermIncidenceGapFamily rho = some 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- The refined selector needs three queries on the disconnected family, while its preserved
+explicit common trunk needs only two. -/
+theorem threeTermIncidenceGapFamily_external_selector_stops_exactly_three :
+    branchConditionedMaximumExternallyOpposedSharedPairStops
+        threeTermIncidenceGapFamily 4 1 2 (fun _ : Fin 4 => none) = false ∧
+      branchConditionedMaximumExternallyOpposedSharedPairStops
+        threeTermIncidenceGapFamily 4 1 3 (fun _ : Fin 4 => none) = true := by
+  decide
+
+/-- Strict normalized competitive gap for the signed two-coordinate motif. -/
+theorem threeTermIncidenceGapFamily_external_strict_competitive_gap :
+    CommonShallowAt threeTermIncidenceGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumExternallyOpposedSharedPairStops
+        threeTermIncidenceGapFamily 4 1 2 (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermIncidenceGapFamily_commonShallowAt_two,
+    threeTermIncidenceGapFamily_external_selector_stops_exactly_three.1⟩
+
+/-! ### Raw clause-support component marginal still misprices shallow residue -/
+
+/-- Live variable support of one clause under a restriction. -/
+def liveClauseSupport {n : ℕ} (rho : Restriction n) (T : Depth3.Clause n) :
+    Finset (Fin n) :=
+  ((T.lits.filter fun ell => litFree rho ell).map litVar).toFinset
+
+/-- Active nonempty live clause supports.  A satisfied DNF has no residual support. -/
+def activeLiveClauseSupports {n : ℕ} (gate : List (Depth3.Clause n))
+    (rho : Restriction n) : List (Finset (Fin n)) :=
+  if anyTermSat gate rho then [] else
+    (((gate.filter fun T => !termFalsified rho T).map (liveClauseSupport rho)).filter
+      fun support => decide (support ≠ ∅))
+
+/-- One incidence-closure pass over a finite list of clause supports. -/
+def expandClauseSupport {n : ℕ} (supports : List (Finset (Fin n)))
+    (current : Finset (Fin n)) : Finset (Fin n) :=
+  supports.foldl (fun acc support =>
+    if Disjoint acc support then acc else acc ∪ support) current
+
+/-- Bounded transitive closure of support intersection. -/
+def closeClauseSupport {n : ℕ} (supports : List (Finset (Fin n))) :
+    ℕ → Finset (Fin n) → Finset (Fin n)
+  | 0, current => current
+  | fuel + 1, current =>
+      closeClauseSupport supports fuel (expandClauseSupport supports current)
+
+/-- Executable component count for a list of nonempty supports. -/
+def clauseSupportComponentCountAux {n : ℕ} :
+    ℕ → List (Finset (Fin n)) → ℕ
+  | 0, _ => 0
+  | _ + 1, [] => 0
+  | fuel + 1, seed :: rest =>
+      let closure := closeClauseSupport (seed :: rest) (seed :: rest).length seed
+      1 + clauseSupportComponentCountAux fuel
+        (rest.filter fun support => decide (Disjoint support closure))
+
+def clauseSupportComponentCount {n : ℕ} (supports : List (Finset (Fin n))) : ℕ :=
+  clauseSupportComponentCountAux supports.length supports
+
+def activeFamilySupportComponentCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : ℕ :=
+  ((List.finRange G).map fun g =>
+    clauseSupportComponentCount (activeLiveClauseSupports (gates g) rho)).sum
+
+/-- A nonnegative rank equivalent, at a fixed state, to maximizing the summed component decrease
+across the two immediate Boolean children.  The term-count offset prevents truncated subtraction
+from changing the ordering. -/
+def componentMarginalRank {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  2 * termCount - activeFamilySupportComponentCount gates (fixVar rho i false) -
+    activeFamilySupportComponentCount gates (fixVar rho i true)
+
+/-- Component marginal first, followed by the preserved signed-motif, pair, and concentration
+tie-breakers.  This evaluates two local incidence graphs but no child stopping recurrence. -/
+def maximumComponentAwareQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let componentBase := pairBase * pairBase * concentrationBase
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    componentMarginalRank gates rho i * componentBase +
+      fullyLiveExternallyOpposedSharedPairMultiplicity gates rho i * pairBase *
+          concentrationBase +
+        fullyLiveComplementaryResidualPairMultiplicity gates rho i * concentrationBase +
+          fullyLivePolarityConcentrationMultiplicity gates rho i
+
+def branchConditionedMaximumComponentAwareStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumComponentAwareQuery gates rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumComponentAwareStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumComponentAwareStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Raw component marginal repairs the disconnected witness's root choice but, on either branch,
+then prefers deleting the already-shallow singleton component. -/
+theorem threeTermIncidenceGapFamily_component_profiles_and_queries :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        componentMarginalRank threeTermIncidenceGapFamily rho i) = [6, 4, 6, 6] ∧
+      maximumComponentAwareQuery threeTermIncidenceGapFamily rho = some 0 ∧
+      maximumComponentAwareQuery threeTermIncidenceGapFamily (fixVar rho 0 false) = some 1 ∧
+      maximumComponentAwareQuery threeTermIncidenceGapFamily (fixVar rho 0 true) = some 1 := by
+  decide
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Consequently the component-aware rollout still needs three queries on a family with an
+explicit depth-two common trunk. -/
+theorem threeTermIncidenceGapFamily_component_selector_stops_exactly_three :
+    branchConditionedMaximumComponentAwareStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false ∧
+      branchConditionedMaximumComponentAwareStops threeTermIncidenceGapFamily 4 1 3
+        (fun _ : Fin 4 => none) = true := by
+  decide
+
+theorem threeTermIncidenceGapFamily_component_strict_competitive_gap :
+    CommonShallowAt threeTermIncidenceGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumComponentAwareStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermIncidenceGapFamily_commonShallowAt_two,
+    threeTermIncidenceGapFamily_component_selector_stops_exactly_three.1⟩
+
+/-! ### Residual-depth-aware component excess loses the root repair -/
+
+/-- Sum, over live clause-support components, the excess of the component's live-variable union
+above the requested residual depth. -/
+def clauseSupportComponentExcessAux {n : ℕ} (residualDepth : ℕ) :
+    ℕ → List (Finset (Fin n)) → ℕ
+  | 0, _ => 0
+  | _ + 1, [] => 0
+  | fuel + 1, seed :: rest =>
+      let closure := closeClauseSupport (seed :: rest) (seed :: rest).length seed
+      closure.card - residualDepth + clauseSupportComponentExcessAux residualDepth fuel
+        (rest.filter fun support => decide (Disjoint support closure))
+
+def clauseSupportComponentExcess {n : ℕ} (residualDepth : ℕ)
+    (supports : List (Finset (Fin n))) : ℕ :=
+  clauseSupportComponentExcessAux residualDepth supports.length supports
+
+def activeFamilySupportComponentExcess {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (residualDepth : ℕ) : ℕ :=
+  ((List.finRange G).map fun g =>
+    clauseSupportComponentExcess residualDepth (activeLiveClauseSupports (gates g) rho)).sum
+
+/-- A fixed offset turns minimization of the two child excesses into a natural-valued rank.
+For width-two clauses the offset is deliberately generous; only its query-independent value is
+used by the executable selector. -/
+def componentExcessMarginalRank {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (residualDepth : ℕ) (i : Fin n) : ℕ :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  2 * n * termCount -
+      activeFamilySupportComponentExcess gates (fixVar rho i false) residualDepth -
+    activeFamilySupportComponentExcess gates (fixVar rho i true) residualDepth
+
+/-- Residual-depth-aware component excess first, with the preceding local certificates retained
+as lexicographic tie-breakers. -/
+def maximumComponentExcessAwareQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (residualDepth : ℕ) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let componentBase := pairBase * pairBase * concentrationBase
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    componentExcessMarginalRank gates rho residualDepth i * componentBase +
+      fullyLiveExternallyOpposedSharedPairMultiplicity gates rho i * pairBase *
+          concentrationBase +
+        fullyLiveComplementaryResidualPairMultiplicity gates rho i * concentrationBase +
+          fullyLivePolarityConcentrationMultiplicity gates rho i
+
+def branchConditionedMaximumComponentExcessAwareStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumComponentExcessAwareQuery gates rho residualDepth with
+          | none => false
+          | some i =>
+              branchConditionedMaximumComponentExcessAwareStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumComponentExcessAwareStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Component excess above residual depth one ties all four root coordinates on the disconnected
+witness.  The preserved cancellation tie-breaker therefore again selects losing coordinate one. -/
+theorem threeTermIncidenceGapFamily_component_excess_root_failure :
+    let rho : Restriction 4 := fun _ => none
+    activeFamilySupportComponentExcess threeTermIncidenceGapFamily rho 1 = 4 ∧
+      (List.ofFn fun i : Fin 4 =>
+        componentExcessMarginalRank threeTermIncidenceGapFamily rho 1 i) = [44, 44, 44, 44] ∧
+      maximumComponentExcessAwareQuery threeTermIncidenceGapFamily rho 1 = some 1 := by
+  decide
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- The residual-depth-aware rollout retains the same strict three-versus-two competitive gap. -/
+theorem threeTermIncidenceGapFamily_component_excess_selector_stops_exactly_three :
+    branchConditionedMaximumComponentExcessAwareStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false ∧
+      branchConditionedMaximumComponentExcessAwareStops threeTermIncidenceGapFamily 4 1 3
+        (fun _ : Fin 4 => none) = true := by
+  decide
+
+theorem threeTermIncidenceGapFamily_component_excess_strict_competitive_gap :
+    CommonShallowAt threeTermIncidenceGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumComponentExcessAwareStops threeTermIncidenceGapFamily 4 1 2
+        (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermIncidenceGapFamily_commonShallowAt_two,
+    threeTermIncidenceGapFamily_component_excess_selector_stops_exactly_three.1⟩
+
+/-! ### Neither fixed lexicographic order of the two component axes suffices -/
+
+/-- The signed-motif tie rank shared by both two-axis component selectors. -/
+def componentMotifTieRank {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n) (i : Fin n) : ℕ :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  fullyLiveExternallyOpposedSharedPairMultiplicity gates rho i * pairBase *
+      concentrationBase +
+    fullyLiveComplementaryResidualPairMultiplicity gates rho i * concentrationBase +
+      fullyLivePolarityConcentrationMultiplicity gates rho i
+
+/-- Raw component marginal, then residual-aware excess marginal, then the preserved motif rank. -/
+def maximumRawThenExcessComponentQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (residualDepth : ℕ) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let tieBase := pairBase * pairBase * concentrationBase
+  let excessBase := 2 * n * termCount + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    componentMarginalRank gates rho i * excessBase * tieBase +
+      componentExcessMarginalRank gates rho residualDepth i * tieBase +
+        componentMotifTieRank gates rho i
+
+/-- Residual-aware excess marginal, then raw component marginal, then the preserved motif rank. -/
+def maximumExcessThenRawComponentQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (rho : Restriction n)
+    (residualDepth : ℕ) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let tieBase := pairBase * pairBase * concentrationBase
+  let rawBase := 2 * termCount + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    componentExcessMarginalRank gates rho residualDepth i * rawBase * tieBase +
+      componentMarginalRank gates rho i * tieBase + componentMotifTieRank gates rho i
+
+def branchConditionedMaximumRawThenExcessComponentStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumRawThenExcessComponentQuery gates rho residualDepth with
+          | none => false
+          | some i =>
+              branchConditionedMaximumRawThenExcessComponentStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumRawThenExcessComponentStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+def branchConditionedMaximumExcessThenRawComponentStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumExcessThenRawComponentQuery gates rho residualDepth with
+          | none => false
+          | some i =>
+              branchConditionedMaximumExcessThenRawComponentStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumExcessThenRawComponentStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Raw-first retains the repaired root zero but then repeats the already-failed raw second
+choice one on both branches. -/
+theorem threeTermIncidenceGapFamily_raw_then_excess_queries_and_gap :
+    let rho : Restriction 4 := fun _ => none
+    maximumRawThenExcessComponentQuery threeTermIncidenceGapFamily rho 1 = some 0 ∧
+      maximumRawThenExcessComponentQuery threeTermIncidenceGapFamily
+          (fixVar rho 0 false) 1 = some 1 ∧
+      maximumRawThenExcessComponentQuery threeTermIncidenceGapFamily
+          (fixVar rho 0 true) 1 = some 1 ∧
+      branchConditionedMaximumRawThenExcessComponentStops
+          threeTermIncidenceGapFamily 4 1 2 rho = false ∧
+      branchConditionedMaximumRawThenExcessComponentStops
+          threeTermIncidenceGapFamily 4 1 3 rho = true := by
+  decide
+
+/-- Three normalized clauses with one common coordinate; the last two cancel on coordinate two. -/
+def threeTermExcessThenRawGapPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.pos 2]⟩]
+
+def threeTermExcessThenRawGapFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then threeTermExcessThenRawGapPositiveGate
+  else negDNF threeTermExcessThenRawGapPositiveGate
+
+theorem threeTermExcessThenRawGapFamily_normalized :
+    ∀ g, (threeTermExcessThenRawGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermExcessThenRawGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying cancellation coordinate two makes both polarities canonically shallow in one step. -/
+theorem threeTermExcessThenRawGapFamily_commonShallowAt_one :
+    CommonShallowAt threeTermExcessThenRawGapFamily 4
+      (fun _ : Fin 4 => none) 1 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [2]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [2] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx2 : x 2 <;>
+    simp [trunk, queryRestrictionList, hx2, threeTermExcessThenRawGapFamily,
+      threeTermExcessThenRawGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Excess-first strictly prefers shared coordinate zero, although coordinate two is the unique
+one-query winner; its rollout therefore first stops at two queries. -/
+theorem threeTermExcessThenRawGapFamily_query_and_gap :
+    let rho : Restriction 4 := fun _ => none
+    maximumExcessThenRawComponentQuery threeTermExcessThenRawGapFamily rho 1 = some 0 ∧
+      branchConditionedMaximumExcessThenRawComponentStops
+          threeTermExcessThenRawGapFamily 4 1 1 rho = false ∧
+      branchConditionedMaximumExcessThenRawComponentStops
+          threeTermExcessThenRawGapFamily 4 1 2 rho = true := by
+  decide
+
+theorem threeTermExcessThenRawGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermExcessThenRawGapFamily 4
+        (fun _ : Fin 4 => none) 1 1 ∧
+      branchConditionedMaximumExcessThenRawComponentStops
+        threeTermExcessThenRawGapFamily 4 1 1 (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermExcessThenRawGapFamily_commonShallowAt_one,
+    threeTermExcessThenRawGapFamily_query_and_gap.2.1⟩
+
+/-! ### Immediate terminal progress does not resolve the component ordering -/
+
+/-- Number of indexed gates whose canonical trees meet the requested residual depth in both
+immediate children of a proposed query.  This is a one-step local test, not a recursive child
+stopping game. -/
+def immediateTerminalProgress {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (i : Fin n) : ℕ :=
+  (List.finRange G).countP fun g =>
+    decide ((canonicalDT (gates g) fuel (fixVar rho i false)).depth ≤ residualDepth) &&
+      decide ((canonicalDT (gates g) fuel (fixVar rho i true)).depth ≤ residualDepth)
+
+/-- Immediate terminal progress first, then raw component marginal, residual-aware excess
+marginal, and the preserved signed-motif tie rank. -/
+def maximumTerminalThenRawThenExcessComponentQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let tieBase := pairBase * pairBase * concentrationBase
+  let excessBase := 2 * n * termCount + 1
+  let rawBase := 2 * termCount + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    immediateTerminalProgress gates fuel residualDepth rho i * rawBase * excessBase * tieBase +
+      componentMarginalRank gates rho i * excessBase * tieBase +
+        componentExcessMarginalRank gates rho residualDepth i * tieBase +
+          componentMotifTieRank gates rho i
+
+def branchConditionedMaximumTerminalThenRawThenExcessComponentStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumTerminalThenRawThenExcessComponentQuery
+              gates fuel residualDepth rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumTerminalThenRawThenExcessComponentStops
+                  gates fuel residualDepth budget (fixVar rho i false) &&
+                branchConditionedMaximumTerminalThenRawThenExcessComponentStops
+                  gates fuel residualDepth budget (fixVar rho i true)
+
+/-- Normalized connected three-clause family on which terminal progress ties and raw component
+progress prefers a losing coordinate. -/
+def threeTermTerminalComponentGapPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩,
+    ⟨[Rung4Literal.neg 1, Rung4Literal.neg 3]⟩]
+
+def threeTermTerminalComponentGapFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then threeTermTerminalComponentGapPositiveGate
+  else negDNF threeTermTerminalComponentGapPositiveGate
+
+theorem threeTermTerminalComponentGapFamily_normalized :
+    ∀ g, (threeTermTerminalComponentGapFamily g).Nodup ∧
+      ∀ T ∈ threeTermTerminalComponentGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying coordinates zero then one supplies an explicit depth-two common trunk. -/
+theorem threeTermTerminalComponentGapFamily_commonShallowAt_two :
+    CommonShallowAt threeTermTerminalComponentGapFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [0, 1]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [0, 1] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx0 : x 0 <;> cases hx1 : x 1 <;>
+    simp [trunk, queryRestrictionList, hx0, hx1, threeTermTerminalComponentGapFamily,
+      threeTermTerminalComponentGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Terminal progress ties at zero, after which raw component priority selects coordinate two;
+the resulting rollout needs three queries although an explicit depth-two trunk exists. -/
+theorem threeTermTerminalComponentGapFamily_profiles_and_gap :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        immediateTerminalProgress threeTermTerminalComponentGapFamily 4 1 rho i) =
+          [0, 0, 0, 0] ∧
+      maximumTerminalThenRawThenExcessComponentQuery
+          threeTermTerminalComponentGapFamily 4 1 rho = some 2 ∧
+      branchConditionedMaximumTerminalThenRawThenExcessComponentStops
+          threeTermTerminalComponentGapFamily 4 1 2 rho = false ∧
+      branchConditionedMaximumTerminalThenRawThenExcessComponentStops
+          threeTermTerminalComponentGapFamily 4 1 3 rho = true := by
+  decide
+
+theorem threeTermTerminalComponentGapFamily_strict_competitive_gap :
+    CommonShallowAt threeTermTerminalComponentGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumTerminalThenRawThenExcessComponentStops
+        threeTermTerminalComponentGapFamily 4 1 2 (fun _ : Fin 4 => none) = false :=
+  ⟨threeTermTerminalComponentGapFamily_commonShallowAt_two,
+    threeTermTerminalComponentGapFamily_profiles_and_gap.2.2.1⟩
+
+/-! ### Terminal progress followed by excess and raw survives the bounded frontier -/
+
+/-- Immediate terminal progress, then residual-aware excess marginal, raw component marginal,
+and the preserved signed-motif tie rank.  This is the sole ordering of the three audited axes
+that survives the complete normalized ordered three-term width-two domain. -/
+def maximumTerminalThenExcessThenRawComponentQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let tieBase := pairBase * pairBase * concentrationBase
+  let rawBase := 2 * termCount + 1
+  let excessBase := 2 * n * termCount + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    immediateTerminalProgress gates fuel residualDepth rho i * excessBase * rawBase * tieBase +
+      componentExcessMarginalRank gates rho residualDepth i * rawBase * tieBase +
+        componentMarginalRank gates rho i * tieBase + componentMotifTieRank gates rho i
+
+def branchConditionedMaximumTerminalThenExcessThenRawComponentStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumTerminalThenExcessThenRawComponentQuery
+              gates fuel residualDepth rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+                  gates fuel residualDepth budget (fixVar rho i false) &&
+                branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+                  gates fuel residualDepth budget (fixVar rho i true)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Kernel-checked regression on the three witnesses that separate the other five axis orders.
+The surviving order chooses the known winning root and attains the known semantic budget on each.
+This finite regression is not a general optimality theorem. -/
+theorem terminalThenExcessThenRaw_repairs_preserved_witnesses :
+    let rho : Restriction 4 := fun _ => none
+    maximumTerminalThenExcessThenRawComponentQuery
+        threeTermIncidenceGapFamily 4 1 rho = some 0 ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+        threeTermIncidenceGapFamily 4 1 2 rho = true ∧
+      maximumTerminalThenExcessThenRawComponentQuery
+        threeTermExcessThenRawGapFamily 4 1 rho = some 2 ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+        threeTermExcessThenRawGapFamily 4 1 1 rho = true ∧
+      maximumTerminalThenExcessThenRawComponentQuery
+        threeTermTerminalComponentGapFamily 4 1 rho = some 0 ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+        threeTermTerminalComponentGapFamily 4 1 2 rho = true := by
+  decide
+
+/-! ### Four-clause counterexample to terminal, excess, then raw -/
+
+/-- The first strict gap in the ordered four-clause audit.  The three clauses sharing
+`¬0` make the excess marginal favor coordinate zero, while the independent positive
+`(2,3)` clause makes coordinates two and three the exact depth-two winners. -/
+def fourTermTerminalThenExcessGapPositiveGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 2]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 3]⟩,
+    ⟨[Rung4Literal.pos 2, Rung4Literal.pos 3]⟩]
+
+def fourTermTerminalThenExcessGapFamily : Fin 2 → List (Depth3.Clause 4) := fun g =>
+  if g = 0 then fourTermTerminalThenExcessGapPositiveGate
+  else negDNF fourTermTerminalThenExcessGapPositiveGate
+
+theorem fourTermTerminalThenExcessGapFamily_normalized :
+    ∀ g, (fourTermTerminalThenExcessGapFamily g).Nodup ∧
+      ∀ T ∈ fourTermTerminalThenExcessGapFamily g, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Querying coordinates two and three supplies the exact audited depth-two trunk. -/
+theorem fourTermTerminalThenExcessGapFamily_commonShallowAt_two :
+    CommonShallowAt fourTermTerminalThenExcessGapFamily 4
+      (fun _ : Fin 4 => none) 2 1 := by
+  let trunk := queryRestrictionList (fun _ : Fin 4 => none) [2, 3]
+  refine ⟨trunk, by simp [trunk], ?_⟩
+  intro x hx
+  obtain ⟨hroot, hleaf⟩ := queryRestrictionList_spec
+    (fun _ : Fin 4 => none) [2, 3] x hx
+  refine ⟨hroot, hleaf, ?_⟩
+  intro g
+  fin_cases g <;> cases hx2 : x 2 <;> cases hx3 : x 3 <;>
+    simp [trunk, queryRestrictionList, hx2, hx3, fourTermTerminalThenExcessGapFamily,
+      fourTermTerminalThenExcessGapPositiveGate, negDNF, canonicalDT, anyTermSat, termSat,
+      activeTerm, termFalsified, freeLits, Depth3.litTrue, litVar, litFixedVal,
+      litFalse, litFree, fixVar, BoolDecisionTree.depth, negLit]
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 4000000 in
+/-- Terminal progress ties, excess priority chooses coordinate zero, and its rollout needs
+three queries.  The explicit two-query trunk above therefore gives a strict gap. -/
+theorem fourTermTerminalThenExcessGapFamily_profiles_and_gap :
+    let rho : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 4 =>
+        immediateTerminalProgress fourTermTerminalThenExcessGapFamily 4 1 rho i) =
+          [0, 0, 0, 0] ∧
+      (List.ofFn fun i : Fin 4 =>
+        componentExcessMarginalRank fourTermTerminalThenExcessGapFamily rho 1 i) =
+          [60, 56, 56, 56] ∧
+      maximumTerminalThenExcessThenRawComponentQuery
+          fourTermTerminalThenExcessGapFamily 4 1 rho = some 0 ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+          fourTermTerminalThenExcessGapFamily 4 1 2 rho = false ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+          fourTermTerminalThenExcessGapFamily 4 1 3 rho = true := by
+  decide
+
+theorem fourTermTerminalThenExcessGapFamily_strict_competitive_gap :
+    CommonShallowAt fourTermTerminalThenExcessGapFamily 4
+        (fun _ : Fin 4 => none) 2 1 ∧
+      branchConditionedMaximumTerminalThenExcessThenRawComponentStops
+        fourTermTerminalThenExcessGapFamily 4 1 2 (fun _ : Fin 4 => none) = false :=
+  ⟨fourTermTerminalThenExcessGapFamily_commonShallowAt_two,
+    fourTermTerminalThenExcessGapFamily_profiles_and_gap.2.2.2.1⟩
+
+/-! ### Worst-child shallow-gate balance repairs every preserved scalar-order witness -/
+
+/-- Number of indexed gates already at the target depth in one specified query child. -/
+def immediateChildShallowCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (i : Fin n) (value : Bool) : ℕ :=
+  (List.finRange G).countP fun g =>
+    decide ((canonicalDT (gates g) fuel (fixVar rho i value)).depth ≤ residualDepth)
+
+/-- The proposed local branch-balance coordinate: maximize the number of shallow gates in the
+worse of the two immediate children.  Unlike `immediateTerminalProgress`, the two gates counted
+in the children need not be the same. -/
+def immediateBranchBalance {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) (i : Fin n) : ℕ :=
+  min (immediateChildShallowCount gates fuel residualDepth rho i false)
+    (immediateChildShallowCount gates fuel residualDepth rho i true)
+
+/-- Branch balance first, followed by the previously surviving terminal/excess/raw coordinates
+and the preserved motif tie rank.  Every component is a one-step local statistic. -/
+def maximumBranchBalanceQuery {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : Option (Fin n) :=
+  let termCount := ((List.finRange G).map fun g => (gates g).length).sum
+  let concentrationBase := termCount + 1
+  let pairBase := termCount * termCount + 1
+  let tieBase := pairBase * pairBase * concentrationBase
+  let rawBase := 2 * termCount + 1
+  let excessBase := 2 * n * termCount + 1
+  let terminalBase := G + 1
+  ((List.ofFn id : List (Fin n)).filter fun i => decide (rho i = none)).argmax fun i =>
+    immediateBranchBalance gates fuel residualDepth rho i * terminalBase * excessBase *
+          rawBase * tieBase +
+      immediateTerminalProgress gates fuel residualDepth rho i * excessBase * rawBase * tieBase +
+        componentExcessMarginalRank gates rho residualDepth i * rawBase * tieBase +
+          componentMarginalRank gates rho i * tieBase + componentMotifTieRank gates rho i
+
+def branchConditionedMaximumBranchBalanceStops {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ) :
+    ℕ → Restriction n → Bool
+  | 0, rho => decide (activeCanonicalFirstFamilyQuery gates fuel residualDepth rho = none)
+  | budget + 1, rho =>
+      match activeCanonicalFirstFamilyQuery gates fuel residualDepth rho with
+      | none => true
+      | some _ =>
+          match maximumBranchBalanceQuery gates fuel residualDepth rho with
+          | none => false
+          | some i =>
+              branchConditionedMaximumBranchBalanceStops gates fuel residualDepth budget
+                  (fixVar rho i false) &&
+                branchConditionedMaximumBranchBalanceStops gates fuel residualDepth budget
+                  (fixVar rho i true)
+
+set_option maxRecDepth 16384 in
+set_option maxHeartbeats 8000000 in
+/-- Kernel-checked regression across the witnesses that separated the fixed scalar selectors.
+The displayed vectors are the worst-child shallow-gate counts at the fully live root. -/
+theorem branchBalance_repairs_preserved_selector_witnesses :
+    let rho3 : Restriction 3 := fun _ => none
+    let rho4 : Restriction 4 := fun _ => none
+    (List.ofFn fun i : Fin 3 =>
+        immediateBranchBalance threeTermGreedyGapFamily 3 1 rho3 i) = [0, 2, 0] ∧
+      maximumBranchBalanceQuery threeTermGreedyGapFamily 3 1 rho3 = some 1 ∧
+      branchConditionedMaximumBranchBalanceStops
+        threeTermGreedyGapFamily 3 1 1 rho3 = true ∧
+      (List.ofFn fun i : Fin 4 =>
+        immediateBranchBalance threeTermIncidenceGapFamily 4 1 rho4 i) = [1, 0, 0, 0] ∧
+      maximumBranchBalanceQuery threeTermIncidenceGapFamily 4 1 rho4 = some 0 ∧
+      branchConditionedMaximumBranchBalanceStops
+        threeTermIncidenceGapFamily 4 1 2 rho4 = true ∧
+      (List.ofFn fun i : Fin 4 =>
+        immediateBranchBalance threeTermExcessThenRawGapFamily 4 1 rho4 i) = [1, 1, 2, 0] ∧
+      maximumBranchBalanceQuery threeTermExcessThenRawGapFamily 4 1 rho4 = some 2 ∧
+      branchConditionedMaximumBranchBalanceStops
+        threeTermExcessThenRawGapFamily 4 1 1 rho4 = true ∧
+      (List.ofFn fun i : Fin 4 =>
+        immediateBranchBalance threeTermTerminalComponentGapFamily 4 1 rho4 i) = [0, 0, 0, 0] ∧
+      maximumBranchBalanceQuery threeTermTerminalComponentGapFamily 4 1 rho4 = some 0 ∧
+      branchConditionedMaximumBranchBalanceStops
+        threeTermTerminalComponentGapFamily 4 1 2 rho4 = true ∧
+      (List.ofFn fun i : Fin 4 =>
+        immediateBranchBalance fourTermTerminalThenExcessGapFamily 4 1 rho4 i) = [0, 0, 1, 1] ∧
+      maximumBranchBalanceQuery fourTermTerminalThenExcessGapFamily 4 1 rho4 = some 2 ∧
+      branchConditionedMaximumBranchBalanceStops
+        fourTermTerminalThenExcessGapFamily 4 1 2 rho4 = true := by
+  decide
+
+/-! ### The naive shallow-count deficit is not monotone -/
+
+/-- A normalized ordered width-two gate for which recomputing the canonical tree after one
+additional assignment increases its depth.  Literal and clause order are material here. -/
+def shallowCountMonotonicityGapGate : List (Depth3.Clause 4) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 2, Rung4Literal.neg 0]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 3]⟩]
+
+def shallowCountMonotonicityGapRestriction : Restriction 4 := fun i =>
+  if i = 3 then some false else none
+
+def shallowCountMonotonicityGapFamily : Fin 1 → List (Depth3.Clause 4) := fun _ =>
+  shallowCountMonotonicityGapGate
+
+theorem shallowCountMonotonicityGapGate_normalized :
+    shallowCountMonotonicityGapGate.Nodup ∧
+      ∀ T ∈ shallowCountMonotonicityGapGate, (T.lits.map litVar).Nodup := by
+  decide
+
+/-- Number of gates currently meeting the requested residual depth. -/
+def currentShallowGateCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (rho : Restriction n) : ℕ :=
+  (List.finRange G).countP fun g =>
+    decide ((canonicalDT (gates g) fuel rho).depth ≤ residualDepth)
+
+set_option maxRecDepth 16384 in
+/-- The current shallow count drops from one to zero after extending the restriction by
+`1 := true`; equivalently, the complementary one-gate deficit rises from zero to one.  Thus the
+most direct deficit associated with branch balance is not monotone along common trunks. -/
+theorem currentShallowGateCount_not_monotone_under_fixVar :
+    let rho := shallowCountMonotonicityGapRestriction
+    (canonicalDT shallowCountMonotonicityGapGate 4 rho).depth = 1 ∧
+      (canonicalDT shallowCountMonotonicityGapGate 4 (fixVar rho 1 true)).depth = 2 ∧
+      currentShallowGateCount shallowCountMonotonicityGapFamily 4 1 rho = 1 ∧
+      currentShallowGateCount shallowCountMonotonicityGapFamily 4 1
+          (fixVar rho 1 true) = 0 ∧
+      1 - currentShallowGateCount shallowCountMonotonicityGapFamily 4 1 rho = 0 ∧
+      1 - currentShallowGateCount shallowCountMonotonicityGapFamily 4 1
+          (fixVar rho 1 true) = 1 := by
+  decide
+
+/-! ### Stored-tree restriction is monotone but diverges from canonical recomputation -/
+
+/-- Count gates by restricting the canonical trees built once at `root`, rather than rebuilding
+those trees at every descendant restriction. -/
+def storedShallowGateCount {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+  (root rho : Restriction n) : ℕ :=
+  (Finset.univ.filter fun g =>
+    (CommonTree.readOnce rho
+      (CommonTree.ofBool (canonicalDT (gates g) fuel root))).depth ≤ residualDepth).card
+
+/-- The stored-tree shallow count can only increase along a restriction extension. -/
+theorem storedShallowGateCount_mono {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (root : Restriction n) {rho tau : Restriction n} (h : RestrictionExtends rho tau) :
+    storedShallowGateCount gates fuel residualDepth root rho ≤
+      storedShallowGateCount gates fuel residualDepth root tau := by
+  apply Finset.card_le_card
+  intro g hg
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hg ⊢
+  exact (CommonTree.depth_readOnce_anti
+    (CommonTree.ofBool (canonicalDT (gates g) fuel root)) h).trans hg
+
+/-- Equivalently, the complementary stored-tree deficit is nonincreasing. -/
+theorem storedShallowGateDeficit_anti {n G : ℕ}
+    (gates : Fin G → List (Depth3.Clause n)) (fuel residualDepth : ℕ)
+    (root : Restriction n) {rho tau : Restriction n} (h : RestrictionExtends rho tau) :
+    G - storedShallowGateCount gates fuel residualDepth root tau ≤
+      G - storedShallowGateCount gates fuel residualDepth root rho := by
+  exact Nat.sub_le_sub_left (storedShallowGateCount_mono gates fuel residualDepth root h) G
+
+set_option maxRecDepth 16384 in
+/-- The stored-tree repair is genuine on the preserved witness, but it also exposes the remaining
+bridge gap exactly: after `1 := true` the stored residual still has depth one while the freshly
+recomputed canonical tree has depth two. -/
+theorem storedTree_repair_diverges_from_recomputedCanonical :
+    let rho := shallowCountMonotonicityGapRestriction
+    let tau := fixVar rho (1 : Fin 4) true
+    RestrictionExtends rho tau ∧
+      (CommonTree.readOnce tau
+        (CommonTree.ofBool (canonicalDT shallowCountMonotonicityGapGate 4 rho))).depth = 1 ∧
+      (canonicalDT shallowCountMonotonicityGapGate 4 tau).depth = 2 ∧
+      storedShallowGateCount shallowCountMonotonicityGapFamily 4 1 rho rho = 1 ∧
+      storedShallowGateCount shallowCountMonotonicityGapFamily 4 1 rho tau = 1 := by
+  dsimp only
+  constructor
+  · intro j b hj
+    by_cases hji : j = (1 : Fin 4)
+    · subst j
+      have hfree : shallowCountMonotonicityGapRestriction (1 : Fin 4) = none := by
+        simp [shallowCountMonotonicityGapRestriction]
+      rw [hfree] at hj
+      contradiction
+    · simpa [fixVar, Function.update_of_ne hji] using hj
+  · decide
+
+/-! ### Even an additive charge for one new fixing fails -/
+
+/-- A five-variable extension of the stored-tree witness.  At the root, the first clause makes
+the stored tree query coordinate zero before the other clauses matter.  Fixing coordinate one
+to true deletes that clause from a fresh canonical run, exposing two ordered distraction
+coordinates before the final clause forces the same one-variable function. -/
+def storedTreeAdditiveGapGate : List (Depth3.Clause 5) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩,
+    ⟨[Rung4Literal.neg 2, Rung4Literal.neg 0]⟩,
+    ⟨[Rung4Literal.neg 4, Rung4Literal.neg 0]⟩,
+    ⟨[Rung4Literal.neg 0, Rung4Literal.neg 3]⟩]
+
+def storedTreeAdditiveGapRestriction : Restriction 5 := fun i =>
+  if i = 3 then some false else none
+
+theorem storedTreeAdditiveGapGate_normalized :
+    storedTreeAdditiveGapGate.Nodup ∧
+      ∀ T ∈ storedTreeAdditiveGapGate, (T.lits.map litVar).Nodup := by
+  decide
+
+set_option maxRecDepth 16384 in
+/-- One newly fixed coordinate can increase fresh canonical depth by two over the stored residual:
+the stored tree has residual depth one, while canonical recomputation has depth three.  Hence the
+candidate inequality `recomputed ≤ stored + newlyFixed` already fails for normalized width-two
+gates. -/
+theorem storedTree_recomputed_depth_not_le_add_one :
+    let rho := storedTreeAdditiveGapRestriction
+    let tau := fixVar rho (1 : Fin 5) true
+    RestrictionExtends rho tau ∧
+      (CommonTree.readOnce tau
+        (CommonTree.ofBool (canonicalDT storedTreeAdditiveGapGate 5 rho))).depth = 1 ∧
+      (canonicalDT storedTreeAdditiveGapGate 5 tau).depth = 3 ∧
+      ¬(canonicalDT storedTreeAdditiveGapGate 5 tau).depth ≤
+        (CommonTree.readOnce tau
+          (CommonTree.ofBool (canonicalDT storedTreeAdditiveGapGate 5 rho))).depth + 1 := by
+  dsimp only
+  constructor
+  · intro j b hj
+    by_cases hji : j = (1 : Fin 5)
+    · subst j
+      have hfree : storedTreeAdditiveGapRestriction (1 : Fin 5) = none := by
+        simp [storedTreeAdditiveGapRestriction]
+      rw [hfree] at hj
+      contradiction
+    · simpa [fixVar, Function.update_of_ne hji] using hj
+  · decide
+
+/-! ### A parameterized stacked-distraction family -/
+
+/-- Embed the `j`th distraction after the distinguished guard coordinates zero and one. -/
+def stackedDistractionCoord (k : ℕ) (j : Fin k) : Fin (k + 3) :=
+  ⟨j.1 + 2, by omega⟩
+
+/-- The scalable form of `storedTreeAdditiveGapGate`.  The guard clause makes the tree built at
+the root query coordinate zero immediately.  Once coordinate one is fixed true, a fresh canonical
+run instead scans every distraction in list order before returning to coordinate zero. -/
+def stackedDistractionGate (k : ℕ) : List (Depth3.Clause (k + 3)) :=
+  [⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩] ++
+    (List.ofFn fun j : Fin k =>
+      (⟨[Rung4Literal.neg (stackedDistractionCoord k j),
+          Rung4Literal.neg 0]⟩ : Depth3.Clause (k + 3))) ++
+    [⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩]
+
+/-- Fix only the final coordinate false. -/
+def stackedDistractionRestriction (k : ℕ) : Restriction (k + 3) := fun i =>
+  if i = Fin.last (k + 2) then some false else none
+
+/-- The entire stacked-distraction family is normalized, not merely the calibrated instances:
+the gate has no duplicate clauses and no clause repeats a variable.  This discharges the two
+structural side conditions of the eventual exact-depth induction uniformly in `k`. -/
+theorem stackedDistractionGate_normalized (k : ℕ) :
+    (stackedDistractionGate k).Nodup ∧
+      ∀ T ∈ stackedDistractionGate k, (T.lits.map litVar).Nodup := by
+  simp [stackedDistractionGate, stackedDistractionCoord]
+  refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+  · intro h
+    have hv := congrArg Fin.val h
+    simp at hv
+  · rw [List.nodup_append]
+    refine ⟨List.nodup_ofFn.mpr ?_, by simp, ?_⟩
+    · intro a b hab
+      have hl := congrArg (fun T : Depth3.Clause (k + 3) => T.lits.head?) hab
+      simp at hl
+      exact Fin.ext hl
+    · intro T hT U hU
+      rw [List.mem_ofFn] at hT
+      obtain ⟨i, rfl⟩ := hT
+      simp at hU
+      subst U
+      intro heq
+      have hl := congrArg (fun T : Depth3.Clause (k + 3) => T.lits.head?) heq
+      simp at hl
+  · change (0 : Fin (k + 3)) ≠ 1
+    intro h
+    have hv := congrArg Fin.val h
+    simp at hv
+  · intro T hT
+    rcases hT with ⟨i, rfl⟩ | rfl
+    · change ([(stackedDistractionCoord k i), (0 : Fin (k + 3))]).Nodup
+      simp only [List.nodup_cons, List.mem_singleton, List.not_mem_nil, not_false_eq_true,
+        List.nodup_nil, and_self]
+      constructor
+      · intro h
+        have hv := congrArg Fin.val h
+        simp [stackedDistractionCoord] at hv
+      · trivial
+    · change ([(0 : Fin (k + 3)), Fin.last (k + 2)]).Nodup
+      simp only [List.nodup_cons, List.mem_singleton, List.not_mem_nil, not_false_eq_true,
+        List.nodup_nil, and_self]
+      constructor
+      · intro h
+        have hv := congrArg Fin.val h
+        simp at hv
+      · trivial
+
+/-- Passing from the root restriction to the descendant is uniformly an extension by exactly
+one changed coordinate: guard coordinate one changes from free to true, and every other
+coordinate is untouched. -/
+theorem stackedDistraction_one_new_fixing (k : ℕ) :
+    let rho := stackedDistractionRestriction k
+    let tau := fixVar rho (1 : Fin (k + 3)) true
+    RestrictionExtends rho tau ∧
+      rho 1 = none ∧ tau 1 = some true ∧
+      ∀ i, rho i ≠ tau i → i = 1 := by
+  dsimp only
+  constructor
+  · intro i b hi
+    by_cases hi1 : i = (1 : Fin (k + 3))
+    · subst i
+      have hnone : stackedDistractionRestriction k (1 : Fin (k + 3)) = none := by
+        simp [stackedDistractionRestriction]
+        intro h
+        have hv := congrArg Fin.val h
+        simp at hv
+      rw [hnone] at hi
+      contradiction
+    · simpa [fixVar, Function.update_of_ne hi1] using hi
+  constructor
+  · simp [stackedDistractionRestriction]
+    intro h
+    have hv := congrArg Fin.val h
+    simp at hv
+  constructor
+  · simp [fixVar]
+  · intro i hi
+    by_contra hi1
+    exact hi (by simp [fixVar, Function.update_of_ne hi1])
+
+/-! ### Symbolic active scan through the distraction block -/
+
+/-- The `j`th clause in the distraction block, named separately so that the list scan can
+reason about its index without repeatedly exposing the surrounding guard and terminal clauses. -/
+def stackedDistractionClause (k : ℕ) (j : Fin k) : Depth3.Clause (k + 3) :=
+  ⟨[Rung4Literal.neg (stackedDistractionCoord k j), Rung4Literal.neg 0]⟩
+
+/-- The explicit state after the guard has been disabled and the first `r` distractions have
+been falsified.  The terminal coordinate remains false, coordinate one is true, and precisely
+the distraction coordinates with index below `r` are true. -/
+def stackedDistractionScanRestriction (k r : ℕ) : Restriction (k + 3) := fun i =>
+  if i = Fin.last (k + 2) then some false
+  else if i = (1 : Fin (k + 3)) then some true
+  else if 2 ≤ i.1 ∧ i.1 < r + 2 then some true
+  else none
+
+@[simp] theorem stackedDistractionScanRestriction_last (k r : ℕ) :
+    stackedDistractionScanRestriction k r (Fin.last (k + 2)) = some false := by
+  simp [stackedDistractionScanRestriction]
+
+@[simp] theorem stackedDistractionScanRestriction_zero (k r : ℕ) :
+    stackedDistractionScanRestriction k r (0 : Fin (k + 3)) = none := by
+  simp [stackedDistractionScanRestriction, Fin.ext_iff]
+
+@[simp] theorem stackedDistractionScanRestriction_one (k r : ℕ) :
+    stackedDistractionScanRestriction k r (1 : Fin (k + 3)) = some true := by
+  simp [stackedDistractionScanRestriction, Fin.ext_iff]
+
+theorem stackedDistractionScanRestriction_coord_lt (k r : ℕ) (j : Fin k)
+    (hj : j.1 < r) :
+    stackedDistractionScanRestriction k r (stackedDistractionCoord k j) = some true := by
+  simp [stackedDistractionScanRestriction, stackedDistractionCoord, Fin.ext_iff, hj]
+  omega
+
+theorem stackedDistractionScanRestriction_coord_eq (k r : ℕ) (hr : r < k) :
+    stackedDistractionScanRestriction k r (stackedDistractionCoord k ⟨r, hr⟩) = none := by
+  simp [stackedDistractionScanRestriction, stackedDistractionCoord, Fin.ext_iff]
+  omega
+
+/-- Falsifying the selected negative distraction literal advances the explicit scan state by
+exactly one position.  This is the operational bridge from the symbolic selector law to the
+`replayPath` recursion. -/
+theorem stackedDistractionScanRestriction_falFix_coord (k r : ℕ) (hr : r < k) :
+    falFix (stackedDistractionScanRestriction k r)
+        (Rung4Literal.neg (stackedDistractionCoord k ⟨r, hr⟩)) =
+      stackedDistractionScanRestriction k (r + 1) := by
+  funext i
+  by_cases hi : i = stackedDistractionCoord k ⟨r, hr⟩
+  · subst i
+    rw [falFix]
+    simp only [litVar, falValue, Function.update_self]
+    rw [show stackedDistractionScanRestriction k (r + 1)
+        (stackedDistractionCoord k ⟨r, hr⟩) = some true by
+      simp [stackedDistractionScanRestriction, stackedDistractionCoord, Fin.ext_iff]
+      omega]
+  · rw [falFix, Function.update_of_ne]
+    · simp only [stackedDistractionScanRestriction]
+      by_cases hilast : i = Fin.last (k + 2)
+      · simp [hilast]
+      by_cases hione : i = (1 : Fin (k + 3))
+      · simp [hione]
+      have hne : i.1 ≠ r + 2 := by
+        intro hiv
+        apply hi
+        apply Fin.ext
+        simp [stackedDistractionCoord, hiv]
+      by_cases htwo : 2 ≤ i.1
+      · by_cases hlt : i.1 < r + 2
+        · simp [hilast, hione, htwo, hlt]
+          omega
+        · simp [hilast, hione, htwo, hlt]
+          omega
+      · simp [hilast, hione, htwo]
+    · simpa using hi
+
+private theorem stackedDistraction_guard_not_sat (k r : ℕ) :
+    termSat (stackedDistractionScanRestriction k r)
+      (⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ : Depth3.Clause (k + 3)) = false := by
+  simp [termSat, Depth3.litTrue, Depth3.litFixedVal]
+
+private theorem stackedDistraction_clause_not_sat (k r : ℕ) (j : Fin k) :
+    termSat (stackedDistractionScanRestriction k r) (stackedDistractionClause k j) = false := by
+  simp [stackedDistractionClause, termSat, Depth3.litTrue, Depth3.litFixedVal]
+
+private theorem stackedDistraction_terminal_not_sat (k r : ℕ) :
+    termSat (stackedDistractionScanRestriction k r)
+      (⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+        Depth3.Clause (k + 3)) = false := by
+  simp [termSat, Depth3.litTrue, Depth3.litFixedVal]
+
+private theorem stackedDistraction_anyTermSat_false (k r : ℕ) :
+    anyTermSat (stackedDistractionGate k) (stackedDistractionScanRestriction k r) = false := by
+  unfold anyTermSat
+  rw [List.any_eq_false]
+  intro T hT
+  simp [stackedDistractionGate] at hT
+  rcases hT with hguard | hmid | hterminal
+  · subst T
+    simp [stackedDistraction_guard_not_sat]
+  · obtain ⟨j, hj⟩ := hmid
+    rw [← hj]
+    change ¬termSat (stackedDistractionScanRestriction k r)
+      (stackedDistractionClause k j) = true
+    rw [stackedDistraction_clause_not_sat]
+    simp
+  · subst T
+    simp [stackedDistraction_terminal_not_sat]
+
+private theorem stackedDistractionGate_getElem?_distraction (k : ℕ) (j : Fin k) :
+    (stackedDistractionGate k)[j.1 + 1]? = some (stackedDistractionClause k j) := by
+  simp [stackedDistractionGate, stackedDistractionClause]
+
+private theorem stackedDistraction_clause_pred_lt (k r : ℕ) (j : Fin k)
+    (hj : j.1 < r) :
+    (!termFalsified (stackedDistractionScanRestriction k r) (stackedDistractionClause k j) &&
+      decide (0 < (freeLits (stackedDistractionScanRestriction k r)
+        (stackedDistractionClause k j)).length)) = false := by
+  simp [stackedDistractionClause, termFalsified, litFalse, Depth3.litFixedVal,
+    stackedDistractionScanRestriction_coord_lt k r j hj]
+
+private theorem stackedDistraction_guard_pred_false (k r : ℕ) :
+    (!termFalsified (stackedDistractionScanRestriction k r)
+        (⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ : Depth3.Clause (k + 3)) &&
+      decide (0 < (freeLits (stackedDistractionScanRestriction k r)
+        (⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ :
+          Depth3.Clause (k + 3))).length)) = false := by
+  simp [termFalsified, litFalse, Depth3.litFixedVal]
+
+private theorem stackedDistraction_clause_pred_eq (k r : ℕ) (hr : r < k) :
+    (!termFalsified (stackedDistractionScanRestriction k r)
+        (stackedDistractionClause k ⟨r, hr⟩) &&
+      decide (0 < (freeLits (stackedDistractionScanRestriction k r)
+        (stackedDistractionClause k ⟨r, hr⟩)).length)) = true := by
+  have hc : Depth3.litFree (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (stackedDistractionCoord k ⟨r, hr⟩)) = true := by
+    simp [Depth3.litFree, Depth3.litFixedVal,
+      stackedDistractionScanRestriction_coord_eq]
+  have hz : Depth3.litFree (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (0 : Fin (k + 3))) = true := by
+    simp [Depth3.litFree, Depth3.litFixedVal]
+  have hcf : litFalse (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (stackedDistractionCoord k ⟨r, hr⟩)) = false := by
+    simp [litFalse, Depth3.litFixedVal, stackedDistractionScanRestriction_coord_eq]
+  have hzf : litFalse (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (0 : Fin (k + 3))) = false := by
+    simp [litFalse, Depth3.litFixedVal]
+  simp [stackedDistractionClause, termFalsified, freeLits, hc, hz, hcf, hzf]
+
+/-- **The interior `List.ofFn` scan law.**  At every stage `r < k`, all preceding
+distraction clauses fail the active predicate, and the canonical selector lands exactly on
+distraction `r`.  This is symbolic in both the block length and the scan position. -/
+theorem stackedDistraction_activeTermLit_scan (k r : ℕ) (hr : r < k) :
+    activeTermLit (stackedDistractionGate k) (stackedDistractionScanRestriction k r) =
+      some (Rung4Literal.neg (stackedDistractionCoord k ⟨r, hr⟩)) := by
+  unfold activeTermLit
+  rw [show activeTerm (stackedDistractionGate k) (stackedDistractionScanRestriction k r) =
+      some (stackedDistractionClause k ⟨r, hr⟩) by
+    rw [activeTerm_eq_find (stackedDistraction_anyTermSat_false k r),
+      List.find?_eq_some_iff_getElem]
+    refine ⟨stackedDistraction_clause_pred_eq k r hr, r + 1, ?_, ?_, ?_⟩
+    · simp [stackedDistractionGate]
+      omega
+    ·
+      have hi : r + 1 < (stackedDistractionGate k).length := by
+        simp [stackedDistractionGate]
+        omega
+      have hget := stackedDistractionGate_getElem?_distraction k ⟨r, hr⟩
+      rw [List.getElem?_eq_getElem hi] at hget
+      exact Option.some.inj hget
+    · intro j hj
+      cases j with
+      | zero => simp [stackedDistractionGate, stackedDistraction_guard_pred_false]
+      | succ j =>
+          have hjr : j < r := by omega
+          have hjk : j < k := by omega
+          have hi : j + 1 < (stackedDistractionGate k).length := by
+            simp [stackedDistractionGate]
+            omega
+          have hget := stackedDistractionGate_getElem?_distraction k ⟨j, hjk⟩
+          rw [List.getElem?_eq_getElem hi] at hget
+          have hget' := Option.some.inj hget
+          have hp := stackedDistraction_clause_pred_lt k r ⟨j, hjk⟩ hjr
+          simp [hget', hp]]
+  have hc : Depth3.litFree (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (stackedDistractionCoord k ⟨r, hr⟩)) = true := by
+    simp [Depth3.litFree, Depth3.litFixedVal,
+      stackedDistractionScanRestriction_coord_eq]
+  have hz : Depth3.litFree (stackedDistractionScanRestriction k r)
+      (Rung4Literal.neg (0 : Fin (k + 3))) = true := by
+    simp [Depth3.litFree, Depth3.litFixedVal]
+  simp [stackedDistractionClause, freeLits, hc, hz]
+
+private theorem stackedDistractionGate_getElem?_terminal (k : ℕ) :
+    (stackedDistractionGate k)[k + 1]? =
+      some (⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+        Depth3.Clause (k + 3)) := by
+  simp [stackedDistractionGate]
+
+private theorem stackedDistraction_terminal_pred_true (k : ℕ) :
+    (!termFalsified (stackedDistractionScanRestriction k k)
+        (⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+          Depth3.Clause (k + 3)) &&
+      decide (0 < (freeLits (stackedDistractionScanRestriction k k)
+        (⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+          Depth3.Clause (k + 3))).length)) = true := by
+  simp [termFalsified, freeLits, litFalse, Depth3.litFree, Depth3.litFixedVal]
+
+/-- **The endpoint of the symbolic active scan.**  Once all `k` distraction coordinates
+have been fixed true, the guard and every distraction fail the active predicate, so the
+canonical selector reaches the terminal clause and queries coordinate zero. -/
+theorem stackedDistraction_activeTermLit_endpoint (k : ℕ) :
+    activeTermLit (stackedDistractionGate k) (stackedDistractionScanRestriction k k) =
+      some (Rung4Literal.neg (0 : Fin (k + 3))) := by
+  unfold activeTermLit
+  rw [show activeTerm (stackedDistractionGate k) (stackedDistractionScanRestriction k k) =
+      some (⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+        Depth3.Clause (k + 3)) by
+    rw [activeTerm_eq_find (stackedDistraction_anyTermSat_false k k),
+      List.find?_eq_some_iff_getElem]
+    refine ⟨stackedDistraction_terminal_pred_true k, k + 1, ?_, ?_, ?_⟩
+    · simp [stackedDistractionGate]
+    ·
+      have hi : k + 1 < (stackedDistractionGate k).length := by
+        simp [stackedDistractionGate]
+      have hget := stackedDistractionGate_getElem?_terminal k
+      rw [List.getElem?_eq_getElem hi] at hget
+      exact Option.some.inj hget
+    · intro j hj
+      cases j with
+      | zero => simp [stackedDistractionGate, stackedDistraction_guard_pred_false]
+      | succ j =>
+          have hjk : j < k := by omega
+          have hi : j + 1 < (stackedDistractionGate k).length := by
+            simp [stackedDistractionGate]
+            omega
+          have hget := stackedDistractionGate_getElem?_distraction k ⟨j, hjk⟩
+          rw [List.getElem?_eq_getElem hi] at hget
+          have hget' := Option.some.inj hget
+          have hp := stackedDistraction_clause_pred_lt k k ⟨j, hjk⟩ hjk
+          simp [hget', hp]]
+  simp [freeLits, Depth3.litFree, Depth3.litFixedVal]
+
+/-- **The symbolic replay invariant.**  Starting from the guard-disabled descendant, the
+all-falsify replay path reaches exactly the explicit scan state after every `r ≤ k` interior
+steps.  Thus the operational replay cannot skip, repeat, or otherwise deviate from the ordered
+distraction block. -/
+theorem stackedDistraction_replayPath_scan (k r : ℕ) (hr : r ≤ k) :
+    replayPath (stackedDistractionGate k)
+        (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) r =
+      stackedDistractionScanRestriction k r := by
+  induction r with
+  | zero =>
+      funext i
+      simp only [replayPath]
+      by_cases hilast : i = Fin.last (k + 2)
+      · subst i
+        have hlastone : Fin.last (k + 2) ≠ (1 : Fin (k + 3)) := by
+          intro h
+          have hv := congrArg Fin.val h
+          simp at hv
+        simp [stackedDistractionRestriction, stackedDistractionScanRestriction, fixVar,
+          hlastone]
+      by_cases hione : i = (1 : Fin (k + 3))
+      · subst i
+        have honelast : (1 : Fin (k + 3)) ≠ Fin.last (k + 2) := by
+          intro h
+          have hv := congrArg Fin.val h
+          simp at hv
+        simp [stackedDistractionScanRestriction, fixVar, honelast]
+      · simp [stackedDistractionRestriction, stackedDistractionScanRestriction, fixVar,
+          hilast, hione]
+  | succ r ih =>
+      have hrk : r < k := by omega
+      rw [replayPath, ih (by omega), replayStep,
+        stackedDistraction_activeTermLit_scan k r hrk]
+      exact stackedDistractionScanRestriction_falFix_coord k r hrk
+
+/-- Every one of the first `k + 1` replay states is genuinely nonterminal.  The first `k`
+states select the next distraction literal, and state `k` selects the terminal coordinate zero;
+none of these states already satisfies a term. -/
+theorem stackedDistraction_replay_nonterminal (k i : ℕ) (hi : i < k + 1) :
+    anyTermSat (stackedDistractionGate k)
+          (replayPath (stackedDistractionGate k)
+            (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) i) = false ∧
+      activeTermLit (stackedDistractionGate k)
+          (replayPath (stackedDistractionGate k)
+            (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) i) ≠ none := by
+  rw [stackedDistraction_replayPath_scan k i (by omega)]
+  refine ⟨stackedDistraction_anyTermSat_false k i, ?_⟩
+  by_cases hik : i < k
+  · rw [stackedDistraction_activeTermLit_scan k i hik]
+    simp
+  · have hieq : i = k := by omega
+    subst i
+    rw [stackedDistraction_activeTermLit_endpoint]
+    simp
+
+/-- The symbolic replay supplies the desired fresh-canonical lower bound at every adequate fuel:
+the `k` distractions and the final coordinate-zero query form a real branch of length `k + 1`. -/
+theorem stackedDistraction_canonicalDT_depth_ge (k fuel : ℕ) (hfuel : k + 1 ≤ fuel) :
+    k + 1 ≤
+      (canonicalDT (stackedDistractionGate k) fuel
+        (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)).depth := by
+  apply canonicalDT_depth_ge_replay _ (k + 1) _ fuel hfuel
+  intro i hi
+  exact stackedDistraction_replay_nonterminal k i hi
+
+/-- The guard-disabled descendant leaves exactly coordinate zero and the `k` distraction
+coordinates free.  Equivalently, its free set is the ambient universe with the already-fixed
+terminal coordinate and the newly fixed guard coordinate removed. -/
+theorem freeVars_stackedDistraction_descendant (k : ℕ) :
+    freeVars
+        (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) =
+      (Finset.univ.erase (Fin.last (k + 2))).erase (1 : Fin (k + 3)) := by
+  rw [freeVars_fixVar]
+  ext i
+  simp [mem_freeVars, stackedDistractionRestriction, and_comm]
+
+/-- The descendant has exactly the `k` distraction coordinates plus coordinate zero live. -/
+theorem stars_stackedDistraction_descendant (k : ℕ) :
+    stars (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) = k + 1 := by
+  rw [stars, freeVars_stackedDistraction_descendant]
+  have hone : (1 : Fin (k + 3)) ∈
+      (Finset.univ.erase (Fin.last (k + 2))) := by
+    simp only [Finset.mem_erase, Finset.mem_univ, and_true]
+    intro h
+    have hv := congrArg Fin.val h
+    simp at hv
+  rw [Finset.card_erase_of_mem hone,
+    Finset.card_erase_of_mem (Finset.mem_univ (Fin.last (k + 2)))]
+  simp
+
+/-- At the exact live-variable fuel, the symbolic replay lower bound meets the unconditional
+star-count upper bound.  Fresh canonical depth is therefore exactly `k + 1`. -/
+theorem stackedDistraction_canonicalDT_depth_exact (k : ℕ) :
+    (canonicalDT (stackedDistractionGate k) (k + 1)
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)).depth = k + 1 := by
+  apply Nat.le_antisymm
+  · exact canonicalDT_depth_le (stackedDistractionGate k) (k + 1)
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)
+  · exact stackedDistraction_canonicalDT_depth_ge k (k + 1) (by omega)
+
+private theorem stackedDistraction_root_anyTermSat_false (k : ℕ) :
+    anyTermSat (stackedDistractionGate k) (stackedDistractionRestriction k) = false := by
+  rw [anyTermSat, List.any_eq_false]
+  intro T hT
+  simp [stackedDistractionGate] at hT
+  rcases hT with hguard | hmid | hterminal
+  · subst T
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction]
+  · obtain ⟨j, hj⟩ := hmid
+    rw [← hj]
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction,
+      stackedDistractionCoord]
+  · subst T
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction]
+
+private theorem stackedDistraction_root_activeTerm (k : ℕ) :
+    activeTerm (stackedDistractionGate k) (stackedDistractionRestriction k) =
+      some (⟨[Rung4Literal.neg 0, Rung4Literal.neg 1]⟩ : Depth3.Clause (k + 3)) := by
+  rw [activeTerm_eq_find (stackedDistraction_root_anyTermSat_false k)]
+  simp [stackedDistractionGate, termFalsified, freeLits, litFalse, Depth3.litFree,
+    Depth3.litFixedVal, stackedDistractionRestriction]
+
+private theorem stackedDistraction_root_low_anyTermSat_true (k : ℕ) :
+    anyTermSat (stackedDistractionGate k)
+      (fixVar (stackedDistractionRestriction k) (0 : Fin (k + 3)) false) = true := by
+  rw [anyTermSat, List.any_eq_true]
+  refine ⟨(⟨[Rung4Literal.neg 0, Rung4Literal.neg (Fin.last (k + 2))]⟩ :
+    Depth3.Clause (k + 3)), ?_, ?_⟩
+  · simp [stackedDistractionGate]
+  · simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction,
+      fixVar]
+
+private theorem stackedDistraction_root_high_anyTermSat_false (k : ℕ) :
+    anyTermSat (stackedDistractionGate k)
+      (fixVar (stackedDistractionRestriction k) (0 : Fin (k + 3)) true) = false := by
+  rw [anyTermSat, List.any_eq_false]
+  intro T hT
+  simp [stackedDistractionGate] at hT
+  rcases hT with hguard | hmid | hterminal
+  · subst T
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction,
+      fixVar]
+  · obtain ⟨j, hj⟩ := hmid
+    rw [← hj]
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction,
+      fixVar, stackedDistractionCoord]
+  · subst T
+    simp [termSat, Depth3.litTrue, Depth3.litFixedVal, stackedDistractionRestriction,
+      fixVar]
+
+private theorem stackedDistraction_root_high_activeTerm_none (k : ℕ) :
+    activeTerm (stackedDistractionGate k)
+      (fixVar (stackedDistractionRestriction k) (0 : Fin (k + 3)) true) = none := by
+  rw [activeTerm_eq_find (stackedDistraction_root_high_anyTermSat_false k)]
+  simp [stackedDistractionGate, termFalsified, litFalse, Depth3.litFixedVal,
+    stackedDistractionRestriction, fixVar]
+
+private theorem canonicalDT_eq_leaf_true_of_anyTermSat_local {n : ℕ}
+    (cs : List (Depth3.Clause n)) (sigma : Restriction n)
+    (h : anyTermSat cs sigma = true) :
+    ∀ fuel, canonicalDT cs fuel sigma = BoolDecisionTree.leaf true
+  | 0 => by simp [canonicalDT, h]
+  | _ + 1 => by simp [canonicalDT, h]
+
+private theorem canonicalDT_eq_leaf_false_of_activeTerm_none_local {n : ℕ}
+    (cs : List (Depth3.Clause n)) (sigma : Restriction n)
+    (hany : anyTermSat cs sigma = false) (hactive : activeTerm cs sigma = none) :
+    ∀ fuel, canonicalDT cs fuel sigma = BoolDecisionTree.leaf false
+  | 0 => by simp [canonicalDT, hany]
+  | _ + 1 => by simp [canonicalDT, hany, hactive]
+
+/-- **The root-built tree has only its guard query.**  At the root, the first clause selects
+coordinate zero.  Its false branch immediately satisfies the terminal clause, because the final
+coordinate is already false; its true branch falsifies every clause.  Hence the shape is uniform
+in both the number of distractions and the remaining fuel. -/
+theorem stackedDistraction_canonicalDT_root_shape (k fuel : ℕ) :
+    canonicalDT (stackedDistractionGate k) (fuel + 1) (stackedDistractionRestriction k) =
+      BoolDecisionTree.query 0 (BoolDecisionTree.leaf true) (BoolDecisionTree.leaf false) := by
+  rw [canonicalDT, stackedDistraction_root_anyTermSat_false,
+    stackedDistraction_root_activeTerm]
+  simp only [Bool.false_eq_true, if_false]
+  change BoolDecisionTree.query 0
+      (canonicalDT (stackedDistractionGate k) fuel
+        (fixVar (stackedDistractionRestriction k) 0 false))
+      (canonicalDT (stackedDistractionGate k) fuel
+        (fixVar (stackedDistractionRestriction k) 0 true)) = _
+  rw [canonicalDT_eq_leaf_true_of_anyTermSat_local _ _
+      (stackedDistraction_root_low_anyTermSat_true k) fuel,
+    canonicalDT_eq_leaf_false_of_activeTerm_none_local _ _
+      (stackedDistraction_root_high_anyTermSat_false k)
+      (stackedDistraction_root_high_activeTerm_none k) fuel]
+
+/-- Restricting the root-built tree by the guard-disabled descendant leaves exactly the still-free
+coordinate-zero query.  In particular, its stored depth is one for every positive common fuel. -/
+theorem stackedDistraction_stored_depth_exact (k fuel : ℕ) :
+    (CommonTree.readOnce
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)
+      (CommonTree.ofBool
+        (canonicalDT (stackedDistractionGate k) (fuel + 1)
+          (stackedDistractionRestriction k)))).depth = 1 := by
+  rw [stackedDistraction_canonicalDT_root_shape]
+  simp [CommonTree.ofBool, CommonTree.readOnce, CommonTree.depth,
+    stackedDistractionRestriction, fixVar]
+
+/-- **The stored depth-one leaves are genuine semantic terminals.**  Although fixing the guard
+and rebuilding the canonical tree exposes all `k` distractions, following the tree that was built
+before that fixing still ends at a semantic terminal on either value of coordinate zero.  This is
+the decisive distinction between a stored semantic certificate and a stored-depth comparison. -/
+theorem stackedDistraction_stored_leaf_terminal (k fuel : ℕ)
+    (x : Fin (k + 3) → Bool)
+    (_hx : Rung4Restriction.Extends
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) x) :
+    CanonicalTerminal (stackedDistractionGate k)
+      (CommonTree.pathEndpoint
+        (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)
+        (CommonTree.ofBool
+          (canonicalDT (stackedDistractionGate k) (fuel + 1)
+            (stackedDistractionRestriction k))) x) := by
+  rw [stackedDistraction_canonicalDT_root_shape]
+  have hzero :
+      fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true
+          (0 : Fin (k + 3)) = none := by
+    simp [stackedDistractionRestriction, fixVar]
+  rw [CommonTree.ofBool, CommonTree.pathEndpoint_query_of_free _ _ _ _ _ hzero]
+  by_cases hxzero : x (0 : Fin (k + 3))
+  · simp only [hxzero, if_true]
+    apply CanonicalTerminal.mono
+      (restrictionExtends_fixVar_fixVar
+        (stackedDistraction_one_new_fixing k).1 (0 : Fin (k + 3)) true)
+    exact Or.inr (stackedDistraction_root_high_activeTerm_none k)
+  · simp only [hxzero]
+    apply CanonicalTerminal.mono
+      (restrictionExtends_fixVar_fixVar
+        (stackedDistraction_one_new_fixing k).1 (0 : Fin (k + 3)) false)
+    exact Or.inl (stackedDistraction_root_low_anyTermSat_true k)
+
+/-- Rebuilding at any stored leaf has depth zero at every new fuel, despite the arbitrarily deep
+fresh canonical scan at the guard-disabled internal state. -/
+theorem stackedDistraction_stored_leaf_rebuild_depth_zero (k fuel rebuildFuel : ℕ)
+    (x : Fin (k + 3) → Bool)
+    (hx : Rung4Restriction.Extends
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) x) :
+    (canonicalDT (stackedDistractionGate k) rebuildFuel
+      (CommonTree.pathEndpoint
+        (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true)
+        (CommonTree.ofBool
+          (canonicalDT (stackedDistractionGate k) (fuel + 1)
+            (stackedDistractionRestriction k))) x)).depth = 0 :=
+  canonicalDT_depth_eq_zero_of_terminal _ _
+    (stackedDistraction_stored_leaf_terminal k fuel x hx) rebuildFuel
+
+/-- The root-built stacked-distraction tree supplies the generic stored semantic certificate at
+the guard-disabled descendant.  This packages the counterexample's surviving invariant for the
+singleton indexed family, independently of the rebuild fuel. -/
+theorem stackedDistraction_stored_common_terminal (k fuel : ℕ) :
+    StoredCommonTerminalAt
+      (fun _ : Fin 1 => stackedDistractionGate k)
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) 1 := by
+  refine ⟨CommonTree.ofBool
+      (canonicalDT (stackedDistractionGate k) (fuel + 1)
+        (stackedDistractionRestriction k)), ?_, ?_⟩
+  · exact Nat.le_of_eq (stackedDistraction_stored_depth_exact k fuel)
+  · intro x hx g
+    exact stackedDistraction_stored_leaf_terminal k fuel x hx
+
+/-- Consequently the stored tree gives the exact residual-depth-zero interface consumed by the
+existing layered collapse bridge, even though rebuilding at the intermediate descendant has
+canonical depth `k + 1`. -/
+theorem stackedDistraction_stored_commonShallowAt_zero (k fuel rebuildFuel : ℕ) :
+    CommonShallowAt
+      (fun _ : Fin 1 => stackedDistractionGate k) rebuildFuel
+      (fixVar (stackedDistractionRestriction k) (1 : Fin (k + 3)) true) 1 0 :=
+  (stackedDistraction_stored_common_terminal k fuel).toCommonShallowAt rebuildFuel
+
+/-- **Arbitrary stored-versus-fresh additive separation under one new fixing.**  For every proposed
+additive allowance `B`, the normalized width-two instance with `B+1` distractions changes only
+guard coordinate one, retains stored depth one, and has fresh depth `B+2`; therefore fresh depth
+exceeds stored depth plus `B`. -/
+theorem stackedDistraction_arbitrary_additive_gap (B : ℕ) :
+    let k := B + 1
+    let rho := stackedDistractionRestriction k
+    let tau := fixVar rho (1 : Fin (k + 3)) true
+    (stackedDistractionGate k).Nodup ∧
+      (∀ T ∈ stackedDistractionGate k, (T.lits.map litVar).Nodup) ∧
+      RestrictionExtends rho tau ∧
+      (∀ i, rho i ≠ tau i → i = 1) ∧
+      (CommonTree.readOnce tau
+        (CommonTree.ofBool (canonicalDT (stackedDistractionGate k) (k + 1) rho))).depth = 1 ∧
+      (canonicalDT (stackedDistractionGate k) (k + 1) tau).depth = k + 1 ∧
+      ¬(canonicalDT (stackedDistractionGate k) (k + 1) tau).depth ≤
+        (CommonTree.readOnce tau
+          (CommonTree.ofBool (canonicalDT (stackedDistractionGate k) (k + 1) rho))).depth + B := by
+  dsimp only
+  obtain ⟨hnodup, hclause⟩ := stackedDistractionGate_normalized (B + 1)
+  obtain ⟨hext, _, _, hone⟩ := stackedDistraction_one_new_fixing (B + 1)
+  refine ⟨hnodup, hclause, hext, hone, ?_, ?_, ?_⟩
+  · simpa [Nat.add_assoc] using stackedDistraction_stored_depth_exact (B + 1) (B + 1)
+  · exact stackedDistraction_canonicalDT_depth_exact (B + 1)
+  · rw [stackedDistraction_canonicalDT_depth_exact,
+      stackedDistraction_stored_depth_exact (B + 1) (B + 1)]
+    omega
+
+set_option maxRecDepth 32768 in
+set_option maxHeartbeats 8000000 in
+/-- Kernel-checked calibration of the parameterized family at six distractions.  There is still
+only one new fixing and the stored residual still has depth one, while fresh canonical depth is
+seven.  The symbolic exact-depth theorem in arbitrary `k` remains separate. -/
+theorem stackedDistraction_six_calibration :
+    let rho := stackedDistractionRestriction 6
+    let tau := fixVar rho (1 : Fin 9) true
+    (stackedDistractionGate 6).Nodup ∧
+      (∀ T ∈ stackedDistractionGate 6, (T.lits.map litVar).Nodup) ∧
+      RestrictionExtends rho tau ∧
+      (CommonTree.readOnce tau
+        (CommonTree.ofBool (canonicalDT (stackedDistractionGate 6) 9 rho))).depth = 1 ∧
+      (canonicalDT (stackedDistractionGate 6) 9 tau).depth = 7 ∧
+      ¬(canonicalDT (stackedDistractionGate 6) 9 tau).depth ≤
+        (CommonTree.readOnce tau
+          (CommonTree.ofBool (canonicalDT (stackedDistractionGate 6) 9 rho))).depth + 5 := by
+  dsimp only
+  constructor
+  · decide
+  constructor
+  · decide
+  constructor
+  · intro j b hj
+    by_cases hji : j = (1 : Fin 9)
+    · subst j
+      have hfree : stackedDistractionRestriction 6 (1 : Fin 9) = none := by
+        simp [stackedDistractionRestriction]
+      rw [hfree] at hj
+      contradiction
+    · simpa [fixVar, Function.update_of_ne hji] using hj
+  · decide
+
+set_option maxHeartbeats 2000000 in
+/-- On the preserved counterexample the rollout scores strictly separate the winning middle
+coordinate from the gate-order choice: the score vector is `(1,0,1)`. -/
+theorem threeTermGreedyGapFamily_rollout_scores :
+    let rho : Restriction 3 := fun _ => none
+    greedyRolloutQueryScore threeTermGreedyGapFamily 3 1 1 rho 0 = 1 ∧
+      greedyRolloutQueryScore threeTermGreedyGapFamily 3 1 1 rho 1 = 0 ∧
+      greedyRolloutQueryScore threeTermGreedyGapFamily 3 1 1 rho 2 = 1 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Consequently the score-zero rollout rule selects coordinate one, while the old gate-order
+rule selects coordinate zero. -/
+theorem threeTermGreedyGapFamily_rollout_query_corrects_greedy :
+    let rho : Restriction 3 := fun _ => none
+    firstZeroGreedyRolloutQuery threeTermGreedyGapFamily 3 1 1 rho = some 1 ∧
+      activeCanonicalFirstFamilyQuery threeTermGreedyGapFamily 3 1 rho = some 0 := by
+  decide
+
+set_option maxHeartbeats 2000000 in
+/-- Both children of the rollout-selected query are already stopped.  Thus this particular
+one-step choice realizes the known semantic optimum without invoking the flexible-game search. -/
+theorem threeTermGreedyGapFamily_rollout_children_stop :
+    let rho : Restriction 3 := fun _ => none
+    branchConditionedCanonicalSelectorStops threeTermGreedyGapFamily 3 1 0
+        (fixVar rho 1 false) = true ∧
+      branchConditionedCanonicalSelectorStops threeTermGreedyGapFamily 3 1 0
+        (fixVar rho 1 true) = true := by
+  decide
 
 set_option maxHeartbeats 2000000 in
 /-- The exact greedy stopping-cost distribution agrees with the semantic optimum distribution. -/
@@ -11311,5 +13806,100 @@ set_option maxRecDepth 16384 in
 #print axioms twoPairFlexibleQueryCost_le_of_commonShallowAt
 #print axioms twoPairGreedySelectorCost_le_of_commonShallowAt
 #print axioms twoPairGreedySelectorCost_multiplicity_exact
+#print axioms threeTermGreedyGapFamily_normalized
+#print axioms threeTermGreedyGapFamily_commonShallowAt_one
+#print axioms threeTermGreedyGapFamily_exact_semantic_cost_one
+#print axioms threeTermGreedyGapFamily_greedy_stops_exactly_two
+#print axioms threeTermGreedyGapFamily_strict_competitive_gap
+#print axioms threeTermGreedyGapFamily_rollout_scores
+#print axioms threeTermGreedyGapFamily_rollout_query_corrects_greedy
+#print axioms threeTermGreedyGapFamily_rollout_children_stop
+#print axioms threeTermLocalRestriction_code
+#print axioms threeTermGreedyRolloutStops_one_code
+#print axioms commonShallowAt_of_branchConditionedGreedyRolloutStops_one
+#print axioms threeTermCommonShallowAt_greedyRolloutCost
+#print axioms threeTermGreedyRolloutCost_le_of_commonShallowAt
+#print axioms twoPairGreedyRolloutCost_eq_flexibleQueryCost_code
+#print axioms twoPairGreedyRolloutCost_eq_flexibleQueryCost
+#print axioms twoPairGreedyRolloutStops_cost_code
+#print axioms twoPairGreedyRolloutStops_cost
+#print axioms twoPairCommonShallowAt_greedyRolloutCost
+#print axioms twoPairGreedyRolloutCost_le_of_commonShallowAt
+#print axioms threeTermPathRolloutGapFamily_normalized
+#print axioms threeTermPathRolloutGapFamily_commonShallowAt_two
+#print axioms threeTermPathRolloutGapFamily_rollout_stops_exactly_three
+#print axioms threeTermPathRolloutGapFamily_strict_competitive_gap
+#print axioms threeTermIncidenceGapFamily_normalized
+#print axioms threeTermIncidenceGapFamily_commonShallowAt_two
+#print axioms threeTermIncidenceGapFamily_profile_and_queries
+#print axioms threeTermIncidenceGapFamily_selector_stops_exactly_three
+#print axioms threeTermIncidenceGapFamily_strict_competitive_gap
+#print axioms threeTermIncidenceGapFamily_fullyLiveCoverage_repairs
+#print axioms threeTermCoverageCollisionFamily_normalized
+#print axioms threeTermCoverageCollisionFamily_commonShallowAt_two
+#print axioms threeTermCoverageCollisionFamily_profile_and_queries
+#print axioms threeTermCoverageCollisionFamily_selector_stops_exactly_three
+#print axioms threeTermCoverageCollisionFamily_strict_competitive_gap
+#print axioms threeTermCoverageCollision_polarity_profiles_separate
+#print axioms threeTermCoverageCollision_polarity_selector_repairs_both
+#print axioms threeTermPolarityConcentrationGapFamily_normalized
+#print axioms threeTermPolarityConcentrationGapFamily_commonShallowAt_one
+#print axioms threeTermPolarityConcentrationGapFamily_exact_semantic_cost_one
+#print axioms threeTermPolarityConcentrationGapFamily_profile_and_query
+#print axioms threeTermPolarityConcentrationGapFamily_selector_stops_exactly_two
+#print axioms threeTermPolarityConcentrationGapFamily_strict_competitive_gap
+#print axioms threeTermComplementaryPairGapFamily_normalized
+#print axioms threeTermComplementaryPairGapFamily_commonShallowAt_one
+#print axioms threeTermComplementaryPairGapFamily_exact_semantic_cost_one
+#print axioms threeTermComplementaryPairGapFamily_profile_and_query
+#print axioms threeTermComplementaryPairGapFamily_selector_stops_exactly_two
+#print axioms threeTermComplementaryPairGapFamily_strict_competitive_gap
+#print axioms threeTermComplementaryPairGapFamily_external_profile_repairs
+#print axioms threeTermIncidenceGapFamily_external_profile_and_query
+#print axioms threeTermIncidenceGapFamily_external_selector_stops_exactly_three
+#print axioms threeTermIncidenceGapFamily_external_strict_competitive_gap
+#print axioms threeTermIncidenceGapFamily_component_excess_root_failure
+#print axioms threeTermIncidenceGapFamily_component_excess_selector_stops_exactly_three
+#print axioms threeTermIncidenceGapFamily_component_excess_strict_competitive_gap
+#print axioms threeTermIncidenceGapFamily_raw_then_excess_queries_and_gap
+#print axioms threeTermExcessThenRawGapFamily_normalized
+#print axioms threeTermExcessThenRawGapFamily_commonShallowAt_one
+#print axioms threeTermExcessThenRawGapFamily_query_and_gap
+#print axioms threeTermExcessThenRawGapFamily_strict_competitive_gap
+#print axioms threeTermTerminalComponentGapFamily_normalized
+#print axioms threeTermTerminalComponentGapFamily_commonShallowAt_two
+#print axioms threeTermTerminalComponentGapFamily_profiles_and_gap
+#print axioms threeTermTerminalComponentGapFamily_strict_competitive_gap
+#print axioms terminalThenExcessThenRaw_repairs_preserved_witnesses
+#print axioms fourTermTerminalThenExcessGapFamily_normalized
+#print axioms fourTermTerminalThenExcessGapFamily_commonShallowAt_two
+#print axioms fourTermTerminalThenExcessGapFamily_profiles_and_gap
+#print axioms fourTermTerminalThenExcessGapFamily_strict_competitive_gap
+#print axioms shallowCountMonotonicityGapGate_normalized
+#print axioms currentShallowGateCount_not_monotone_under_fixVar
+#print axioms storedShallowGateCount_mono
+#print axioms storedShallowGateDeficit_anti
+#print axioms storedTree_repair_diverges_from_recomputedCanonical
+#print axioms storedTreeAdditiveGapGate_normalized
+#print axioms storedTree_recomputed_depth_not_le_add_one
+#print axioms stackedDistractionGate_normalized
+#print axioms stackedDistraction_one_new_fixing
+#print axioms stackedDistractionScanRestriction_falFix_coord
+#print axioms stackedDistraction_activeTermLit_scan
+#print axioms stackedDistraction_activeTermLit_endpoint
+#print axioms stackedDistraction_replayPath_scan
+#print axioms stackedDistraction_replay_nonterminal
+#print axioms stackedDistraction_canonicalDT_depth_ge
+#print axioms freeVars_stackedDistraction_descendant
+#print axioms stars_stackedDistraction_descendant
+#print axioms stackedDistraction_canonicalDT_depth_exact
+#print axioms stackedDistraction_canonicalDT_root_shape
+#print axioms stackedDistraction_stored_depth_exact
+#print axioms stackedDistraction_stored_leaf_terminal
+#print axioms stackedDistraction_stored_leaf_rebuild_depth_zero
+#print axioms stackedDistraction_stored_common_terminal
+#print axioms stackedDistraction_stored_commonShallowAt_zero
+#print axioms stackedDistraction_arbitrary_additive_gap
+#print axioms stackedDistraction_six_calibration
 
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching

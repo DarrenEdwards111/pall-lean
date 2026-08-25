@@ -10285,3 +10285,1217 @@ The next defensible step remains the three-term or four-gate normalized width-tw
 either expose a strict greedy/semantic gap or identify a structural winning-query invariant.
 The exponential stored-tree count and independent SAT-density/fiber obstruction remain open.
 No P-versus-NP conclusion follows.
+
+### Three terms already give a strict greedy/semantic gap
+
+The next-smallest normalized width-two audit found a strict counterexample on three variables.
+The positive gate has the ordered clauses
+
+```text
+(¬0 ∧ ¬1), (0 ∧ ¬1), (1 ∧ ¬2)
+```
+
+and the indexed family consists of this gate and its termwise-negated polarity.  All three
+clauses are distinct and each uses two distinct variables, so duplicate normalization does not
+remove the example.
+
+`threeTermGreedyGapFamily_exact_semantic_cost_one` proves that the exact semantic common-trunk
+cost at the fully live root is one: querying coordinate one makes both polarities residual-depth
+one on both branches, while the root itself has canonical depth three.  In contrast,
+`threeTermGreedyGapFamily_greedy_stops_exactly_two` computes that the gate-order selector fails to
+stop with budget one and succeeds with budget two.  It chooses coordinate zero from the first
+active clause, and both resulting branches still require coordinate one.
+
+Thus the pointwise optimality of the exhaustive 81-state two-pair family is accidental rather
+than evidence for a general gate-order winning-query invariant.  The generic semantic bridge
+remains valid, but its current deterministic query policy can be a factor two worse even in this
+minimal three-term test.
+
+Direct Lean elaboration passed every new definition and theorem and continued well beyond the
+edited section before the six-minute whole-file timeout in the known expensive tail.  The
+counterexample was also found and independently evaluated by exhaustive read-only search over
+ordered normalized three-clause width-two gates on three variables.  `git diff --check` passes,
+and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Existing
+counterexamples and failed routes remain intact.
+
+The precise next frontier is to replace gate-order first-active selection with a query rule that
+can recognize the winning middle coordinate in this example.  The highest-information next test
+is a minimax selector: at each state choose the live variable minimizing the maximum greedy
+stopping cost of its two children, then determine whether its choice admits a compact structural
+certificate or merely reimplements the full flexible game.  The exponential stored-tree count
+remains a separate obstacle.  No P-versus-NP conclusion follows.
+
+### One-step greedy rollout repairs the minimal counterexample
+
+The first minimax-style test is now executable and kernel-checked.  The generic bounded function
+`cappedGreedyStoppingCost` returns the first budget, through a supplied cap, at which the existing
+gate-order recurrence stops.  `greedyRolloutQueryScore` scores a live root coordinate by the
+maximum of those capped costs on its two Boolean children.  This is deliberately only a one-step
+rollout heuristic: no recursive optimality or equivalence with the flexible semantic game is
+assumed.
+
+On the preserved normalized three-term counterexample, with child cap one, the exact score vector
+for coordinates zero, one, and two is
+
+```text
+(1, 0, 1).
+```
+
+Thus the winning middle coordinate is a strict minimizer, while the old gate-order selector still
+chooses coordinate zero.  `firstZeroGreedyRolloutQuery` selects coordinate one, and
+`threeTermGreedyGapFamily_rollout_children_stop` independently computes that both children of
+this query are stopped at budget zero.  The rollout rule therefore realizes the known depth-one
+semantic optimum on this counterexample without calling the specialized flexible-game search.
+
+An explicit five-minute Lean run elaborated all new declarations and continued beyond line 8,700
+without errors before timing out in the known expensive tail; this is not claimed as a whole-file
+build.  `git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  The strict greedy counterexample remains intact.
+
+The precise next frontier is an exhaustive normalized three-term audit of the rollout rule across
+all restrictions: compare its recursively realized stopping cost with the flexible semantic
+optimum, and preserve the first strict gap if one exists.  A positive finite result is useful only
+if its score admits a compact certificate that avoids evaluating both child games at every node;
+otherwise rollout merely relocates the exponential flexible-game computation.  The stored-tree
+cost remains a separate obstacle.  No P-versus-NP conclusion follows.
+
+### Rollout is semantically optimal on all 27 states of the minimal counterexample family
+
+The proposed restriction-wide audit is now complete for the preserved normalized three-term
+family.  `minimumGreedyRolloutQuery` filters fixed coordinates before applying `List.argmin`; this
+matters once scores above zero are compared, because the earlier fixed-coordinate sentinel can
+tie a live coordinate whose two child searches both exhaust their cap.  The zero-score root test
+was unaffected, but it was not a sound general minimizer without this filtering step.
+
+`branchConditionedGreedyRolloutStops` recursively reapplies the one-step policy: at every
+nonterminal state it minimizes the capped gate-order greedy child cost, queries that coordinate,
+and requires both rollout children to stop.  Base-three coding enumerates all 27 restrictions of
+the three variables.  The kernel-checked theorem `threeTermGreedyRolloutStops_one_code` proves
+that every one of those states stops within one rollout query.
+
+This finite result is connected to semantics, not left as an evaluator-only observation.
+`commonShallowAt_of_branchConditionedGreedyRolloutStops_one` turns any successful one-query
+rollout into a genuine `CommonShallowAt` certificate.  Consequently
+`threeTermCommonShallowAt_greedyRolloutCost` proves attainability of the computed cost on every
+restriction.  Conversely, `threeTermGreedyRolloutCost_le_of_commonShallowAt` proves that no
+semantic common trunk can be shallower.  The reason the lower bound is compact here is specific:
+the exhaustive cost range is only zero or one, so the existing zero-depth root characterization
+rules out the only possible strict improvement.  This does not establish recursive optimality at
+depth two or beyond.
+
+Direct Lean elaboration passed all new definitions, the 27-state decision theorem, the generic
+one-query semantic bridge, and both exact-optimality theorems, then continued beyond line 8,300
+without errors before the expensive tail was stopped.  No full-file completion is claimed in
+this step.  Existing counterexamples and failed routes remain intact.  `git diff --check` passes,
+and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is the first family or restriction whose semantic optimum is at least
+two.  Exhaustively compare recursively realized rollout with the exact flexible game there and
+preserve the first strict gap.  A positive result must also audit whether the argmin score has a
+certificate smaller than evaluating both capped greedy children for every live coordinate;
+otherwise the selector is semantically useful but merely relocates exponential search.  The
+stored-tree and independent density/fiber obstructions remain open.  No P-versus-NP conclusion
+follows.
+
+### Recursive rollout remains optimal through semantic depth three on the two-pair gadget
+
+The existing normalized two-pair gadget supplies the missing deeper test without introducing a
+new family.  Its 81 restrictions have exact semantic-cost histogram `(56,16,8,1)` at costs
+zero through three, so nine states genuinely exercise depth at least two and the fully live state
+has exact cost three.
+
+`twoPairGreedyRolloutStops` recursively reapplies the fixed-coordinate-safe rollout argmin with
+child cap three.  Its associated cost keeps four as an explicit failure sentinel rather than
+silently treating the known depth-three bound as success.  The kernel-checked theorem
+`twoPairGreedyRolloutCost_eq_flexibleQueryCost_code` proves pointwise equality with the exact
+flexible-game cost on all 81 restrictions.  `twoPairGreedyRolloutStops_cost_code` separately
+proves that the computed budget actually stops, so the failure sentinel is unreachable.
+
+The finite computation is connected back to semantics in both directions.
+`twoPairCommonShallowAt_greedyRolloutCost` proves that the rollout cost is attained by a genuine
+`CommonShallowAt` trunk, using the independently proved flexible-game soundness;
+`twoPairGreedyRolloutCost_le_of_commonShallowAt` proves it is no larger than any semantic trunk
+depth.  Thus recursive rollout is semantically optimal on this particular normalized family
+through depth three, not only on the earlier zero/one family.
+
+This is still finite evidence, not a compact general selector certificate.  The definition of
+the argmin evaluates the capped greedy stopping recurrence on both children of every live
+coordinate.  The exhaustive equality therefore does not show that rollout avoids exponential
+child search; it may only relocate it.
+
+Direct Lean elaboration passed all new definitions and theorems and continued beyond line 8,400
+without errors before the expensive tail was stopped.  This is not claimed as a whole-file build.
+`git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  Existing counterexamples and failed routes remain intact.
+
+The precise next frontier is an exhaustive normalized three-term width-two audit restricted to
+states whose flexible semantic optimum is at least two.  Compare recursive rollout pointwise,
+preserve the first strict gap if one exists, and for every positive case record whether the
+winning argmin can be certified from a bounded local incidence profile rather than by evaluating
+both capped child recurrences for every live coordinate.  The stored-tree and independent
+density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### A three-term path gives a strict recursive-rollout gap
+
+The proposed normalized three-term audit found a strict gap on four coordinates.  The positive
+gate is the ordered path
+
+```text
+(¬0 ∧ ¬1), (¬1 ∧ ¬2), (¬2 ∧ ¬3),
+```
+
+and the indexed family contains this gate and its termwise-negated polarity.  The clauses are
+distinct and every clause uses two distinct variables, so duplicate normalization leaves the
+example intact.
+
+`threeTermPathRolloutGapFamily_commonShallowAt_two` constructs a genuine depth-two common trunk:
+query coordinates one and two, after which both polarities have residual canonical depth at most
+one on all four branches.  In contrast,
+`threeTermPathRolloutGapFamily_rollout_stops_exactly_three` computes that recursive rollout with
+child cap four fails at budget two and succeeds at budget three.  The combined theorem
+`threeTermPathRolloutGapFamily_strict_competitive_gap` therefore refutes semantic optimality of
+the rollout rule, independently of whether the exhibited depth-two trunk is the unique optimum.
+
+The counterexample was the first gap found by systematic read-only enumeration of ordered
+normalized three-clause width-two gates on four variables, then restated and checked inside Lean.  It
+preserves the earlier gate-order gap and the positive two-pair rollout audit: those equalities
+were family-specific rather than a general minimax invariant.
+
+A bounded five-minute Lean elaboration passed the new declarations and continued beyond line
+9,000 with no errors before timing out in the known expensive tail; this is not claimed as a
+whole-file build.  `git diff --check` passes.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is no longer to seek a universal proof for greedy rollout.  Audit why
+the path's two middle coordinates beat the endpoint chosen by the child-greedy score, and test a
+bounded local path/incidence certificate on normalized three-term families.  Preserve the next
+collision: two states with the same proposed local certificate but different winning middle
+queries or semantic costs.  Any replacement selector must avoid evaluating both full child
+recurrences for every live coordinate.  The stored-tree and independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The path failure is a rollout-score tie repaired by live incidence
+
+The exact root audit sharpens the preceding diagnosis.  The child-greedy rollout score vector on
+the preserved four-coordinate path is
+
+```text
+(2, 2, 2, 2).
+```
+
+Thus the endpoint is not a strict score winner: `List.argmin` chooses coordinate zero only because
+all four candidates collide and zero is first.  The kernel-checked theorem
+`threeTermPathRolloutGapFamily_root_score_collision` records both the vector and the selected
+endpoint.
+
+A bounded alternative now exists as executable generic data.
+`liveLiteralIncidenceMultiplicity` counts currently free literal occurrences of each variable
+across the indexed family, and `maximumLiveIncidenceQuery` selects the first live maximum.  It
+does not evaluate either child stopping recurrence.  On the normalized path its root profile is
+
+```text
+(2, 4, 4, 2),
+```
+
+so it chooses middle coordinate one.  After fixing coordinate one to either Boolean value, the
+same rule chooses coordinate two.  These two facts, combined with the already proved
+`threeTermPathRolloutGapFamily_commonShallowAt_two`, reproduce the winning depth-two trunk on
+this counterexample using only the live incidence profile.
+
+This is a positive path-local certificate, not a general selector theorem.  Occurrences are
+counted with multiplicity deliberately; duplicate normalization is a separate interface and the
+preserved example already satisfies it.  The precise next frontier is an exhaustive normalized
+three-term width-two audit of this maximum-live-incidence selector.  Preserve the first collision
+between equal incidence profiles and different winning queries or semantic costs; if no collision
+occurs at this size, test the first four-term family.  A useful replacement must also admit a
+compact semantic soundness argument beyond finite enumeration.  The stored-tree and independent
+density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Maximum live incidence has a strict normalized three-term gap
+
+The requested audit found a counterexample without advancing to four terms.  Its positive gate is
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ 1), (¬2 ∧ ¬3),
+```
+
+and the indexed family contains this gate and its termwise-negated polarity.  Both clause lists
+are duplicate-free and every clause uses two distinct coordinates.
+
+The exact root incidence profile is `(4,4,2,2)`.  The deterministic maximum-incidence rule first
+chooses coordinate zero and, on either Boolean child, next chooses coordinate one.  Nevertheless,
+the explicit trunk querying coordinates zero and two leaves both polarities at canonical residual
+depth at most one on every branch.  The kernel-checked recurrence records the strict gap:
+maximum-live-incidence fails at budget two and first stops at budget three.
+
+This refutes the proposed universal selector at the smallest family size under audit.  The failure
+also identifies what incidence omits: it ranks repeated participation above component coverage.
+The earlier path result remains useful as a positive local certificate, but cannot support a
+general theorem even for normalized three-term width-two families.
+
+The precise next frontier is to test the smallest bounded certificate that sees clause-component
+coverage in addition to live incidence—for example, marginal coverage of still-active terms—and
+preserve the first collision against exact semantic cost.  Any proposed rule must remain local and
+avoid evaluating both recursive child games.  The stored-tree and independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Fully-live term coverage repairs incidence but still collides at the root
+
+`fullyLiveTermCoverageMultiplicity` counts clauses containing a coordinate only while every
+literal in that clause remains free.  This bounded rule repairs the preceding incidence
+counterexample: after querying coordinate zero, the touched two-clause component scores zero and
+the independent component forces coordinate two, so the selector stops at budget two.
+
+The repair is not universal.  The adjacent normalized family
+
+```text
+(¬0 ∧ ¬1), (0 ∧ ¬1), (¬2 ∧ ¬3)
+```
+
+together with its termwise-negated polarity has the same root coverage vector `(4,4,2,2)`.  The
+rule chooses zero and then two on both children, but fails at budget two and first stops at three.
+Querying coordinates one and two gives a genuine depth-two `CommonShallowAt` certificate.  Thus
+the two families collide under the entire unsigned root certificate while requiring different
+tied first coordinates.  Both are clause-duplicate-free and use distinct variables per clause.
+
+A bounded five-minute Lean run elaborated beyond line 9,200, well past every new declaration,
+without errors before timing out in the known expensive tail; this is not a full-file build claim.
+`git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  All earlier positive examples and counterexamples remain in place.
+
+The precise next frontier is the least polarity-sensitive local refinement separating this
+collision—for example, constant versus mixed polarity of each coordinate across fully live
+terms—followed immediately by the same normalized three-term width-two audit.  Preserve the first
+collision against exact semantic cost.  A viable selector must remain local and avoid evaluating
+both recursive child games.  The stored-tree and independent density/fiber obstructions remain
+open.  No P-versus-NP conclusion follows.
+
+### Within-gate polarity concentration separates the unsigned collision
+
+The least polarity-sensitive refinement now has a generic executable definition.
+`fullyLiveSignedTermCoverageMultiplicity` counts, inside one indexed gate, fully-live clauses
+containing a coordinate with a specified sign.  `fullyLivePolarityConcentrationMultiplicity`
+takes the larger signed count per gate and sums those maxima across the indexed family.  This is
+invariant under adjoining the De Morgan polarity, but unlike the preceding unsigned score it
+distinguishes a coordinate whose sign is constant within a gate from one whose sign is mixed.
+It remains local and evaluates no child stopping game.
+
+On the two preserved normalized families, the formerly identical unsigned profile `(4,4,2,2)`
+splits exactly as follows:
+
+```text
+incidence-gap family:  (4,2,2,2), selecting coordinate 0
+coverage-collision:    (2,4,2,2), selecting coordinate 1
+```
+
+`branchConditionedMaximumFullyLivePolarityConcentrationStops` recursively applies this selector.
+The kernel-checked theorem `threeTermCoverageCollision_polarity_selector_repairs_both` computes
+that it stops within budget two on both families, matching their already proved depth-two
+`CommonShallowAt` certificates.  This repairs the exact unsigned collision; it is not evidence of
+a universal selector theorem.
+
+A bounded five-minute Lean elaboration reached line 9,384, beyond both new decision theorems at
+lines 8,062–8,084, with warnings only before timing out in the known expensive tail.  This is not
+a full-file build claim.  `git diff --check` passes, and no `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.  All earlier positive examples, counterexamples, and
+failed routes remain intact.
+
+The precise next frontier is the promised exhaustive normalized three-term width-two audit of
+within-gate polarity concentration across restrictions.  Preserve the first collision against
+exact flexible semantic cost, ideally between families with the same concentrated profile but
+different winning queries.  If it survives this size, advance to four terms.  Any useful selector
+still needs a compact semantic soundness argument and must avoid recursive child-game evaluation;
+the stored-tree and independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### Polarity concentration already has a strict three-term gap
+
+The systematic normalized three-term width-two audit refutes the polarity-concentration selector
+before any four-term search is needed.  Its first strict witness (in the audit script's explicit
+lexicographic enumeration) is the positive gate
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ ¬2), (¬0 ∧ 2),
+```
+
+paired with its termwise-negated polarity.  Both gate lists are clause-duplicate-free and every
+clause uses two distinct coordinates.  The root concentration profile is `(6,2,2)`, so the local
+rule strictly prefers coordinate zero.  But querying coordinate two alone leaves the canonical
+depth of both polarities at most one on both branches.  The selector therefore needs two queries
+where the flexible semantic game needs only one.
+
+`threeTermPolarityConcentrationGapFamily_commonShallowAt_one` gives the explicit semantic trunk,
+while `threeTermPolarityConcentrationGapFamily_selector_stops_exactly_two` kernel-checks failure at
+budget one and success at budget two.  Their combination is recorded by
+`threeTermPolarityConcentrationGapFamily_strict_competitive_gap`.  The reproducible audit is
+`scripts/multiswitching_polarity_selector_audit.py`; it mirrors the Lean canonical-depth and
+selector recurrences and found this witness after 142 ordered gates and 11,422 restricted states.
+
+A bounded five-minute Lean elaboration reached beyond line 9,400, past all new declarations, with
+warnings only before timing out in the known expensive tail; this is not a full-file build claim.
+`git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  Earlier repairs, counterexamples, and failed routes remain preserved.
+
+The precise next frontier is not another scalar occurrence score.  This witness shows that a
+dominant common literal can be irrelevant to the minimax stopping objective, whereas querying a
+lower-frequency complementary pair collapses two terms simultaneously.  Audit the smallest local
+certificate that records complementary-term cancellation (for example, signed residual pairs
+after deleting their shared literals), and preserve the first collision against exact flexible
+cost.  Any replacement must avoid evaluating full child recurrences; the stored-tree and
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Complementary residual-pair priority fails on the fifth normalized gate
+
+The requested pairwise audit is now executable and already refutes the proposed refinement.
+For each live coordinate it counts unordered pairs of fully-live width-two clauses in one gate
+that share one identical signed literal and have opposite signs of the coordinate as their two
+residual literals.  The deterministic selector maximizes this count, using within-gate polarity
+concentration only as a fallback.  It remains local and never evaluates either child recurrence.
+
+The first strict witness in the explicit ordered audit is
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ 1), (0 ∧ ¬2),
+```
+
+paired with its termwise-negated polarity.  Its complementary residual-pair profile is
+`(0,2,0)` and its concentration profile is `(4,2,2)`, so pair priority strictly selects coordinate
+one.  But coordinate zero is the unique one-query winner: fixing it leaves both polarities at
+canonical residual depth at most one on both branches.  The pair selector first stops after two
+queries.  The third clause is the essential obstruction: its shared coordinate has the opposite
+sign, so the sign distribution of the supposedly deleted common literal decides the minimax
+value.
+
+`fullyLiveComplementaryResidualPairMultiplicity` and
+`maximumComplementaryResidualPairQuery` formalize the generic local certificate in Lean.
+`threeTermComplementaryPairGapFamily_commonShallowAt_one` supplies the explicit semantic trunk,
+and `threeTermComplementaryPairGapFamily_selector_stops_exactly_two` kernel-checks the strict
+two-versus-one gap.  The witness remains normalized: both polarity lists are duplicate-free and
+no clause repeats a coordinate.
+
+The Python audit reproduced the earlier concentration witness and found this new witness after
+five ordered gates and 325 restricted states.  A long Lean elaboration passed the new declarations
+and continued beyond line 9,900 with warnings only; it was manually stopped in the known expensive
+tail, so this is not a full-file build claim.  `git diff --check` passes, and no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.  All earlier failed selectors and
+counterexamples remain preserved.
+
+The precise next frontier is to stop ranking cancellation motifs independently.  The smallest
+plausible refinement must retain the signed incidence of the deleted shared literal into the
+remaining clauses—for example, a two-coordinate signed motif recording both the complementary
+residual variable and the shared variable's external opposite-sign incidence—and immediately
+audit it on the same normalized three-term domain.  Preserve the first collision against exact
+flexible cost.  A useful replacement still needs a compact semantic argument without recursive
+child-game evaluation; the stored-tree and independent density/fiber obstructions remain open.
+No P-versus-NP conclusion follows.
+
+### External shared-sign incidence repairs the pair witness but fails on a disconnected component
+
+The proposed signed two-coordinate refinement is now executable.  For each complementary
+residual pair, it retains the pair's shared coordinate and counts it only when a distinct
+fully-live clause occurrence in the same gate contains the opposite sign of that shared
+coordinate.  The selector gives this external-opposition count strict priority, then falls back
+to complementary residual-pair count and within-gate polarity concentration.  It remains local
+and evaluates no recursive child game.
+
+This motif repairs the immediately preceding witness.  On
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ 1), (0 ∧ ¬2)
+```
+
+its external shared-pair profile is `(2,0,0)`, so it selects the unique one-query winner zero and
+stops at budget one.  However, the exhaustive normalized three-term audit finds a strict gap
+after 31 ordered gates and 2,431 restricted states:
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ 1), (¬2 ∧ ¬3).
+```
+
+This is the already preserved incidence-gap family.  Its external profile is `(0,0,0,0)` and
+its complementary residual-pair profile is `(0,2,0,0)`, so the fallback strictly selects
+coordinate one.  The selector first stops after three queries, while the existing explicit trunk
+querying coordinates zero and two proves semantic cost at most two.  The audit's exact minimax
+calculation gives cost two, with root winning queries zero, two, and three.  Thus the extra signed
+incidence sees the third-clause interaction when it is attached to the cancellation component,
+but still fails to price coverage of a disconnected component.
+
+`fullyLiveExternallyOpposedSharedPairMultiplicity` formalizes the occurrence-indexed motif;
+`maximumExternallyOpposedSharedPairQuery` and its recursive stopping predicate formalize the
+selector.  Kernel-checked `decide` theorems record both the repair and the strict three-versus-two
+gap, reusing `threeTermIncidenceGapFamily_commonShallowAt_two` for the semantic certificate.  A
+bounded five-minute Lean elaboration passed all new declarations and continued beyond line 9,600
+with warnings only before timing out in the known expensive tail; this is not a full-file build
+claim.  The Python audit reproduces all three successive counterexamples.
+
+The precise next frontier is a component-aware certificate rather than another independently
+ranked signed motif.  The smallest plausible step is to combine cancellation structure with the
+marginal reduction in the number of live clause-support components caused by a query, then audit
+that rule on the same normalized three-term domain.  Preserve the attached and disconnected
+counterexamples as a matched test pair.  Any useful replacement must remain local and avoid full
+child stopping recurrences; the stored-tree and independent density/fiber obstructions remain
+open.  No P-versus-NP conclusion follows.
+
+### Raw component marginal repairs the root but fails during its own rollout
+
+The proposed component-aware certificate is now executable.  For each gate it forms the active
+nonempty live support of every nonfalsified clause (and assigns no residual supports to a gate
+that is already satisfied), closes support intersection transitively, and counts the resulting
+components.  A live query is ranked first by the summed decrease in this component count over its
+two immediate Boolean children.  External shared-sign incidence, complementary residual pairs,
+and polarity concentration remain lexicographic tie-breakers.  This inspects two local residual
+incidence graphs but never evaluates a child stopping recurrence.
+
+At the root of the preserved disconnected witness
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ 1), (¬2 ∧ ¬3)
+```
+
+the raw marginal profile is `(2,0,2,2)` (equivalently the nonnegative Lean rank is
+`(6,4,6,6)`).  Thus the refinement does exactly repair the preceding root error: it selects
+coordinate zero, one of the three exact winning root queries.  However, after either value of
+zero, its marginal profile becomes `(0,4,2,2)`.  It then selects coordinate one because deleting
+the residual singleton cancellation component yields the largest raw component decrease.  That
+singleton residue is already within the target residual depth one, while the disjoint width-two
+clause is the component that still needs a query.  The rollout consequently still needs three
+queries; the preserved explicit trunk `[0,2]` needs only two.
+
+`liveClauseSupport`, `activeLiveClauseSupports`, `closeClauseSupport`, and
+`clauseSupportComponentCount` formalize the generic executable incidence calculation.
+`componentMarginalRank`, `maximumComponentAwareQuery`, and its recursive stopping predicate
+formalize the selector.  Kernel-checked `decide` theorems record the repaired root choice, both
+bad second choices, and the strict three-versus-two gap.  The Python audit reproduces all earlier
+counterexamples and this rollout failure; it finds the latter on the same 31st ordered gate after
+2,431 restricted states.
+
+A bounded five-minute Lean elaboration passed all new declarations and continued into the known
+expensive tail before timing out; this is not a full-file build claim.  `git diff --check` passes,
+and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  All earlier
+failed selectors and witnesses remain preserved.
+
+The precise next frontier is residual-depth-aware component accounting.  Raw component count
+prices deletion of a component even when that component is already shallow enough to stop.  The
+smallest next audit should count only component excess above the target residual depth (or an
+equivalent local unresolved-component potential), verify that it retains the root repair, and
+test its entire branch-conditioned rollout on this same witness before expanding the domain.
+Any useful definition must remain local rather than silently reintroducing the exact child
+stopping game; the stored-tree and independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### Residual-depth-aware component excess loses the root repair
+
+The smallest proposed refinement has now been tested and fails strictly earlier than the raw
+component marginal.  For each active clause-support component, the new local potential charges
+
+```text
+max(0, |union of live variables in the component| - residualDepth).
+```
+
+Thus it genuinely ignores a singleton component at residual depth one and never evaluates an
+exact child stopping game.  On the preserved disconnected family, however, the root family
+potential is four and the two-child marginal profile is `(4,4,4,4)`.  The cancellation component
+and the disconnected width-two component make all four coordinates look equally useful.  The
+preserved lexicographic tie-breakers therefore select coordinate one, which is not an optimal root
+query.  The resulting rollout again needs three queries, while the explicit semantic trunk
+`[0,2]` still needs only two.
+
+The indicator variant that merely counts components whose live-variable union exceeds the target
+depth was also evaluated on the same witness.  It has the identical tied root marginal
+`(4,4,4,4)`; after querying coordinate zero its profile is `(0,2,4,4)` on both branches.  Hence the
+failure is not an artifact of weighting excess by its magnitude.
+
+`clauseSupportComponentExcess`, `activeFamilySupportComponentExcess`,
+`componentExcessMarginalRank`, and `maximumComponentExcessAwareQuery` formalize the generic local
+potential and selector.  Kernel-checked executable theorems record root potential four, the Lean
+rank vector `(44,44,44,44)`, the losing root choice, and the strict three-versus-two competitive
+gap.  The Python audit adds excess and indicator selectors as fifth and sixth exhaustive passes;
+both reproduce the same first gap after 31 ordered gates and 2,431 restricted states.  All
+preceding counterexamples and failed routes remain preserved.
+
+The precise next frontier is a two-axis component certificate: retain residual-depth-aware
+unresolved mass, but add a within-component progress statistic that distinguishes querying the
+shared cancellation coordinate zero from querying its residual coordinate one without reviving
+the already-failed standalone motif ordering.  The smallest defensible audit is the Pareto pair
+of raw component marginal and residual-aware excess marginal on the existing normalized domain,
+with an explicit tie policy tested through the entire branch-conditioned rollout.  If every fixed
+lexicographic order fails, the evidence points to a genuinely vector-valued or branch-balanced
+component charge rather than another scalar local potential.  The stored-tree and independent
+density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Both lexicographic orders of the component pair fail
+
+The proposed two-axis audit is now executable in both fixed lexicographic orders, with the full
+branch-conditioned rollout checked at every restricted state.  Raw-component marginal followed
+by residual-aware excess marginal still fails on the preserved disconnected family.  It chooses
+the winning root coordinate zero, but after either root value the profiles are raw
+`(0,4,2,2)` and excess `(0,2,4,4)`.  Raw priority therefore chooses the already-shallow
+cancellation residue one and again needs three queries instead of the explicit trunk `[0,2]`'s
+two.  The exhaustive audit finds this first gap after 31 ordered gates and 2,431 states.
+
+Reversing the axes repairs that rollout but exposes a different strict obstruction:
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ ¬2), (¬0 ∧ 2),
+```
+
+paired with its termwise-negated polarity.  Coordinate two is the unique one-query winner, but
+the raw component marginal is tied `(0,0,0,0)` and the excess marginal is `(8,4,4,0)`.
+Excess-first therefore strictly selects coordinate zero and needs two queries.  This is stronger
+than a bad tie policy: on the proposed two axes coordinate zero Pareto-dominates the actual winner
+two.  Consequently no selector monotone in just these two marginal coordinates can repair this
+witness.  The exhaustive audit finds it after 142 gates and 11,422 states.
+
+`maximumRawThenExcessComponentQuery` and `maximumExcessThenRawComponentQuery` formalize the two
+generic selectors.  `threeTermIncidenceGapFamily_raw_then_excess_queries_and_gap` kernel-checks
+the first rollout failure.  The new normalized family, its explicit one-query common trunk, and
+the strict excess-first two-versus-one gap are recorded by
+`threeTermExcessThenRawGapFamily_normalized`,
+`threeTermExcessThenRawGapFamily_commonShallowAt_one`, and
+`threeTermExcessThenRawGapFamily_strict_competitive_gap`.  Both new Python audits pass.  A bounded
+five-minute Lean elaboration passed all new declarations and continued beyond line 10,000 with
+warnings only before timing out in the known expensive tail; this is not a full-file build claim.
+`git diff --check` passes, and no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  All earlier failed routes and counterexamples remain preserved.
+
+The precise next frontier is no longer another aggregation of the same component pair.  Add one
+local terminal-progress coordinate that can recognize cancellation coordinate two in the new
+connected witness—the smallest candidate is the number of indexed gates whose two immediate
+children both meet the requested residual depth—then exhaustively audit it together with the two
+component axes through the full rollout.  This inspects immediate canonical residual depth but
+does not evaluate a recursive child stopping game.  If it cannot defeat the new Pareto-dominance
+witness without reopening an earlier one, return to a genuinely clause-signed vector
+certificate.  The stored-tree and independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### Immediate terminal progress repairs the Pareto witness but opens a connected gap
+
+The proposed local terminal-progress coordinate is now executable.  For each live query it
+counts indexed gates whose canonical trees have depth at most the requested residual depth in
+both immediate Boolean children.  It evaluates exactly those two one-step child trees and no
+recursive child stopping game.  The audited selector gives this coordinate strict priority,
+then raw component marginal, residual-aware excess marginal, and the preserved signed-motif
+tie rank.
+
+This coordinate does distinguish the preceding Pareto witness: its root profile is
+`(0,0,2,0)`, so terminal priority selects the unique one-query winner two instead of the
+component winner zero.  However, exhaustive branch-conditioned audit finds a new strict gap
+after 157 ordered gates and 12,637 restricted states:
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ ¬2), (¬1 ∧ ¬3),
+```
+
+paired with its termwise-negated polarity.  At the fully live root the terminal profile is
+`(0,0,0,0)`, raw component marginal is `(-2,-2,0,0)`, and excess marginal is `(8,8,4,4)`.
+Terminal progress therefore supplies no separation, and raw priority selects coordinate two.
+The exact flexible game has cost two with winning root coordinates zero and one, while the
+selector rollout needs three queries.  An explicit common trunk querying `[0,1]` supplies the
+independent semantic depth-two certificate.
+
+`immediateTerminalProgress`, `maximumTerminalThenRawThenExcessComponentQuery`, and its recursive
+stopping predicate formalize the generic rule.  The normalized witness, explicit trunk, profile,
+and strict three-versus-two gap are recorded by
+`threeTermTerminalComponentGapFamily_normalized`,
+`threeTermTerminalComponentGapFamily_commonShallowAt_two`, and
+`threeTermTerminalComponentGapFamily_profiles_and_gap`.  The Python audit preserves all eight
+earlier passes and adds the ninth terminal-first pass.
+
+A bounded five-minute Lean elaboration accepted the new declarations and continued beyond line
+10,100 with warnings only before the expensive tail ended the run; this is not a full-file build
+claim.  Python syntax checking, all nine executable audits, and `git diff --check` pass.  No
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to determine whether terminal progress can serve as a secondary
+coordinate without losing its repair: audit terminal-then-excess-then-raw and the four orders
+where terminal is not primary, beginning with the three preserved witnesses before resuming the
+full normalized domain.  If every fixed order fails, replace scalar lexicographic selection with
+a clause-signed branch-balance certificate that prices simultaneous progress across both child
+polarities.  The stored-tree and independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### Terminal-then-excess-then-raw survives the complete bounded audit
+
+All six fixed lexicographic orders of immediate terminal progress, residual-aware component
+excess, and raw component marginal have now been tested.  Four of the five newly tested orders
+fail immediately on preserved witnesses.  Raw-first orders retain the disconnected rollout gap;
+putting raw before terminal also retains the connected terminal gap.  Excess-first orders retain
+the one-query Pareto witness because excess strictly prefers coordinate zero over the unique
+winner two.  Together with the already recorded terminal-then-raw-then-excess failure, five of
+the six orders are therefore eliminated without discarding any counterexample.
+
+The sole survivor is terminal progress, then excess marginal, then raw marginal.  It repairs all
+three separating witnesses: it selects zero and stops in two queries on the disconnected family,
+selects the unique winner two and stops in one query on the Pareto family, and selects zero and
+stops in two queries on the connected terminal-gap family.  More significantly, its exhaustive
+branch-conditioned rollout has no strict gap anywhere in the complete normalized ordered domain
+of three distinct width-two clauses on four variables paired with their termwise-negated
+polarity: 103,776 ordered gates and 8,405,856 restricted states were checked against the exact
+flexible minimax cost.
+
+`maximumTerminalThenExcessThenRawComponentQuery` and its recursive stopping predicate now
+formalize this candidate in Lean.  The kernel-checked theorem
+`terminalThenExcessThenRaw_repairs_preserved_witnesses` records its exact root choices and attained
+budgets on the three critical families.  The Python audit now runs every axis order and clears
+the canonical-depth cache between unrelated gate families, avoiding unbounded cache growth
+without changing the semantics.
+
+All fourteen Python audits passed, including the complete 8,405,856-state survivor audit, and
+Python syntax checking passed.  A bounded five-minute direct Lean elaboration accepted the new
+definitions and regression theorem and continued beyond line 10,100 with warnings only before
+timing out in the known expensive tail; this is not a full-file build claim.  `git diff --check`
+and the scoped forbidden-feature scan passed.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+This is positive finite evidence, not a general competitiveness theorem.  In particular the
+audit fixes four variables, three clauses, width two, two paired polarities, and residual depth
+one.  The precise next frontier is to search the smallest strictly larger normalized domain,
+preferably four width-two clauses on four variables before increasing the variable count, while
+separately identifying a local descent invariant that could prove terminal-then-excess-then-raw
+competitive.  Any new counterexample must be preserved; if the candidate survives, the next
+proof obligation is a generic branch-balance lemma rather than another scalar reordering.  The
+stored-tree and independent density/fiber obstructions remain open.  No P-versus-NP conclusion
+follows.
+
+### Four clauses refute the surviving fixed lexicographic selector
+
+The smallest proposed larger-domain audit finds a strict gap after only 6,513 ordered gates and
+527,473 restricted states.  The positive gate is
+
+```text
+(¬0 ∧ ¬1), (¬0 ∧ ¬2), (¬0 ∧ ¬3), (2 ∧ 3),
+```
+
+paired with its termwise-negated polarity.  At the fully live root, immediate terminal progress
+ties `(0,0,0,0)`, residual-aware excess rank is `(60,56,56,56)`, and the surviving selector
+therefore chooses coordinate zero.  Its branch-conditioned rollout needs three queries.  The
+exact flexible minimax cost is two, with coordinates two and three as the winning root queries;
+the explicit common trunk `[2,3]` independently certifies residual depth one in budget two.
+
+This eliminates the last of the six fixed lexicographic orders of terminal progress, excess
+marginal, and raw component marginal: the other five remain separated by their preserved
+three-clause witnesses.  The failure also identifies information discarded by the current
+terminal coordinate.  It counts a gate only when that same gate is shallow in both children.
+On the new witness this profile is zero everywhere, but the per-branch counts of shallow gates
+are `(0,0)` for coordinates zero and one and `(1,1)` for coordinates two and three.  Thus a
+branch-balanced aggregate sees the exact winners without evaluating a recursive stopping game.
+
+`fourTermTerminalThenExcessGapFamily_normalized`,
+`fourTermTerminalThenExcessGapFamily_commonShallowAt_two`, and
+`fourTermTerminalThenExcessGapFamily_profiles_and_gap` preserve the normalized witness, its
+semantic trunk, the separating score, and the strict three-versus-two rollout gap in Lean.  The
+Python audit now has a reproducible `--four-clause-survivor` mode and an optional `--max-gates`
+bound; the strict gap occurs before that bound matters.
+
+Python syntax checking and the exact four-clause search passed.  A bounded five-minute direct
+Lean elaboration accepted every new declaration and continued beyond line 10,600 with warnings
+only before timing out in the known expensive tail; this is not a full-file build claim.
+`git diff --check` and the scoped forbidden-feature scan pass.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to formalize and exhaustively audit the local branch-balance
+coordinate
+
+```text
+min(number of gates shallow in the false child,
+    number of gates shallow in the true child)
+```
+
+on all preserved witnesses before searching the four-clause domain again.  If it reopens an
+earlier gap, retain a two-child vector rather than imposing another fixed scalar order.  A future
+positive result would still require a generic descent/competitiveness lemma; the stored-tree and
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Worst-child branch balance clears the complete three-clause frontier
+
+The proposed local coordinate is now executable in Python and kernel-checked on the preserved
+Lean witnesses.  For a live coordinate `i`, it separately counts the indexed gates whose
+canonical tree has depth at most the residual target after `i := false` and after `i := true`,
+then scores `i` by the smaller count.  The selector retains terminal, excess, raw, and the signed
+motif rank only as lexicographic tie-breakers.  It still performs no recursive stopping-game
+evaluation.
+
+The complete normalized ordered three-clause width-two audit found no strict gap across 103,776
+gates and all 8,405,856 restricted states.  A bounded four-clause audit found no gap in the first
+7,000 ordered gates and 567,000 restricted states.  This prefix includes the old counterexample,
+which occurred at gate 6,513.  On that witness the child-count pairs are `(0,0)`, `(0,0)`,
+`(1,1)`, `(1,1)`; the new selector therefore chooses winning coordinate two and stops at the
+exact two-query budget.
+
+`immediateChildShallowCount`, `immediateBranchBalance`, `maximumBranchBalanceQuery`, and
+`branchConditionedMaximumBranchBalanceStops` formalize the statistic and its rollout in Lean.
+`branchBalance_repairs_preserved_selector_witnesses` records exact root profiles, selected
+coordinates, and successful semantic budgets for the original greedy witness, the incidence,
+excess/raw, and terminal-component witnesses, and the four-clause survivor.  A bounded five-minute
+direct elaboration accepted these declarations and continued beyond line 10,300 with warnings
+only before the timeout; this is not a full-file build claim.
+
+Python syntax checking, the complete three-clause audit, and the bounded four-clause audit passed.
+`git diff --check` and the scoped forbidden-feature scan pass.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.
+
+This remains finite evidence, not a competitiveness theorem.  The precise next frontier is a
+generic one-step branch-balance lemma: relate the worst-child shallow-gate count to a monotone
+deficit that lower-bounds every remaining common-shallow trunk.  In parallel, any future finite
+search should quotient the four-clause space by safe polarity/coordinate symmetries before
+attempting the remaining millions of ordered gates; a new gap must retain the full two-child
+vector rather than collapse immediately to another scalar ordering.  The stored-tree and
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The direct branch-balance deficit is not monotone
+
+The proposed generic proof route cannot use the complementary current shallow-gate count as its
+monotone deficit.  The first normalized three-clause witness found by the executable audit is
+
+```text
+(¬0 ∧ ¬1), (¬2 ∧ ¬0), (¬0 ∧ ¬3).
+```
+
+Under the restriction fixing only coordinate three to false, its recomputed canonical tree has
+depth one.  Extending that restriction by fixing coordinate one to true makes the recomputed
+canonical depth rise to two.  For the singleton indexed family at residual target one, the
+current shallow-gate count therefore drops from one to zero and its complementary deficit rises
+from zero to one.  This is a canonical-order effect: restriction extension preserves semantics
+but can change which active clause and literal the canonical procedure encounters first.
+
+`shallowCountMonotonicityGapGate`, `currentShallowGateCount`, and
+`currentShallowGateCount_not_monotone_under_fixVar` preserve the normalized witness and exact
+depth/count/deficit values in Lean.  The Python audit has a reproducible `--shallow-monotonicity`
+mode and finds the same first witness after 1,066 generated ordered gates.
+
+This obstruction does not refute the branch-balance selector itself; it refutes the most direct
+monotone-potential proof suggested by its finite success.  The precise next frontier is to test a
+stored-tree deficit, where every child uses the restriction of the parent's already-built
+canonical tree rather than recomputing a new canonical tree.  That quantity is monotone by tree
+restriction, but it must still be shown to control the recomputed `canonicalDT` terminal condition
+used by `CommonShallowAt`.  In parallel, the four-clause selector audit now clears 20,000 ordered
+gates and 1,620,000 restricted states without a strict gap.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Stored-tree monotonicity is real but does not control canonical recomputation
+
+The proposed stored-tree audit now has a generic kernel-checked core.  `CommonTree.readOnce` is
+the relevant restriction operation: if `tau` extends `rho`, then restricting one fixed stored tree
+at `tau` has depth at most its restriction at `rho`.  Consequently the number of stored canonical
+gate trees meeting a residual-depth target is monotone nondecreasing along a trunk, and its
+complementary deficit is monotone nonincreasing.
+
+The preserved shallow-count witness sharply separates this valid invariant from the terminal
+condition actually used by `CommonShallowAt`.  Build the canonical tree once at the restriction
+fixing coordinate three to false, then additionally fix coordinate one to true.  Restricting the
+stored tree still has depth one, so the stored one-gate shallow count remains one.  Recomputing
+`canonicalDT` at the extended restriction has depth two.  Thus stored-tree monotonicity repairs the
+potential but does not by itself imply recomputed canonical shallowness, even on the first known
+counterexample.
+
+The generic result is formalized by `CommonTree.depth_readOnce_anti`,
+`storedShallowGateCount_mono`, and `storedShallowGateDeficit_anti`; the exact separation is recorded
+by `storedTree_repair_diverges_from_recomputedCanonical`.  The earlier recomputation counterexample
+is retained unchanged.
+
+The precise next frontier is no longer to prove stored-tree monotonicity.  It is to test the
+weakest possible comparison between a stored residual tree and the recomputed canonical tree:
+first search for a bounded blow-up inequality on normalized width-two gates, parameterized by the
+number of newly fixed coordinates.  A factor-one comparison is already refuted here.  If no useful
+bounded comparison survives, the branch-balance proof must target a semantic shallow-tree terminal
+condition and separately bridge that condition into the layered collapse, rather than reuse the
+canonical-depth terminal predicate.  The independent density/fiber obstructions remain open.  No
+P-versus-NP conclusion follows.
+
+### One new fixing can cost two extra canonical levels
+
+The weakest additive comparison suggested by stored-tree monotonicity is already false.  The
+normalized width-two gate
+
+```text
+(¬0 ∧ ¬1), (¬2 ∧ ¬0), (¬4 ∧ ¬0), (¬0 ∧ ¬3)
+```
+
+is considered at the restriction fixing only coordinate three to false.  Its stored canonical
+tree queries coordinate zero first.  After additionally fixing coordinate one to true, restricting
+that stored tree has depth one.  A fresh canonical run deletes the first clause and encounters
+coordinates two and four before zero, so its depth is three.  Thus, with exactly one newly fixed
+coordinate,
+
+```text
+recomputed depth = 3 > 1 + 1 = stored residual depth + newly fixed coordinates.
+```
+
+`storedTreeAdditiveGapGate_normalized` and
+`storedTree_recomputed_depth_not_le_add_one` kernel-check the duplicate-free gate, the restriction
+extension, both exact depths, and the failed inequality.  This preserves a strictly stronger
+obstruction than the earlier depth-two-versus-one witness.
+
+The executable audit also records useful finite boundary evidence: additive one holds throughout
+all 103,776 normalized ordered three-clause width-two gates on four variables and all 22,415,616
+one-coordinate extensions, and throughout the first 20,000 four-clause gates (4,320,000
+extensions).  The fifth coordinate is therefore genuinely needed by the first explicit stacked
+distraction found here; the finite success must not be mistaken for a general theorem.
+
+The precise next frontier is to parameterize this stacked-distraction construction and prove that
+one newly fixed coordinate permits arbitrarily large recomputed canonical depth while the stored
+residual remains depth one, still with normalized width-two clauses.  That would rule out every
+comparison depending only on stored depth and the number of new fixings.  If established, the
+branch-balance route must move to a semantic terminal certificate and prove a separate semantic-to-
+collapse bridge.  The independent density/fiber obstructions remain open.  No P-versus-NP
+conclusion follows.
+
+### The stacked-distraction mechanism is now parameterized and calibrated
+
+The construction is no longer represented only by its first five-variable instance.
+`stackedDistractionGate k` uses `k + 3` coordinates, one guard clause, `k` ordered distraction
+clauses, and one terminal clause.  `stackedDistractionRestriction k` fixes only the terminal
+coordinate false; the descendant additionally fixes only guard coordinate one true.  This keeps
+the intended one-new-fixing comparison explicit at every size.
+
+`stackedDistraction_six_calibration` kernel-checks the first substantially larger instance:
+with six distractions the clauses are duplicate-free, every clause has two distinct variables,
+the descendant extends the root by one fixing, the stored residual depth is one, and freshly
+recomputed canonical depth is seven.  In particular, even an additive allowance of five over the
+stored depth fails on this normalized width-two gate.
+
+The Python audit now has a deterministic `--stacked-distraction MAX` mode.  It constructs this
+same family directly and checks normalization plus the exact law
+
+```text
+stored residual depth = 1
+recomputed canonical depth = k + 1
+```
+
+for every `k` from zero through `MAX`.  The run through `k = 64` passed, reaching recomputed depth
+65 while stored depth remained one.  This is strong executable evidence for unbounded separation,
+but it is not a proof for arbitrary `k`.
+
+The isolated Lean calibration compiled successfully and its printed axioms are only `propext` and
+`Quot.sound`.  A direct elaboration of the full large bridge reached beyond line 5,400 with warnings
+only before it was stopped; no full bridge build is claimed.  Python syntax checking and the
+65-instance parametric audit passed.  `git diff --check` and the scoped forbidden-feature scan pass.
+No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is the symbolic exact-depth induction for `stackedDistractionGate k`.
+It must show that after the guard fixing, the all-true distraction branch advances the canonical
+active-term scan once per clause and finally queries coordinate zero, while the stored tree built
+at the root collapses immediately to depth one.  That theorem would upgrade the current finite
+calibration to an arbitrary-gap refutation of every bound depending only on stored residual depth
+and the number of new fixings.  Only then is the semantic-terminal/collapse bridge forced as a
+theorem rather than suggested by an extensively tested family.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The symbolic family is uniformly normalized and changes exactly one coordinate
+
+Two structural premises of the arbitrary-`k` induction are now discharged symbolically rather
+than inferred from finite calibration.  `stackedDistractionGate_normalized k` proves for every
+`k` that the guard, all `List.ofFn` distraction clauses, and the terminal clause form a
+duplicate-free gate, and that each clause has two distinct variables.  The proof makes the
+`List.ofFn` map injective from the first literal and separates its coordinates `2,...,k+1` from
+the guard and terminal coordinates.
+
+`stackedDistraction_one_new_fixing k` proves that the descendant restriction extends the root,
+coordinate one changes from free to true, and every coordinate on which the two restrictions
+differ is coordinate one.  Thus the eventual arbitrary separation cannot hide extra fixings or
+lose normalization as `k` grows.
+
+An isolated file containing these definitions and proofs compiled successfully.  Direct
+elaboration of the full bridge passed the edited declarations and continued beyond line 10,600
+with warnings only before being stopped; this is not a full-file build claim.  `git diff --check`
+and the scoped forbidden-feature scan pass.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The exact depths are deliberately not claimed yet.  Direct unfolding identifies the remaining
+proof obligation sharply: prove a reusable `List.ofFn` active-scan lemma saying that after the
+first `r < k` distraction coordinates are fixed true, `activeTermLit` selects distraction `r`,
+and at `r = k` it selects coordinate zero.  Induction through `replayPath`, followed by
+`canonicalDT_depth_ge_replay` and the fuel upper bound, will then give recomputed depth `k+1`.
+The stored-depth-one statement remains a separate symbolic lemma.  This is the precise next
+frontier; the independent density/fiber obstructions remain open.  No P-versus-NP conclusion
+follows.
+
+### The symbolic interior active scan is proved
+
+The list-order core now has a uniform Lean theorem rather than finite calibration.
+`stackedDistractionScanRestriction k r` explicitly fixes the terminal coordinate false, disables
+the guard with coordinate one true, and fixes exactly the distraction coordinates indexed below
+`r` true.  For every `r < k`, `stackedDistraction_activeTermLit_scan k r` proves that
+`activeTermLit` selects the negative literal on distraction coordinate `r`.
+
+The proof audits the actual `List.ofFn` ordering.  It proves that no term is already satisfied,
+uses `List.find?_eq_some_iff_getElem` at gate index `r+1`, proves the guard and every earlier
+distraction fail the active predicate, and reconstructs the indexed clause through `getElem?`.
+Thus the selector cannot skip ahead or fall through to the terminal clause.  The statement is
+symbolic in both `k` and `r`.
+
+An isolated version of the proof compiled successfully.  Direct elaboration of the production
+bridge passed the new declarations and continued beyond line 10,700 with warnings only before it
+was stopped; no full-file build is claimed.  The scoped forbidden-feature scan and
+`git diff --check` pass.  No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.
+
+The precise next frontier is now narrower: prove the endpoint scan at `r = k`, where the terminal
+clause must select coordinate zero, and prove by induction that `replayPath` from the descendant
+restriction is definitionally represented by `stackedDistractionScanRestriction k r`.  These two
+facts feed `canonicalDT_depth_ge_replay` for the `k+1` lower bound.  A separate symbolic proof that
+the root-built stored residual has depth one, together with the standard live-variable fuel upper
+bound, will then yield the arbitrary exact-depth separation.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The symbolic active scan now reaches its endpoint
+
+`stackedDistraction_activeTermLit_endpoint k` proves uniformly that after all `k` distraction
+coordinates have been fixed true, the canonical selector reaches the final clause and selects
+its free negative literal on coordinate zero.  The proof identifies the terminal clause at exact
+gate index `k+1`, establishes its active predicate, and rules out the guard plus every preceding
+`List.ofFn` distraction.  It also covers the empty distraction block `k = 0` without a separate
+assumption.
+
+Together with `stackedDistraction_activeTermLit_scan`, this kernel-checks the complete symbolic
+selector sequence: distraction coordinates `0,...,k-1`, followed by coordinate zero.  A direct
+production-file elaboration passed the new theorem and continued through line 11,204 with warnings
+only before the expensive tail was stopped; this is not a full-file build claim.  A separate
+prefix-only check through the theorem completed successfully and printed exactly `propext`,
+`Classical.choice`, and `Quot.sound`.  The executable stacked-distraction calibration through
+`k = 64`, the scoped forbidden-feature scan, and `git diff --check` pass.  No `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to prove the transition identity between consecutive scan states:
+fixing the selected distraction literal to its all-true branch must turn
+`stackedDistractionScanRestriction k r` into `stackedDistractionScanRestriction k (r+1)`.
+Induction can then identify the first `k+1` steps of `replayPath`, yielding the symbolic depth
+lower bound through `canonicalDT_depth_ge_replay`.  The stored-depth-one lemma and matching
+live-variable fuel upper bound remain separate obligations.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The symbolic scan state now advances operationally
+
+`stackedDistractionScanRestriction_falFix_coord k r hr` proves for every `r < k` that
+falsifying the negative literal selected at distraction stage `r` changes the explicit state
+exactly from `stackedDistractionScanRestriction k r` to
+`stackedDistractionScanRestriction k (r+1)`.  The proof is extensional: at the selected
+coordinate `falFix` writes `true`, while away from it the two interval predicates can differ only
+at value `r+2`, which is precisely the excluded selected coordinate.
+
+A source-prefix elaboration through the theorem completed successfully.  Its printed axioms are
+exactly `propext`, `Classical.choice`, and `Quot.sound`; `git diff --check` and the scoped
+forbidden-feature scan pass.  This verification is deliberately prefix-scoped and is not a full
+production build claim.
+
+The precise next frontier is the replay induction itself: prove for `r ≤ k` that `replayPath`
+from the guard-disabled descendant after `r` steps equals
+`stackedDistractionScanRestriction k r`, using the interior selector theorem and this transition.
+Then combine the endpoint selector at step `k` with one final replay step to discharge the
+nonterminal premise of `canonicalDT_depth_ge_replay` at length `k+1`.  The stored-depth-one lemma
+and matching live-variable fuel upper bound remain separate obligations.  The independent
+density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The operational replay follows the symbolic scan exactly
+
+`stackedDistraction_replayPath_scan k r hr` now proves for every `r ≤ k` that the all-falsify
+`replayPath` starting at the guard-disabled descendant is exactly
+`stackedDistractionScanRestriction k r`.  The base case identifies the descendant restriction
+extensionally with scan state zero, including the distinct guard and terminal coordinates.  The
+successor case uses the symbolic interior selector and the proved `falFix` transition, so the
+actual replay cannot skip or repeat a distraction stage.
+
+A source-prefix elaboration through the theorem completed successfully.  The printed axioms are
+exactly `propext`, `Classical.choice`, and `Quot.sound`.  This is a prefix-scoped verification, not
+a full production build claim.  The scoped forbidden-feature scan and `git diff --check` pass; no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to package the replay lower-bound premise for all `i < k+1`: use the
+replay invariant for `i ≤ k`, `stackedDistraction_anyTermSat_false`, the interior selector for
+`i < k`, and the endpoint selector for `i = k`.  Feeding that premise to
+`canonicalDT_depth_ge_replay` will prove fresh canonical depth at least `k+1`.  The matching fuel
+upper bound and the symbolic stored-depth-one theorem remain separate obligations before the
+arbitrary exact-depth separation is complete.  The independent density/fiber obstructions remain
+open.  No P-versus-NP conclusion follows.
+
+### The symbolic replay now forces canonical depth `k + 1`
+
+`stackedDistraction_replay_nonterminal k i hi` packages the complete lower-bound premise for every
+`i < k + 1`.  Rewriting the operational state with `stackedDistraction_replayPath_scan` shows that
+no term is satisfied.  For `i < k`, the interior selector supplies the next distraction literal;
+the only remaining case is `i = k`, where the endpoint selector supplies coordinate zero.  Hence
+none of the first `k + 1` replay states is terminal.
+
+`stackedDistraction_canonicalDT_depth_ge k fuel hfuel` feeds this uniform premise directly to
+`canonicalDT_depth_ge_replay` and proves, for every `fuel ≥ k + 1`,
+
+```text
+k + 1 ≤ depth (canonicalDT (stackedDistractionGate k) fuel descendant).
+```
+
+This upgrades the finite `k ≤ 64` calibration to a symbolic lower bound for arbitrary `k`; the
+stored-tree comparison is not yet complete because equality still needs a matching upper bound and
+the root-built stored residual still needs a symbolic depth-one proof.  The precise next frontier
+is the fuel upper bound: compute the descendant's live-variable count (expected `k + 1`) and apply
+`canonicalDT_depth_le_stars` to obtain exact fresh depth.  Then prove the separate stored-depth-one
+lemma and combine the results into the arbitrary-gap theorem.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The stacked-distraction fresh depth is exact at the live-variable fuel
+
+`freeVars_stackedDistraction_descendant k` identifies the descendant's live coordinates exactly:
+the terminal coordinate and guard coordinate one are removed from the ambient universe, leaving
+coordinate zero and the `k` distraction coordinates.  Consequently
+`stars_stackedDistraction_descendant k` proves that its live-variable count is `k + 1`.
+
+`stackedDistraction_canonicalDT_depth_exact k` combines the symbolic replay lower bound with the
+unconditional fuel upper bound at that exact live-variable budget, yielding
+
+```text
+depth (canonicalDT (stackedDistractionGate k) (k+1) descendant) = k+1.
+```
+
+Direct elaboration of the production bridge passed all three new declarations and continued
+beyond line 11,300 with warnings only before the expensive unchanged tail was stopped; this is
+not a full-file build claim.  The precise next frontier is now the stored side: prove symbolically
+that reading the root-built canonical tree under the guard-disabled descendant has depth one at a
+common adequate fuel, then package that result with exact fresh depth and
+`stackedDistraction_one_new_fixing` into an arbitrary-gap theorem.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### One new fixing now gives a proved arbitrary canonical-depth gap
+
+The stored side of the stacked-distraction construction is now symbolic.  The theorem
+`stackedDistraction_canonicalDT_root_shape k fuel` proves that at every positive fuel the tree
+built at the root is exactly
+
+```text
+query 0 (leaf true) (leaf false).
+```
+
+The first guard clause selects coordinate zero.  On the false branch, the already-false terminal
+coordinate makes the terminal clause satisfied; on the true branch, the negative zero literal
+falsifies every clause.  Thus no part of the `List.ofFn` distraction block survives in the stored
+tree.  Restricting this tree by the descendant retains its free coordinate-zero query, and
+`stackedDistraction_stored_depth_exact k fuel` proves stored depth exactly one for arbitrary `k`
+and every positive common fuel.
+
+`stackedDistraction_arbitrary_additive_gap B` combines that result with uniform normalization,
+`stackedDistraction_one_new_fixing`, and the exact fresh-depth theorem at common fuel `k+1`, where
+`k = B+1`.  It proves that the restrictions differ only at coordinate one, stored depth is one,
+fresh canonical depth is `B+2`, and
+
+```text
+fresh depth > stored depth + B.
+```
+
+Consequently no uniform additive comparison can bound recomputed canonical depth using only the
+stored residual depth and a constant allowance for this single new fixing, even for normalized
+width-two gates.  A source-prefix elaboration through the new capstone completed successfully;
+the earlier full-file diagnostic continued without errors until its time limit.  The isolated
+root-shape proof also compiled before integration.  `git diff --check`, the scoped forbidden-
+feature scan, and the executable stacked-distraction audit through `k = 64` pass.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is now forced away from stored-versus-recomputed canonical-depth
+comparison.  Define a semantic residual terminal certificate for a stored common trunk, prove
+that it is monotone under restriction, and bridge it separately to the `leafCollapse`/layered
+collapse semantics.  The first high-information test is whether the exact root-shape family is
+already semantically terminal at the stored depth-one leaves despite its arbitrarily deep fresh
+canonical scan; that determines the weakest viable certificate.  The independent density/fiber
+obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The arbitrary-depth gap disappears at stored semantic leaves
+
+The first semantic-terminal test is positive, uniformly in the size of the counterexample.
+`stackedDistraction_stored_leaf_terminal k fuel` proves that every assignment extending the
+guard-disabled descendant reaches a `CanonicalTerminal` restriction after following the tree
+built at the original root.  On the false coordinate-zero branch the terminal clause is already
+satisfied; on the true branch no active clause remains.  The single guard fixing is then handled
+by the existing theorem `CanonicalTerminal.mono`.
+
+Consequently `stackedDistraction_stored_leaf_rebuild_depth_zero` proves that rebuilding the gate
+at either stored leaf has depth zero for every new fuel.  This coexists with
+`stackedDistraction_canonicalDT_depth_exact`: at the intermediate guard-disabled restriction the
+fresh canonical tree has depth `k+1`, but its stored depth-one tree still routes every assignment
+to a genuinely terminal leaf.  Thus the arbitrary stored-versus-fresh depth separation does not
+refute a semantic terminal certificate; it isolates why such a certificate must be path/leaf
+based rather than an inequality at the intermediate restriction.
+
+A bounded production-file elaboration passed both new theorems and continued beyond line 11,200
+with warnings only before its five-minute time limit.  This is not a full-file build claim.
+`git diff --check` and the scoped forbidden-feature scan pass.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to package this surviving notion generically: define a stored common
+trunk whose reached payload restrictions are `CanonicalTerminal` for every indexed gate, prove
+that certificate stable when the root restriction is extended (using terminal monotonicity and
+path-endpoint extension), and convert it to `CommonShallowAt ... residualDepth 0`.  The existing
+`canonicalDT_depth_eq_zero_of_terminal` should then feed the current `leafCollapse`/layered bridge
+without changing collapse semantics.  The remaining nontrivial point is the generic compatibility
+between extending a root and the stored trunk's reached endpoint, not canonical depth.  The
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### Stored semantic terminality is now a reusable monotone certificate
+
+The path/leaf notion surviving the stacked-distraction counterexample is now packaged as
+`StoredCommonTerminalAt`.  It stores one Boolean common tree, bounds its read-once depth at the
+current root, and requires every reached path endpoint to be `CanonicalTerminal` for every indexed
+gate.
+
+The generic endpoint lemma
+`CommonTree.pathEndpoint_restrictionExtends_of_restrictionExtends` proves the compatibility that
+was previously open: if `sigma` is extended to `tau` and `x` extends `tau`, then the endpoint of a
+fixed stored tree from `sigma` is restriction-extended by its endpoint from `tau`.  A query skipped
+at the stronger root is either already fixed there or, if still free, remains on the normalized
+path.  Combining this with stored-tree depth antitonicity and `CanonicalTerminal.mono` yields
+`StoredCommonTerminalAt.mono`.
+
+`StoredCommonTerminalAt.toCommonShallowAt` decorates the stored tree with complete
+`prefixEndpoints` and converts the certificate, for arbitrary rebuild fuel, to
+`CommonShallowAt ... trunkDepth 0`.  Thus the existing `leafCollapse` and layered bridge can consume
+the certificate without comparing a stored residual depth to a freshly recomputed intermediate
+depth.
+
+The stacked-distraction family now instantiates the abstraction explicitly:
+`stackedDistraction_stored_common_terminal` gives the singleton family a depth-one stored
+certificate at the guard-disabled descendant, and
+`stackedDistraction_stored_commonShallowAt_zero` converts it to the residual-depth-zero collapse
+interface.  This coexists with fresh depth `k+1`, so the repaired bridge addresses the exact
+arbitrary-gap witness rather than assuming it away.
+
+Both reusable modules compile.  Their printed capstone axioms are exactly `propext`,
+`Classical.choice`, and `Quot.sound`.  Production elaboration of the large TwoSAT bridge passed the
+two concrete theorems and continued beyond line 11,188 with warnings only before the five-minute
+limit; this is not a full-file build claim.  No `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is to thread `StoredCommonTerminalAt.mono` through an actual layered
+survivor transition: retain the counted bounded trunk as stored state, extend its root by the next
+round's restriction, convert the transported certificate to `CommonShallowAt ... 0`, and invoke
+the existing `leaf_collapseRound_family_bounds`.  The key audit is whether the counting theorem
+currently exposes terminality of that bounded stored trunk (as opposed to shallowness only after
+fresh rebuilding); if it does not, that production lemma is the next genuine obligation.  The
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.
+
+### The realized-density counting output already contains a stored terminal trunk
+
+The production counting interface does not need a stronger bad event.  The new converse theorem
+`canonicalTerminal_of_canonicalDT_depth_eq_zero_of_stars_le_fuel` proves that canonical depth zero
+at ample fuel is genuine semantic terminality, rather than a fuel-exhaustion leaf.
+
+`CommonShallowAt.toStoredCommonTerminalAt_zero` then converts any residual-depth-zero common
+certificate into `StoredCommonTerminalAt`.  It retains the query shape while erasing irrelevant
+leaf payloads.  The main compatibility lemma proves that the path endpoint of this stored shape
+extends the original certificate leaf: queried coordinates agree with the followed assignment,
+while the existing global leaf-agreement theorem rules out hidden fixings of unqueried live
+coordinates.  Terminality therefore transfers monotonically to the stored endpoint.
+
+Finally, `exists_normalizedLayered_storedCommonTerminalAt_of_realized_density` specializes the
+existing circuit counting theorem at residual depth zero.  Under the same width-two, term-count,
+fuel, shell, and realized-density hypotheses, it returns a `20*r`-star root carrying a stored
+terminal trunk of depth at most `10*r`.  Hence the exact counted object can be transported through
+later restriction extensions by `StoredCommonTerminalAt.mono` and reconverted to the layered
+collapse interface; fresh rebuilding at the intermediate restriction is unnecessary.
+
+The reusable fuel-safe module and the circuit support-survivor module elaborate successfully.
+The dependency target build completed 8,240 jobs.  Printed axioms for the new capstones are exactly
+`propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is an actual stateful round theorem: extend the selected stored
+certificate to the survivor restriction, invoke `toCommonShallowAt` there, and feed that exact
+transported certificate to `leaf_collapseRound_family_bounds`, retaining the stored trunk (or its
+successor certificate) in the round state for iteration.  The remaining audit is now state
+plumbing and the next-round family change, not production terminality of the counted trunk.  The
+independent density/fiber obstructions remain open.  No P-versus-NP conclusion follows.

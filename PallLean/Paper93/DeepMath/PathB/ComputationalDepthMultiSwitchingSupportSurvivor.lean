@@ -1645,6 +1645,27 @@ theorem exists_normalizedLayered_commonShallowAt_of_realized_density
   rw [mem_commonShallowBad]
   exact ⟨hstars, hnot⟩
 
+/-- The realized-density counting theorem already exposes a bounded stored terminal trunk when
+specialized to residual depth zero.  Thus no stronger production counting event is required for
+semantic transport: the selected certificate can be retained across every later restriction
+extension via `StoredCommonTerminalAt.mono`. -/
+theorem exists_normalizedLayered_storedCommonTerminalAt_of_realized_density
+    {n m r fuel : ℕ} {C : Layered n}
+    (hr : 0 < r)
+    (hw : BottomWidth 2 C) (hcount : BottomCount m C)
+    (hKfuel : 20 * r ≤ fuel) (hKn : 20 * r ≤ n)
+    (hdensity :
+      (4 * ((2 + 1) * ((layeredBottomFamilyList C).length * m + 1))) *
+          (20 * r) + 20 * r ≤ n + 1) :
+    ∃ sigma : Restriction n,
+      stars sigma = 20 * r ∧
+      StoredCommonTerminalAt (normalizedLayeredBottomFamily C) sigma (10 * r) := by
+  obtain ⟨sigma, hstars, hcommon⟩ :=
+    exists_normalizedLayered_commonShallowAt_of_realized_density
+      (residualDepth := 0) hr hw hcount hKfuel hKn hdensity
+  refine ⟨sigma, hstars, hcommon.toStoredCommonTerminalAt_zero ?_⟩
+  simpa [hstars] using hKfuel
+
 /-- Full variable support does not make the geometric common-shallow selector vacuous.  Under the
 realized-family density hypotheses, a full-support family still has a `20*r`-star root with a
 `10*r` common trunk and the requested residual depth.  The support premise is deliberately absent
@@ -2114,6 +2135,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.liveLayeredBottomSupportTail_card_of_full_support
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.fullSupport_halfShell_mem_liveLayeredBottomSupportTail
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_normalizedLayered_commonShallowAt_of_realized_density
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_normalizedLayered_storedCommonTerminalAt_of_realized_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.exists_commonShallowAt_linearGap_realized_of_full_support
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.restriction_not_commonShallowAt_independentLiteral_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowBad_independentLiteral_zero_eq_shell
