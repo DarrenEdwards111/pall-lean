@@ -714,6 +714,32 @@ theorem CommonShallowAt.leaf_collapseRound_family_bounds {n G M : ℕ}
     (collapseRound_count_le fuel (CommonTree.run trunk x) hC).trans hcnt,
     collapseRound_BottomCount fuel (CommonTree.run trunk x) hM1 hC hshallow hcnt⟩
 
+/-- One stateful stored-terminal survivor transition.  The certificate selected at `σ` is retained
+as explicit state after an arbitrary survivor extension to `τ`; that exact transported object is
+then converted to the residual-depth-zero layered interface and consumed by the existing collapse
+round.  The conclusion deliberately retains a certificate only for the current circuit's family:
+the collapsed circuit has a different normalized bottom-gate family, whose next certificate must
+be selected by the following counting round. -/
+theorem StoredCommonTerminalAt.extended_leaf_collapseRound_family_bounds {n M : ℕ}
+    {fuel : ℕ} {σ τ : Restriction n} {trunkDepth : ℕ} {C : Layered n}
+    (h : StoredCommonTerminalAt (normalizedLayeredBottomFamily C) σ trunkDepth)
+    (hστ : RestrictionExtends σ τ) (hfuel : stars τ ≤ fuel)
+    (hM1 : 1 ≤ M) (hC : NonEmptyGates C) (hcnt : (bottomGates C).length ≤ M)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends τ x) :
+    StoredCommonTerminalAt (normalizedLayeredBottomFamily C) τ trunkDepth ∧
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      let υ := CommonTree.run trunk x
+      stars υ ≤ fuel ∧
+      (bottomGates (collapseRound fuel υ C)).length ≤ M ∧
+      BottomCount (M * 2 ^ (0 + 1)) (collapseRound fuel υ C) := by
+  have htransported :
+      StoredCommonTerminalAt (normalizedLayeredBottomFamily C) τ trunkDepth :=
+    h.mono hστ
+  refine ⟨htransported, ?_⟩
+  exact (htransported.toCommonShallowAt fuel).leaf_collapseRound_family_bounds
+    hfuel (normalizedLayeredBottomFamily_covers C) hM1 hC hcnt x hx
+
 /-- The next round's exact ragged encoder alphabet is only linear in the current bottom-gate
 bound.  The old rectangular recurrence paid `2*M^2*2^(s+1)`; total-clause conservation through
 the merge gives `2*M*2^(s+1)` for the normalized two-polarity family. -/
@@ -10831,6 +10857,7 @@ end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.normalizedLayered_commonShallowBad_scaled_le_of_actual_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.commonShallowAt_normalizedLayeredBottomFamily_iff
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_family_bounds
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.StoredCommonTerminalAt.extended_leaf_collapseRound_family_bounds
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.manyIntactShell_card
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freeSetOccupancyCode_injective
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.freeSetOccupancyCode_card
