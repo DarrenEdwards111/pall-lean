@@ -10,6 +10,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3GeomTail
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingLayeredBridge
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingNormalize
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMultiSwitchingSupportSurvivor
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDepth3ParityCount
 
 /-!
 # Varying-parameter iteration of corrected switching rounds
@@ -4550,6 +4551,772 @@ theorem StoredCommonTerminalAt.exists_localized_collapse_successor_of_realized_d
 
 /-! ### Finite backward survivor schedules -/
 
+/-! ### Sound conditioned first-round codes -/
+
+/-- A conditioned first-round code with list-decoding ambiguity at most `L`.  Unlike
+`ConditionedFirstRoundCode`, this interface does not require the endpoint/label pair to recover a
+unique bad root.  It records exactly the weaker counting obligation: at most `L` roots may share
+any one endpoint/label pair. -/
+structure BoundedAmbiguityFirstRoundCode {n : ℕ} (bad : Finset (Restriction n)) (L : ℕ) where
+  Label : Type
+  labelFintype : Fintype Label
+  endpoint : ↑bad → Restriction n
+  encode : ↑bad → Label
+  pairFiberCard_le : ∀ kappa label,
+    Nat.card {root : ↑bad // endpoint root = kappa ∧ encode root = label} ≤ L
+
+namespace BoundedAmbiguityFirstRoundCode
+
+/-- The label alphabet charged by a bounded-ambiguity code. -/
+def labelCard {n L : ℕ} {bad : Finset (Restriction n)}
+    (code : BoundedAmbiguityFirstRoundCode bad L) : ℕ :=
+  @Fintype.card code.Label code.labelFintype
+
+/-- Bounded-ambiguity shell accounting.  Weakening exact decoding to lists of size at most `L`
+introduces exactly one multiplicative factor `L`; no semantic or encoder-specific assumption is
+used. -/
+theorem bad_card_le_ambiguity_mul_labelCard_mul_endpointShell_card
+    {n K' L : ℕ} {bad : Finset (Restriction n)}
+    (code : BoundedAmbiguityFirstRoundCode bad L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = K') :
+    bad.card ≤ L * (code.labelCard *
+      (Finset.univ.filter fun kappa : Restriction n => stars kappa = K').card) := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  let domain : Finset ↑bad := Finset.univ
+  let pair : ↑bad → Restriction n × code.Label :=
+    fun root => (code.endpoint root, code.encode root)
+  let endpointShell : Finset (Restriction n) :=
+    Finset.univ.filter fun kappa => stars kappa = K'
+  let pairShell : Finset (Restriction n × code.Label) :=
+    endpointShell.product Finset.univ
+  have hfibers : ∀ key ∈ domain.image pair,
+      (domain.filter fun root => pair root = key).card ≤ L := by
+    intro key _
+    calc
+      (domain.filter fun root => pair root = key).card =
+          Fintype.card ↑(domain.filter fun root => pair root = key) := by
+            rw [Fintype.card_coe]
+      _ ≤ Fintype.card {root : ↑bad //
+          code.endpoint root = key.1 ∧ code.encode root = key.2} := by
+        apply Fintype.card_le_of_injective
+          (fun root : ↑(domain.filter fun root => pair root = key) =>
+            (⟨root.1,
+              congrArg Prod.fst (Finset.mem_filter.mp root.2).2,
+              congrArg Prod.snd (Finset.mem_filter.mp root.2).2⟩ :
+              {candidate : ↑bad // code.endpoint candidate = key.1 ∧
+                code.encode candidate = key.2}))
+        intro root₁ root₂ h
+        apply Subtype.ext
+        exact congrArg (fun candidate => candidate.1) h
+      _ ≤ L := by
+        simpa [Nat.card_eq_fintype_card] using code.pairFiberCard_le key.1 key.2
+  have himage : domain.image pair ⊆ pairShell := by
+    intro key hkey
+    obtain ⟨root, _, rfl⟩ := Finset.mem_image.mp hkey
+    exact Finset.mem_product.mpr
+      ⟨Finset.mem_filter.mpr ⟨Finset.mem_univ _, hendpoint root⟩, Finset.mem_univ _⟩
+  have hcount := Finset.card_le_mul_card_image domain L hfibers
+  calc
+    bad.card ≤ L * (domain.image pair).card := by
+      simpa [domain, Nat.mul_comm] using hcount
+    _ ≤ L * pairShell.card := Nat.mul_le_mul_left L (Finset.card_le_card himage)
+    _ = L * (code.labelCard * endpointShell.card) := by
+      simp [pairShell, labelCard, Nat.mul_comm]
+    _ = L * (code.labelCard *
+        (Finset.univ.filter fun kappa : Restriction n => stars kappa = K').card) := rfl
+
+end BoundedAmbiguityFirstRoundCode
+
+/-- A finite label code for a circuit round, conditioned on its produced endpoint.  The source is
+the actual finite bad-root set, rather than the whole restriction shell.  Soundness says that the
+decoder reconstructs every bad root from the pair consisting of its endpoint and its label.
+
+This interface deliberately imposes no particular encoder construction and no density bound.  It
+isolates the minimum semantic obligation that any proposed restriction- or survivor-conditioned
+alphabet must discharge before its cardinality can be inserted into the product-aware recurrence. -/
+structure ConditionedFirstRoundCode {n : ℕ} (bad : Finset (Restriction n)) where
+  Label : Type
+  labelFintype : Fintype Label
+  endpoint : ↑bad → Restriction n
+  encode : ↑bad → Label
+  decode : Restriction n → Label → Option ↑bad
+  decode_encode : ∀ root, decode (endpoint root) (encode root) = some root
+
+namespace ConditionedFirstRoundCode
+
+/-- The finite cardinality charged to the product-aware recurrence. -/
+def labelCard {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) : ℕ :=
+  @Fintype.card code.Label code.labelFintype
+
+/-- Decoder soundness makes `(endpoint, label)` injective on the actual bad roots. -/
+theorem endpoint_encode_injective {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) :
+    Function.Injective (fun root ↦ (code.endpoint root, code.encode root)) := by
+  intro root₁ root₂ h
+  have hendpoint : code.endpoint root₁ = code.endpoint root₂ := congrArg Prod.fst h
+  have hencode : code.encode root₁ = code.encode root₂ := congrArg Prod.snd h
+  have hdecode := code.decode_encode root₁
+  rw [hendpoint, hencode, code.decode_encode root₂] at hdecode
+  exact Option.some.inj hdecode.symm
+
+/-- On each fixed endpoint fiber, labels alone are injective. -/
+theorem encode_injective_on_endpoint_fiber {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad)
+    (kappa : Restriction n) :
+    Set.InjOn code.encode {root | code.endpoint root = kappa} := by
+  intro root₁ hroot₁ root₂ hroot₂ hencode
+  apply code.endpoint_encode_injective
+  exact Prod.ext (hroot₁.trans hroot₂.symm) hencode
+
+/-- Every endpoint fiber fits inside the finite label alphabet.  This exposes the quantitative
+obligation behind conditioned compression: the largest realized bad-root fiber is a lower bound
+on the number of charged labels. -/
+theorem endpointFiberCard_le_labelCard {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad)
+    (kappa : Restriction n) :
+    Fintype.card {root : ↑bad // code.endpoint root = kappa} ≤ code.labelCard := by
+  letI : Fintype code.Label := code.labelFintype
+  let encodeFiber : {root : ↑bad // code.endpoint root = kappa} → code.Label :=
+    fun root ↦ code.encode root.1
+  apply Fintype.card_le_of_injective encodeFiber
+  intro root₁ root₂ hencode
+  apply Subtype.ext
+  exact code.encode_injective_on_endpoint_fiber kappa root₁.property root₂.property hencode
+
+/-- A nonempty actual bad set forces every sound conditioned code to have a nonempty label
+alphabet.  This is the minimal bridge needed to replace the optimistic zero-label audit by the
+positive-alphabet floor. -/
+theorem labelCard_pos_of_bad_nonempty {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) (hbad : bad.Nonempty) :
+    0 < code.labelCard := by
+  obtain ⟨root, hroot⟩ := hbad
+  let root' : ↑bad := ⟨root, hroot⟩
+  exact @Fintype.card_pos_iff code.Label code.labelFintype |>.2 ⟨code.encode root'⟩
+
+/-- Package any finite endpoint/label pair known to be injective as a decoder-sound conditioned
+code.  The decoder is deliberately extensional: it searches the finite source for the unique root
+with the requested pair.  Concrete encoders therefore only need to prove their existing
+reconstruction/injectivity theorem once. -/
+noncomputable def ofInjectivePair {n : ℕ} {bad : Finset (Restriction n)}
+    {Label : Type} [Fintype Label]
+    (endpoint : ↑bad → Restriction n) (encode : ↑bad → Label)
+    (hinj : Function.Injective fun root ↦ (endpoint root, encode root)) :
+    ConditionedFirstRoundCode bad where
+  Label := Label
+  labelFintype := inferInstance
+  endpoint := endpoint
+  encode := encode
+  decode := by
+    classical
+    exact fun kappa label =>
+      if h : ∃ root : ↑bad, endpoint root = kappa ∧ encode root = label then
+        some (Classical.choose h)
+      else none
+  decode_encode := by
+    intro root
+    rw [dif_pos ⟨root, rfl, rfl⟩]
+    congr 1
+    apply hinj
+    exact Prod.ext
+      (Classical.choose_spec (show ∃ candidate : ↑bad,
+        endpoint candidate = endpoint root ∧ encode candidate = encode root from
+          ⟨root, rfl, rfl⟩)).1
+      (Classical.choose_spec (show ∃ candidate : ↑bad,
+        endpoint candidate = endpoint root ∧ encode candidate = encode root from
+          ⟨root, rfl, rfl⟩)).2
+
+/-- The existing circuit-owned ragged symmetric-prefix encoder is a sound conditioned code on
+the actual common-shallow bad set.  Its endpoint is the canonical first-`d` fresh-variable
+endpoint selected by the semantic bad assignment; its label records fresh positions and the
+multiset of realized `(gate, term)` keys. -/
+noncomputable def commonShallowBadPrefixCode
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    ConditionedFirstRoundCode (commonShallowBad gates fuel K d residualDepth) := by
+  let assignment := commonShallowBadAssignment gates fuel K d residualDepth
+  let endpoint :
+      ↑(commonShallowBad gates fuel K d residualDepth) → Restriction n := fun root ↦
+    freshTaggedPrefixEndpoint gates fuel root.1 (assignment root.1) d
+  let encode : ↑(commonShallowBad gates fuel K d residualDepth) →
+      PrefixActualSymLabel w d gates := fun root ↦
+    canonicalPrefixActualSymLabel (d := d) gates hnd hw fuel root.1 (assignment root.1)
+  apply ofInjectivePair endpoint encode
+  intro root₁ root₂ hpairs
+  apply Subtype.ext
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel
+    (commonShallowBadAssignment_spec root₁.property).1
+    (commonShallowBadAssignment_spec root₂.property).1
+    (congrArg Prod.fst hpairs)
+  apply freshTaggedPrefixVars_eq_of_prefixActualSymLabel_eq gates hnd hw fuel
+    root₁.1 root₂.1 (assignment root₁.1) (assignment root₂.1)
+    (commonShallowBadAssignment_spec root₁.property).1
+    (commonShallowBadAssignment_spec root₂.property).1
+    (commonShallowBadAssignment_long_of_le_fuel hKfuel root₁.property)
+    (commonShallowBadAssignment_long_of_le_fuel hKfuel root₂.property)
+    (congrArg Prod.snd hpairs)
+
+/-- Exact first-round alphabet charged by the concrete ragged symmetric-prefix code.  This is an
+ambient alphabet bound, not yet the smaller endpoint-conditioned realized image. -/
+theorem commonShallowBadPrefixCode_labelCard
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).labelCard =
+      (w + 1) ^ d * (((∑ g, (gates g).length) + d - 1).choose d + 1) := by
+  change Fintype.card (PrefixActualSymLabel w d gates) = _
+  exact card_prefixActualSymLabel w d gates
+
+/-- The labels actually used by a conditioned code on its finite bad-root domain.  This is the
+global union of the endpoint-local realized label images, represented without paying for unused
+elements of the ambient label type. -/
+noncomputable def realizedLabelImage {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) : Finset code.Label := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  exact Finset.univ.image code.encode
+
+/-- Restrict a decoder-sound conditioned code to the finite subtype of labels it actually uses.
+Labels may still be reused at different endpoints; decoder soundness only requires injectivity
+inside each endpoint fiber. -/
+noncomputable def restrictToRealizedLabels {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) : ConditionedFirstRoundCode bad := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  let encode : ↑bad → ↑code.realizedLabelImage := fun root ↦
+    ⟨code.encode root, by
+      rw [realizedLabelImage, Finset.mem_image]
+      exact ⟨root, Finset.mem_univ _, rfl⟩⟩
+  apply ofInjectivePair code.endpoint encode
+  intro root₁ root₂ hpairs
+  have hendpoint : code.endpoint root₁ = code.endpoint root₂ :=
+    congrArg (fun pair : Restriction n × ↑code.realizedLabelImage ↦ pair.1) hpairs
+  have hencode : encode root₁ = encode root₂ :=
+    congrArg (fun pair : Restriction n × ↑code.realizedLabelImage ↦ pair.2) hpairs
+  apply code.endpoint_encode_injective
+  exact Prod.ext hendpoint (congrArg Subtype.val hencode)
+
+/-- The restricted code charges exactly the number of globally realized labels. -/
+theorem restrictToRealizedLabels_labelCard {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) :
+    code.restrictToRealizedLabels.labelCard = code.realizedLabelImage.card := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  change Fintype.card ↑code.realizedLabelImage = code.realizedLabelImage.card
+  exact Fintype.card_coe _
+
+/-- Removing unused labels never enlarges the charged alphabet. -/
+theorem realizedLabelImage_card_le_labelCard {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    code.realizedLabelImage.card ≤ code.labelCard := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  calc
+    code.realizedLabelImage.card ≤ (Finset.univ : Finset code.Label).card :=
+      Finset.card_le_card (Finset.subset_univ _)
+    _ = code.labelCard := rfl
+
+/-- The realized alphabet is also no larger than the actual semantic bad-root set that generates
+it. -/
+theorem realizedLabelImage_card_le_bad_card {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    code.realizedLabelImage.card ≤ bad.card := by
+  classical
+  letI : Fintype code.Label := code.labelFintype
+  change ((Finset.univ : Finset ↑bad).image code.encode).card ≤ bad.card
+  calc
+    ((Finset.univ : Finset ↑bad).image code.encode).card ≤
+        (Finset.univ : Finset ↑bad).card := Finset.card_image_le
+    _ = bad.card := Fintype.card_coe bad
+
+/-- The number of bad roots producing one fixed endpoint. -/
+def endpointFiberCard {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) (kappa : Restriction n) : ℕ :=
+  Fintype.card {root : ↑bad // code.endpoint root = kappa}
+
+/-- The largest endpoint fiber that is actually realized by a bad root.  Taking the supremum over
+the finite bad-root domain, rather than over the much larger ambient endpoint type, makes the
+empty-bad-set case definitionally harmless and charges no unrealized endpoint. -/
+noncomputable def maxRealizedEndpointFiberCard {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) : ℕ := by
+  classical
+  exact Finset.univ.sup (fun root : ↑bad => code.endpointFiberCard (code.endpoint root))
+
+/-- Every realized endpoint fiber is bounded by the realized maximum. -/
+theorem endpointFiberCard_le_maxRealized {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad)
+    (root : ↑bad) :
+    code.endpointFiberCard (code.endpoint root) ≤ code.maxRealizedEndpointFiberCard := by
+  classical
+  exact Finset.le_sup (s := (Finset.univ : Finset ↑bad))
+    (f := fun candidate : ↑bad => code.endpointFiberCard (code.endpoint candidate))
+    (Finset.mem_univ root)
+
+/-- Unrealized endpoint fibers are empty, so every endpoint fiber—not only those presented by a
+chosen root—is bounded by the maximum over realized endpoints. -/
+theorem endpointFiberCard_le_maxRealized_any {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad)
+    (kappa : Restriction n) :
+    code.endpointFiberCard kappa ≤ code.maxRealizedEndpointFiberCard := by
+  classical
+  by_cases h : ∃ root : ↑bad, code.endpoint root = kappa
+  · obtain ⟨root, hroot⟩ := h
+    simpa [hroot] using code.endpointFiberCard_le_maxRealized root
+  · have hempty : IsEmpty {root : ↑bad // code.endpoint root = kappa} :=
+      ⟨fun root => h ⟨root.1, root.property⟩⟩
+    letI := hempty
+    simp [endpointFiberCard]
+
+/-- A fixed injection of each endpoint fiber into the largest realized fiber.  Choosing the
+injection as a function of the endpoint makes it shared by all roots in that fiber. -/
+noncomputable def maxFiberEmbedding {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) (kappa : Restriction n) :
+    {root : ↑bad // code.endpoint root = kappa} ↪ Fin code.maxRealizedEndpointFiberCard := by
+  classical
+  apply Classical.choice
+  apply Function.Embedding.nonempty_of_card_le
+  simpa [endpointFiberCard] using code.endpointFiberCard_le_maxRealized_any kappa
+
+/-- Reindex a root inside its own endpoint fiber.  Distinct endpoints deliberately reuse the same
+ranks. -/
+noncomputable def maxFiberEncode {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) (root : ↑bad) :
+    Fin code.maxRealizedEndpointFiberCard :=
+  code.maxFiberEmbedding (code.endpoint root) ⟨root, rfl⟩
+
+theorem maxFiberEncode_eq_embedding {n : ℕ} {bad : Finset (Restriction n)}
+    (code : ConditionedFirstRoundCode bad) (root : ↑bad) (kappa : Restriction n)
+    (hendpoint : code.endpoint root = kappa) :
+    code.maxFiberEncode root = code.maxFiberEmbedding kappa ⟨root, hendpoint⟩ := by
+  subst kappa
+  rfl
+
+/-- Endpoint-local ranks are injective once the endpoint is fixed. -/
+theorem endpoint_maxFiberEncode_injective {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    Function.Injective (fun root => (code.endpoint root, code.maxFiberEncode root)) := by
+  intro root₁ root₂ hpairs
+  have hendpoint : code.endpoint root₁ = code.endpoint root₂ := congrArg Prod.fst hpairs
+  have hencode : code.maxFiberEncode root₁ = code.maxFiberEncode root₂ := congrArg Prod.snd hpairs
+  rw [code.maxFiberEncode_eq_embedding root₁ (code.endpoint root₂) hendpoint,
+    code.maxFiberEncode_eq_embedding root₂ (code.endpoint root₂) rfl] at hencode
+  have hfiber := (code.maxFiberEmbedding (code.endpoint root₂)).injective hencode
+  exact congrArg Subtype.val hfiber
+
+/-- The optimal endpoint-conditioned code: labels are reused independently at different
+endpoints, so its alphabet is exactly the largest realized endpoint-fiber cardinality. -/
+noncomputable def restrictToMaxEndpointFiber {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    ConditionedFirstRoundCode bad := by
+  classical
+  exact ofInjectivePair code.endpoint code.maxFiberEncode code.endpoint_maxFiberEncode_injective
+
+/-- The optimally reindexed code charges exactly the maximum realized endpoint fiber. -/
+theorem restrictToMaxEndpointFiber_labelCard {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    code.restrictToMaxEndpointFiber.labelCard = code.maxRealizedEndpointFiberCard := by
+  change Fintype.card (Fin code.maxRealizedEndpointFiberCard) = _
+  exact Fintype.card_fin _
+
+/-- No decoder-sound code can use fewer labels than its largest realized endpoint fiber.  Together
+with `restrictToMaxEndpointFiber_labelCard`, this proves that the reindexed construction is exactly
+optimal among codes using the same endpoint map. -/
+theorem maxRealizedEndpointFiberCard_le_labelCard {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    code.maxRealizedEndpointFiberCard ≤ code.labelCard := by
+  classical
+  rw [maxRealizedEndpointFiberCard]
+  apply Finset.sup_le
+  intro root _
+  exact code.endpointFiberCard_le_labelCard (code.endpoint root)
+
+/-- Finite pigeonhole accounting for an endpoint-conditioned code.  The actual bad-root
+population is at most the largest realized endpoint fiber times the number of distinct endpoints
+that occur.  This form deliberately counts the endpoint image exactly, before any ambient-shell
+relaxation. -/
+theorem bad_card_le_maxRealizedEndpointFiberCard_mul_endpointImage_card {n : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad) :
+    bad.card ≤ code.maxRealizedEndpointFiberCard *
+      ((Finset.univ : Finset ↑bad).image code.endpoint).card := by
+  classical
+  let domain : Finset ↑bad := Finset.univ
+  have hfibers : ∀ kappa ∈ domain.image code.endpoint,
+      (domain.filter fun root => code.endpoint root = kappa).card ≤
+        code.maxRealizedEndpointFiberCard := by
+    intro kappa _
+    calc
+      (domain.filter fun root => code.endpoint root = kappa).card =
+          Fintype.card ↑(domain.filter fun root => code.endpoint root = kappa) := by
+            rw [Fintype.card_coe]
+      _ ≤ code.endpointFiberCard kappa := by
+        let embedFilter : ↑(domain.filter fun root => code.endpoint root = kappa) →
+            {candidate : ↑bad // code.endpoint candidate = kappa} := fun root =>
+          ⟨root.1, (Finset.mem_filter.mp root.2).2⟩
+        apply Fintype.card_le_of_injective embedFilter
+        intro root₁ root₂ h
+        apply Subtype.ext
+        exact congrArg
+          (fun candidate : {candidate : ↑bad // code.endpoint candidate = kappa} => candidate.1) h
+      _ ≤ code.maxRealizedEndpointFiberCard :=
+        code.endpointFiberCard_le_maxRealized_any kappa
+  have hcount := Finset.card_le_mul_card_image domain
+    code.maxRealizedEndpointFiberCard hfibers
+  simpa [domain, Nat.mul_comm] using hcount
+
+/-- Encoder-independent shell accounting.  If every produced endpoint lies in one prescribed
+live-variable shell, then decoder soundness alone forces the bad-root population to fit inside
+the product of the charged label alphabet and that endpoint shell.  Unlike the canonical-prefix
+specialization below, this theorem does not inspect the assignment, selector, or label format. -/
+theorem bad_card_le_labelCard_mul_endpointShell_card {n K' : ℕ}
+    {bad : Finset (Restriction n)} (code : ConditionedFirstRoundCode bad)
+    (hendpoint : ∀ root, stars (code.endpoint root) = K') :
+    bad.card ≤ code.labelCard *
+      (Finset.univ.filter fun kappa : Restriction n => stars kappa = K').card := by
+  classical
+  have himage : ((Finset.univ : Finset ↑bad).image code.endpoint) ⊆
+      Finset.univ.filter (fun kappa : Restriction n => stars kappa = K') := by
+    intro kappa hkappa
+    obtain ⟨root, _, rfl⟩ := Finset.mem_image.mp hkappa
+    exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, hendpoint root⟩
+  calc
+    bad.card ≤ code.maxRealizedEndpointFiberCard *
+        ((Finset.univ : Finset ↑bad).image code.endpoint).card :=
+      code.bad_card_le_maxRealizedEndpointFiberCard_mul_endpointImage_card
+    _ ≤ code.labelCard *
+        (Finset.univ.filter fun kappa : Restriction n => stars kappa = K').card :=
+      Nat.mul_le_mul code.maxRealizedEndpointFiberCard_le_labelCard
+        (Finset.card_le_card himage)
+
+/-- The concrete ragged prefix code with labels independently reindexed inside each realized
+endpoint fiber. -/
+noncomputable def commonShallowBadMaxFiberPrefixCode
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    ConditionedFirstRoundCode (commonShallowBad gates fuel K d residualDepth) :=
+  (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel).restrictToMaxEndpointFiber
+
+/-- Its charged alphabet is exactly the maximum cardinality of an actually realized endpoint
+fiber of the original ragged-prefix endpoint map. -/
+theorem commonShallowBadMaxFiberPrefixCode_labelCard
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadMaxFiberPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).labelCard =
+      (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).maxRealizedEndpointFiberCard := by
+  exact restrictToMaxEndpointFiber_labelCard _
+
+/-- A fixed endpoint fiber of the canonical bad-root prefix code injects into the `d`-subsets of
+the coordinates fixed at that endpoint.  This is the first circuit-independent quantitative
+bound on the optimal endpoint-conditioned alphabet: it charges neither the ambient symmetric
+label type nor all `d`-subsets of the original `n` coordinates. -/
+theorem commonShallowBadPrefixCode_endpointFiberCard_le_choose_fixed
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) (kappa : Restriction n) :
+    (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).endpointFiberCard kappa ≤
+      Nat.choose (n - stars kappa) d := by
+  classical
+  let assignment := commonShallowBadAssignment gates fuel K d residualDepth
+  let code := commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel
+  let fixed := (Finset.univ : Finset (Fin n)) \ freeVars kappa
+  let encodeFiber : {root : ↑(commonShallowBad gates fuel K d residualDepth) //
+      code.endpoint root = kappa} → ↑(fixed.powersetCard d) := fun root ↦
+    ⟨freshTaggedPrefixVars gates fuel root.1.1 (assignment root.1.1) d, by
+      rw [Finset.mem_powersetCard]
+      constructor
+      · intro v hv
+        simp only [fixed, Finset.mem_sdiff]
+        refine ⟨Finset.mem_univ v, ?_⟩
+        have hendpoint : freshTaggedPrefixEndpoint gates fuel root.1.1
+            (assignment root.1.1) d = kappa := by
+          exact root.property
+        rw [← hendpoint, freeVars_freshTaggedPrefixEndpoint]
+        simp [hv]
+      · exact freshTaggedPrefixVars_card_eq_of_le_trace gates fuel root.1.1
+          (assignment root.1.1) d
+          (commonShallowBadAssignment_spec root.1.property).1
+          (commonShallowBadAssignment_long_of_le_fuel hKfuel root.1.property)⟩
+  calc
+    code.endpointFiberCard kappa ≤ Fintype.card ↑(fixed.powersetCard d) := by
+      apply Fintype.card_le_of_injective encodeFiber
+      intro root₁ root₂ hvars
+      apply Subtype.ext
+      apply Subtype.ext
+      apply freshTaggedPrefixEndpoint_inj_of_vars_eq gates fuel
+        (commonShallowBadAssignment_spec root₁.1.property).1
+        (commonShallowBadAssignment_spec root₂.1.property).1
+      · exact root₁.property.trans root₂.property.symm
+      · exact congrArg Subtype.val hvars
+    _ = Nat.choose (n - stars kappa) d := by
+      rw [Fintype.card_coe, Finset.card_powersetCard]
+      congr 2
+      simp only [fixed]
+      rw [Finset.card_sdiff_of_subset (Finset.subset_univ _),
+        Finset.card_univ, Fintype.card_fin]
+      rfl
+
+/-- The exact semantic candidate family inside one canonical bad-prefix endpoint fiber.  Unlike
+the binomial ceiling above, this finset retains all three conditions that determine realization:
+the reconstructed root is semantically bad, its canonical selected-variable set is exactly `S`,
+and its selected prefix returns to `kappa`.  The ambient powerset is localized to coordinates
+fixed at the endpoint. -/
+noncomputable def commonShallowBadPrefixCandidateSets
+    {n G : ℕ} (gates : Fin G → List (Clause n))
+    (fuel K d residualDepth : ℕ) (kappa : Restriction n) :
+    Finset (Finset (Fin n)) := by
+  classical
+  let assignment := commonShallowBadAssignment gates fuel K d residualDepth
+  let fixed := (Finset.univ : Finset (Fin n)) \ freeVars kappa
+  exact (fixed.powersetCard d).filter fun S =>
+    let root := freeOn kappa S
+    root ∈ commonShallowBad gates fuel K d residualDepth ∧
+      freshTaggedPrefixVars gates fuel root (assignment root) d = S ∧
+      freshTaggedPrefixEndpoint gates fuel root (assignment root) d = kappa
+
+/-- The filtered powerset above is not merely an upper-bound device: it is exactly equivalent to
+the corresponding bad-root endpoint fiber.  This exposes the semantic predicate that must be
+counted for a concrete dense-support parity family, while preserving the endpoint-local reuse of
+the optimal conditioned alphabet. -/
+theorem commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) (kappa : Restriction n) :
+    (commonShallowBadPrefixCandidateSets gates fuel K d residualDepth kappa).card =
+      (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).endpointFiberCard kappa := by
+  classical
+  let assignment := commonShallowBadAssignment gates fuel K d residualDepth
+  let code := commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel
+  let toCandidates : {root : ↑(commonShallowBad gates fuel K d residualDepth) //
+      code.endpoint root = kappa} →
+      ↑(commonShallowBadPrefixCandidateSets gates fuel K d residualDepth kappa) :=
+    fun root => ⟨freshTaggedPrefixVars gates fuel root.1.1 (assignment root.1.1) d, by
+      rw [commonShallowBadPrefixCandidateSets, Finset.mem_filter]
+      constructor
+      · rw [Finset.mem_powersetCard]
+        constructor
+        · intro v hv
+          rw [Finset.mem_sdiff]
+          refine ⟨Finset.mem_univ v, ?_⟩
+          have hendpoint := root.property
+          change freshTaggedPrefixEndpoint gates fuel root.1.1
+            (assignment root.1.1) d = kappa at hendpoint
+          rw [← hendpoint, freeVars_freshTaggedPrefixEndpoint]
+          simp [hv]
+        · exact freshTaggedPrefixVars_card_eq_of_le_trace gates fuel root.1.1
+            (assignment root.1.1) d
+            (commonShallowBadAssignment_spec root.1.property).1
+            (commonShallowBadAssignment_long_of_le_fuel hKfuel root.1.property)
+      · dsimp only
+        have hendpoint := root.property
+        change freshTaggedPrefixEndpoint gates fuel root.1.1
+          (assignment root.1.1) d = kappa at hendpoint
+        have hrecover := freeOn_freshTaggedPrefixEndpoint gates fuel root.1.1
+          (assignment root.1.1) d
+          (commonShallowBadAssignment_spec root.1.property).1
+        have hroot : freeOn kappa (freshTaggedPrefixVars gates fuel root.1.1
+            (assignment root.1.1) d) = root.1.1 := by
+          simpa only [hendpoint] using hrecover
+        rw [hroot]
+        exact ⟨root.1.property, rfl, hendpoint⟩⟩
+  let fromCandidates :
+      ↑(commonShallowBadPrefixCandidateSets gates fuel K d residualDepth kappa) →
+      {root : ↑(commonShallowBad gates fuel K d residualDepth) //
+        code.endpoint root = kappa} := fun candidate => by
+    have hc := candidate.property
+    simp only [commonShallowBadPrefixCandidateSets, Finset.mem_filter] at hc
+    refine ⟨⟨freeOn kappa candidate.1, hc.2.1⟩, ?_⟩
+    change freshTaggedPrefixEndpoint gates fuel (freeOn kappa candidate.1)
+      (assignment (freeOn kappa candidate.1)) d = kappa
+    exact hc.2.2.2
+  let fiberEquiv :
+      {root : ↑(commonShallowBad gates fuel K d residualDepth) //
+        code.endpoint root = kappa} ≃
+      ↑(commonShallowBadPrefixCandidateSets gates fuel K d residualDepth kappa) := {
+    toFun := toCandidates
+    invFun := fromCandidates
+    left_inv := by
+      intro root
+      apply Subtype.ext
+      apply Subtype.ext
+      change freeOn kappa (freshTaggedPrefixVars gates fuel root.1.1
+        (assignment root.1.1) d) = root.1.1
+      have hendpoint := root.property
+      change freshTaggedPrefixEndpoint gates fuel root.1.1
+        (assignment root.1.1) d = kappa at hendpoint
+      simpa only [hendpoint] using
+        (freeOn_freshTaggedPrefixEndpoint gates fuel root.1.1
+        (assignment root.1.1) d
+        (commonShallowBadAssignment_spec root.1.property).1)
+    right_inv := by
+      intro candidate
+      apply Subtype.ext
+      have hc := candidate.property
+      simp only [commonShallowBadPrefixCandidateSets, Finset.mem_filter] at hc
+      exact hc.2.2.1
+    }
+  rw [← Fintype.card_coe]
+  exact Fintype.card_congr fiberEquiv.symm
+
+/-- Exact endpoint-local formula for the optimal conditioned alphabet: take the largest filtered
+semantic candidate family among endpoints actually reached by bad roots.  This is the executable
+finite counting target that replaces the previous unfiltered binomial ceiling. -/
+theorem commonShallowBadMaxFiberPrefixCode_labelCard_eq_sup_candidateSets
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadMaxFiberPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).labelCard =
+      Finset.univ.sup (fun root :
+          ↑(commonShallowBad gates fuel K d residualDepth) =>
+        (commonShallowBadPrefixCandidateSets gates fuel K d residualDepth
+          ((commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+            gates hnd hw hKfuel).endpoint root)).card) := by
+  rw [commonShallowBadMaxFiberPrefixCode_labelCard,
+    ConditionedFirstRoundCode.maxRealizedEndpointFiberCard]
+  apply Finset.sup_congr rfl
+  intro root _
+  exact (commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard
+    gates hnd hw hKfuel
+    ((commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).endpoint root)).symm
+
+/-- Consequently, the exact optimal alphabet is at most the largest fixed-coordinate binomial
+fiber over its realized endpoints.  On the exact `K`-live bad shell, every such endpoint has
+`K-d` live variables, so the uniform bound simplifies to `choose (n-(K-d)) d`. -/
+theorem commonShallowBadPrefixCode_maxRealizedEndpointFiberCard_le_choose
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).maxRealizedEndpointFiberCard ≤
+      Nat.choose (n - (K - d)) d := by
+  classical
+  let code := commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel
+  rw [ConditionedFirstRoundCode.maxRealizedEndpointFiberCard]
+  apply Finset.sup_le
+  intro root _
+  calc
+    code.endpointFiberCard (code.endpoint root) ≤
+        Nat.choose (n - stars (code.endpoint root)) d :=
+      commonShallowBadPrefixCode_endpointFiberCard_le_choose_fixed
+        gates hnd hw hKfuel (code.endpoint root)
+    _ = Nat.choose (n - (K - d)) d := by
+      congr 2
+      have hext : Rung4Restriction.Extends root.1
+          (commonShallowBadAssignment gates fuel K d residualDepth root.1) :=
+        (commonShallowBadAssignment_spec root.property).1
+      change stars (freshTaggedPrefixEndpoint gates fuel root.1
+        (commonShallowBadAssignment gates fuel K d residualDepth root.1) d) = K - d
+      rw [stars_freshTaggedPrefixEndpoint gates fuel root.1
+          (commonShallowBadAssignment gates fuel K d residualDepth root.1) d hext,
+        (mem_commonShallowBad.mp root.property).1,
+        freshTaggedPrefixVars_card_eq_of_le_trace gates fuel root.1
+          (commonShallowBadAssignment gates fuel K d residualDepth root.1) d
+          (commonShallowBadAssignment_spec root.property).1
+          (commonShallowBadAssignment_long_of_le_fuel hKfuel root.property)]
+
+/-- Exact-shell pigeonhole lower bound for the canonical prefix endpoint map.  Every bad root has
+`K` live coordinates, while its first-`d` fresh-variable endpoint has exactly `K-d`; hence the
+whole bad population must fit into at most the `(K-d)`-live shell, with multiplicity bounded by
+the largest realized endpoint fiber. -/
+theorem commonShallowBad_card_le_maxFiber_mul_endpointShell_card
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+      (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).maxRealizedEndpointFiberCard *
+      (Finset.univ.filter fun kappa : Restriction n => stars kappa = K - d).card := by
+  classical
+  let code := commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel
+  have himage : ((Finset.univ :
+      Finset ↑(commonShallowBad gates fuel K d residualDepth)).image code.endpoint) ⊆
+      Finset.univ.filter (fun kappa : Restriction n => stars kappa = K - d) := by
+    intro kappa hkappa
+    obtain ⟨root, _, rfl⟩ := Finset.mem_image.mp hkappa
+    rw [Finset.mem_filter]
+    refine ⟨Finset.mem_univ _, ?_⟩
+    have hext : Rung4Restriction.Extends root.1
+        (commonShallowBadAssignment gates fuel K d residualDepth root.1) :=
+      (commonShallowBadAssignment_spec root.property).1
+    change stars (freshTaggedPrefixEndpoint gates fuel root.1
+      (commonShallowBadAssignment gates fuel K d residualDepth root.1) d) = K - d
+    rw [stars_freshTaggedPrefixEndpoint gates fuel root.1
+        (commonShallowBadAssignment gates fuel K d residualDepth root.1) d hext,
+      (mem_commonShallowBad.mp root.property).1,
+      freshTaggedPrefixVars_card_eq_of_le_trace gates fuel root.1
+        (commonShallowBadAssignment gates fuel K d residualDepth root.1) d
+        (commonShallowBadAssignment_spec root.property).1
+        (commonShallowBadAssignment_long_of_le_fuel hKfuel root.property)]
+  calc
+    (commonShallowBad gates fuel K d residualDepth).card ≤
+        code.maxRealizedEndpointFiberCard *
+          ((Finset.univ : Finset ↑(commonShallowBad gates fuel K d residualDepth)).image
+            code.endpoint).card :=
+      code.bad_card_le_maxRealizedEndpointFiberCard_mul_endpointImage_card
+    _ ≤ code.maxRealizedEndpointFiberCard *
+        (Finset.univ.filter fun kappa : Restriction n => stars kappa = K - d).card :=
+      Nat.mul_le_mul_left _ (Finset.card_le_card himage)
+
+/-- Direct alphabet form of the fixed-coordinate binomial bound. -/
+theorem commonShallowBadMaxFiberPrefixCode_labelCard_le_choose
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadMaxFiberPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).labelCard ≤ Nat.choose (n - (K - d)) d := by
+  rw [commonShallowBadMaxFiberPrefixCode_labelCard]
+  exact commonShallowBadPrefixCode_maxRealizedEndpointFiberCard_le_choose
+    gates hnd hw hKfuel
+
+/-- The concrete ragged symmetric-prefix code with every unused ambient label removed. -/
+noncomputable def commonShallowBadRealizedPrefixCode
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    ConditionedFirstRoundCode (commonShallowBad gates fuel K d residualDepth) :=
+  (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+    gates hnd hw hKfuel).restrictToRealizedLabels
+
+/-- Its alphabet cardinality is the exact global image of ragged prefix labels realized by
+semantic bad roots. -/
+theorem commonShallowBadRealizedPrefixCode_labelCard
+    {n G w fuel K d residualDepth : ℕ} (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel) :
+    (commonShallowBadRealizedPrefixCode (d := d) (residualDepth := residualDepth)
+      gates hnd hw hKfuel).labelCard =
+      (commonShallowBadPrefixCode (d := d) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).realizedLabelImage.card := by
+  exact restrictToRealizedLabels_labelCard _
+
+end ConditionedFirstRoundCode
+
 /-- The exact ambient-coordinate margin demanded by the following normalized round when its
 residual depth is `r` and its current bottom-slot envelope is `M`. -/
 def nextRoundActualMargin (r M : ℕ) : ℕ :=
@@ -5157,6 +5924,2248 @@ theorem widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
   exact (Nat.mul_le_mul_left (240 * actualKeys 1 + 260) htail).trans
     (widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit
       C phase hw hparity hd actualKeys hfit)
+
+/-- Alphabet-independent contrapositive of the depth-sensitive threshold.  Even granting the
+proposed conditioned encoder an empty first alphabet, the product-demand form cannot fit unless
+the actual bottom-slot count pays the additive transition floor through every remaining round. -/
+theorem widthTwoParity_productAwareSchedule_not_fit_of_depth_baseline
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (actualKeys : ℕ → ℕ)
+    (hsmall : bottomSlotCount C < 260 * (26 ^ (d - 1) * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n := by
+  intro hfit
+  have hnecessary :=
+    widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+      C phase hw hparity hd actualKeys hfit
+  have hbaseline : 260 * (26 ^ (d - 1) * terminal) ≤
+      (240 * actualKeys 1 + 260) * (26 ^ (d - 1) * terminal) := by
+    exact Nat.mul_le_mul_right _ (by omega)
+  omega
+
+/-- If a sound conditioned first-round code is known merely to have at least one label, its exact
+depth-sensitive floor rises from `260` to `500`.  This theorem deliberately assumes only
+nonemptiness of the charged alphabet and no occurrence-sensitive lower bound. -/
+theorem widthTwoParity_productAwareSchedule_not_fit_of_positive_firstKey
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (actualKeys : ℕ → ℕ)
+    (hkey : 0 < actualKeys 1)
+    (hsmall : bottomSlotCount C < 500 * (26 ^ (d - 1) * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n := by
+  intro hfit
+  have hnecessary :=
+    widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+      C phase hw hparity hd actualKeys hfit
+  have hpositive : 500 * (26 ^ (d - 1) * terminal) ≤
+      (240 * actualKeys 1 + 260) * (26 ^ (d - 1) * terminal) := by
+    exact Nat.mul_le_mul_right _ (by omega)
+  omega
+
+/-- Circuit-level conditioned-code specialization of the positive-alphabet obstruction.  Once a
+decoder-sound code is supplied for a nonempty actual bad-root set and its label cardinality is the
+first charged alphabet, the stronger `500` floor follows without any additional assumption about
+the encoder. -/
+theorem widthTwoParity_conditionedCodeSchedule_not_fit_of_nonempty_bad
+    {n d terminal : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (bad : Finset (Restriction n)) (code : ConditionedFirstRoundCode bad)
+    (hbad : bad.Nonempty)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 = code.labelCard)
+    (hsmall : bottomSlotCount C < 500 * (26 ^ (d - 1) * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n := by
+  apply widthTwoParity_productAwareSchedule_not_fit_of_positive_firstKey
+    C phase hw hparity hd actualKeys
+  · rw [hfirst]
+    exact code.labelCard_pos_of_bad_nonempty hbad
+  · exact hsmall
+
+/-- Exact depth-sensitive obligation for the existing ragged symmetric-prefix construction.
+Unlike the abstract nonempty-code floor, this substitutes the full concrete ambient label
+cardinality into the first charged alphabet.  It does not claim that the ambient alphabet is
+optimal: endpoint-local realized label images may be smaller. -/
+theorem widthTwoParity_commonShallowBadPrefixCode_firstKey_bound
+    {n d terminal G w fuel K prefixDepth residualDepth : ℕ}
+    (C : Layered n) (phase : Bool)
+    (hwC : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+        (d := prefixDepth) (residualDepth := residualDepth) gates hnd hw hKfuel).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    (240 * ((w + 1) ^ prefixDepth *
+        (((∑ g, (gates g).length) + prefixDepth - 1).choose prefixDepth + 1)) + 260) *
+      (26 ^ (d - 1) * terminal) ≤ bottomSlotCount C := by
+  rw [← ConditionedFirstRoundCode.commonShallowBadPrefixCode_labelCard
+    gates hnd hw hKfuel, ← hfirst]
+  exact widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+    C phase hwC hparity hd actualKeys hfit
+
+/-- Exact depth-sensitive obligation after removing every unused ambient ragged-prefix label.
+This tests the cardinality of the global realized-label image itself; no ambient stars-and-bars
+alphabet remains in the bound. -/
+theorem widthTwoParity_commonShallowBadRealizedPrefixCode_firstKey_bound
+    {n d terminal G w fuel K prefixDepth residualDepth : ℕ}
+    (C : Layered n) (phase : Bool)
+    (hwC : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadRealizedPrefixCode
+        (d := prefixDepth) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    (240 *
+        (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+          (d := prefixDepth) (residualDepth := residualDepth)
+          gates hnd hw hKfuel).realizedLabelImage.card + 260) *
+      (26 ^ (d - 1) * terminal) ≤ bottomSlotCount C := by
+  rw [← ConditionedFirstRoundCode.commonShallowBadRealizedPrefixCode_labelCard
+    gates hnd hw hKfuel, ← hfirst]
+  exact widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+    C phase hwC hparity hd actualKeys hfit
+
+/-- Exact depth-sensitive obligation for the optimal endpoint-conditioned first-round alphabet.
+The maximum fiber is both achievable by independent endpoint-local reindexing and necessary for
+every decoder-sound code retaining this endpoint map. -/
+theorem widthTwoParity_commonShallowBadMaxFiberPrefixCode_firstKey_bound
+    {n d terminal G w fuel K prefixDepth residualDepth : ℕ}
+    (C : Layered n) (phase : Bool)
+    (hwC : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hd : 0 < d)
+    (gates : Fin G → List (Clause n))
+    (hnd : ∀ g, (gates g).Nodup)
+    (hw : ∀ g T, T ∈ gates g → T.lits.length ≤ w)
+    (hKfuel : K ≤ fuel)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (d := prefixDepth) (residualDepth := residualDepth)
+        gates hnd hw hKfuel).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget d actualKeys terminal ≤ n) :
+    (240 *
+        (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+          (d := prefixDepth) (residualDepth := residualDepth)
+          gates hnd hw hKfuel).maxRealizedEndpointFiberCard + 260) *
+      (26 ^ (d - 1) * terminal) ≤ bottomSlotCount C := by
+  rw [← ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode_labelCard
+    gates hnd hw hKfuel, ← hfirst]
+  exact widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+    C phase hwC hparity hd actualKeys hfit
+
+/-- Circuit-specialized acceptance audit for the normalized width-two parity first round.  Every
+realized endpoint's exact filtered candidate count must satisfy the depth-sensitive first-key
+budget whenever the product-aware schedule fits.  Thus a concrete endpoint whose accepted
+`prefixDepth`-subsets exceed this bound is already a complete obstruction to the present schedule;
+no ambient stars-and-bars alphabet enters the statement. -/
+theorem widthTwoParity_normalizedCandidateSets_firstKey_bound
+    {n rounds terminal fuel K prefixDepth residualDepth : ℕ}
+    (C : Layered n) (phase : Bool)
+    (hwC : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hrounds : 0 < rounds) (hKfuel : K ≤ fuel)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (d := prefixDepth) (residualDepth := residualDepth)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hwC) hKfuel).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ n)
+    (root : ↑(commonShallowBad (normalizedLayeredBottomFamily C)
+      fuel K prefixDepth residualDepth)) :
+    (240 *
+        (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+          (normalizedLayeredBottomFamily C)
+          fuel K prefixDepth residualDepth
+          ((ConditionedFirstRoundCode.commonShallowBadPrefixCode
+            (d := prefixDepth) (residualDepth := residualDepth)
+            (normalizedLayeredBottomFamily C)
+            (normalizedLayeredBottomFamily_nodup C)
+            (normalizedLayeredBottomFamily_width_le hwC) hKfuel).endpoint root)).card + 260) *
+      (26 ^ (rounds - 1) * terminal) ≤ bottomSlotCount C := by
+  let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+    (d := prefixDepth) (residualDepth := residualDepth)
+    (normalizedLayeredBottomFamily C)
+    (normalizedLayeredBottomFamily_nodup C)
+    (normalizedLayeredBottomFamily_width_le hwC) hKfuel
+  have hcandidates :
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+        (normalizedLayeredBottomFamily C)
+        fuel K prefixDepth residualDepth (code.endpoint root)).card ≤
+        code.maxRealizedEndpointFiberCard := by
+    rw [ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard
+      (normalizedLayeredBottomFamily C)
+      (normalizedLayeredBottomFamily_nodup C)
+      (normalizedLayeredBottomFamily_width_le hwC) hKfuel]
+    exact code.endpointFiberCard_le_maxRealized root
+  have hmax := widthTwoParity_commonShallowBadMaxFiberPrefixCode_firstKey_bound
+    C phase hwC hparity hrounds
+    (normalizedLayeredBottomFamily C)
+    (normalizedLayeredBottomFamily_nodup C)
+    (normalizedLayeredBottomFamily_width_le hwC) hKfuel actualKeys hfirst hfit
+  exact (Nat.mul_le_mul_right (26 ^ (rounds - 1) * terminal)
+    (Nat.add_le_add_right (Nat.mul_le_mul_left 240 hcandidates) 260)).trans hmax
+
+/-- Witness form of the normalized acceptance audit.  An explicitly realized endpoint with too
+many accepted candidate subsets refutes the current depth-sensitive product schedule. -/
+theorem widthTwoParity_normalizedCandidateSets_not_fit_of_oversized
+    {n rounds terminal fuel K prefixDepth residualDepth : ℕ}
+    (C : Layered n) (phase : Bool)
+    (hwC : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hrounds : 0 < rounds) (hKfuel : K ≤ fuel)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (d := prefixDepth) (residualDepth := residualDepth)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hwC) hKfuel).labelCard)
+    (root : ↑(commonShallowBad (normalizedLayeredBottomFamily C)
+      fuel K prefixDepth residualDepth))
+    (hlarge : bottomSlotCount C <
+      (240 *
+          (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+            (normalizedLayeredBottomFamily C)
+            fuel K prefixDepth residualDepth
+            ((ConditionedFirstRoundCode.commonShallowBadPrefixCode
+              (d := prefixDepth) (residualDepth := residualDepth)
+              (normalizedLayeredBottomFamily C)
+              (normalizedLayeredBottomFamily_nodup C)
+              (normalizedLayeredBottomFamily_width_le hwC) hKfuel).endpoint root)).card + 260) *
+        (26 ^ (rounds - 1) * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ n := by
+  intro hfit
+  exact (Nat.not_lt_of_ge
+    (widthTwoParity_normalizedCandidateSets_firstKey_bound C phase hwC hparity
+      hrounds hKfuel actualKeys hfirst hfit root)) hlarge
+
+/-! ### A concrete normalized parity endpoint -/
+
+/-- At ample fuel, a zero-depth canonical tree makes its DNF constant across the entire
+restriction subcube.  This is the semantic fact needed to turn residual-depth-zero common
+shallowness into a parity contradiction. -/
+theorem dnfValue_eq_of_canonicalDT_depth_eq_zero {n fuel : ℕ}
+    (cs : List (Clause n)) (rho : Restriction n) (hstars : stars rho ≤ fuel)
+    (hdepth : (canonicalDT cs fuel rho).depth = 0)
+    (x y : Fin n → Bool) (hx : Rung4Restriction.Extends rho x)
+    (hy : Rung4Restriction.Extends rho y) :
+    DTree.dnfValue cs x = DTree.dnfValue cs y := by
+  have heval : (canonicalDT cs fuel rho).eval x = (canonicalDT cs fuel rho).eval y := by
+    cases htree : canonicalDT cs fuel rho with
+    | leaf b => rfl
+    | query i lo hi =>
+        rw [htree] at hdepth
+        simp [BoolDecisionTree.depth] at hdepth
+  rw [canonicalDT_eval fuel rho x hstars hx,
+    canonicalDT_eval fuel rho y hstars hy, dnfEval_eq_dnfValue,
+    dnfEval_eq_dnfValue] at heval
+  exact heval
+
+/-- If both polarities of every syntactic bottom gate have zero canonical depth, the whole
+layered circuit is constant on the restriction subcube. -/
+theorem Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero {n fuel : ℕ}
+    (rho : Restriction n) (hstars : stars rho ≤ fuel)
+    (x y : Fin n → Bool) (hx : Rung4Restriction.Extends rho x)
+    (hy : Rung4Restriction.Extends rho y) :
+    ∀ C : Layered n,
+      (∀ cs ∈ bottomGates C,
+        (canonicalDT cs fuel rho).depth = 0 ∧
+          (canonicalDT (negDNF cs) fuel rho).depth = 0) →
+      Layered.eval C x = Layered.eval C y
+  | Layered.dnf cs, hzero => by
+      rw [Layered.eval_dnf, Layered.eval_dnf]
+      exact dnfValue_eq_of_canonicalDT_depth_eq_zero cs rho hstars
+        (hzero cs (by simp [bottomGates])).1 x y hx hy
+  | Layered.cnf cs, hzero => by
+      rw [Layered.eval_cnf, Layered.eval_cnf,
+        cnfValue_eq_not_dnfValue_negDNF, cnfValue_eq_not_dnfValue_negDNF]
+      rw [dnfValue_eq_of_canonicalDT_depth_eq_zero (negDNF cs) rho hstars
+        (hzero cs (by simp [bottomGates])).2 x y hx hy]
+  | Layered.gAnd gs, hzero => by
+      rw [Layered.eval_gAnd, Layered.eval_gAnd]
+      apply list_all_apply_eq_of_forall_eq
+      intro C hC
+      apply Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero rho hstars x y hx hy C
+      intro cs hcs
+      exact hzero cs (bottomGates_mem_gAnd hC hcs)
+  | Layered.gOr gs, hzero => by
+      rw [Layered.eval_gOr, Layered.eval_gOr]
+      apply list_any_apply_eq_of_forall_eq
+      intro C hC
+      apply Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero rho hstars x y hx hy C
+      intro cs hcs
+      exact hzero cs (bottomGates_mem_gOr hC hcs)
+
+/-- Residual depth zero is uniformly impossible for parity whenever the common family covers both
+polarities of every circuit bottom gate and the requested trunk is shorter than the live shell.
+This isolates the exact representation interface used by the parity argument: the family need
+not be the circuit-owned normalized indexing and no width bound is required. -/
+theorem parity_mem_covered_commonShallowBad_zero
+    {n G fuel K trunkDepth : ℕ} (gates : Fin G → List (Clause n))
+    (C : Layered n) (phase : Bool) (hcovers : CoversLayeredBottoms gates C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (sigma : Restriction n) (hstars : stars sigma = K) :
+    sigma ∈ commonShallowBad gates fuel K trunkDepth 0 := by
+  rw [mem_commonShallowBad]
+  refine ⟨hstars, ?_⟩
+  intro hcommon
+  let x : Fin n → Bool := fun i => (sigma i).getD false
+  have hx : Rung4Restriction.Extends sigma x := by
+    intro i b hi
+    simp [x, hi]
+  obtain ⟨trunk, hdepth, hleafData⟩ := hcommon
+  let rho := CommonTree.run trunk x
+  have hlive : stars sigma - trunkDepth ≤ stars rho := by
+    exact CommonTree.stars_run_ge_sub_of_leaf_agreement trunk sigma trunkDepth x hx hdepth
+      (fun z hz => (hleafData z hz).2.1)
+  have hrhoStars : stars rho ≤ fuel := by
+    exact (stars_le_of_restrictionExtends (hleafData x hx).1).trans
+      (by simpa [hstars] using hKfuel)
+  have hrhoPos : 0 < stars rho := by
+    have : 0 < K - trunkDepth := by omega
+    have hlive' : K - trunkDepth ≤ stars rho := by simpa [hstars] using hlive
+    exact this.trans_le hlive'
+  obtain ⟨j, hj⟩ : ∃ j, j ∈ freeVars rho := by
+    exact Finset.card_pos.mp (by simpa [stars] using hrhoPos)
+  let y : Fin n → Bool := Function.update x j (!x j)
+  have hxrho : Rung4Restriction.Extends rho x := (hleafData x hx).2.1
+  have hyrho : Rung4Restriction.Extends rho y := by
+    intro i b hi
+    have hij : i ≠ j := by
+      intro hij
+      subst i
+      rw [mem_freeVars] at hj
+      rw [hj] at hi
+      simp at hi
+    simpa [y, Function.update_of_ne hij] using hxrho i b hi
+  have hzero : ∀ cs ∈ bottomGates C,
+      (canonicalDT cs fuel rho).depth = 0 ∧
+        (canonicalDT (negDNF cs) fuel rho).depth = 0 := by
+    intro cs hcs
+    obtain ⟨⟨g, hg⟩, ⟨gneg, hgneg⟩⟩ :=
+      hcovers cs hcs
+    constructor
+    · rw [← hg fuel rho]
+      exact Nat.eq_zero_of_le_zero ((hleafData x hx).2.2 g)
+    · rw [← hgneg fuel rho]
+      exact Nat.eq_zero_of_le_zero ((hleafData x hx).2.2 gneg)
+  have heval : Layered.eval C x = Layered.eval C y :=
+    Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero rho hrhoStars
+      x y hxrho hyrho C hzero
+  rw [hparity x, hparity y, DTree.parity_flip] at heval
+  cases hp : DTree.parity x <;> cases phase <;> simp [hp] at heval
+
+/-- The normalized circuit-owned family is the standard specialization of the general coverage
+theorem. -/
+theorem parity_mem_normalized_commonShallowBad_zero
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (sigma : Restriction n) (hstars : stars sigma = K) :
+    sigma ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+      fuel K trunkDepth 0 := by
+  exact parity_mem_covered_commonShallowBad_zero
+    (normalizedLayeredBottomFamily C) C phase
+    (normalizedLayeredBottomFamily_covers C) hparity hKfuel htrunk sigma hstars
+
+/-- Any covering family has the entire exact shell as its residual-depth-zero parity bad event. -/
+theorem parity_covered_commonShallowBad_zero_eq_shell
+    {n G fuel K trunkDepth : ℕ} (gates : Fin G → List (Clause n))
+    (C : Layered n) (phase : Bool) (hcovers : CoversLayeredBottoms gates C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    commonShallowBad gates fuel K trunkDepth 0 =
+      Finset.univ.filter fun sigma : Restriction n => stars sigma = K := by
+  ext sigma
+  simp only [mem_commonShallowBad, Finset.mem_filter, Finset.mem_univ, true_and]
+  constructor
+  · exact fun h => h.1
+  · intro hstars
+    exact mem_commonShallowBad.mp
+      (parity_mem_covered_commonShallowBad_zero gates C phase hcovers hparity
+        hKfuel htrunk sigma hstars)
+
+/-- Exact cardinality of the covering-family bad event. -/
+theorem parity_covered_commonShallowBad_zero_card
+    {n G fuel K trunkDepth : ℕ} (gates : Fin G → List (Clause n))
+    (C : Layered n) (phase : Bool) (hcovers : CoversLayeredBottoms gates C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    (commonShallowBad gates fuel K trunkDepth 0).card =
+      Nat.choose n K * 2 ^ (n - K) := by
+  rw [parity_covered_commonShallowBad_zero_eq_shell gates C phase hcovers hparity
+    hKfuel htrunk, card_stars_eq]
+
+/-- Therefore, below the live dimension, the semantic bad event is the entire exact shell.  At
+residual depth zero the filtered endpoint problem receives no acceptance-rate saving from
+common-shallow badness itself; only the canonical-prefix endpoint equations can shrink a fiber. -/
+theorem parity_normalized_commonShallowBad_zero_eq_shell
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0 =
+      Finset.univ.filter fun sigma : Restriction n => stars sigma = K := by
+  ext sigma
+  simp only [mem_commonShallowBad, Finset.mem_filter, Finset.mem_univ, true_and]
+  constructor
+  · exact fun h => h.1
+  · intro hstars
+    exact (mem_commonShallowBad.mp
+      (parity_mem_normalized_commonShallowBad_zero C phase hparity hKfuel htrunk
+        sigma hstars))
+
+/-- Exact cardinal form of the full-shell obstruction. -/
+theorem parity_normalized_commonShallowBad_zero_card
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0).card =
+      Nat.choose n K * 2 ^ (n - K) := by
+  rw [parity_normalized_commonShallowBad_zero_eq_shell C phase hparity hKfuel htrunk,
+    card_stars_eq]
+
+/-- Encoder-independent first-alphabet balance for residual-depth-zero parity.  This applies to
+any decoder-sound conditioned code on the full parity bad shell, provided only that its endpoints
+have the live-variable count required of a `trunkDepth`-step round.  In particular, changing the
+assignment or label representation cannot evade this population bound while preserving that
+structural endpoint invariant. -/
+theorem parity_normalized_labelCard_mul_endpointShell_lower
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (code : ConditionedFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0))
+    (hendpoint : ∀ root, stars (code.endpoint root) = K - trunkDepth) :
+    Nat.choose n K * 2 ^ (n - K) ≤
+      code.labelCard * (Nat.choose n (K - trunkDepth) *
+        2 ^ (n - (K - trunkDepth))) := by
+  have hcount := code.bad_card_le_labelCard_mul_endpointShell_card hendpoint
+  rw [parity_normalized_commonShallowBad_zero_card C phase hparity hKfuel htrunk,
+    card_stars_eq] at hcount
+  exact hcount
+
+/-- Cleared-denominator encoder-independent consequence of the parity shell balance.  Every
+sound `trunkDepth`-step code must pay enough labels that `labelCard * (2*K)^trunkDepth` covers the
+shell-growth numerator `(n-K+1)^trunkDepth`. -/
+theorem parity_normalized_labelCard_power_lower
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) (hKn : K ≤ n)
+    (code : ConditionedFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0))
+    (hendpoint : ∀ root, stars (code.endpoint root) = K - trunkDepth) :
+    (n - K + 1) ^ trunkDepth ≤ code.labelCard * (2 * K) ^ trunkDepth := by
+  have hbalance := parity_normalized_labelCard_mul_endpointShell_lower
+    C phase hparity hKfuel htrunk code hendpoint
+  have hshell := shell_ratio_nat (n := n) K trunkDepth (by omega) hKn
+  have hexponent : n - K + trunkDepth = n - (K - trunkDepth) := by omega
+  rw [hexponent] at hshell
+  have hendpointPos : 0 < Nat.choose n (K - trunkDepth) *
+      2 ^ (n - (K - trunkDepth)) := by
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) (pow_pos (by omega) _)
+  apply Nat.le_of_mul_le_mul_left
+    (c := Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))
+    (hc := hendpointPos)
+  calc
+    (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          (n - K + 1) ^ trunkDepth ≤
+        (Nat.choose n K * 2 ^ (n - K)) * (2 * K) ^ trunkDepth := hshell
+    _ ≤ (code.labelCard *
+          (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))) *
+          (2 * K) ^ trunkDepth := Nat.mul_le_mul_right _ hbalance
+    _ = (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          (code.labelCard * (2 * K) ^ trunkDepth) := by ring
+
+/-- Arithmetic core of the intended-density audit.  If a first-round alphabet satisfies the
+encoder-independent shell-growth power balance at `n = 1000*A*r`, `K = 20*r`, and
+`trunkDepth = 10*r`, then its one-step product-aware demand already exceeds the entire ambient
+dimension.
+
+The proof retains a deliberately coarse but robust quantitative consequence:
+`240*A*r ≤ labelCard`.  It follows by comparing the shell numerator base with
+`(24*A)*(40*r)`, raising to `10*r`, cancelling the positive `(40*r)^(10*r)` factor, and using
+`a*b ≤ a^b` for `a = 24*A` and `b = 10*r`. -/
+theorem intended_power_lower_forces_firstRoundDemand
+    {A r labelCard : ℕ} (hA : 0 < A) (hr : 0 < r)
+    (hpower :
+      (1000 * A * r - 20 * r + 1) ^ (10 * r) ≤
+        labelCard * (40 * r) ^ (10 * r)) :
+    1000 * A * r < 20 * (24 * labelCard + 26) := by
+  have hbase : (24 * A) * (40 * r) ≤ 1000 * A * r - 20 * r + 1 := by
+    have hbefore : (24 * A) * (40 * r) + 20 * r ≤ 1000 * A * r := by
+      nlinarith
+    exact (Nat.le_sub_of_add_le hbefore).trans (Nat.le_add_right _ _)
+  have hpowMul : ((24 * A) * (40 * r)) ^ (10 * r) ≤
+      (1000 * A * r - 20 * r + 1) ^ (10 * r) :=
+    Nat.pow_le_pow_left hbase _
+  have hcancel : (24 * A) ^ (10 * r) * (40 * r) ^ (10 * r) ≤
+      labelCard * (40 * r) ^ (10 * r) := by
+    rw [← Nat.mul_pow]
+    exact hpowMul.trans hpower
+  have hfactor : 0 < (40 * r) ^ (10 * r) := by positivity
+  have halphabet : (24 * A) ^ (10 * r) ≤ labelCard :=
+    Nat.le_of_mul_le_mul_right hcancel hfactor
+  have hgrowth : (24 * A) * (10 * r) ≤ (24 * A) ^ (10 * r) := by
+    exact Nat.mul_le_pow (by omega) _
+  have hlinear : 240 * A * r ≤ labelCard := by
+    calc
+      240 * A * r = (24 * A) * (10 * r) := by ring
+      _ ≤ (24 * A) ^ (10 * r) := hgrowth
+      _ ≤ labelCard := halphabet
+  nlinarith
+
+/-- Encoder-independent resolution of the intended first-round comparison.  Every decoder-sound
+code for the full residual-zero parity bad shell whose endpoints spend exactly `10*r` live
+coordinates has first-round product-aware demand strictly larger than the ambient dimension. -/
+theorem parity_normalized_intended_labelCard_demand_exceeds_ambient
+    {A r fuel : ℕ} (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (code : ConditionedFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) (10 * r) 0))
+    (hendpoint : ∀ root, stars (code.endpoint root) = 10 * r) :
+    1000 * A * r < 20 * (24 * code.labelCard + 26) := by
+  apply intended_power_lower_forces_firstRoundDemand hA hr
+  simpa only [show 2 * (20 * r) = 40 * r by ring] using
+    (parity_normalized_labelCard_power_lower C phase hparity hKfuel
+      (by nlinarith) (by nlinarith) code
+      (by simpa only [show 20 * r - 10 * r = 10 * r by omega] using hendpoint))
+
+/-- The encoder-independent shell balance propagates through the exact product-aware recurrence.
+No positive-round schedule with positive terminal survivor can fit once its first key is the label
+cardinality of a decoder-sound parity-shell code spending exactly `10*r` live coordinates.  Later
+alphabets are arbitrary; only positivity of the remaining least budget is used. -/
+theorem parity_normalized_intended_conditionedCode_productAware_not_fit
+    {A r fuel rounds terminal : ℕ}
+    (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (hrounds : 0 < rounds) (hterminal : 0 < terminal)
+    (code : ConditionedFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) (10 * r) 0))
+    (hendpoint : ∀ root, stars (code.endpoint root) = 10 * r)
+    (actualKeys : ℕ → ℕ) (hfirst : actualKeys 1 = code.labelCard) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ 1000 * A * r := by
+  intro hfit
+  obtain ⟨remainingRounds, rfl⟩ :=
+    Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hrounds)
+  have htail : 0 < leastFiniteProductAwareBudget remainingRounds
+      (fun i ↦ actualKeys (i + 1)) terminal :=
+    leastFiniteProductAwareBudget_pos remainingRounds _ hterminal
+  have hfirstDemand : 20 * (24 * actualKeys 1 + 26) ≤ 1000 * A * r := by
+    calc
+      20 * (24 * actualKeys 1 + 26) ≤
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget remainingRounds
+              (fun i ↦ actualKeys (i + 1)) terminal) := by
+        exact Nat.mul_le_mul_left 20 (Nat.le_mul_of_pos_right _ htail)
+      _ = 20 * leastFiniteProductAwareBudget (remainingRounds + 1)
+          actualKeys terminal := by
+        rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq]
+      _ ≤ 1000 * A * r := hfit
+  rw [hfirst] at hfirstDemand
+  have htooLarge := parity_normalized_intended_labelCard_demand_exceeds_ambient
+    C phase hparity hA hr hKfuel code hendpoint
+  omega
+
+/-! ### Bounded ambiguity does not remove the parity shell charge -/
+
+/-- Encoder-independent shell balance with list-decoding ambiguity `L`.  The only change from
+exact decoding is that the endpoint/label population is multiplied by `L`. -/
+theorem parity_normalized_ambiguity_mul_labelCard_mul_endpointShell_lower
+    {n fuel K trunkDepth L : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = K - trunkDepth) :
+    Nat.choose n K * 2 ^ (n - K) ≤
+      L * (code.labelCard * (Nat.choose n (K - trunkDepth) *
+        2 ^ (n - (K - trunkDepth)))) := by
+  have hcount := code.bad_card_le_ambiguity_mul_labelCard_mul_endpointShell_card hendpoint
+  rw [parity_normalized_commonShallowBad_zero_card C phase hparity hKfuel htrunk,
+    card_stars_eq] at hcount
+  exact hcount
+
+/-- Cleared-denominator form of the bounded-ambiguity balance.  It shows that the effective
+alphabet is the product `L * labelCard`; ambiguity is quantitative information that must be
+charged, not a free weakening of decoder soundness. -/
+theorem parity_normalized_ambiguity_mul_labelCard_power_lower
+    {n fuel K trunkDepth L : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) (hKn : K ≤ n)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = K - trunkDepth) :
+    (n - K + 1) ^ trunkDepth ≤
+      (L * code.labelCard) * (2 * K) ^ trunkDepth := by
+  have hbalance := parity_normalized_ambiguity_mul_labelCard_mul_endpointShell_lower
+    C phase hparity hKfuel htrunk code hendpoint
+  have hshell := shell_ratio_nat (n := n) K trunkDepth (by omega) hKn
+  have hexponent : n - K + trunkDepth = n - (K - trunkDepth) := by omega
+  rw [hexponent] at hshell
+  have hendpointPos : 0 < Nat.choose n (K - trunkDepth) *
+      2 ^ (n - (K - trunkDepth)) := by
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) (pow_pos (by omega) _)
+  apply Nat.le_of_mul_le_mul_left
+    (c := Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))
+    (hc := hendpointPos)
+  calc
+    (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          (n - K + 1) ^ trunkDepth ≤
+        (Nat.choose n K * 2 ^ (n - K)) * (2 * K) ^ trunkDepth := hshell
+    _ ≤ (L * (code.labelCard *
+          (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))))) *
+          (2 * K) ^ trunkDepth := Nat.mul_le_mul_right _ hbalance
+    _ = (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          ((L * code.labelCard) * (2 * K) ^ trunkDepth) := by ring
+
+/-- At the intended density, charging the ambiguity factor restores the same strict first-round
+ambient obstruction as exact decoding. -/
+theorem parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
+    {A r fuel L : ℕ} (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) (10 * r) 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = 10 * r) :
+    1000 * A * r < 20 * (24 * (L * code.labelCard) + 26) := by
+  apply intended_power_lower_forces_firstRoundDemand hA hr
+  simpa only [show 2 * (20 * r) = 40 * r by ring] using
+    (parity_normalized_ambiguity_mul_labelCard_power_lower C phase hparity hKfuel
+      (by nlinarith) (by nlinarith) code
+      (by simpa only [show 20 * r - 10 * r = 10 * r by omega] using hendpoint))
+
+/-- Consequently no positive product-aware schedule fits when its first key honestly charges both
+the label alphabet and the maximum list size.  Later keys remain arbitrary. -/
+theorem parity_normalized_intended_boundedAmbiguity_productAware_not_fit
+    {A r fuel rounds terminal L : ℕ}
+    (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (hrounds : 0 < rounds) (hterminal : 0 < terminal)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) (10 * r) 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = 10 * r)
+    (actualKeys : ℕ → ℕ) (hfirst : actualKeys 1 = L * code.labelCard) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ 1000 * A * r := by
+  intro hfit
+  obtain ⟨remainingRounds, rfl⟩ :=
+    Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hrounds)
+  have htail : 0 < leastFiniteProductAwareBudget remainingRounds
+      (fun i ↦ actualKeys (i + 1)) terminal :=
+    leastFiniteProductAwareBudget_pos remainingRounds _ hterminal
+  have hfirstDemand : 20 * (24 * actualKeys 1 + 26) ≤ 1000 * A * r := by
+    calc
+      20 * (24 * actualKeys 1 + 26) ≤
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget remainingRounds
+              (fun i ↦ actualKeys (i + 1)) terminal) := by
+        exact Nat.mul_le_mul_left 20 (Nat.le_mul_of_pos_right _ htail)
+      _ = 20 * leastFiniteProductAwareBudget (remainingRounds + 1)
+          actualKeys terminal := by
+        rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq]
+      _ ≤ 1000 * A * r := hfit
+  rw [hfirst] at hfirstDemand
+  have htooLarge := parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
+    C phase hparity hA hr hKfuel code hendpoint
+  omega
+
+/-- Representation-independent largest-fiber balance for residual-depth-zero parity.  The exact
+`K`-live bad shell must pass through canonical endpoints in the `(K-trunkDepth)`-live shell, so its
+population is bounded by that endpoint-shell population times the largest realized fiber. -/
+theorem parity_normalized_maxFiber_mul_endpointShell_lower
+    {n w fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth w C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    Nat.choose n K * 2 ^ (n - K) ≤
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+        (d := trunkDepth) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).maxRealizedEndpointFiberCard *
+      (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) := by
+  have hcount :=
+    ConditionedFirstRoundCode.commonShallowBad_card_le_maxFiber_mul_endpointShell_card
+      (d := trunkDepth) (residualDepth := 0)
+      (normalizedLayeredBottomFamily C)
+      (normalizedLayeredBottomFamily_nodup C)
+      (normalizedLayeredBottomFamily_width_le hw) hKfuel
+  rw [parity_normalized_commonShallowBad_zero_card C phase hparity hKfuel htrunk,
+    card_stars_eq] at hcount
+  exact hcount
+
+/-- Cancellation-friendly form of the endpoint-shell balance.  After multiplying by the exact
+number of ways to restore the `trunkDepth` live coordinates, the two restriction-shell factors
+cancel.  Thus the largest realized canonical endpoint fiber must absorb the remaining binomial
+ratio, including the Boolean assignment cost `2^trunkDepth`.
+
+The explicit hypothesis `K ≤ n` is essential: without it the source shell can be empty and no
+positive factor is available for cancellation. -/
+theorem parity_normalized_endpointShell_ratio_lower
+    {n w fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth w C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) (hKn : K ≤ n) :
+    Nat.choose (n - (K - trunkDepth)) trunkDepth ≤
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+        (d := trunkDepth) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).maxRealizedEndpointFiberCard *
+      (Nat.choose K trunkDepth * 2 ^ trunkDepth) := by
+  let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+    (d := trunkDepth) (residualDepth := 0)
+    (normalizedLayeredBottomFamily C)
+    (normalizedLayeredBottomFamily_nodup C)
+    (normalizedLayeredBottomFamily_width_le hw) hKfuel
+  have hbalance := parity_normalized_maxFiber_mul_endpointShell_lower
+    C phase hw hparity hKfuel htrunk
+  have hrestore := endpointFiber_coordinateSet_exact_count
+    (n := n) (K := K) (d := trunkDepth) (by omega) hKn
+  have hsource : 0 < Nat.choose n K * 2 ^ (n - K) :=
+    Nat.mul_pos (Nat.choose_pos hKn) (pow_pos (by omega) _)
+  apply Nat.le_of_mul_le_mul_left
+    (c := Nat.choose n K * 2 ^ (n - K)) (hc := hsource)
+  calc
+    (Nat.choose n K * 2 ^ (n - K)) *
+          Nat.choose (n - (K - trunkDepth)) trunkDepth ≤
+        (code.maxRealizedEndpointFiberCard *
+          (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))) *
+          Nat.choose (n - (K - trunkDepth)) trunkDepth :=
+      Nat.mul_le_mul_right _ hbalance
+    _ = code.maxRealizedEndpointFiberCard *
+          ((Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+            Nat.choose (n - (K - trunkDepth)) trunkDepth) := by ring
+    _ = code.maxRealizedEndpointFiberCard *
+          ((Nat.choose n K * 2 ^ (n - K)) *
+            (Nat.choose K trunkDepth * 2 ^ trunkDepth)) := by
+      rw [hrestore]
+      ring
+    _ = (Nat.choose n K * 2 ^ (n - K)) *
+          (code.maxRealizedEndpointFiberCard *
+            (Nat.choose K trunkDepth * 2 ^ trunkDepth)) := by ring
+
+/-- Coarser but immediately comparable power form of the exact endpoint-shell ratio.  Every
+canonical endpoint scheme for residual-zero parity must have a realized fiber large enough that
+`maxFiber * (2*K)^trunkDepth` covers `(n-K+1)^trunkDepth`.  This is the cleared-denominator form of
+the familiar per-step shell ratio `(n-K+1)/(2*K)` and avoids all natural-number division. -/
+theorem parity_normalized_endpointShell_power_lower
+    {n w fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth w C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) (hKn : K ≤ n) :
+    (n - K + 1) ^ trunkDepth ≤
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+        (d := trunkDepth) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).maxRealizedEndpointFiberCard *
+      (2 * K) ^ trunkDepth := by
+  let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+    (d := trunkDepth) (residualDepth := 0)
+    (normalizedLayeredBottomFamily C)
+    (normalizedLayeredBottomFamily_nodup C)
+    (normalizedLayeredBottomFamily_width_le hw) hKfuel
+  have hbalance := parity_normalized_maxFiber_mul_endpointShell_lower
+    C phase hw hparity hKfuel htrunk
+  have hshell := shell_ratio_nat (n := n) K trunkDepth (by omega) hKn
+  have hexponent : n - K + trunkDepth = n - (K - trunkDepth) := by omega
+  rw [hexponent] at hshell
+  have hendpoint : 0 < Nat.choose n (K - trunkDepth) *
+      2 ^ (n - (K - trunkDepth)) := by
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) (pow_pos (by omega) _)
+  apply Nat.le_of_mul_le_mul_left
+    (c := Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))
+    (hc := hendpoint)
+  calc
+    (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          (n - K + 1) ^ trunkDepth ≤
+        (Nat.choose n K * 2 ^ (n - K)) * (2 * K) ^ trunkDepth := hshell
+    _ ≤ (code.maxRealizedEndpointFiberCard *
+          (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth)))) *
+          (2 * K) ^ trunkDepth := Nat.mul_le_mul_right _ hbalance
+    _ = (Nat.choose n (K - trunkDepth) * 2 ^ (n - (K - trunkDepth))) *
+          (code.maxRealizedEndpointFiberCard * (2 * K) ^ trunkDepth) := by ring
+
+/-- The power lower bound at the density used by the verified realized-prefix contraction:
+`n = 1000*A*r`, `K = 20*r`, and prefix depth `10*r`.  The left base is the exact shell numerator;
+the comparison base on the fiber side is only `40*r`. -/
+theorem parity_normalized_intended_endpointShell_power_lower
+    {A r w fuel : ℕ} (C : Layered (1000 * A * r)) (phase : Bool)
+    (hw : BottomWidth w C)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel) :
+    (1000 * A * r - 20 * r + 1) ^ (10 * r) ≤
+      (ConditionedFirstRoundCode.commonShallowBadPrefixCode
+        (d := 10 * r) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).maxRealizedEndpointFiberCard *
+      (40 * r) ^ (10 * r) := by
+  have htrunk : 10 * r < 20 * r := by nlinarith
+  have hKn : 20 * r ≤ 1000 * A * r := by nlinarith
+  simpa only [show 2 * (20 * r) = 40 * r by ring] using
+    (parity_normalized_endpointShell_power_lower
+      C phase hw hparity hKfuel htrunk hKn)
+
+/-- Direct comparison between the forced canonical endpoint fiber and the product-aware slot
+budget at the intended density.  If the optimal endpoint-local first alphabet is used and the
+schedule fits, then the circuit's actual bottom-slot count must pay both the forced fiber scale
+and the alphabet-independent transition floor, including the unavoidable later-round factor.
+
+This is deliberately cleared of division: it relates `A`, `r`, `rounds`, `terminal`, and the
+actual circuit size without assuming an a priori upper bound on `bottomSlotCount C`. -/
+theorem parity_normalized_intended_productAware_slot_lower
+    {A r fuel rounds terminal : ℕ}
+    (C : Layered (1000 * A * r)) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (hrounds : 0 < rounds)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (d := 10 * r) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤
+      1000 * A * r) :
+    (240 * (1000 * A * r - 20 * r + 1) ^ (10 * r) +
+        260 * (40 * r) ^ (10 * r)) *
+          (26 ^ (rounds - 1) * terminal) ≤
+      bottomSlotCount C * (40 * r) ^ (10 * r) := by
+  let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+    (d := 10 * r) (residualDepth := 0)
+    (normalizedLayeredBottomFamily C)
+    (normalizedLayeredBottomFamily_nodup C)
+    (normalizedLayeredBottomFamily_width_le hw) hKfuel
+  have hpower :
+      (1000 * A * r - 20 * r + 1) ^ (10 * r) ≤
+        code.maxRealizedEndpointFiberCard * (40 * r) ^ (10 * r) := by
+    exact parity_normalized_intended_endpointShell_power_lower
+      C phase hw hparity hA hr hKfuel
+  have hbudget :
+      (240 * code.maxRealizedEndpointFiberCard + 260) *
+          (26 ^ (rounds - 1) * terminal) ≤ bottomSlotCount C := by
+    exact widthTwoParity_commonShallowBadMaxFiberPrefixCode_firstKey_bound
+      C phase hw hparity hrounds
+      (normalizedLayeredBottomFamily C)
+      (normalizedLayeredBottomFamily_nodup C)
+      (normalizedLayeredBottomFamily_width_le hw) hKfuel
+      actualKeys hfirst hfit
+  calc
+    (240 * (1000 * A * r - 20 * r + 1) ^ (10 * r) +
+          260 * (40 * r) ^ (10 * r)) *
+        (26 ^ (rounds - 1) * terminal) ≤
+      (240 * (code.maxRealizedEndpointFiberCard * (40 * r) ^ (10 * r)) +
+          260 * (40 * r) ^ (10 * r)) *
+        (26 ^ (rounds - 1) * terminal) := by
+          exact Nat.mul_le_mul_right _
+            (Nat.add_le_add_right (Nat.mul_le_mul_left 240 hpower) _)
+    _ = ((240 * code.maxRealizedEndpointFiberCard + 260) *
+          (26 ^ (rounds - 1) * terminal)) * (40 * r) ^ (10 * r) := by ring
+    _ ≤ bottomSlotCount C * (40 * r) ^ (10 * r) :=
+      Nat.mul_le_mul_right _ hbudget
+
+/-- Contrapositive form of the exact intended-density comparison.  It identifies the concrete
+size regime in which even the optimal endpoint-local canonical-prefix alphabet cannot make the
+current product-aware schedule fit. -/
+theorem parity_normalized_intended_productAware_not_fit_of_slot_gap
+    {A r fuel rounds terminal : ℕ}
+    (C : Layered (1000 * A * r)) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hKfuel : 20 * r ≤ fuel)
+    (hrounds : 0 < rounds)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (d := 10 * r) (residualDepth := 0)
+        (normalizedLayeredBottomFamily C)
+        (normalizedLayeredBottomFamily_nodup C)
+        (normalizedLayeredBottomFamily_width_le hw) hKfuel).labelCard)
+    (hgap : bottomSlotCount C * (40 * r) ^ (10 * r) <
+      (240 * (1000 * A * r - 20 * r + 1) ^ (10 * r) +
+        260 * (40 * r) ^ (10 * r)) *
+          (26 ^ (rounds - 1) * terminal)) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤
+      1000 * A * r := by
+  intro hfit
+  have hneeded := parity_normalized_intended_productAware_slot_lower
+    C phase hw hparity hA hr hKfuel hrounds actualKeys hfirst hfit
+  omega
+
+/-! ### An explicit parameterized width-one parity representative -/
+
+/-- The literal that accepts exactly the value prescribed by `a` at coordinate `i`. -/
+def assignmentLiteral {n : ℕ} (a : Fin n → Bool) (i : Fin n) : Rung4Literal n :=
+  if a i then Rung4Literal.pos i else Rung4Literal.neg i
+
+/-- A one-slot bottom DNF computing the prescribed literal. -/
+def assignmentAtom {n : ℕ} (a : Fin n → Bool) (i : Fin n) : Layered n :=
+  Layered.dnf [⟨[assignmentLiteral a i]⟩]
+
+/-- The conjunction of all prescribed coordinate literals. -/
+def assignmentConjunction {n : ℕ} (a : Fin n → Bool) : Layered n :=
+  Layered.gAnd (List.ofFn (assignmentAtom a))
+
+/-- An explicit parity circuit: OR together the exact-assignment conjunctions of odd parity.
+Every syntactic bottom gate is a one-literal, one-clause DNF. -/
+noncomputable def widthOneParityLayered (n : ℕ) : Layered n :=
+  Layered.gOr (((Finset.univ.filter fun a : Fin n → Bool => DTree.parity a = true).toList).map
+    assignmentConjunction)
+
+theorem assignmentAtom_eval {n : ℕ} (a x : Fin n → Bool) (i : Fin n) :
+    Layered.eval (assignmentAtom a i) x = decide (x i = a i) := by
+  cases hai : a i <;> cases hxi : x i <;>
+    simp [assignmentAtom, assignmentLiteral, DTree.dnfValue,
+      Rung4Literal.eval, hai, hxi]
+
+/-- An assignment conjunction is the Boolean singleton indicator of its assignment. -/
+theorem assignmentConjunction_eval {n : ℕ} (a x : Fin n → Bool) :
+    Layered.eval (assignmentConjunction a) x = decide (x = a) := by
+  classical
+  rw [assignmentConjunction, Layered.eval_gAnd]
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro h
+    rw [decide_eq_true_eq]
+    apply funext
+    intro i
+    have hi := (List.all_eq_true.mp h) (assignmentAtom a i)
+      (List.mem_ofFn.mpr ⟨i, rfl⟩)
+    rw [assignmentAtom_eval, decide_eq_true_eq] at hi
+    exact hi
+  · intro h
+    rw [decide_eq_true_eq] at h
+    rw [List.all_eq_true]
+    intro atom hatom
+    rw [List.mem_ofFn] at hatom
+    obtain ⟨i, rfl⟩ := hatom
+    rw [assignmentAtom_eval, decide_eq_true_eq]
+    exact congrFun h i
+
+/-- The explicit family computes parity on every input. -/
+theorem widthOneParityLayered_eval (n : ℕ) (x : Fin n → Bool) :
+    Layered.eval (widthOneParityLayered n) x = DTree.parity x := by
+  classical
+  rw [widthOneParityLayered]
+  apply Bool.eq_iff_iff.mpr
+  rw [Layered.eval_gOr, List.any_eq_true]
+  constructor
+  · rintro ⟨c, hc, hcx⟩
+    rw [List.mem_map] at hc
+    obtain ⟨a, ha, rfl⟩ := hc
+    rw [assignmentConjunction_eval, decide_eq_true_eq] at hcx
+    subst a
+    simpa using ha
+  · intro hx
+    refine ⟨assignmentConjunction x, ?_, ?_⟩
+    · rw [List.mem_map]
+      exact ⟨x, by simp [hx], rfl⟩
+    · rw [assignmentConjunction_eval, decide_eq_true_eq]
+
+theorem assignmentAtom_bottomSlotCount {n : ℕ} (a : Fin n → Bool) (i : Fin n) :
+    bottomSlotCount (assignmentAtom a i) = 1 := by
+  simp [assignmentAtom, bottomSlotCount, bottomGates]
+
+theorem bottomSlotCount_gAnd_list {n : ℕ} (gs : List (Layered n)) :
+    bottomSlotCount (Layered.gAnd gs) = (gs.map bottomSlotCount).sum := by
+  unfold bottomSlotCount
+  rw [bottomGates, bottomGatesList_eq, List.map_flatten, List.sum_flatten,
+    List.map_map]
+  simp [Function.comp_def]
+
+theorem bottomSlotCount_gOr_list {n : ℕ} (gs : List (Layered n)) :
+    bottomSlotCount (Layered.gOr gs) = (gs.map bottomSlotCount).sum := by
+  unfold bottomSlotCount
+  rw [bottomGates, bottomGatesList_eq, List.map_flatten, List.sum_flatten,
+    List.map_map]
+  simp [Function.comp_def]
+
+theorem assignmentConjunction_bottomSlotCount {n : ℕ} (a : Fin n → Bool) :
+    bottomSlotCount (assignmentConjunction a) = n := by
+  rw [assignmentConjunction, bottomSlotCount_gAnd_list]
+  simp [Function.comp_def, assignmentAtom_bottomSlotCount]
+
+/-- Exact slot count of the explicit representative.  It pays one bottom slot per input
+coordinate for each of the `2^(n-1)` satisfying parity assignments. -/
+theorem widthOneParityLayered_bottomSlotCount {n : ℕ} (hn : 1 ≤ n) :
+    bottomSlotCount (widthOneParityLayered n) = n * 2 ^ (n - 1) := by
+  classical
+  rw [widthOneParityLayered, bottomSlotCount_gOr_list, List.map_map]
+  simp [assignmentConjunction_bottomSlotCount, Depth3.parity_true_card hn, Nat.mul_comm]
+
+/-- The representative satisfies the width-two interface (in fact every clause has width one). -/
+theorem widthOneParityLayered_bottomWidth_two (n : ℕ) :
+    BottomWidth 2 (widthOneParityLayered n) := by
+  intro cs hcs T hT
+  simp [widthOneParityLayered, assignmentConjunction, assignmentAtom, bottomGates,
+    bottomGatesList_eq] at hcs
+  rcases hcs with ⟨a, ha, i, rfl⟩
+  simp at hT
+  subst T
+  simp
+
+/-- Every singleton bottom clause is consistent and variable-duplicate-free, so the explicit
+representative also satisfies the normalization invariant used by collapse iteration. -/
+theorem widthOneParityLayered_bottomClean (n : ℕ) :
+    BottomClean (widthOneParityLayered n) := by
+  constructor <;> intro cs hcs T hT
+  · simp [widthOneParityLayered, assignmentConjunction, assignmentAtom, bottomGates,
+      bottomGatesList_eq] at hcs
+    rcases hcs with ⟨a, ha, i, rfl⟩
+    simp at hT
+    subst T
+    cases h : a i <;> simp [assignmentLiteral, h, Consistent]
+  · simp [widthOneParityLayered, assignmentConjunction, assignmentAtom, bottomGates,
+      bottomGatesList_eq] at hcs
+    rcases hcs with ⟨a, ha, i, rfl⟩
+    simp at hT
+    subst T
+    simp
+
+/-! Although `widthOneParityLayered` contains one singleton atom for every coordinate of every
+odd assignment, its bottom-gate *values* have only two possibilities per coordinate.  The compact
+family below indexes those positive and negative singleton gates directly.  This removes the
+exponential syntactic-occurrence charge before any endpoint-image estimate is attempted. -/
+
+/-- The two singleton polarities on every coordinate, indexed by `Fin (n + n)`. -/
+def widthOneParityCompactFamily (n : ℕ) : Fin (n + n) → List (Clause n) :=
+  Fin.addCases
+    (fun i ↦ [⟨[Rung4Literal.pos i]⟩])
+    (fun i ↦ [⟨[Rung4Literal.neg i]⟩])
+
+@[simp] theorem widthOneParityCompactFamily_left {n : ℕ} (i : Fin n) :
+    widthOneParityCompactFamily n (Fin.castAdd n i) =
+      [⟨[Rung4Literal.pos i]⟩] := by
+  simp [widthOneParityCompactFamily]
+
+@[simp] theorem widthOneParityCompactFamily_right {n : ℕ} (i : Fin n) :
+    widthOneParityCompactFamily n (Fin.natAdd n i) =
+      [⟨[Rung4Literal.neg i]⟩] := by
+  rw [widthOneParityCompactFamily, Fin.addCases_right]
+
+@[simp] theorem widthOneParityCompactFamily_right_addNat {n : ℕ} (i : Fin n) :
+    widthOneParityCompactFamily n (Fin.addNat i n) =
+      [⟨[Rung4Literal.neg i]⟩] := by
+  have hi : Fin.addNat i n = Fin.natAdd n i := by
+    apply Fin.ext
+    simp [Nat.add_comm]
+  rw [hi, widthOneParityCompactFamily_right]
+
+/-- Every compact gate has exactly one clause. -/
+theorem widthOneParityCompactFamily_length (n : ℕ) (g : Fin (n + n)) :
+    (widthOneParityCompactFamily n g).length = 1 := by
+  refine Fin.addCases (motive := fun g ↦
+    (widthOneParityCompactFamily n g).length = 1) ?_ ?_ g <;> simp
+
+/-- The compact family is duplicate-free and genuinely width one. -/
+theorem widthOneParityCompactFamily_normalized (n : ℕ) :
+    (∀ g, (widthOneParityCompactFamily n g).Nodup) ∧
+      (∀ g T, T ∈ widthOneParityCompactFamily n g → T.lits.length ≤ 1) := by
+  constructor
+  · intro g
+    refine Fin.addCases (motive := fun g ↦
+      (widthOneParityCompactFamily n g).Nodup) ?_ ?_ g <;> simp
+  · intro g
+    refine Fin.addCases (motive := fun g ↦
+      ∀ T, T ∈ widthOneParityCompactFamily n g → T.lits.length ≤ 1) ?_ ?_ g <;>
+        simp
+
+/-- The whole ragged term-key alphabet has exact size `2*n`, rather than the exponential number
+of syntactic singleton occurrences in the circuit. -/
+theorem widthOneParityCompactFamily_total_length (n : ℕ) :
+    (∑ g, (widthOneParityCompactFamily n g).length) = 2 * n := by
+  simp [widthOneParityCompactFamily_length, Nat.two_mul]
+
+/-- A fixed positive singleton is already decided and makes no witness query. -/
+theorem runWitSeq_positive_singleton_of_fixed {n : ℕ} (fuel : ℕ)
+    (sigma : Restriction n) (x : Fin n → Bool) (i : Fin n) (hi : sigma i ≠ none) :
+    runWitSeq [⟨[Rung4Literal.pos i]⟩] fuel sigma x = [] := by
+  cases fuel with
+  | zero => rfl
+  | succ fuel =>
+      cases his : sigma i with
+      | none => exact (hi his).elim
+      | some b =>
+          cases b <;>
+            simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+              litFree, litTrue, litFalse, litFixedVal, his]
+
+/-- A fixed negative singleton is likewise already decided and makes no witness query. -/
+theorem runWitSeq_negative_singleton_of_fixed {n : ℕ} (fuel : ℕ)
+    (sigma : Restriction n) (x : Fin n → Bool) (i : Fin n) (hi : sigma i ≠ none) :
+    runWitSeq [⟨[Rung4Literal.neg i]⟩] fuel sigma x = [] := by
+  cases fuel with
+  | zero => rfl
+  | succ fuel =>
+      cases his : sigma i with
+      | none => exact (hi his).elim
+      | some b =>
+          cases b <;>
+            simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+              litFree, litTrue, litFalse, litFixedVal, his]
+
+/-- A live positive singleton contributes exactly one canonical witness query, independently of
+the extending assignment.  This is the local selector calculation behind the compact family's
+global coordinate order. -/
+theorem runWitSeq_positive_singleton_of_free {n fuel : ℕ} (sigma : Restriction n)
+    (x : Fin n → Bool) (i : Fin n) (hi : sigma i = none) :
+    runWitSeq [⟨[Rung4Literal.pos i]⟩] (fuel + 1) sigma x = [(0, 0)] := by
+  simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+    freeLitPos, activeTermIdx, termActivePred, litFree, litTrue, litFalse,
+    litFixedVal, litVar, fixVar, hi]
+  split <;> apply runWitSeq_positive_singleton_of_fixed <;> simp
+
+/-- The negative singleton has the same one-query behavior while its coordinate is live. -/
+theorem runWitSeq_negative_singleton_of_free {n fuel : ℕ} (sigma : Restriction n)
+    (x : Fin n → Bool) (i : Fin n) (hi : sigma i = none) :
+    runWitSeq [⟨[Rung4Literal.neg i]⟩] (fuel + 1) sigma x = [(0, 0)] := by
+  simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+    freeLitPos, activeTermIdx, termActivePred, litFree, litTrue, litFalse,
+    litFixedVal, litVar, fixVar, hi]
+  split <;> apply runWitSeq_negative_singleton_of_fixed <;> simp
+
+/-- Exact selector law for the positive singleton: at positive fuel it emits its sole witness iff
+the coordinate is live. -/
+theorem runWitSeq_positive_singleton (n fuel : ℕ) (sigma : Restriction n)
+    (x : Fin n → Bool) (i : Fin n) :
+    runWitSeq [⟨[Rung4Literal.pos i]⟩] (fuel + 1) sigma x =
+      if sigma i = none then [(0, 0)] else [] := by
+  cases hi : sigma i with
+  | none => simp [hi, runWitSeq_positive_singleton_of_free sigma x i hi]
+  | some b =>
+      cases b <;>
+        simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+          freeLitPos, activeTermIdx, termActivePred, litFree, litTrue, litFalse,
+          litFixedVal, litVar, fixVar, hi]
+
+/-- Exact selector law for the negative singleton.  Its live/fixed behavior is identical to the
+positive copy; polarity does not affect whether the coordinate enters the raw witness stream. -/
+theorem runWitSeq_negative_singleton (n fuel : ℕ) (sigma : Restriction n)
+    (x : Fin n → Bool) (i : Fin n) :
+    runWitSeq [⟨[Rung4Literal.neg i]⟩] (fuel + 1) sigma x =
+      if sigma i = none then [(0, 0)] else [] := by
+  cases hi : sigma i with
+  | none => simp [hi, runWitSeq_negative_singleton_of_free sigma x i hi]
+  | some b =>
+      cases b <;>
+        simp [runWitSeq, anyTermSat, activeTerm, termSat, termFalsified, freeLits,
+          freeLitPos, activeTermIdx, termActivePred, litFree, litTrue, litFalse,
+          litFixedVal, litVar, fixVar, hi]
+
+/-- The compact index convention puts every positive singleton before every negative singleton.
+Consequently, when the stable freshness filter sees both copies of a live coordinate, the positive
+copy is the canonical winner; there is no cross-polarity `Fin (n+n)` tie. -/
+theorem widthOneParityCompactFamily_positive_before_negative {n : ℕ}
+    (i j : Fin n) :
+    (Fin.castAdd n i : Fin (n + n)).val < (Fin.natAdd n j : Fin (n + n)).val := by
+  simp
+  omega
+
+/-- Both polarity witnesses decode to their shared underlying coordinate. -/
+theorem widthOneParityCompactFamily_taggedWitVar {n : ℕ} (i : Fin n) :
+    taggedWitVar? (widthOneParityCompactFamily n)
+        (Fin.castAdd n i, (0, 0)) = some i ∧
+      taggedWitVar? (widthOneParityCompactFamily n)
+        (Fin.natAdd n i, (0, 0)) = some i := by
+  simp [taggedWitVar?]
+  constructor <;> rfl
+
+/-! The local singleton laws can now be lifted through the actual list constructors used by the
+common-switching encoder.  We keep the exact tagged entries as well as their decoded coordinates:
+the stronger statement records that the positive copy is the stable first-occurrence winner. -/
+
+/-- Positive compact-family entries at the live coordinates, in ambient coordinate order. -/
+def widthOneParityCompactPositiveEntries {n : ℕ} (sigma : Restriction n) :
+    List (TaggedWitEntry (n + n)) :=
+  (List.finRange n).filterMap fun i =>
+    if sigma i = none then some (Fin.castAdd n i, (0, 0)) else none
+
+/-- The corresponding negative entries.  They name the same live coordinates but occur in the
+second half of the compact family. -/
+def widthOneParityCompactNegativeEntries {n : ℕ} (sigma : Restriction n) :
+    List (TaggedWitEntry (n + n)) :=
+  (List.finRange n).filterMap fun i =>
+    if sigma i = none then some (Fin.natAdd n i, (0, 0)) else none
+
+private theorem flatten_map_ite_singleton_eq_filterMap {alpha beta : Type}
+    (l : List alpha) (p : alpha → Prop) [DecidablePred p] (f : alpha → beta) :
+    (l.map fun i => if p i then [f i] else []).flatten =
+      l.filterMap fun i => if p i then some (f i) else none := by
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+      by_cases h : p a <;> simp [h, ih]
+
+private theorem filterMap_ite_some_eq_filter_map {alpha beta : Type}
+    (l : List alpha) (p : alpha → Prop) [DecidablePred p] (f : alpha → beta) :
+    (l.filterMap fun i => if p i then some (f i) else none) =
+      (l.filter p).map f := by
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+      by_cases h : p a <;> simp [h, ih]
+
+/-- Before freshness filtering, the compact selector is exactly the increasing positive live pass
+followed by the increasing negative live pass.  It is independent of the extending assignment. -/
+theorem widthOneParityCompactFamily_taggedRawWitSeq {n fuel : ℕ}
+    (sigma : Restriction n) (x : Fin n → Bool) :
+    taggedRawWitSeq (widthOneParityCompactFamily n) (fuel + 1) sigma x =
+      widthOneParityCompactPositiveEntries sigma ++
+        widthOneParityCompactNegativeEntries sigma := by
+  rw [taggedRawWitSeq, List.ofFn_add]
+  simp only [List.flatten_append]
+  congr 1
+  · unfold widthOneParityCompactPositiveEntries
+    calc
+      _ = (List.ofFn fun i : Fin n =>
+            if sigma i = none then
+              [((Fin.castAdd n i : Fin (n + n)), (0, 0))]
+            else []).flatten := by
+          apply congrArg List.flatten
+          apply List.ofFn_inj.mpr
+          funext i
+          have hcast : Fin.castLE (Nat.le_add_right n n) i = Fin.castAdd n i := by
+            apply Fin.ext
+            rfl
+          rw [hcast]
+          by_cases h : sigma i = none <;>
+            simp [h, runWitSeq_positive_singleton]
+      _ = _ := by
+        rw [List.ofFn_eq_map]
+        exact flatten_map_ite_singleton_eq_filterMap (List.finRange n)
+          (fun i => sigma i = none) (fun i => (Fin.castAdd n i, (0, 0)))
+  · unfold widthOneParityCompactNegativeEntries
+    calc
+      _ = (List.ofFn fun i : Fin n =>
+            if sigma i = none then
+              [((Fin.natAdd n i : Fin (n + n)), (0, 0))]
+            else []).flatten := by
+          apply congrArg List.flatten
+          apply List.ofFn_inj.mpr
+          funext i
+          by_cases h : sigma i = none <;>
+            simp [h, runWitSeq_negative_singleton]
+      _ = _ := by
+        rw [List.ofFn_eq_map]
+        exact flatten_map_ite_singleton_eq_filterMap (List.finRange n)
+          (fun i => sigma i = none) (fun i => (Fin.natAdd n i, (0, 0)))
+
+theorem widthOneParityCompactPositiveEntries_eq {n : ℕ} (sigma : Restriction n) :
+    widthOneParityCompactPositiveEntries sigma =
+      ((List.finRange n).filter fun i => sigma i = none).map
+        fun i => (Fin.castAdd n i, (0, 0)) := by
+  exact filterMap_ite_some_eq_filter_map (List.finRange n)
+    (fun i => sigma i = none) (fun i => (Fin.castAdd n i, (0, 0)))
+
+theorem widthOneParityCompactNegativeEntries_eq {n : ℕ} (sigma : Restriction n) :
+    widthOneParityCompactNegativeEntries sigma =
+      ((List.finRange n).filter fun i => sigma i = none).map
+        fun i => (Fin.natAdd n i, (0, 0)) := by
+  exact filterMap_ite_some_eq_filter_map (List.finRange n)
+    (fun i => sigma i = none) (fun i => (Fin.natAdd n i, (0, 0)))
+
+theorem widthOneParityCompactPositiveEntries_decode {n : ℕ}
+    (sigma : Restriction n) :
+    (widthOneParityCompactPositiveEntries sigma).filterMap
+        (taggedWitVar? (widthOneParityCompactFamily n)) =
+      (List.finRange n).filter fun i => sigma i = none := by
+  rw [widthOneParityCompactPositiveEntries_eq, List.filterMap_map]
+  have hdecode :
+      taggedWitVar? (widthOneParityCompactFamily n) ∘
+          (fun i => (Fin.castAdd n i, (0, 0))) = some := by
+    funext i
+    exact (widthOneParityCompactFamily_taggedWitVar i).1
+  rw [hdecode, List.filterMap_some]
+
+theorem widthOneParityCompactNegativeEntries_decode {n : ℕ}
+    (sigma : Restriction n) :
+    (widthOneParityCompactNegativeEntries sigma).filterMap
+        (taggedWitVar? (widthOneParityCompactFamily n)) =
+      (List.finRange n).filter fun i => sigma i = none := by
+  rw [widthOneParityCompactNegativeEntries_eq, List.filterMap_map]
+  have hdecode :
+      taggedWitVar? (widthOneParityCompactFamily n) ∘
+          (fun i => (Fin.natAdd n i, (0, 0))) = some := by
+    funext i
+    exact (widthOneParityCompactFamily_taggedWitVar i).2
+  rw [hdecode, List.filterMap_some]
+
+/-- Fresh filtering composes over append when the second pass starts with every variable decoded
+by the first pass marked as seen. -/
+private theorem freshTaggedAux_append_exact {n G : ℕ}
+    (gates : Fin G → List (Clause n)) :
+    ∀ (seen : Finset (Fin n)) (as bs : List (TaggedWitEntry G)),
+      freshTaggedAux gates seen (as ++ bs) =
+        freshTaggedAux gates seen as ++
+          freshTaggedAux gates
+            (seen ∪ (as.filterMap (taggedWitVar? gates)).toFinset) bs := by
+  intro seen as
+  induction as generalizing seen with
+  | nil => simp [freshTaggedAux]
+  | cons a as ih =>
+      intro bs
+      cases hvar : taggedWitVar? gates a with
+      | none => simpa [freshTaggedAux, hvar] using ih seen bs
+      | some v =>
+          by_cases hv : v ∈ seen
+          · simp [freshTaggedAux, hvar, hv, ih]
+          · simp [freshTaggedAux, hvar, hv, ih, Finset.insert_union]
+
+private theorem freshTaggedAux_eq_self_of_nodup_disjoint {n G : ℕ}
+    (gates : Fin G → List (Clause n)) :
+    ∀ (seen : Finset (Fin n)) (as : List (TaggedWitEntry G)),
+      (∀ e ∈ as, ∃ v, taggedWitVar? gates e = some v) →
+      (as.filterMap (taggedWitVar? gates)).Nodup →
+      Disjoint (as.filterMap (taggedWitVar? gates)).toFinset seen →
+      freshTaggedAux gates seen as = as := by
+  intro seen as
+  induction as generalizing seen with
+  | nil => simp [freshTaggedAux]
+  | cons a as ih =>
+      intro hsome hnodup hdisj
+      obtain ⟨v, hv⟩ := hsome a (by simp)
+      rw [freshTaggedAux, hv]
+      have hvseen : v ∉ seen := by
+        intro h
+        have hav : v ∈
+            (List.filterMap (taggedWitVar? gates) (a :: as)).toFinset := by
+          simp [hv]
+        exact Finset.disjoint_left.mp hdisj hav h
+      simp only [hvseen, if_false]
+      congr 1
+      apply ih (insert v seen)
+      · intro e he
+        exact hsome e (by simp [he])
+      · simp only [List.filterMap_cons, hv] at hnodup
+        exact (List.nodup_cons.mp hnodup).2
+      · apply Finset.disjoint_left.mpr
+        intro q hq hqseen
+        simp only [Finset.mem_insert] at hqseen
+        rcases hqseen with rfl | hqseen
+        · simp only [List.filterMap_cons, hv] at hnodup
+          exact (List.nodup_cons.mp hnodup).1 (by simpa using hq)
+        · have hqcons :
+              q ∈ (List.filterMap (taggedWitVar? gates) (a :: as)).toFinset := by
+            rw [List.filterMap_cons, hv, List.toFinset_cons]
+            exact Finset.mem_insert_of_mem hq
+          exact Finset.disjoint_left.mp hdisj hqcons hqseen
+
+private theorem freshTaggedAux_eq_nil_of_vars_subset {n G : ℕ}
+    (gates : Fin G → List (Clause n)) :
+    ∀ (seen : Finset (Fin n)) (as : List (TaggedWitEntry G)),
+      (as.filterMap (taggedWitVar? gates)).toFinset ⊆ seen →
+      freshTaggedAux gates seen as = [] := by
+  intro seen as
+  induction as generalizing seen with
+  | nil => simp [freshTaggedAux]
+  | cons a as ih =>
+      intro hsub
+      rw [freshTaggedAux]
+      cases hvar : taggedWitVar? gates a with
+      | none =>
+          apply ih seen
+          simpa [hvar] using hsub
+      | some v =>
+          have hvseen : v ∈ seen := hsub (by simp [hvar])
+          simp only [hvseen, if_true]
+          apply ih seen
+          intro q hq
+          apply hsub
+          rw [List.filterMap_cons, hvar, List.toFinset_cons]
+          exact Finset.mem_insert_of_mem hq
+
+/-- Exact tagged selector stream: every live coordinate occurs once, in increasing order, and is
+represented by its positive compact-family index.  The negative copy is completely removed. -/
+theorem widthOneParityCompactFamily_freshTaggedWitSeq {n fuel : ℕ}
+    (sigma : Restriction n) (x : Fin n → Bool) :
+    freshTaggedWitSeq (widthOneParityCompactFamily n) (fuel + 1) sigma x =
+      widthOneParityCompactPositiveEntries sigma := by
+  rw [freshTaggedWitSeq, widthOneParityCompactFamily_taggedRawWitSeq,
+    freshTaggedAux_append_exact]
+  have hpos : freshTaggedAux (widthOneParityCompactFamily n) ∅
+      (widthOneParityCompactPositiveEntries sigma) =
+        widthOneParityCompactPositiveEntries sigma := by
+    apply freshTaggedAux_eq_self_of_nodup_disjoint
+    · intro e he
+      rw [widthOneParityCompactPositiveEntries_eq] at he
+      simp only [List.mem_map] at he
+      obtain ⟨i, hi, rfl⟩ := he
+      exact ⟨i, (widthOneParityCompactFamily_taggedWitVar i).1⟩
+    · rw [widthOneParityCompactPositiveEntries_decode]
+      exact (List.nodup_finRange n).filter _
+    · simp
+  rw [hpos]
+  have hneg : freshTaggedAux (widthOneParityCompactFamily n)
+      (∅ ∪ ((widthOneParityCompactPositiveEntries sigma).filterMap
+        (taggedWitVar? (widthOneParityCompactFamily n))).toFinset)
+      (widthOneParityCompactNegativeEntries sigma) = [] := by
+    apply freshTaggedAux_eq_nil_of_vars_subset
+    rw [widthOneParityCompactPositiveEntries_decode,
+      widthOneParityCompactNegativeEntries_decode]
+    simp
+  rw [hneg, List.append_nil]
+
+/-- Decoding the exact fresh selector stream gives precisely the increasing list of live ambient
+coordinates.  In particular, the result is independent of the extending assignment. -/
+theorem widthOneParityCompactFamily_freshTaggedWitSeq_decode {n fuel : ℕ}
+    (sigma : Restriction n) (x : Fin n → Bool) :
+    (freshTaggedWitSeq (widthOneParityCompactFamily n) (fuel + 1) sigma x).filterMap
+        (taggedWitVar? (widthOneParityCompactFamily n)) =
+      (List.finRange n).filter fun i => sigma i = none := by
+  rw [widthOneParityCompactFamily_freshTaggedWitSeq,
+    widthOneParityCompactPositiveEntries_decode]
+
+/-- The budgeted compact-family selector fixes exactly the first `d` live coordinates in ambient
+`Fin` order.  This is the set-level form needed to make the endpoint map combinatorial. -/
+theorem widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take
+    {n fuel d : ℕ} (sigma : Restriction n) (x : Fin n → Bool) :
+    freshTaggedPrefixVars (widthOneParityCompactFamily n) (fuel + 1) sigma x d =
+      (((List.finRange n).filter fun i => sigma i = none).take d).toFinset := by
+  rw [freshTaggedPrefixVars,
+    widthOneParityCompactFamily_freshTaggedWitSeq,
+    widthOneParityCompactPositiveEntries_eq, ← List.map_take, List.filterMap_map]
+  have hdecode :
+      taggedWitVar? (widthOneParityCompactFamily n) ∘
+          (fun i => (Fin.castAdd n i, (0, 0))) = some := by
+    funext i
+    exact (widthOneParityCompactFamily_taggedWitVar i).1
+  rw [hdecode, List.filterMap_some]
+
+/-- Consequently the compact prefix endpoint is literally the root restriction with the first
+`d` live coordinates fixed according to the extending assignment.  Neither polarity nor any
+other circuit occurrence enters the endpoint. -/
+theorem widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn
+    {n fuel d : ℕ} (sigma : Restriction n) (x : Fin n → Bool) :
+    freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1) sigma x d =
+      fixOn sigma
+        (((List.finRange n).filter fun i => sigma i = none).take d).toFinset x := by
+  rw [freshTaggedPrefixEndpoint,
+    widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take]
+
+/-- The `finRange` presentation used by the compact parity family is the same increasing live-set
+order already used by the independent-singleton endpoint audit. -/
+theorem independentLiveOrder_eq_finRange_filter_mem {n : ℕ} (S : Finset (Fin n)) :
+    independentLiveOrder S = (List.finRange n).filter fun i => i ∈ S := by
+  simp only [independentLiveOrder, List.ofFn_eq_map]
+  have aux : ∀ L : List (Fin n),
+      (L.map (fun i => if i ∈ S then [i] else [])).flatten =
+        L.filter fun i => i ∈ S := by
+    intro L
+    induction L with
+    | nil => simp
+    | cons a L ih =>
+        by_cases ha : a ∈ S <;> simp [ha, ih]
+  exact aux _
+
+/-- Every exact candidate in a compact-family endpoint fiber is obtained by re-freeing a
+`d`-set strictly below every residual live coordinate.  This includes the empty-residual case:
+`independentStrictBelow ∅` is the whole ambient coordinate set.
+
+The result is deliberately an inclusion, not an equality.  The endpoint also records the values
+chosen by `commonShallowBadAssignment` on the re-freed coordinates, and an arbitrary compatible
+ordered `d`-set need not reproduce those fixed Boolean values. -/
+theorem widthOneParityCompactFamily_candidateSets_subset_ordered
+    {n fuel K d : ℕ} (kappa : Restriction n) :
+    ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+        (widthOneParityCompactFamily n)
+        (fuel + 1) K d 0 kappa ⊆
+      (independentStrictBelow (freeVars kappa)).powersetCard d := by
+  classical
+  intro S hS
+  let assignment := commonShallowBadAssignment (widthOneParityCompactFamily n)
+    (fuel + 1) K d 0
+  have hc := hS
+  simp only [ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets,
+    Finset.mem_filter] at hc
+  have hcard : S.card = d := (Finset.mem_powersetCard.mp hc.1).2
+  let root : Restriction n := freeOn kappa S
+  have hvars : freshTaggedPrefixVars (widthOneParityCompactFamily n) (fuel + 1)
+      root (assignment root) d = S := hc.2.2.1
+  have hendpoint : freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+      root (assignment root) d = kappa := hc.2.2.2
+  have horder : ((independentLiveOrder (freeVars root)).take d).toFinset = S := by
+    rw [independentLiveOrder_eq_finRange_filter_mem]
+    simpa only [mem_freeVars] using
+      (widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take
+        root (assignment root) |>.symm.trans hvars)
+  have hSfree : S ⊆ freeVars root := by
+    intro i hi
+    simp [root, mem_freeVars, freeOn, hi]
+  have hdroot : d ≤ (freeVars root).card := by
+    rw [← hcard]
+    exact Finset.card_le_card hSfree
+  have hresidual :
+      freeVars root \ ((independentLiveOrder (freeVars root)).take d).toFinset =
+        freeVars kappa := by
+    rw [horder]
+    have hfree := freeVars_freshTaggedPrefixEndpoint
+      (widthOneParityCompactFamily n) (fuel + 1) root (assignment root) d
+    rw [hendpoint] at hfree
+    rw [hvars] at hfree
+    exact hfree.symm
+  have hconv := independentLiteral_prefixEndpoint_converse
+    (freeVars root) (freeVars kappa) hdroot
+    (show freshTaggedPrefixEndpoint (independentLiteralGates n) 1
+        (independentRoot (freeVars root)) (independentAssignment n) d =
+          independentRoot (freeVars kappa) by
+      rw [independentLiteral_freshTaggedPrefixEndpoint_eq_sdiff, hresidual])
+  rw [Finset.mem_powersetCard]
+  refine ⟨?_, hcard⟩
+  simpa only [horder] using hconv.2.1
+
+/-- Ordered fixing replaces the ambient fixed-coordinate ceiling by the exact initial-segment
+binomial envelope at each endpoint.  The remaining gap to equality is only the endpoint-value
+compatibility described above. -/
+theorem widthOneParityCompactFamily_candidateSets_card_le_orderedChoose
+    {n fuel K d : ℕ} (kappa : Restriction n) :
+    (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+      (widthOneParityCompactFamily n)
+      (fuel + 1) K d 0 kappa).card ≤
+        Nat.choose (independentStrictBelow (freeVars kappa)).card d := by
+  calc
+    _ ≤ ((independentStrictBelow (freeVars kappa)).powersetCard d).card :=
+      Finset.card_le_card
+        (widthOneParityCompactFamily_candidateSets_subset_ordered kappa)
+    _ = Nat.choose (independentStrictBelow (freeVars kappa)).card d :=
+      Finset.card_powersetCard d _
+
+/-- Nonempty residual endpoints expose the ceiling as `choose(min(E),d)`. -/
+theorem widthOneParityCompactFamily_candidateSets_card_le_choose_min'
+    {n fuel K d : ℕ} (kappa : Restriction n)
+    (hfree : (freeVars kappa).Nonempty) :
+    (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+      (widthOneParityCompactFamily n)
+      (fuel + 1) K d 0 kappa).card ≤ Nat.choose ((freeVars kappa).min' hfree).val d := by
+  simpa [independentStrictBelow_eq_Iio_min' (freeVars kappa) hfree, Fin.card_Iio] using
+    widthOneParityCompactFamily_candidateSets_card_le_orderedChoose kappa
+
+/-- Empty residual endpoints are the boundary case: every ambient coordinate is strictly below
+the empty set, so the ordered envelope is the full `choose(n,d)`. -/
+theorem widthOneParityCompactFamily_candidateSets_card_le_choose_of_freeVars_eq_empty
+    {n fuel K d : ℕ} (kappa : Restriction n)
+    (hfree : freeVars kappa = ∅) :
+    (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+      (widthOneParityCompactFamily n)
+      (fuel + 1) K d 0 kappa).card ≤ Nat.choose n d := by
+  simpa [hfree, independentStrictBelow] using
+    widthOneParityCompactFamily_candidateSets_card_le_orderedChoose kappa
+
+/-- On a nonempty `(K-d)`-live endpoint shell, the least possible residual coordinate recovers
+the previous uniform ceiling.  Thus coordinate ordering sharpens individual fibers but does not,
+by itself, improve the worst-case product-aware alphabet bound. -/
+theorem widthOneParityCompactFamily_candidateSets_card_le_shellChoose
+    {n fuel K d : ℕ} (kappa : Restriction n) (hstars : stars kappa = K - d)
+    (hresidual : 0 < K - d) :
+    (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+      (widthOneParityCompactFamily n) (fuel + 1) K d 0 kappa).card ≤
+        Nat.choose (n - (K - d)) d := by
+  have hfree : (freeVars kappa).Nonempty := by
+    rw [Finset.nonempty_iff_ne_empty]
+    intro hempty
+    have : stars kappa = 0 := by simp [stars, hempty]
+    omega
+  calc
+    _ ≤ Nat.choose ((freeVars kappa).min' hfree).val d :=
+      widthOneParityCompactFamily_candidateSets_card_le_choose_min' kappa hfree
+    _ ≤ Nat.choose (n - (K - d)) d := by
+      apply Nat.choose_le_choose
+      apply min'_val_le_card_complement (freeVars kappa)
+      · simpa [stars] using hstars
+
+/-! The preceding upper bound still uses the opaque semantic choice made by
+`commonShallowBadAssignment`.  The next two results test whether that opacity is essential by
+switching to the explicit coherent all-false extension on the independent-root slice. -/
+
+/-- On an all-false independent root, the compact two-polarity family and the positive-only
+independent singleton family have exactly the same prefix endpoint.  This is uniform in the
+prefix budget and positive fuel; it follows from the already computed assignment-independent
+compact selector stream. -/
+theorem widthOneParityCompactFamily_independentRoot_prefixEndpoint
+    {n fuel d : ℕ} (S : Finset (Fin n)) :
+    freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+        (independentRoot S) (independentAssignment n) d =
+      freshTaggedPrefixEndpoint (independentLiteralGates n) 1
+        (independentRoot S) (independentAssignment n) d := by
+  rw [widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn,
+    freshTaggedPrefixEndpoint,
+    independentLiteral_freshTaggedPrefixVars_eq_take,
+    independentLiveOrder_eq_finRange_filter_mem]
+  congr 1
+  ext i
+  simp [independentRoot]
+
+/-- The compact family still contains both canonical polarities of every syntactic bottom gate,
+so it can be fed directly to the existing layered common-trunk collapse bridge. -/
+theorem widthOneParityCompactFamily_covers (n : ℕ) :
+    CoversLayeredBottoms (widthOneParityCompactFamily n)
+      (widthOneParityLayered n) := by
+  intro cs hcs
+  simp [widthOneParityLayered, assignmentConjunction, assignmentAtom, bottomGates,
+    bottomGatesList_eq] at hcs
+  obtain ⟨a, ha, i, rfl⟩ := hcs
+  cases h : a i
+  · constructor
+    · refine ⟨Fin.natAdd n i, fun fuel sigma ↦ ?_⟩
+      simp [assignmentLiteral, h]
+    · refine ⟨Fin.castAdd n i, fun fuel sigma ↦ ?_⟩
+      simp [assignmentLiteral, h, negDNF, negLit]
+  · constructor
+    · refine ⟨Fin.castAdd n i, fun fuel sigma ↦ ?_⟩
+      simp [assignmentLiteral, h]
+    · refine ⟨Fin.natAdd n i, fun fuel sigma ↦ ?_⟩
+      simp [assignmentLiteral, h, negDNF, negLit]
+
+/-- Compacting the two-polarity alphabet does not remove any semantic bad roots: below the live
+dimension, residual depth zero is still impossible on every exact-shell restriction. -/
+theorem widthOneParityCompactFamily_commonShallowBad_zero_eq_shell
+    {n fuel K trunkDepth : ℕ} (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    commonShallowBad (widthOneParityCompactFamily n) fuel K trunkDepth 0 =
+      Finset.univ.filter fun sigma : Restriction n => stars sigma = K := by
+  apply parity_covered_commonShallowBad_zero_eq_shell
+    (widthOneParityCompactFamily n) (widthOneParityLayered n) false
+    (widthOneParityCompactFamily_covers n)
+  · intro x
+    simpa using widthOneParityLayered_eval n x
+  · exact hKfuel
+  · exact htrunk
+
+/-- Exact full-shell count for the compact `2n` first-round gate alphabet. -/
+theorem widthOneParityCompactFamily_commonShallowBad_zero_card
+    {n fuel K trunkDepth : ℕ} (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K) :
+    (commonShallowBad (widthOneParityCompactFamily n) fuel K trunkDepth 0).card =
+      Nat.choose n K * 2 ^ (n - K) := by
+  rw [widthOneParityCompactFamily_commonShallowBad_zero_eq_shell hKfuel htrunk,
+    card_stars_eq]
+
+/-- The sharp ordered binomial envelope is genuinely attained by a coherent explicit assignment
+on an actual residual-depth-zero parity bad slice.  For every nonempty residual live set `E`, all
+roots obtained by adjoining a `d`-set strictly below `E` are bad roots on the same exact shell and
+the all-false extension sends every one of them to the common endpoint `independentRoot E`.
+
+Thus the worst ordered multiplicity is not caused by the arbitrary values hidden in
+`commonShallowBadAssignment`: a parity-specific coherent witness realizes the entire ordered
+subfiber. -/
+theorem widthOneParityCompactFamily_orderedFiber_bad_and_endpoint
+    {n fuel d : ℕ} (E : Finset (Fin n)) (hE : E.Nonempty)
+    (hfuel : d + E.card ≤ fuel + 1) :
+    (independentOrderedFiber E d).card =
+        Nat.choose (independentStrictBelow E).card d ∧
+      ∀ rho ∈ independentOrderedFiber E d,
+        rho ∈ commonShallowBad (widthOneParityCompactFamily n)
+            (fuel + 1) (d + E.card) d 0 ∧
+          freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+            rho (independentAssignment n) d = independentRoot E := by
+  constructor
+  · exact (independentOrderedFiber_card_and_endpoint E).1
+  · intro rho hrho
+    obtain ⟨D, hD, rfl⟩ := Finset.mem_image.mp hrho
+    have hDcard : D.card = d := (Finset.mem_powersetCard.mp hD).2
+    have hDsub : D ⊆ independentStrictBelow E :=
+      (Finset.mem_powersetCard.mp hD).1
+    have hdisjoint : Disjoint D E := by
+      rw [Finset.disjoint_left]
+      intro i hiD hiE
+      exact ((Finset.mem_filter.mp (hDsub hiD)).2 i hiE).false
+    have hunionCard : (D ∪ E).card = d + E.card := by
+      rw [Finset.card_union_of_disjoint hdisjoint, hDcard]
+    have hstars : stars (independentRoot (D ∪ E)) = d + E.card := by
+      rw [stars, freeVars_independentRoot, hunionCard]
+    constructor
+    · rw [widthOneParityCompactFamily_commonShallowBad_zero_eq_shell hfuel (by
+          have hEpos : 0 < E.card := Finset.card_pos.mpr hE
+          omega)]
+      simp [hstars]
+    · rw [widthOneParityCompactFamily_independentRoot_prefixEndpoint]
+      exact (independentOrderedFiber_card_and_endpoint E).2
+        (independentRoot (D ∪ E)) (by
+          rw [independentOrderedFiber, Finset.mem_image]
+          exact ⟨D, hD, rfl⟩)
+
+/-- In the proportional `K = 2*d` shell, a terminal residual segment attains the previous uniform
+ceiling `choose (n-d) d` inside the compact parity family's actual bad event.  This is the exact
+worst-case calibration needed by the product-aware shell audit for the coherent all-false
+assignment. -/
+theorem exists_widthOneParityCompactFamily_orderedFiber_maximum_bad
+    {n fuel d : ℕ} (hd : 0 < d) (h2dn : 2 * d ≤ n)
+    (hfuel : 2 * d ≤ fuel + 1) :
+    ∃ (E : Finset (Fin n)) (hE : E.Nonempty),
+      E.card = d ∧
+        (independentOrderedFiber E d).card = Nat.choose (n - d) d ∧
+        ∀ rho ∈ independentOrderedFiber E d,
+          rho ∈ commonShallowBad (widthOneParityCompactFamily n)
+              (fuel + 1) (2 * d) d 0 ∧
+            freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+              rho (independentAssignment n) d = independentRoot E := by
+  obtain ⟨E, hE, hEcard, hmax⟩ :=
+    exists_independentFixedShellEndpointFiber_card_eq_choose_card_complement
+      hd (by omega : d ≤ n)
+  have hordered : independentFixedShellEndpointFiber (2 * d) d E =
+      independentOrderedFiber E d :=
+    independentFixedShellEndpointFiber_eq_ordered E (by omega) (by omega)
+  have hdata := widthOneParityCompactFamily_orderedFiber_bad_and_endpoint
+    (fuel := fuel) E hE (by simpa [hEcard, Nat.two_mul] using hfuel)
+  refine ⟨E, hE, hEcard, ?_, ?_⟩
+  · rw [← hordered]
+    exact hmax
+  · simpa [hEcard, Nat.two_mul] using hdata.2
+
+/-! ### The coherent compact-parity assignment as a conditioned code -/
+
+/-- Preserve every value already fixed by the root and set every live coordinate to false.  This
+is a coherent extension on the whole restriction space, not just on the independent-root slice. -/
+def restrictionFalseExtension {n : ℕ} (sigma : Restriction n) : Fin n → Bool :=
+  fun i => (sigma i).getD false
+
+theorem restrictionFalseExtension_extends {n : ℕ} (sigma : Restriction n) :
+    Rung4Restriction.Extends sigma (restrictionFalseExtension sigma) := by
+  intro i b hi
+  simp [restrictionFalseExtension, hi]
+
+/-- The compact selector has exactly one fresh entry per live coordinate. -/
+theorem widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars
+    {n fuel : ℕ} (sigma : Restriction n) (x : Fin n → Bool) :
+    (freshTaggedWitSeq (widthOneParityCompactFamily n) (fuel + 1) sigma x).length =
+      stars sigma := by
+  rw [widthOneParityCompactFamily_freshTaggedWitSeq,
+    widthOneParityCompactPositiveEntries_eq, List.length_map, stars]
+  rw [← List.toFinset_card_of_nodup ((List.nodup_finRange n).filter _)]
+  congr 1
+  ext i
+  simp [freeVars]
+
+/-- The ragged prefix encoder instantiated with the coherent false-on-live extension.  Unlike
+`commonShallowBadPrefixCode`, its endpoint does not depend on a classical choice of a deep
+residual witness. -/
+noncomputable def coherentParityPrefixCode
+    {n fuel K d : ℕ} (hdK : d ≤ K) :
+    ConditionedFirstRoundCode
+      (commonShallowBad (widthOneParityCompactFamily n) (fuel + 1) K d 0) := by
+  let bad := commonShallowBad (widthOneParityCompactFamily n) (fuel + 1) K d 0
+  let assignment : ↑bad → Fin n → Bool := fun root ↦ restrictionFalseExtension root.1
+  let endpoint : ↑bad → Restriction n := fun root ↦
+    freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+      root.1 (assignment root) d
+  let encode : ↑bad → PrefixActualSymLabel 1 d (widthOneParityCompactFamily n) :=
+    fun root ↦ canonicalPrefixActualSymLabel (d := d) (widthOneParityCompactFamily n)
+      (widthOneParityCompactFamily_normalized n).1
+      (widthOneParityCompactFamily_normalized n).2 (fuel + 1) root.1 (assignment root)
+  apply ConditionedFirstRoundCode.ofInjectivePair endpoint encode
+  intro root₁ root₂ hpairs
+  apply Subtype.ext
+  apply freshTaggedPrefixEndpoint_inj_of_vars_eq (widthOneParityCompactFamily n) (fuel + 1)
+    (restrictionFalseExtension_extends root₁.1)
+    (restrictionFalseExtension_extends root₂.1)
+    (congrArg Prod.fst hpairs)
+  apply freshTaggedPrefixVars_eq_of_prefixActualSymLabel_eq
+    (widthOneParityCompactFamily n) (widthOneParityCompactFamily_normalized n).1
+    (widthOneParityCompactFamily_normalized n).2 (fuel + 1)
+    root₁.1 root₂.1 (assignment root₁) (assignment root₂)
+    (restrictionFalseExtension_extends root₁.1)
+    (restrictionFalseExtension_extends root₂.1)
+  · rw [← freshTaggedWitSeq_length_eq_trace_readOnce (widthOneParityCompactFamily n)
+        (fuel + 1) root₁.1 (assignment root₁)
+        (restrictionFalseExtension_extends root₁.1),
+      widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars,
+      (mem_commonShallowBad.mp root₁.property).1]
+    exact hdK
+  · rw [← freshTaggedWitSeq_length_eq_trace_readOnce (widthOneParityCompactFamily n)
+        (fuel + 1) root₂.1 (assignment root₂)
+        (restrictionFalseExtension_extends root₂.1),
+      widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars,
+      (mem_commonShallowBad.mp root₂.property).1]
+    exact hdK
+  · exact congrArg Prod.snd hpairs
+
+/-- Reindex the coherent code independently inside each endpoint fiber. -/
+noncomputable def coherentParityMaxFiberPrefixCode
+    {n fuel K d : ℕ} (hdK : d ≤ K) :
+    ConditionedFirstRoundCode
+      (commonShallowBad (widthOneParityCompactFamily n) (fuel + 1) K d 0) :=
+  (coherentParityPrefixCode (n := n) (fuel := fuel) hdK).restrictToMaxEndpointFiber
+
+/-- Every coherent endpoint fiber obeys the same fixed-coordinate binomial ceiling. -/
+theorem coherentParityPrefixCode_endpointFiberCard_le_choose_fixed
+    {n fuel K d : ℕ} (hdK : d ≤ K) (kappa : Restriction n) :
+    (coherentParityPrefixCode (n := n) (fuel := fuel) hdK).endpointFiberCard kappa ≤
+      Nat.choose (n - stars kappa) d := by
+  classical
+  let code := coherentParityPrefixCode (n := n) (fuel := fuel) hdK
+  let fixed := (Finset.univ : Finset (Fin n)) \ freeVars kappa
+  let encodeFiber : {root :
+      ↑(commonShallowBad (widthOneParityCompactFamily n) (fuel + 1) K d 0) //
+      code.endpoint root = kappa} → ↑(fixed.powersetCard d) := fun root ↦
+    ⟨freshTaggedPrefixVars (widthOneParityCompactFamily n) (fuel + 1) root.1.1
+        (restrictionFalseExtension root.1.1) d, by
+      rw [Finset.mem_powersetCard]
+      constructor
+      · intro v hv
+        simp only [fixed, Finset.mem_sdiff]
+        refine ⟨Finset.mem_univ v, ?_⟩
+        have hendpoint := root.property
+        change freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+          root.1.1 (restrictionFalseExtension root.1.1) d = kappa at hendpoint
+        rw [← hendpoint, freeVars_freshTaggedPrefixEndpoint]
+        simp [hv]
+      · apply freshTaggedPrefixVars_card_eq_of_le_trace
+          (widthOneParityCompactFamily n) (fuel + 1) root.1.1
+          (restrictionFalseExtension root.1.1) d
+          (restrictionFalseExtension_extends root.1.1)
+        rw [← freshTaggedWitSeq_length_eq_trace_readOnce
+            (widthOneParityCompactFamily n) (fuel + 1) root.1.1
+            (restrictionFalseExtension root.1.1)
+            (restrictionFalseExtension_extends root.1.1),
+          widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars,
+          (mem_commonShallowBad.mp root.1.property).1]
+        exact hdK⟩
+  calc
+    code.endpointFiberCard kappa ≤ Fintype.card ↑(fixed.powersetCard d) := by
+      apply Fintype.card_le_of_injective encodeFiber
+      intro root₁ root₂ hvars
+      apply Subtype.ext
+      apply Subtype.ext
+      apply freshTaggedPrefixEndpoint_inj_of_vars_eq (widthOneParityCompactFamily n)
+        (fuel + 1) (restrictionFalseExtension_extends root₁.1.1)
+        (restrictionFalseExtension_extends root₂.1.1)
+      · exact root₁.property.trans root₂.property.symm
+      · exact congrArg Subtype.val hvars
+    _ = Nat.choose (n - stars kappa) d := by
+      rw [Fintype.card_coe, Finset.card_powersetCard]
+      congr 2
+      rw [Finset.card_sdiff_of_subset (Finset.subset_univ _), Finset.card_univ,
+        Fintype.card_fin]
+      rfl
+
+/-- Every coherent prefix endpoint on the exact `K`-shell has exactly `K-d` live coordinates. -/
+theorem coherentParityPrefixCode_endpoint_stars
+    {n fuel K d : ℕ} (hdK : d ≤ K)
+    (root : ↑(commonShallowBad (widthOneParityCompactFamily n) (fuel + 1) K d 0)) :
+    stars ((coherentParityPrefixCode (n := n) (fuel := fuel) hdK).endpoint root) = K - d := by
+  have hlong : d ≤ (CommonTree.trace
+      (CommonTree.readOnce root.1
+        (canonicalFamilyTree (widthOneParityCompactFamily n) (fuel + 1) root.1))
+      (restrictionFalseExtension root.1)).length := by
+    rw [← freshTaggedWitSeq_length_eq_trace_readOnce (widthOneParityCompactFamily n)
+        (fuel + 1) root.1 (restrictionFalseExtension root.1)
+        (restrictionFalseExtension_extends root.1),
+      widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars,
+      (mem_commonShallowBad.mp root.property).1]
+    exact hdK
+  change stars (freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+    root.1 (restrictionFalseExtension root.1) d) = K - d
+  rw [stars_freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+      root.1 (restrictionFalseExtension root.1) d
+      (restrictionFalseExtension_extends root.1),
+    (mem_commonShallowBad.mp root.property).1,
+    freshTaggedPrefixVars_card_eq_of_le_trace (widthOneParityCompactFamily n)
+      (fuel + 1) root.1 (restrictionFalseExtension root.1) d
+      (restrictionFalseExtension_extends root.1) hlong]
+
+/-- On the exact `K`-shell, the coherent code's optimal alphabet retains the familiar uniform
+upper bound `choose (n-(K-d)) d`. -/
+theorem coherentParityMaxFiberPrefixCode_labelCard_le_choose
+    {n fuel K d : ℕ} (hdK : d ≤ K) :
+    (coherentParityMaxFiberPrefixCode (n := n) (fuel := fuel) hdK).labelCard ≤
+      Nat.choose (n - (K - d)) d := by
+  classical
+  change
+    ((coherentParityPrefixCode (n := n) (fuel := fuel) hdK).restrictToMaxEndpointFiber).labelCard ≤
+      Nat.choose (n - (K - d)) d
+  rw [ConditionedFirstRoundCode.restrictToMaxEndpointFiber_labelCard,
+    ConditionedFirstRoundCode.maxRealizedEndpointFiberCard]
+  apply Finset.sup_le
+  intro root _
+  calc
+    (coherentParityPrefixCode (n := n) (fuel := fuel) hdK).endpointFiberCard
+        ((coherentParityPrefixCode (n := n) (fuel := fuel) hdK).endpoint root) ≤
+        Nat.choose (n - stars
+          ((coherentParityPrefixCode (n := n) (fuel := fuel) hdK).endpoint root)) d :=
+      coherentParityPrefixCode_endpointFiberCard_le_choose_fixed hdK _
+    _ = Nat.choose (n - (K - d)) d := by
+      congr 2
+      exact coherentParityPrefixCode_endpoint_stars hdK root
+
+/-- In the proportional compact-parity shell the coherent conditioned code has exactly the sharp
+ordered binomial alphabet.  This packages the explicit witness into the same decoder-sound
+interface consumed by the product-aware recurrence. -/
+theorem coherentParityMaxFiberPrefixCode_labelCard_eq_choose
+    {n fuel d : ℕ} (hd : 0 < d) (h2dn : 2 * d ≤ n)
+    (hfuel : 2 * d ≤ fuel + 1) :
+    (coherentParityMaxFiberPrefixCode (n := n) (fuel := fuel)
+      (K := 2 * d) (d := d) (by omega)).labelCard = Nat.choose (n - d) d := by
+  apply Nat.le_antisymm
+  · simpa [Nat.two_mul] using
+      (coherentParityMaxFiberPrefixCode_labelCard_le_choose
+        (n := n) (fuel := fuel) (K := 2 * d) (d := d) (by omega))
+  · obtain ⟨E, hE, hEcard, hfiberCard, hfiber⟩ :=
+      exists_widthOneParityCompactFamily_orderedFiber_maximum_bad hd h2dn hfuel
+    let code := coherentParityPrefixCode (n := n) (fuel := fuel)
+      (K := 2 * d) (d := d) (by omega)
+    let embed : ↑(independentOrderedFiber E d) →
+        {root : ↑(commonShallowBad (widthOneParityCompactFamily n) (fuel + 1)
+          (2 * d) d 0) // code.endpoint root = independentRoot E} := fun rho ↦ by
+      have hrho := hfiber rho.1 rho.2
+      refine ⟨⟨rho.1, hrho.1⟩, ?_⟩
+      change freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel + 1)
+        rho.1 (restrictionFalseExtension rho.1) d = independentRoot E
+      rw [widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn]
+      rw [widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn] at hrho
+      have hassign : ∀ i ∈
+          (((List.finRange n).filter fun i => rho.1 i = none).take d).toFinset,
+          restrictionFalseExtension rho.1 i = independentAssignment n i := by
+        intro i hi
+        have hfree : rho.1 i = none := by
+          have := List.mem_toFinset.mp hi
+          have := List.mem_of_mem_take this
+          simpa using (List.mem_filter.mp this).2
+        simp [restrictionFalseExtension, independentAssignment, hfree]
+      apply Eq.trans ?_ hrho.2
+      funext i
+      simp only [fixOn]
+      split
+      · congr 1
+        exact hassign i (by assumption)
+      · rfl
+    have hinj : Function.Injective embed := by
+      intro rho₁ rho₂ h
+      apply Subtype.ext
+      exact congrArg (fun root => root.1.1) h
+    have hle : (independentOrderedFiber E d).card ≤
+        code.endpointFiberCard (independentRoot E) := by
+      rw [← Fintype.card_coe]
+      exact Fintype.card_le_of_injective embed hinj
+    change Nat.choose (n - d) d ≤ code.restrictToMaxEndpointFiber.labelCard
+    rw [ConditionedFirstRoundCode.restrictToMaxEndpointFiber_labelCard]
+    calc
+      Nat.choose (n - d) d = (independentOrderedFiber E d).card := hfiberCard.symm
+      _ ≤ code.endpointFiberCard (independentRoot E) := hle
+      _ ≤ code.maxRealizedEndpointFiberCard :=
+        code.endpointFiberCard_le_maxRealized_any (independentRoot E)
+
+/-- Exact product-aware slot obligation for the explicit parity representative when its first
+round uses the coherent optimal code.  The sharp ordered fiber is now present literally as the
+first charged alphabet, while the right side is the representative's exact `n * 2^(n-1)` bottom
+slot capacity. -/
+theorem widthOneParity_coherentCode_productAware_slot_obligation
+    {n fuel d rounds terminal : ℕ} (hd : 0 < d) (h2dn : 2 * d ≤ n)
+    (hfuel : 2 * d ≤ fuel + 1) (hrounds : 0 < rounds)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (coherentParityMaxFiberPrefixCode (n := n) (fuel := fuel)
+        (K := 2 * d) (d := d) (by omega)).labelCard)
+    (hfit : 20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ n) :
+    (240 * Nat.choose (n - d) d + 260) *
+        (26 ^ (rounds - 1) * terminal) ≤ n * 2 ^ (n - 1) := by
+  have hn : 1 ≤ n := by omega
+  have hbound := widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+    (widthOneParityLayered n) false (widthOneParityLayered_bottomWidth_two n)
+    (fun x ↦ by simpa using widthOneParityLayered_eval n x)
+    hrounds actualKeys hfit
+  rw [hfirst, coherentParityMaxFiberPrefixCode_labelCard_eq_choose hd h2dn hfuel,
+    widthOneParityLayered_bottomSlotCount hn] at hbound
+  exact hbound
+
+/-- Every nontrivial interior binomial coefficient dominates its top argument.  This deliberately
+uses only Pascal's recurrence: the intended ambient comparison below needs no asymptotic estimate
+or factorial approximation. -/
+theorem self_le_choose_of_pos_of_lt {N k : ℕ} (hk : 0 < k) (hkN : k < N) :
+    N ≤ Nat.choose N k := by
+  induction N generalizing k with
+  | zero => omega
+  | succ N ih =>
+      by_cases hkN' : k = N
+      · subst k
+        simpa using Nat.choose_succ_self_right N
+      · obtain ⟨j, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hk)
+        rw [Nat.choose_succ_succ]
+        have hlt : j + 1 < N := by omega
+        have hmain : N ≤ Nat.choose N (j + 1) := ih (by omega) hlt
+        have hside : 0 < Nat.choose N j := Nat.choose_pos (by omega)
+        calc
+          N + 1 = 1 + N := by omega
+          _ ≤ Nat.choose N j + Nat.choose N (j + 1) :=
+            Nat.add_le_add (by omega) hmain
+
+/-- In the intended proportional regime, the exact coherent first-round alphabet already makes
+the one-step ambient demand too large.  The linear lower bound `choose(N,k) ≥ N` is enough: no
+factorial or exponential estimate is needed. -/
+theorem intended_coherent_firstRoundDemand_exceeds_ambient
+    {A r : ℕ} (hA : 0 < A) (hr : 0 < r) :
+    1000 * A * r <
+      20 * (24 * Nat.choose (1000 * A * r - 10 * r) (10 * r) + 26) := by
+  have hsub : 10 * r ≤ 1000 * A * r := by nlinarith
+  have hgap : 10 * r < 1000 * A * r - 10 * r := by
+    have heq := Nat.sub_add_cancel hsub
+    nlinarith
+  have hchoose : 1000 * A * r - 10 * r ≤
+      Nat.choose (1000 * A * r - 10 * r) (10 * r) :=
+    self_le_choose_of_pos_of_lt (by omega) hgap
+  have heq := Nat.sub_add_cancel hsub
+  nlinarith
+
+/-- The exact conditioned alphabet therefore cannot enter even the first transition of the
+product-aware recurrence at `n = 1000*A*r`, `d = 10*r`, provided the terminal survivor is
+positive.  This conclusion is independent of all later alphabets: their only required property is
+that the remaining least budget is nonzero. -/
+theorem widthOneParity_coherentCode_productAware_not_fit_intended
+    {A r fuel rounds terminal : ℕ} (hA : 0 < A) (hr : 0 < r)
+    (hfuel : 20 * r ≤ fuel + 1) (hrounds : 0 < rounds) (hterminal : 0 < terminal)
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (coherentParityMaxFiberPrefixCode (n := 1000 * A * r) (fuel := fuel)
+        (K := 2 * (10 * r)) (d := 10 * r) (by omega)).labelCard) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ 1000 * A * r := by
+  intro hfit
+  obtain ⟨remainingRounds, rfl⟩ :=
+    Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hrounds)
+  have htail : 0 < leastFiniteProductAwareBudget remainingRounds
+      (fun i => actualKeys (i + 1)) terminal :=
+    leastFiniteProductAwareBudget_pos remainingRounds _ hterminal
+  have hfirstDemand : 20 * (24 * actualKeys 1 + 26) ≤ 1000 * A * r := by
+    calc
+      20 * (24 * actualKeys 1 + 26) ≤
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget remainingRounds
+              (fun i => actualKeys (i + 1)) terminal) := by
+        exact Nat.mul_le_mul_left 20 (Nat.le_mul_of_pos_right _ htail)
+      _ = 20 * leastFiniteProductAwareBudget (remainingRounds + 1)
+          actualKeys terminal := by
+        rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq]
+      _ ≤ 1000 * A * r := hfit
+  have h2dn : 2 * (10 * r) ≤ 1000 * A * r := by nlinarith
+  have hfuel' : 2 * (10 * r) ≤ fuel + 1 := by nlinarith
+  rw [hfirst, coherentParityMaxFiberPrefixCode_labelCard_eq_choose
+    (by omega) h2dn hfuel'] at hfirstDemand
+  have htooLarge := intended_coherent_firstRoundDemand_exceeds_ambient hA hr
+  omega
+
+/-- The smallest nonconstant width-two parity representative: the two satisfying parity
+assignments, written as a duplicate-free DNF. -/
+def xorTwoClauses : List (Clause 2) :=
+  [⟨[Rung4Literal.pos 0, Rung4Literal.neg 1]⟩,
+   ⟨[Rung4Literal.neg 0, Rung4Literal.pos 1]⟩]
+
+def xorTwoLayered : Layered 2 := Layered.dnf xorTwoClauses
+
+theorem xorTwoLayered_eval (x : Fin 2 → Bool) :
+    Layered.eval xorTwoLayered x = DTree.parity x := by
+  revert x
+  decide
+
+theorem xorTwoLayered_bottomWidth_two : BottomWidth 2 xorTwoLayered := by
+  change ∀ cs ∈ [xorTwoClauses], ∀ T ∈ cs, T.lits.length ≤ 2
+  simp [xorTwoClauses]
+
+theorem xorTwoLayered_bottomSlotCount : bottomSlotCount xorTwoLayered = 2 := by
+  decide
+
+/-- A one-query common trunk cannot make both normalized polarities terminal on the fully live
+two-bit parity cube.  Any followed leaf still has a live coordinate, while the positive bottom
+gate itself computes parity and hence needs canonical depth at least one there. -/
+theorem xorTwoLayered_not_commonShallowAt_one_zero :
+    ¬ CommonShallowAt (normalizedLayeredBottomFamily xorTwoLayered) 2
+      (fun _ : Fin 2 => none) 1 0 := by
+  rintro ⟨trunk, hdepth, hleaf⟩
+  let x : Fin 2 → Bool := fun _ => false
+  let tau : Restriction 2 := CommonTree.run trunk x
+  let path : Finset (Fin 2) := (CommonTree.queryVars trunk x).toFinset
+  have hx : Rung4Restriction.Extends (fun _ : Fin 2 => none) x := by
+    intro i b hi
+    simp at hi
+  have hpathCard : path.card ≤ 1 := by
+    calc
+      path.card ≤ (CommonTree.queryVars trunk x).length := List.toFinset_card_le _
+      _ ≤ CommonTree.depth trunk := CommonTree.queryVars_length_le_depth trunk x
+      _ ≤ 1 := hdepth
+  have hagree : ∀ y : Fin 2 → Bool,
+      Rung4Restriction.Extends (fun _ : Fin 2 => none) y →
+        Rung4Restriction.Extends (CommonTree.run trunk y) y := by
+    intro y hy
+    exact (hleaf y hy).2.1
+  have hfree : Finset.univ \ path ⊆ freeVars tau := by
+    intro i hi
+    rw [Finset.mem_sdiff] at hi
+    rw [mem_freeVars]
+    exact CommonTree.run_eq_none_of_root_free_of_not_mem_queryVars
+      trunk (fun _ : Fin 2 => none) x hx hagree (by rfl) (by simpa [path] using hi.2)
+  have hcomplement : (Finset.univ \ path).card = 2 - path.card := by
+    rw [Finset.card_sdiff_of_subset (Finset.subset_univ path), Finset.card_univ,
+      Fintype.card_fin]
+  have hstarsPos : 0 < stars tau := by
+    rw [stars]
+    have hcard := Finset.card_le_card hfree
+    rw [hcomplement] at hcard
+    omega
+  obtain ⟨_hroot, _hagree, hshallow⟩ := hleaf x hx
+  have hmember : xorTwoClauses ∈ bottomGates xorTwoLayered := by
+    change xorTwoClauses ∈ [xorTwoClauses]
+    simp
+  obtain ⟨g, hg⟩ :=
+    (normalizedLayeredBottomFamily_covers xorTwoLayered xorTwoClauses hmember).1
+  have hzero := hshallow g
+  rw [hg 2 tau] at hzero
+  have hstarsFuel : stars tau ≤ 2 := by
+    calc
+      stars tau ≤ stars (fun _ : Fin 2 => none) :=
+        stars_le_of_restrictionExtends (hleaf x hx).1
+      _ = 2 := by decide
+  have hdeep : stars tau ≤ (canonicalDT xorTwoClauses 2 tau).depth := by
+    apply canonicalDT_depth_ge_of_parity xorTwoClauses 2 tau hstarsFuel
+    intro y hy
+    rw [← Layered.eval_dnf]
+    exact xorTwoLayered_eval y
+  omega
+
+/-- The fully live root is an actual normalized-family bad root at the positive prefix depth used
+below, rather than merely a semantic parity example outside the encoder domain. -/
+theorem xorTwoAllFree_mem_normalized_commonShallowBad :
+    (fun _ : Fin 2 => none) ∈
+      commonShallowBad (normalizedLayeredBottomFamily xorTwoLayered) 2 2 1 0 := by
+  rw [mem_commonShallowBad]
+  exact ⟨by decide, xorTwoLayered_not_commonShallowAt_one_zero⟩
+
+/-- At the canonical endpoint reached from the fully live two-bit parity root, the exact filtered
+candidate family has cardinality one.  Positivity comes from that realized root; the fixed-shell
+binomial ceiling makes one the only possible value. -/
+theorem xorTwo_normalizedCandidateSets_card_eq_one :
+    let root : ↑(commonShallowBad (normalizedLayeredBottomFamily xorTwoLayered) 2 2 1 0) :=
+      ⟨fun _ => none, xorTwoAllFree_mem_normalized_commonShallowBad⟩
+    let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+      (fuel := 2) (K := 2) (d := 1) (residualDepth := 0)
+      (normalizedLayeredBottomFamily xorTwoLayered)
+      (normalizedLayeredBottomFamily_nodup xorTwoLayered)
+      (normalizedLayeredBottomFamily_width_le xorTwoLayered_bottomWidth_two) (by exact le_rfl)
+    (ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets
+      (normalizedLayeredBottomFamily xorTwoLayered) 2 2 1 0
+      (code.endpoint root)).card = 1 := by
+  dsimp only
+  let root : ↑(commonShallowBad (normalizedLayeredBottomFamily xorTwoLayered) 2 2 1 0) :=
+    ⟨fun _ => none, xorTwoAllFree_mem_normalized_commonShallowBad⟩
+  let code := ConditionedFirstRoundCode.commonShallowBadPrefixCode
+    (fuel := 2) (K := 2) (d := 1) (residualDepth := 0)
+    (normalizedLayeredBottomFamily xorTwoLayered)
+    (normalizedLayeredBottomFamily_nodup xorTwoLayered)
+    (normalizedLayeredBottomFamily_width_le xorTwoLayered_bottomWidth_two) (by exact le_rfl)
+  have heq :=
+    ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard
+      (fuel := 2) (K := 2) (d := 1) (residualDepth := 0)
+      (normalizedLayeredBottomFamily xorTwoLayered)
+      (normalizedLayeredBottomFamily_nodup xorTwoLayered)
+      (normalizedLayeredBottomFamily_width_le xorTwoLayered_bottomWidth_two) (by exact le_rfl)
+      (code.endpoint root)
+  have hpos : 0 < code.endpointFiberCard (code.endpoint root) := by
+    apply Fintype.card_pos_iff.mpr
+    exact ⟨⟨root, rfl⟩⟩
+  have hle : code.endpointFiberCard (code.endpoint root) ≤ 1 := by
+    calc
+      code.endpointFiberCard (code.endpoint root) ≤ code.maxRealizedEndpointFiberCard :=
+        code.endpointFiberCard_le_maxRealized root
+      _ ≤ Nat.choose (2 - (2 - 1)) 1 :=
+        ConditionedFirstRoundCode.commonShallowBadPrefixCode_maxRealizedEndpointFiberCard_le_choose
+          (fuel := 2) (K := 2) (d := 1) (residualDepth := 0)
+          (normalizedLayeredBottomFamily xorTwoLayered)
+          (normalizedLayeredBottomFamily_nodup xorTwoLayered)
+          (normalizedLayeredBottomFamily_width_le xorTwoLayered_bottomWidth_two) (by exact le_rfl)
+      _ = 1 := by norm_num
+  rw [heq]
+  change code.endpointFiberCard (code.endpoint root) = 1
+  omega
+
+/-- Concrete invocation of the oversized-endpoint obstruction.  With one round and terminal
+survivor one, the realized two-bit XOR endpoint requires `500` slots while the circuit has only
+two.  Thus the present product-aware schedule cannot fit even with the optimal endpoint-local
+alphabet. -/
+theorem xorTwo_productAwareSchedule_not_fit_of_optimal_normalized_firstKey
+    (actualKeys : ℕ → ℕ)
+    (hfirst : actualKeys 1 =
+      (ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+        (fuel := 2) (K := 2) (d := 1) (residualDepth := 0)
+        (normalizedLayeredBottomFamily xorTwoLayered)
+        (normalizedLayeredBottomFamily_nodup xorTwoLayered)
+        (normalizedLayeredBottomFamily_width_le xorTwoLayered_bottomWidth_two)
+        (by exact le_rfl)).labelCard) :
+    ¬ 20 * leastFiniteProductAwareBudget 1 actualKeys 1 ≤ 2 := by
+  let root : ↑(commonShallowBad (normalizedLayeredBottomFamily xorTwoLayered) 2 2 1 0) :=
+    ⟨fun _ => none, xorTwoAllFree_mem_normalized_commonShallowBad⟩
+  apply widthTwoParity_normalizedCandidateSets_not_fit_of_oversized
+    xorTwoLayered false xorTwoLayered_bottomWidth_two
+    (by simpa using xorTwoLayered_eval) (by omega) (by omega) actualKeys hfirst root
+  rw [xorTwoLayered_bottomSlotCount, xorTwo_normalizedCandidateSets_card_eq_one]
+  norm_num
+
+/-- Concrete two-round calibration of the alphabet-independent obstruction: even an empty first
+alphabet and terminal survivor one require at least `6760` actual bottom slots. -/
+theorem widthTwoParity_twoRound_productAwareSchedule_not_fit_below_6760
+    {n : ℕ} (C : Layered n) (phase : Bool)
+    (hw : BottomWidth 2 C)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (actualKeys : ℕ → ℕ)
+    (hsmall : bottomSlotCount C < 6760) :
+    ¬20 * leastFiniteProductAwareBudget 2 actualKeys 1 ≤ n := by
+  apply widthTwoParity_productAwareSchedule_not_fit_of_depth_baseline
+    C phase hw hparity (by omega) actualKeys
+  norm_num
+  exact hsmall
 
 /-- Contrapositive form of the exact first-key compression threshold.  Any proposed occurrence-
 sensitive alphabet that still has too many first-round keys is ruled out before later-round
@@ -7450,6 +10459,11 @@ theorem collapseSeq_reduces_final_analytic {n d : ℕ} (F threshold : ℕ → �
 end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_terminal_dnf
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadPrefixCode_endpointFiberCard_le_choose_fixed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode_labelCard_eq_sup_candidateSets
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadPrefixCode_maxRealizedEndpointFiberCard_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode_labelCard_le_choose
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_reduces_final
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_gateCount_le
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.collapseSeq_round_structuralBounds
@@ -7521,6 +10535,41 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareBudget_baseline_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_firstKey_tail_budget_of_productAwareSchedule_fit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_firstKey_depth_compression_of_productAwareSchedule_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_productAwareSchedule_not_fit_of_depth_baseline
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_productAwareSchedule_not_fit_of_positive_firstKey
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.endpoint_encode_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.encode_injective_on_endpoint_fiber
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.endpointFiberCard_le_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.bad_card_le_maxRealizedEndpointFiberCard_mul_endpointImage_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.bad_card_le_labelCard_mul_endpointShell_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.labelCard_pos_of_bad_nonempty
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.ofInjectivePair
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadPrefixCode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadPrefixCode_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.restrictToRealizedLabels
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.restrictToRealizedLabels_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.realizedLabelImage_card_le_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.realizedLabelImage_card_le_bad_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.endpointFiberCard_le_maxRealized_any
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.endpoint_maxFiberEncode_injective
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.restrictToMaxEndpointFiber
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.restrictToMaxEndpointFiber_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.maxRealizedEndpointFiberCard_le_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBad_card_le_maxFiber_mul_endpointShell_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadMaxFiberPrefixCode_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadRealizedPrefixCode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ConditionedFirstRoundCode.commonShallowBadRealizedPrefixCode_labelCard
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_conditionedCodeSchedule_not_fit_of_nonempty_bad
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_commonShallowBadPrefixCode_firstKey_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_commonShallowBadRealizedPrefixCode_firstKey_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_commonShallowBadMaxFiberPrefixCode_firstKey_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_normalizedCandidateSets_firstKey_bound
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_normalizedCandidateSets_not_fit_of_oversized
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.xorTwoLayered_not_commonShallowAt_one_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.xorTwo_normalizedCandidateSets_card_eq_one
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.xorTwo_productAwareSchedule_not_fit_of_optimal_normalized_firstKey
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_twoRound_productAwareSchedule_not_fit_below_6760
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthTwoParity_productAwareSchedule_not_fit_of_firstKey_undercompressed
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.leastFiniteProductAwareInitialShell_shallow_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.shallowProductAwareSchedule_not_fit_of_ambient_lt
@@ -7662,5 +10711,64 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.generatedGeometricRootRestrictions_product_lower_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.stars_eq_of_mem_admissibleGeometricRootRestrictions
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_admissibleGeometricRootRestrictions_agreeing_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.dnfValue_eq_of_canonicalDT_depth_eq_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_mem_normalized_commonShallowBad_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_commonShallowBad_zero_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_mul_endpointShell_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_power_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.intended_power_lower_forces_firstRoundDemand
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_labelCard_demand_exceeds_ambient
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_conditionedCode_productAware_not_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_ambiguity_mul_labelCard_mul_endpointShell_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_ambiguity_mul_labelCard_power_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_boundedAmbiguity_productAware_not_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_maxFiber_mul_endpointShell_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_endpointShell_ratio_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_endpointShell_power_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_endpointShell_power_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_productAware_slot_lower
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_productAware_not_fit_of_slot_gap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityLayered_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityLayered_bottomSlotCount
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityLayered_bottomWidth_two
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityLayered_bottomClean
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_length
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_normalized
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_total_length
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_covers
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_covered_commonShallowBad_zero_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_commonShallowBad_zero_eq_shell
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_commonShallowBad_zero_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.runWitSeq_positive_singleton
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.runWitSeq_negative_singleton
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_positive_before_negative
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_taggedWitVar
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_taggedRawWitSeq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedWitSeq
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedWitSeq_decode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_subset_ordered
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_orderedChoose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_choose_min'
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_choose_of_freeVars_eq_empty
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_shellChoose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_independentRoot_prefixEndpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_orderedFiber_bad_and_endpoint
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.exists_widthOneParityCompactFamily_orderedFiber_maximum_bad
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.restrictionFalseExtension_extends
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedWitSeq_length_eq_stars
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityPrefixCode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityMaxFiberPrefixCode
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityMaxFiberPrefixCode_labelCard_le_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityPrefixCode_endpointFiberCard_le_choose_fixed
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityPrefixCode_endpoint_stars
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.coherentParityMaxFiberPrefixCode_labelCard_eq_choose
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParity_coherentCode_productAware_slot_obligation
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.self_le_choose_of_pos_of_lt
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.intended_coherent_firstRoundDemand_exceeds_ambient
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParity_coherentCode_productAware_not_fit_intended
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_next
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.ZeroSupportLocalizedState.exists_two_step

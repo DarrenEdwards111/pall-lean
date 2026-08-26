@@ -11922,3 +11922,1104 @@ first-round code against the depth-sensitive bound, not the one-round bound: for
 tail.  Alternatively, prove a lower bound on every sound conditioned alphabet that violates this
 inequality, closing the current product-demand form at that depth.  A non-product density theorem
 remains outside this obstruction.  No P-versus-NP conclusion follows.
+
+### Even a zero-label conditioned alphabet has an exact depth floor
+
+The first concrete conditioned-alphabet test now takes the strongest possible optimistic limit:
+it allows the first charged alphabet to be empty.  The capstone
+`widthTwoParity_productAwareSchedule_not_fit_of_depth_baseline` proves that the product-demand
+schedule cannot fit whenever
+
+```text
+bottomSlotCount C < 260 * 26^(d-1) * T.
+```
+
+This obstruction is independent of every alphabet in the schedule.  It is the additive `+26`
+transition cost, propagated through the unavoidable tail, so no restriction-conditioned decoder
+can repair a circuit below this slot threshold while retaining the current product-demand
+recurrence.  The two-round, terminal-one specialization is kernel checked explicitly: fewer than
+`6760` actual bottom slots cannot fit even with `A = 0`.
+
+The companion theorem
+`widthTwoParity_productAwareSchedule_not_fit_of_positive_firstKey` assumes only that the first
+alphabet is nonempty and raises the necessary floor to
+
+```text
+500 * 26^(d-1) * T <= bottomSlotCount C.
+```
+
+This does not assert that every sound conditioned code is nonempty; that semantic connection must
+be supplied by the eventual code interface.  It cleanly separates two obligations: circuits below
+the `260` floor are already impossible for the recurrence itself, while circuits above it still
+require an actual sound code and, if that code has a label, must pay the stronger `500` floor.
+Existing counterexamples, normalization results, and rejected schedules remain unchanged.
+
+Focused elaboration and the full `lake build` passed (8,068 jobs).  All three new capstones print
+only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`,
+or `native_decide` was introduced.
+
+The precise next frontier is to define the circuit-level soundness interface for a conditioned
+first-round code and prove its minimal nonemptiness consequence on a nonempty bad fiber.  Then test
+its actual label count against the `500 * 26^(d-1) * T` threshold and audit the more expensive
+later alphabets.  If the intended circuit lies below the `260` baseline, the current product-demand
+form is already closed without that construction.  Non-product density theorems remain outside
+this obstruction.  No P-versus-NP conclusion follows.
+
+### Decoder soundness turns realized bad fibers into label lower bounds
+
+The conditioned-code semantic interface is now explicit.  `ConditionedFirstRoundCode bad` stores
+an endpoint and finite label for each root in the actual finite bad set, together with a decoder
+that reconstructs the root from that pair.  It does not assume a particular prefix encoder or
+density estimate, so future candidate encoders can be compared through one common obligation.
+
+Decoder soundness now proves three kernel-checked consequences:
+
+* `(endpoint root, encode root)` is injective on all actual bad roots;
+* labels alone are injective on every fixed endpoint fiber, and hence
+  `card(endpoint fiber) <= labelCard`;
+* a nonempty actual bad set forces `0 < labelCard`.
+
+The capstone `widthTwoParity_conditionedCodeSchedule_not_fit_of_nonempty_bad` connects this last
+fact to the exact recurrence.  If the first charged key count is the code's finite label
+cardinality, then any decoder-sound code on a nonempty bad set inherits the already audited floor
+
+```text
+500 * 26^(d-1) * T <= bottomSlotCount C.
+```
+
+Thus the optimistic empty-alphabet possibility is no longer available once an actual bad root and
+a decoder-sound conditioned code are supplied.  More quantitatively, the maximum realized
+endpoint-fiber cardinality is now a formal lower bound on the alphabet, so a large fiber can be
+tested directly against the full `(240*A+260)` threshold.  This remains an obstruction for the
+present product-demand recurrence, not a lower bound against other density mechanisms.
+
+Focused elaboration of the quantitative-iteration module passed.  The new interface capstones
+print only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.  Existing normalization results, counterexamples,
+and failed schedules remain preserved.
+
+The precise next frontier is to instantiate `ConditionedFirstRoundCode` with the existing
+circuit-owned prefix/successor construction and identify its actual bad-root endpoint fibers.
+Prove either a sufficiently small uniform fiber/label construction satisfying
+`(240*A+260)*26^(d-1)*T <= bottomSlotCount C`, or a concrete realized fiber whose cardinality
+violates that bound.  After the first alphabet passes, the necessarily more expensive later
+alphabets still require a separate audit.  Non-product density theorems remain outside this
+obstruction.  No P-versus-NP conclusion follows.
+
+### The ragged symmetric-prefix encoder now implements the conditioned-code interface
+
+The abstract decoder obligation is now discharged by the existing circuit-owned prefix
+construction.  `ConditionedFirstRoundCode.ofInjectivePair` packages any finite endpoint/label map
+whose pair is injective, using finite search to decode the unique source root.
+`commonShallowBadPrefixCode` applies this constructor to the actual semantic bad set, with:
+
+* endpoint `freshTaggedPrefixEndpoint` selected by `commonShallowBadAssignment`;
+* label `canonicalPrefixActualSymLabel`, consisting of fresh literal positions and the symmetric
+  multiset of realized ragged `(gate, term)` keys;
+* soundness supplied by the already proved endpoint-plus-label reconstruction theorem on the
+  ample-fuel shell.
+
+The charged ambient alphabet is therefore exact:
+
+```text
+(w+1)^prefixDepth
+  * (choose(totalClauseOccurrences + prefixDepth - 1, prefixDepth) + 1).
+```
+
+The capstone `widthTwoParity_commonShallowBadPrefixCode_firstKey_bound` substitutes this concrete
+cardinality into the depth-sensitive product schedule.  Any fitting width-two parity schedule
+whose first key count is this code's label cardinality must satisfy
+
+```text
+(240 * ambientPrefixAlphabet + 260) * 26^(d-1) * T
+  <= bottomSlotCount C.
+```
+
+This completes the requested semantic instantiation, but it also makes clear that the ambient
+ragged symmetric alphabet is not yet the hoped-for conditioned compression: it charges every
+possible label, while the earlier endpoint-image theorem counts only labels actually realized in
+each bad-root fiber.  No claim that this ambient alphabet fits the schedule is made.
+
+Focused elaboration of the quantitative-iteration module passed.  The new definitions and
+capstones print only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.  Existing counterexamples and failed schedules
+remain preserved.
+
+The precise next frontier is to replace the ambient `PrefixActualSymLabel` charge by a single
+finite type representing the union (or dependent sum with an amortized endpoint charge) of the
+actual endpoint-local realized label images.  Prove decoder soundness for that smaller alphabet
+and compare its exact cardinality with
+`(bottomSlotCount C / (26^(d-1)*T) - 260) / 240`.  If this still fails, extract a concrete realized
+endpoint fiber exceeding the threshold; if it fits, thread the realized alphabet into the later
+round recurrence.  Non-product density theorems remain outside this obstruction.  No
+P-versus-NP conclusion follows.
+
+### The first-round code now charges only globally realized labels
+
+The ambient-label gap is now removed at the code interface.  For every decoder-sound
+`ConditionedFirstRoundCode`, `realizedLabelImage` is the finite image of its encoder on the actual
+bad-root domain, and `restrictToRealizedLabels` replaces the ambient label type by the subtype of
+that image.  The restricted code remains decoder-sound because endpoint-plus-label injectivity is
+preserved under the subtype embedding.
+
+Kernel-checked cardinality theorems prove exactly
+
+```text
+restricted labelCard = card(realizedLabelImage),
+card(realizedLabelImage) <= ambient labelCard,
+card(realizedLabelImage) <= card(actual bad roots).
+```
+
+`commonShallowBadRealizedPrefixCode` applies this construction to the ragged symmetric-prefix
+encoder.  Hence it is a concrete sound code for the semantic common-shallow bad set with every
+unused stars-and-bars label removed.  The capstone
+`widthTwoParity_commonShallowBadRealizedPrefixCode_firstKey_bound` now tests its exact global
+realized-image cardinality against the full depth-sensitive obligation:
+
+```text
+(240 * card(realizedLabelImage) + 260) * 26^(d-1) * T
+  <= bottomSlotCount C.
+```
+
+This is a genuine improvement over the ambient alphabet, but it is not yet the optimal
+endpoint-conditioned charge.  The same abstract label symbol may be reused independently at
+different endpoints; the global union does not perform such renaming, so it can exceed the
+largest endpoint-fiber cardinality.  No numerical claim that the realized image fits the parity
+schedule is made, and all earlier counterexamples and rejected schedules remain preserved.
+
+Focused elaboration of the quantitative-iteration module passed.  The new definitions and
+capstones use only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.
+
+The precise next frontier is to construct a common alphabet of size exactly the maximum realized
+endpoint-fiber cardinality, reindexing labels separately inside each endpoint fiber, and prove
+decoder soundness.  Then compare that optimal conditioned first-round count with
+`(bottomSlotCount C / (26^(d-1)*T) - 260) / 240`.  If it fails, extract a concrete oversized
+endpoint fiber; if it fits, audit the actual later-round fiber maxima.  A non-product density
+theorem remains outside this obstruction.  No P-versus-NP conclusion follows.
+
+### The optimal endpoint-conditioned alphabet is now realized exactly
+
+The endpoint-local reindexing step is complete.  `maxRealizedEndpointFiberCard` takes the finite
+supremum of the cardinalities of all endpoint fibers actually reached by bad roots.  Unrealized
+endpoint fibers are proved empty and hence bounded by that same maximum.  For each endpoint,
+`maxFiberEmbedding` chooses a single injection of its fiber into
+`Fin maxRealizedEndpointFiberCard`; `maxFiberEncode` uses that injection, allowing independent
+endpoints to reuse every rank.
+
+`endpoint_maxFiberEncode_injective` proves that endpoint plus local rank reconstructs the root,
+and `restrictToMaxEndpointFiber` packages this map as a decoder-sound conditioned code.  Its exact
+charged cardinality is
+
+```text
+labelCard = maxRealizedEndpointFiberCard.
+```
+
+This is optimal, not merely an upper bound: `maxRealizedEndpointFiberCard_le_labelCard` proves that
+the maximum realized fiber is a lower bound for every decoder-sound code with that endpoint map.
+Thus the gap between a global realized-label union and endpoint-local reuse is completely removed
+at the abstract code interface.
+
+`commonShallowBadMaxFiberPrefixCode` instantiates the optimal construction for the actual ragged
+symmetric-prefix endpoint map.  The exact depth-sensitive schedule theorem
+`widthTwoParity_commonShallowBadMaxFiberPrefixCode_firstKey_bound` now says that any fitting
+product-aware width-two parity schedule using this optimal first-round alphabet must satisfy
+
+```text
+(240 * maxRealizedEndpointFiberCard + 260) * 26^(d-1) * T
+  <= bottomSlotCount C.
+```
+
+Focused elaboration passed.  The new definitions and capstones print only `propext`,
+`Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  Earlier counterexamples and rejected schedules remain preserved.
+
+The precise next frontier is now quantitative rather than representational: bound or calculate the
+maximum realized endpoint fiber for the intended dense-support parity first round and compare it
+with `(bottomSlotCount C / (26^(d-1)*T) - 260) / 240`.  If it exceeds the threshold, retain a
+specific endpoint and its oversized bad-root fiber as the obstruction; if it fits, construct the
+same endpoint-optimal alphabets after collapse and audit their actual later-round maxima.  A
+non-product density theorem remains outside this obstruction.  No P-versus-NP conclusion follows.
+
+### Endpoint fibers have a fixed-coordinate binomial ceiling
+
+The first quantitative bound on the optimal endpoint-conditioned alphabet is now kernel checked.
+For a fixed endpoint `kappa`, every root in its canonical bad-prefix fiber is recovered from the
+set of `d` variables that the prefix fixed.  Those variables form a `d`-subset of the coordinates
+already fixed at `kappa`, so the fiber injects into that endpoint-local powerset and satisfies
+
+```text
+endpointFiberCard kappa <= choose (n - stars kappa) d.
+```
+
+On the exact `K`-live bad shell, every realized endpoint has exactly `K-d` live coordinates.
+Consequently both the maximum realized fiber and the exact optimal code alphabet satisfy
+
+```text
+maxRealizedEndpointFiberCard <= choose (n - (K-d)) d,
+optimal labelCard            <= choose (n - (K-d)) d.
+```
+
+This removes the circuit's gate count, clause count, width, and ambient symmetric label space from
+the first-round upper bound.  It is only a ceiling: it does not assert that every candidate subset
+is realized, and therefore does not by itself show that the product-aware schedule fits or fails.
+All earlier obstructions and failed schedules remain preserved.
+
+Focused elaboration of the quantitative-iteration module passed.  The new capstones print only
+`propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is to exploit the semantic badness condition inside one endpoint fiber,
+which the purely combinatorial powerset injection deliberately ignores.  Prove a smaller realized
+subset bound for the intended width-two dense-support parity first round, or exhibit a concrete
+endpoint realizing enough of the `choose (n-(K-d),d)` candidates to violate
+`(240*A+260)*26^(depth-1)*T <= bottomSlotCount C`.  If the first-round count fits, repeat the same
+fiber audit after collapse.  No P-versus-NP conclusion follows.
+
+### Endpoint fibers are now exact filtered powerset counts
+
+The semantic information discarded by the fixed-coordinate binomial ceiling is now exposed as an
+exact finite counting problem.  For each endpoint `kappa`,
+`commonShallowBadPrefixCandidateSets` filters the endpoint-local `d`-subsets by all conditions
+needed for realization.  For a candidate set `S`, it reconstructs the only possible root
+`freeOn kappa S` and requires:
+
+* that reconstructed root belongs to the semantic common-shallow bad set;
+* its canonical bad assignment selects exactly `S` as the fresh prefix variables;
+* running that prefix returns to `kappa`.
+
+The kernel-checked equivalence
+`commonShallowBadPrefixCandidateSets_card_eq_endpointFiberCard` proves that this filtered family's
+cardinality is exactly the endpoint fiber cardinality, not merely an upper bound.  Consequently,
+`commonShallowBadMaxFiberPrefixCode_labelCard_eq_sup_candidateSets` identifies the optimal charged
+alphabet exactly with the supremum of these filtered cardinalities over realized endpoints.
+
+This does not yet improve the numerical ceiling: in the dense-support regime the unfiltered
+ambient family can still have size `choose (n-(K-d),d)`.  It does, however, isolate the only
+remaining source of a strict saving—the acceptance rate of the explicit semantic/canonical
+filter—and supplies a finite object that can be specialized or evaluated for a concrete circuit
+family.  Earlier counterexamples, failed schedules, and the binomial obstruction remain intact.
+
+Focused elaboration of the quantitative-iteration module passed.  The new capstones print only
+`propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.
+
+The precise next frontier is to instantiate the filtered candidate family for the intended
+normalized width-two dense-support parity first round.  Prove a uniform acceptance bound strong
+enough for `(240*A+260)*26^(depth-1)*T <= bottomSlotCount C`, or retain a specific realized
+endpoint and enough accepted `d`-subsets to violate it.  If the first-round maximum fits, apply the
+same exact filtered count after collapse.  No P-versus-NP conclusion follows.
+
+### Normalized width-two parity endpoints now have an exact witness test
+
+The filtered candidate count is now connected to the intended circuit family rather than left at
+the generic gate-family interface.  For a width-two layered circuit `C` computing parity up to a
+fixed output phase, the theorem `widthTwoParity_normalizedCandidateSets_firstKey_bound` instantiates
+the code with `normalizedLayeredBottomFamily C`.  Duplicate-freedom and width transfer are supplied
+by the existing normalization bridge, so no extra clause-list invariant is assumed.
+
+For every root in the actual semantic bad set, let `kappa` be its canonical prefix endpoint and let
+`accepted(kappa)` be the exact filtered family of endpoint-local `prefixDepth`-subsets.  If the
+depth-sensitive product-aware schedule fits and charges the optimal endpoint-conditioned first
+alphabet, the kernel-checked conclusion is
+
+```text
+(240 * card(accepted(kappa)) + 260) * 26^(rounds-1) * terminal
+  <= bottomSlotCount C.
+```
+
+The companion theorem `widthTwoParity_normalizedCandidateSets_not_fit_of_oversized` packages the
+contrapositive.  A single explicitly realized endpoint violating this inequality refutes the
+present product schedule.  This is stronger operationally than the preceding supremum formula:
+future finite evaluations or structural arguments can retain one root and its accepted subsets,
+without first calculating the maximum over all endpoints.
+
+No acceptance-rate saving is claimed.  Parity semantics forces full bottom-variable support but
+does not by itself specify the normalized clause representation or the canonical bad-prefix
+selection, so the current hypotheses cannot manufacture a numerical candidate count.  The new
+theorems instead isolate exactly the additional representation-specific evidence required and
+preserve the oversized-fiber route as a formal obstruction.
+
+Focused elaboration of the quantitative-iteration module and the full `lake build` passed (8,068
+jobs).  The two new capstones print only `propext`, `Classical.choice`, and `Quot.sound`; no
+`sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier
+counterexamples, normalization results, and failed schedules remain preserved.
+
+The precise next frontier is to supply one concrete normalized width-two parity representative
+and evaluate or bound `accepted(kappa)` at a realized root.  Either prove every realized endpoint
+meets the displayed slot budget, then repeat the endpoint audit after collapse, or retain one root
+and a certified family of accepted subsets large enough to invoke the new obstruction theorem.
+A representation-independent acceptance estimate would require an additional structural theorem
+beyond full semantic support.  No P-versus-NP conclusion follows.
+
+### The smallest normalized parity endpoint is an explicit obstruction
+
+The endpoint test has now been instantiated on a concrete circuit rather than left conditional.
+`xorTwoLayered` is the duplicate-free two-clause DNF for parity on two variables.  It computes
+parity exactly, has bottom width two, and has bottom-slot count two.  Its normalized layered bottom
+family contains both polarities through the existing coverage bridge.
+
+At `fuel = K = 2`, prefix depth one, and residual depth zero, the fully live root is proved to be
+in the actual semantic bad event.  The proof is structural: a depth-one common trunk leaves at
+least one coordinate live on every followed leaf, while the positive bottom gate still computes
+parity on that leaf and therefore has positive canonical depth.  Thus the witness is not an
+external family substituted for the normalized circuit interface.
+
+For that root's canonical endpoint, the exact filtered candidate family satisfies
+
+```text
+card(accepted(kappa)) = 1.
+```
+
+Positivity is supplied by the realized root itself.  The already proved endpoint-fiber binomial
+ceiling gives the matching upper bound `choose(2-(2-1),1) = 1`.  The capstone
+`xorTwo_productAwareSchedule_not_fit_of_optimal_normalized_firstKey` then invokes the oversized-
+endpoint theorem with one round and terminal survivor one.  The required first-key budget is
+
+```text
+(240 * 1 + 260) * 26^0 * 1 = 500,
+```
+
+but the representative has only two bottom slots.  Consequently this concrete optimal
+endpoint-local product schedule does not fit.
+
+This is a calibrated obstruction, not a large-`n` acceptance-rate lower bound.  It shows that
+normalization and endpoint-local label reuse do not make the present product schedule universally
+valid, even at the smallest positive-prefix parity instance.  It does not decide whether the
+intended dense-support asymptotic regime has sufficiently small realized fibers.
+
+Focused elaboration and the full project build passed.  The new capstones use only the standard
+logical axioms already present (`propext`, `Classical.choice`, and `Quot.sound` where finite
+endpoint choices enter); no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+Earlier counterexamples and failed routes remain preserved.
+
+The precise next frontier is to determine whether this one-candidate obstruction scales.  Build a
+parameterized normalized width-two parity representative with positive prefix depth and prove
+either (i) a realized endpoint-fiber lower bound that outgrows
+`(bottomSlotCount / (26^(rounds-1)*terminal) - 260) / 240`, or (ii) a uniform upper bound showing
+that all realized endpoints fit in the intended large-`n` schedule.  If (ii) holds, repeat the
+exact endpoint audit after the first collapse.  No P-versus-NP conclusion follows.
+
+### Residual-depth-zero parity badness scales to the entire shell
+
+The semantic part of the two-bit obstruction is now parameterized and representation-independent.
+The new theorem `parity_mem_normalized_commonShallowBad_zero` applies to every layered circuit `C`
+computing parity XOR a fixed phase.  If an exact shell root has `stars sigma = K`, ample fuel
+`K <= fuel`, and the common trunk budget satisfies `trunkDepth < K`, then
+
+```text
+sigma ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+  fuel K trunkDepth 0.
+```
+
+The proof exposes the missing semantic invariant.  A common trunk shorter than the live dimension
+leaves a live coordinate on a followed leaf.  Residual depth zero makes the canonical tree of both
+polarities of every bottom gate constant on that leaf subcube.  A structural induction through the
+layered circuit then makes the whole circuit invariant under flipping the surviving coordinate,
+contradicting parity's sensitivity.  The supporting lemmas
+`dnfValue_eq_of_canonicalDT_depth_eq_zero` and
+`Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero` record those two constant-subcube steps.
+
+Consequently `parity_normalized_commonShallowBad_zero_eq_shell` identifies the bad event exactly
+with the whole `K`-star shell, and `parity_normalized_commonShallowBad_zero_card` gives
+
+```text
+card(commonShallowBad ...) = choose(n,K) * 2^(n-K).
+```
+
+Thus the semantic badness predicate in `commonShallowBadPrefixCandidateSets` accepts every shell
+root in the intended residual-zero parity regime.  Any strict endpoint-fiber saving must come from
+the canonical-prefix selection and endpoint equations, not from an acceptance-rate estimate for
+common-shallow badness.  This strengthens the two-bit calibration without yet proving that one
+endpoint receives an asymptotically oversized fraction of the shell.
+
+Focused elaboration and the full `lake build` passed (8,068 jobs).  The four new printed capstones
+depend on no axioms; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.
+Earlier counterexamples and failed schedules remain preserved.
+
+The precise next frontier is now a canonical-map fiber theorem on the full shell.  For a
+parameterized normalized width-two parity representative, prove a lower bound on the largest
+fiber of `commonShallowBadPrefixCode.endpoint` (for example by dividing the exact full-shell count
+by a proved endpoint-image bound), then compare it with the product-aware slot threshold.  If that
+lower bound fits instead of obstructing, calculate the corresponding endpoint maximum after the
+first collapse.  No P-versus-NP conclusion follows.
+
+### The canonical endpoint map now has an exact shell-balance lower bound
+
+The proposed largest-fiber counting step is now kernel-checked.  The generic theorem
+`bad_card_le_maxRealizedEndpointFiberCard_mul_endpointImage_card` proves, for every sound
+conditioned code, that the actual bad-root population is at most the largest realized endpoint
+fiber times the exact number of realized endpoints.  It retains the exact endpoint image and so
+does not prematurely charge the full ambient restriction space.
+
+For the canonical bad-prefix code,
+`commonShallowBad_card_le_maxFiber_mul_endpointShell_card` proves that every realized endpoint has
+exactly `K-d` live coordinates and relaxes only the endpoint image to that exact shell.  Combining
+this with the preceding full-shell parity badness theorem gives
+`parity_normalized_maxFiber_mul_endpointShell_lower`:
+
+```text
+choose(n,K) * 2^(n-K)
+  <= maxRealizedEndpointFiberCard
+       * (choose(n,K-d) * 2^(n-(K-d))).
+```
+
+This is representation-independent: it requires only a layered parity representative, a bottom-
+width bound needed by the canonical code, ample fuel, residual depth zero, and `d < K`.  It is the
+requested stars-and-bars shell balance in division-free natural-number form.  It also identifies
+the quantitative issue precisely: the useful lower bound is the ratio of consecutive or separated
+restriction-shell sizes.  No unproved claim is made that this ratio already exceeds the product-
+aware slot threshold for the intended multi-round parameters.
+
+Focused elaboration and the full project build passed.  The three new printed capstones use only
+the existing standard logical axioms (`propext`, `Classical.choice`, and `Quot.sound`); no `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was added.  Earlier counterexamples, exact
+candidate filters, and failed schedules remain preserved.
+
+The precise next frontier is to simplify this shell ratio at the intended parameters.  First prove
+a cancellation-friendly lower bound for
+`choose(n,K) * 2^(n-K) / (choose(n,K-d) * 2^(n-K+d))`, then compare it with
+`(bottomSlotCount / (26^(rounds-1)*terminal) - 260) / 240`.  If the ratio is too small, the exact
+realized endpoint image—not the whole `(K-d)` shell—must be bounded next.  No P-versus-NP
+conclusion follows.
+
+### The endpoint-shell ratio now cancels exactly and has an intended-density power form
+
+The shell ratio has now been simplified without division.  The theorem
+`parity_normalized_endpointShell_ratio_lower` combines the full-shell parity balance with the
+exact endpoint/coordinate-set identity and cancels the positive `K`-shell factor.  Under the
+necessary nonvacuity hypothesis `K <= n`, it proves
+
+```text
+choose(n-(K-d),d)
+  <= maxRealizedEndpointFiberCard * choose(K,d) * 2^d.
+```
+
+This is the exact cancellation-friendly natural-number statement: the numerator counts the ways
+to restore the `d` coordinates lost at an endpoint, while `choose(K,d) * 2^d` is precisely the
+within-root choice and Boolean-assignment cost.  The explicit `K <= n` guard prevents cancellation
+from an empty source shell.
+
+The companion `parity_normalized_endpointShell_power_lower` combines the same population balance
+with the already verified binomial shell-ratio inequality.  It gives the more immediately
+comparable cleared-denominator consequence
+
+```text
+(n-K+1)^d <= maxRealizedEndpointFiberCard * (2*K)^d.
+```
+
+Finally, `parity_normalized_intended_endpointShell_power_lower` instantiates the density used by
+the realized-prefix contraction, namely `n = 1000*A*r`, `K = 20*r`, and `d = 10*r`:
+
+```text
+(1000*A*r - 20*r + 1)^(10*r)
+  <= maxRealizedEndpointFiberCard * (40*r)^(10*r).
+```
+
+Thus the ambient endpoint-shell relaxation forces a fiber with an effective per-prefix scale of
+roughly `25*A`; it is not merely a qualitative pigeonhole statement.  This still does not by
+itself decide the product-aware slot test: the current interface has no proved relation connecting
+`A`, `r`, the number of rounds, terminal survivor budget, and `bottomSlotCount C` for a
+parameterized normalized width-two parity representative.  In particular, the small two-bit
+obstruction cannot simply be extrapolated to this density.
+
+Focused elaboration of the quantitative-iteration module passed.  All three new printed capstones
+depend only on `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.  Earlier counterexamples, exact candidate filters,
+and failed schedules remain preserved.
+
+The precise next frontier is to close the parameter interface to the product-aware threshold.
+For a concrete parameterized normalized width-two parity representative, relate
+`bottomSlotCount C` and the later-round factor `26^(rounds-1)*terminal` to `A` and `r`, then compare
+that bound against the displayed `(25*A)^(10*r)`-scale forced fiber.  If the available circuit
+size dominates this lower bound, the ambient `(K-d)` endpoint shell is too coarse and the next
+necessary step is a strict bound on the exact realized endpoint image.  No P-versus-NP conclusion
+follows.
+
+### The endpoint-shell fiber and product-aware slot threshold now compose exactly
+
+The parameter interface has now been closed in cleared-denominator form.  The theorem
+`parity_normalized_intended_productAware_slot_lower` composes the intended-density endpoint-shell
+power lower bound with the exact depth-sensitive first-key obligation.  For a normalized
+width-two parity representative on `1000*A*r` variables, if the optimal endpoint-local first
+alphabet is charged and a positive-round product-aware schedule fits, then
+
+```text
+(240*(1000*A*r - 20*r + 1)^(10*r) + 260*(40*r)^(10*r))
+  * (26^(rounds-1)*terminal)
+<= bottomSlotCount(C) * (40*r)^(10*r).
+```
+
+Thus the actual bottom-slot count must dominate the forced roughly `(25*A)^(10*r)` endpoint
+fiber after multiplication by the unavoidable later-round factor.  The companion theorem
+`parity_normalized_intended_productAware_not_fit_of_slot_gap` proves the exact contrapositive:
+strict failure of the displayed slot inequality refutes the present product-aware schedule even
+when it uses the optimal endpoint-conditioned canonical-prefix alphabet.
+
+This resolves the previously missing relation among `A`, `r`, `rounds`, `terminal`, and
+`bottomSlotCount C`, but it does not decide the comparison without an independent upper bound on
+the slot count of a parameterized width-two parity representative.  In particular, the existing
+semantic support theorem supplies only the opposite-direction lower bound
+`1000*A*r <= 2*bottomSlotCount C`.
+
+Focused elaboration and the full `lake build` passed (8,068 jobs).  Both new printed capstones depend only on `propext`,
+`Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`, or
+`native_decide` was introduced.  Earlier counterexamples and failed schedules remain preserved.
+
+The precise next frontier is to construct or identify a parameterized normalized width-two
+parity representative with a proved upper bound on `bottomSlotCount`, and test that upper bound
+against the displayed necessary scale.  If every available representative is large enough to
+pay it, the ambient endpoint shell remains too coarse and the next necessary step is a strict
+upper bound on the exact realized endpoint image.  No P-versus-NP conclusion follows.
+
+### An explicit width-one parity representative has exact exponential slot count
+
+The requested parameterized representative now exists in the kernel-checked circuit syntax.
+`widthOneParityLayered n` is the OR of the exact-assignment conjunctions for all odd-parity
+assignments.  Each assignment conjunction is built from `n` separate one-literal bottom DNFs, so
+the construction satisfies `BottomWidth 2` (indeed width one) without hiding a full-width parity
+minterm inside one bottom clause.  It also satisfies `BottomClean`, since every bottom gate is a
+singleton clause containing one literal.
+
+The semantic and accounting interfaces are exact:
+
+```text
+Layered.eval (widthOneParityLayered n) x = parity x
+bottomSlotCount (widthOneParityLayered n) = n * 2^(n-1)    (1 <= n).
+```
+
+Thus the first available uniform upper bound is exponential in the ambient variable count.  At
+`n = 1000*A*r` it is far too coarse to refute the product-aware necessary condition whose forced
+fiber has the roughly `(25*A)^(10*r)` scale: this representative has enough syntactic capacity
+that the previous slot-gap contrapositive cannot be discharged merely from its exact size formula.
+This is a negative audit result about the current representative, not evidence that the schedule
+fits; later-round and terminal factors remain part of the exact inequality.
+
+Focused elaboration of the quantitative-iteration module passed (8,452 jobs).  The four new
+printed capstones use only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples and failed
+routes remain preserved.
+
+The precise next frontier is therefore a representation-sensitive fork.  Either construct a
+subexponential (ideally parameter-polynomial) normalized width-two parity representative with a
+proved slot upper bound and rerun the exact slot-gap test, or prove a strict upper bound on the
+exact realized endpoint image for `widthOneParityLayered` that exploits its assignment-conjunction
+structure.  The latter is the higher-information route for the existing concrete family.  No
+P-versus-NP conclusion follows.
+
+### The explicit parity circuit has a linear two-polarity covering family
+
+The representation-sensitive audit has separated circuit slot count from common-switching family
+size.  Although `widthOneParityLayered n` contains `n * 2^(n-1)` bottom-slot occurrences, every
+bottom gate is just one of the two singleton polarities on one coordinate.  The new family
+`widthOneParityCompactFamily n` indexes those values directly by `Fin (n+n)`.
+
+The kernel-checked interfaces are exact:
+
+```text
+forall g, length(widthOneParityCompactFamily n g) = 1
+sum_g length(widthOneParityCompactFamily n g) = 2*n
+```
+
+Every gate is duplicate-free and width one.  More importantly,
+`widthOneParityCompactFamily_covers` proves `CoversLayeredBottoms` for the original exponential-slot
+circuit: for every syntactic bottom gate, the compact family contains canonical trees equal to
+both that gate and its De Morgan polarity.  Hence the existing common-trunk leaf-collapse bridge
+can consume the compact family without changing the circuit semantics.
+
+This removes the exponential indexed-gate/term-key charge from the first-round encoder for this
+representative.  It does **not** reduce `bottomSlotCount C`, which remains exponential and is the
+capacity appearing on the other side of the product-aware fit test.  It also does not yet identify
+the compact family's exact endpoint map with the endpoint map previously audited for
+`normalizedLayeredBottomFamily C`; those are different indexed families and may choose different
+canonical witnesses.
+
+Focused elaboration and the full project build passed.  The new capstones use only the standard
+logical axioms already present; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was
+introduced.  Earlier counterexamples and failed routes remain preserved.
+
+The precise next frontier is to rerun the conditioned first-round endpoint construction with
+`widthOneParityCompactFamily`.  First prove its residual-depth-zero bad event is the full shell
+using `widthOneParityCompactFamily_covers`, then characterize its canonical query order (the two
+singleton polarities should reduce it to a coordinate-order endpoint map) and compute or tightly
+bound the resulting maximum realized endpoint fiber.  Only after that should the exact
+product-aware slot comparison be repeated.  No P-versus-NP conclusion follows.
+
+### The compact covering family has exact full-shell residual-zero badness
+
+The semantic half of that frontier is now discharged.  The parity contradiction has been
+factored through the actual bridge interface rather than tied to
+`normalizedLayeredBottomFamily`.  The new theorem
+`parity_mem_covered_commonShallowBad_zero` applies to any finite gate family satisfying
+`CoversLayeredBottoms gates C`: if `C` computes parity up to a phase, `K <= fuel`, and
+`trunkDepth < K`, every restriction with exactly `K` live variables belongs to
+`commonShallowBad gates fuel K trunkDepth 0`.  The matching equality and cardinality theorems are
+
+```text
+commonShallowBad gates fuel K trunkDepth 0
+  = {sigma | stars sigma = K}
+card(commonShallowBad gates fuel K trunkDepth 0)
+  = choose(n,K) * 2^(n-K).
+```
+
+Instantiating coverage with `widthOneParityCompactFamily_covers` yields
+`widthOneParityCompactFamily_commonShallowBad_zero_eq_shell` and its exact-cardinality companion.
+Thus replacing the exponential occurrence indexing by the linear `2n` family does not obtain any
+semantic acceptance saving at residual depth zero: the conditioned encoder still receives the
+entire exact shell.  Any saving must come from how the compact family's canonical witness rule
+maps those roots to endpoints, not from fewer roots being bad.
+
+Focused elaboration of the quantitative-iteration module passed.  The new printed capstones use
+only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom, `unsafe`,
+or `native_decide` was introduced.  Earlier counterexamples and failed routes remain preserved.
+
+The precise next frontier is to characterize the compact family's canonical selector stream.
+Prove which of the positive/negative singleton gates is selected at each live coordinate (including
+the tie order inherited from `Fin (n+n)`), derive the resulting coordinate-order prefix endpoint,
+and compute or tightly bound its maximum realized full-shell fiber.  Then rerun the exact
+product-aware slot comparison with that fiber and the representative's unchanged exponential slot
+capacity.  No P-versus-NP conclusion follows.
+
+### The compact singleton selector and polarity order are now exact
+
+The local canonical-selector calculation is now kernel-checked.  At every positive fuel, for each
+coordinate `i` and either singleton polarity, the assignment-followed witness stream is exactly
+
+```text
+runWitSeq [[±i]] (fuel+1) sigma x
+  = if sigma i = none then [(0,0)] else [].
+```
+
+The result is independent of the extending assignment `x`: a live singleton contributes its sole
+query, while a fixed singleton contributes none.  The companion tagged-decoding theorem proves
+that the positive and negative entries both decode to the same coordinate `i`.
+
+The index-order ambiguity is also resolved.  The theorem
+`widthOneParityCompactFamily_positive_before_negative` proves that every `Fin.castAdd n i`
+(positive singleton) precedes every `Fin.natAdd n j` (negative singleton) in `Fin (n+n)`.  Since
+`taggedRawWitSeq` concatenates in this order and `freshTaggedAux` is a stable first-occurrence
+filter, the positive copy is necessarily the winner whenever the two polarities duplicate a live
+coordinate.  There is no polarity-dependent or cross-half tie left in the selector semantics.
+
+Focused elaboration of the quantitative-iteration module passed.  The four new printed capstones
+depend only on the standard logical axioms `propext` and `Quot.sound`; no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples and failed routes
+remain preserved.
+
+The precise next frontier is to lift these local facts through `List.ofFn`, `List.flatten`, and the
+stable freshness filter: prove that the decoded `freshTaggedWitSeq` is exactly the increasing list
+of live coordinates, then identify `freshTaggedPrefixEndpoint` with fixing its first `d` entries.
+That identity should make the full-shell endpoint fiber count a direct combinatorial calculation,
+after which the exact product-aware slot comparison can be rerun.  No P-versus-NP conclusion
+follows.
+
+### The compact fresh selector stream is exactly the increasing live-coordinate list
+
+The list-level lift is now kernel-checked.  At every positive fuel,
+`widthOneParityCompactFamily_taggedRawWitSeq` expands the raw selector into two explicit passes:
+the increasing positive-polarity entries at the live coordinates, followed by the corresponding
+increasing negative-polarity entries.  This equality traverses the actual `List.ofFn` and
+`List.flatten` definitions and is independent of the extending assignment.
+
+The stable first-occurrence filter has also been computed exactly.  The stronger tagged theorem is
+
+```text
+freshTaggedWitSeq (widthOneParityCompactFamily n) (fuel+1) sigma x
+  = positive entries at {i | sigma i = none}, in increasing i order.
+```
+
+Thus every negative duplicate is removed and the positive entry is the canonical winner.  Decoding
+gives the requested coordinate identity:
+
+```text
+filterMap taggedWitVar? (freshTaggedWitSeq ...)
+  = (List.finRange n).filter (fun i => sigma i = none).
+```
+
+This closes the selector-order ambiguity completely; neither polarity nor the extending assignment
+affects the decoded stream.  Focused elaboration of the quantitative-iteration module passed, and
+the new capstones introduce no prohibited proof mechanism.  Earlier counterexamples and failed
+routes remain preserved.
+
+The precise next frontier is to push this exact stream identity through `List.take` and `fixOn`:
+identify `freshTaggedPrefixEndpoint` with fixing the first `d` live coordinates in increasing order,
+then count the exact full-shell endpoint fibers.  Only after that exact fiber calculation should the
+product-aware slot comparison be rerun.  No P-versus-NP conclusion follows.
+
+### The compact prefix endpoint is the ordered live-coordinate fixing map
+
+The selector identity has now been pushed through the actual prefix and endpoint definitions.
+The new set-level theorem is
+
+```text
+freshTaggedPrefixVars (widthOneParityCompactFamily n) (fuel+1) sigma x d
+  = ((finRange n).filter (fun i => sigma i = none)).take(d).toFinset.
+```
+
+Consequently `widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn` identifies the
+canonical endpoint exactly with `fixOn sigma` on that set.  The selected coordinates depend only
+on the root restriction and are the first `d` live coordinates in increasing ambient order; the
+extending assignment supplies only the Boolean values written at those coordinates.  Polarity,
+duplicated circuit occurrences, and the rest of the assignment do not affect selection.
+
+Focused elaboration of the quantitative-iteration module passed (8,452 jobs).  The two new
+printed capstones use only `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`,
+custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples and failed
+routes remain preserved.
+
+The precise next frontier is now the exact full-shell fiber calculation for this ordered fixing
+map.  For an endpoint whose residual live set is `E`, characterize every preimage as re-freeing a
+`d`-set strictly below `min(E)` (with the endpoint already determining the restored Boolean
+values), prove the resulting binomial cardinality including the `E = empty` boundary, and then
+rerun the product-aware slot comparison.  No P-versus-NP conclusion follows.
+
+### Ordered endpoint fibers have a sharp coordinate envelope, but not an exact binomial yet
+
+The ordered-prefix calculation has now been transferred to the actual conditioned candidate
+sets for `widthOneParityCompactFamily`.  Every candidate over an endpoint `kappa` is a `d`-set
+inside
+
+```text
+independentStrictBelow (freeVars kappa)
+  = {i | forall j in freeVars(kappa), i < j}.
+```
+
+Consequently its cardinality is at most
+
+```text
+choose(card(independentStrictBelow (freeVars kappa)), d).
+```
+
+For a nonempty residual live set `E`, this is exactly the coordinate envelope
+`choose(min(E),d)`.  For `E = empty`, the strict-below set is all `n` coordinates and the boundary
+envelope is `choose(n,d)`.  On a nonempty `(K-d)`-live endpoint shell, the minimum-coordinate
+bound recovers `choose(n-(K-d),d)`, exactly the earlier worst-case fixed-coordinate ceiling.
+Thus the product-aware comparison receives no uniform improvement from coordinate order alone,
+although individual early-starting endpoints can be much smaller.
+
+The previously proposed exact-binomial conclusion is not defensible for the current endpoint
+code.  Besides the selected coordinate set, the endpoint stores the Boolean values supplied by
+`commonShallowBadAssignment`, which is a classical choice of a deep residual witness.  An ordered
+`d`-set is therefore only a coordinate-compatible preimage candidate; it need not reproduce the
+fixed endpoint values.  The proved statement is an inclusion and upper bound, and this failed
+equality route is retained explicitly rather than assuming value compatibility.
+
+Focused elaboration of the quantitative-iteration module passed.  The five new printed capstones
+depend only on `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.  Earlier counterexamples and failed schedules remain
+preserved.
+
+The precise next frontier is the value-compatibility predicate.  Characterize the restriction of
+`commonShallowBadAssignment` to the ordered re-freed prefix, or replace it with an explicit
+parity-specific deep-witness assignment whose values are coherent across roots.  Only such a
+theorem can decide whether the ordered binomial envelope is attained, or prove a strictly smaller
+maximum realized fiber and improve the product-aware slot test.  No P-versus-NP conclusion follows.
+
+### A coherent parity witness attains the ordered binomial envelope
+
+The value-compatibility fork is now resolved for an explicit parity-specific selector.  On every
+all-false independent root, the coherent total assignment `independentAssignment n` extends the
+root, and the compact two-polarity family has exactly the same budgeted endpoint as the previously
+audited positive-singleton family.  The kernel-checked identity is
+
+```text
+freshTaggedPrefixEndpoint (widthOneParityCompactFamily n) (fuel+1)
+    (independentRoot S) (independentAssignment n) d
+  = freshTaggedPrefixEndpoint (independentLiteralGates n) 1
+      (independentRoot S) (independentAssignment n) d.
+```
+
+For every nonempty residual set `E`, the theorem
+`widthOneParityCompactFamily_orderedFiber_bad_and_endpoint` now proves that all roots obtained by
+adjoining a `d`-set strictly below `E` lie in the actual residual-depth-zero compact-family parity
+bad event and reach the common endpoint `independentRoot E`.  Their exact number is
+
+```text
+choose(card(independentStrictBelow E), d).
+```
+
+The terminal-segment specialization
+`exists_widthOneParityCompactFamily_orderedFiber_maximum_bad` proves that in the proportional
+`K = 2d` shell (with `0 < d` and `2d <= n`) this realized bad subfiber has exact size
+`choose(n-d,d)`.  Hence the previous worst-case ordered ceiling is attained by a coherent explicit
+assignment; it is not an artifact of the Boolean values hidden by `Classical.choose`.  This does
+not assert that the existing opaque `commonShallowBadAssignment` realizes the same fiber, but it
+rules out value coherence alone as a source of uniform multiplicity improvement.
+
+Focused Lean elaboration passed.  The new capstones use only the standard logical axioms already
+present; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier
+counterexamples and failed routes remain preserved.
+
+The precise next frontier is to package this coherent assignment into the conditioned first-round
+code (or generalize that code to accept any proved extending long-prefix assignment), prove its
+maximum label cardinality is exactly `choose(n-d,d)` in the `K = 2d` compact parity shell, and rerun
+the product-aware slot inequality against the explicit representative's
+`n * 2^(n-1)` bottom-slot capacity.  No P-versus-NP conclusion follows.
+
+### The coherent parity assignment gives an exact conditioned alphabet
+
+The explicit witness has now been packaged into a decoder-sound conditioned first-round code on
+the entire compact-parity bad shell.  The assignment `restrictionFalseExtension` preserves every
+root-fixed value and assigns false only on live coordinates, so it extends arbitrary shell roots;
+it is not restricted to the all-false independent slice.  The compact selector has exactly one
+fresh entry per live coordinate, which supplies the long-prefix interface required by the existing
+ragged symmetric label reconstruction.
+
+After endpoint-local reindexing, the resulting code has the kernel-checked exact alphabet
+
+```text
+labelCard = choose(n-d,d)
+```
+
+for `K = 2d`, `0 < d`, `2d <= n`, and sufficient fuel.  The upper bound is the fixed-coordinate
+fiber injection.  The matching lower bound embeds the previously constructed coherent ordered
+fiber into the code's actual endpoint fiber.  Thus the sharp multiplicity is now present inside
+the same `ConditionedFirstRoundCode` interface consumed by the product-aware recurrence, rather
+than only as an external bad-event subfiber.
+
+The slot comparison has also been rerun for the explicit parity representative.  Any fitting
+`rounds`-round schedule whose first key is this exact alphabet must satisfy
+
+```text
+(240*choose(n-d,d)+260) * (26^(rounds-1)*terminal)
+  <= n*2^(n-1).
+```
+
+The right side is the representative's exact bottom-slot count.  Because that representative is
+exponentially large, this necessary slot inequality alone is not a contradiction; it clarifies
+that the next decisive comparison must return to the ambient survivor budget, not try to extract
+a lower bound merely from this deliberately huge circuit's syntactic slot capacity.
+
+Focused elaboration passed.  Printed axioms for the new construction and capstones are only
+`propext`, `Classical.choice`, and `Quot.sound`; an intermediate implicit long-trace proof that
+briefly exposed `sorryAx` was replaced by an explicit proved lemma before retaining the result.
+No `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.  Earlier counterexamples
+and failed routes remain preserved.
+
+The precise next frontier is to compare the exact first-round demand
+`20*(24*choose(n-d,d)+26)` with the ambient shell size `n` in the intended
+`n = 1000*A*r`, `d = 10*r` regime.  Prove the strongest valid binomial lower bound needed to decide
+fit there, then propagate that decision to the multi-round recurrence; the exponential slot count
+should no longer be used as a proxy for ambient capacity.  No P-versus-NP conclusion follows.
+
+### The exact coherent alphabet does not fit the intended ambient shell
+
+The ambient comparison is now decided, without appealing to the representative's exponential
+syntactic slot count.  The kernel-checked elementary bound
+
+```text
+0 < k < N  implies  N <= choose(N,k)
+```
+
+follows directly from Pascal's recurrence.  At positive `A,r`, taking
+`n = 1000*A*r` and `d = 10*r` gives `0 < d < n-d`, and hence
+
+```text
+n < 20*(24*choose(n-d,d)+26).
+```
+
+Thus the exact first-round demand is already larger than the entire ambient live-variable budget.
+The theorem `widthOneParity_coherentCode_productAware_not_fit_intended` propagates this strict
+inequality through the actual multi-round recurrence: for every positive round count and positive
+terminal survivor, no later alphabet sequence can rescue a schedule whose first key is the proved
+coherent alphabet `choose(n-d,d)`.  Positivity of the tail budget is the only fact used about later
+rounds.
+
+This is a negative result about the present coherent ordered-prefix code, not about all possible
+conditioned encoders.  It also identifies the required scale of any replacement: its first charged
+alphabet must be at most approximately `n/480`, whereas the current exact alphabet is already at
+least `n-d` in this regime.  The previous exponential-slot comparison remains valid but is no
+longer relevant to deciding ambient fit.
+
+Focused elaboration of the quantitative-iteration module passed.  Printed axioms for the three new
+capstones remain within the standard logical set `propext`, `Classical.choice`, and `Quot.sound`;
+none exposes `sorryAx`.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples and
+failed routes remain preserved.
+
+The precise next frontier is to determine whether endpoint-local labels can be reused across
+different endpoints without charging the global maximum fiber as a single alphabet, or prove an
+encoder-independent lower bound on the first charged alphabet for the full compact-parity shell.
+Any viable replacement must beat the current `choose(n-d,d)` alphabet by a linear factor of roughly
+`480` already in round one before the later-round recurrence matters.  No P-versus-NP conclusion
+follows.
+
+### The parity shell balance is now encoder-independent
+
+The remaining endpoint-local escape hatch has been isolated at the correct structural level.
+`ConditionedFirstRoundCode.bad_card_le_labelCard_mul_endpointShell_card` now applies to any
+decoder-sound conditioned code, regardless of its assignment, selector, or label representation.
+If every endpoint has exactly `K'` live coordinates, it proves
+
+```text
+card(bad) <= labelCard * card(the K'-live restriction shell).
+```
+
+Specializing to the full residual-depth-zero normalized parity bad shell gives
+`parity_normalized_labelCard_mul_endpointShell_lower`.  Thus every sound code whose round spends
+`d` live coordinates satisfies
+
+```text
+choose(n,K) * 2^(n-K)
+  <= labelCard * (choose(n,K-d) * 2^(n-(K-d))).
+```
+
+The cleared-denominator theorem `parity_normalized_labelCard_power_lower` further proves
+
+```text
+(n-K+1)^d <= labelCard * (2*K)^d.
+```
+
+This lower bound no longer fixes the canonical endpoint map and no longer charges a global union
+of endpoint-local labels.  Labels may be reused arbitrarily across endpoints.  The only retained
+condition is the structural iteration invariant that a `d`-step first round ends in the
+`(K-d)`-live shell.  Consequently, changing the coherent assignment or replacing the ragged
+symmetric label format cannot avoid the shell-growth cost while preserving a decoder-sound round
+with that live-variable expenditure.
+
+Focused Lean elaboration passed.  The three new printed capstones use only `propext`,
+`Classical.choice`, and `Quot.sound`; none exposes `sorryAx`.  No `sorry`, `admit`, custom axiom,
+`unsafe`, or `native_decide` was introduced.  Earlier counterexamples and failed routes remain
+preserved.
+
+The precise next frontier is quantitative: instantiate the encoder-independent power bound at
+`n = 1000*A*r`, `K = 20*r`, and `d = 10*r`, and decide whether it alone forces
+`20*(24*labelCard+26) > n` for all positive `A,r`.  If so, every decoder-sound first round that
+spends exactly `10*r` live coordinates is ruled out independently of its encoding; otherwise the
+remaining possibility must change the endpoint expenditure or weaken exact root reconstruction,
+and that altered interface must be audited against the layered collapse semantics.  No
+P-versus-NP conclusion follows.
+
+### The encoder-independent power balance rules out the intended first round
+
+The intended-parameter comparison is now decided.  From
+
+```text
+(1000*A*r - 20*r + 1)^(10*r)
+  <= labelCard * (40*r)^(10*r)
+```
+
+and positive `A,r`, the theorem `intended_power_lower_forces_firstRoundDemand` first compares the
+left base with `(24*A)*(40*r)`.  Raising to `10*r` and cancelling the positive
+`(40*r)^(10*r)` factor gives
+
+```text
+(24*A)^(10*r) <= labelCard.
+```
+
+The elementary bound `a*b <= a^b` then yields the deliberately coarse but sufficient consequence
+
+```text
+240*A*r <= labelCard,
+```
+
+so in particular
+
+```text
+1000*A*r < 20*(24*labelCard + 26).
+```
+
+`parity_normalized_intended_labelCard_demand_exceeds_ambient` instantiates this arithmetic with
+the previously proved full-shell balance.  It applies to every decoder-sound conditioned code on
+the residual-depth-zero normalized parity bad shell whose endpoints have exactly `10*r` live
+coordinates after starting with `20*r`.  It makes no assumption about the assignment, selector,
+label format, global versus endpoint-local label reuse, or canonical prefix map.
+
+`parity_normalized_intended_conditionedCode_productAware_not_fit` propagates the strict first-round
+inequality through the exact recurrence.  For any positive number of rounds and positive terminal
+survivor, no arbitrary sequence of later alphabets can make such a first key fit in the ambient
+`1000*A*r` variables; positivity of the remaining least budget is the only later-round fact used.
+
+Focused elaboration of the quantitative-iteration module passed.  The three new printed capstones
+use only `propext`, `Classical.choice`, and `Quot.sound`; none exposes `sorryAx`.  No `sorry`,
+`admit`, custom axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples,
+failed endpoint-fiber equalities, and failed schedules remain preserved.
+
+The precise next frontier is structural rather than another encoding optimization: characterize
+the weakest endpoint interface actually sufficient for the layered collapse.  Any viable route at
+the intended density must either spend fewer than `10*r` live coordinates in the first round or
+weaken exact root reconstruction/decoder soundness.  The next step is to formulate that weakened
+interface and prove—or refute—that it still transports the common-trunk leaf collapse semantics;
+only then should its altered shell balance and multi-round recurrence be recomputed.  No
+P-versus-NP conclusion follows.
+
+### Layered collapse does not consume bad-root reconstruction
+
+The semantic and counting interfaces are now formally separated.  The new predicate
+`LayeredCollapseLeafAt fuel sigma x residualDepth C tau` retains exactly the pointwise leaf data
+used across an iteration boundary:
+
+```text
+RestrictionExtends sigma tau
+Rung4Restriction.Extends tau x
+stars tau <= stars sigma
+Shallows fuel tau (residualDepth + 1) C.
+```
+
+It contains no label, decoder, encoding map, or inverse reconstruction of the bad root.
+`CommonShallowAt.exists_leaf_layeredCollapseLeafAt` proves that every covered common trunk
+produces this payload at each reached leaf while keeping the shared trunk and its depth charge
+outside the payload.  Conversely, `LayeredCollapseLeafAt.collapseRound_altO` proves that this
+pointwise payload plus the root fuel bound is sufficient for the existing `collapseRound`:
+restriction provenance and assignment compatibility are preserved, the leaf remains within fuel,
+the collapsed circuit is equivalent on the leaf subcube, its bottom width is at most
+`residualDepth + 1`, and one alternating layer is removed.
+
+This identifies the exact role of decoder soundness in the current route.  It is not required by
+the layered-collapse semantics; it is used only to turn a proposed bad-root encoding into an
+injective endpoint/label count.  Therefore weakening reconstruction does not threaten the leaf
+collapse by itself, but it removes the population bound unless a replacement quantitative
+condition controls how many bad roots may share one endpoint/label pair.
+
+Focused elaboration of the layered bridge passed.  Printed axioms for both new capstones are within
+the standard logical set `propext`, `Classical.choice`, and `Quot.sound`; no `sorry`, `admit`, custom
+axiom, `unsafe`, or `native_decide` was introduced.  Earlier counterexamples, failed routes, and
+the encoder-independent exact-decoding obstruction remain preserved.
+
+The precise next frontier is to formulate a bounded-ambiguity (list-decoding) counting interface:
+permit at most `L` bad roots per endpoint/label pair, prove the resulting shell balance with the
+extra factor `L`, and instantiate the intended parameters to determine the minimum ambiguity
+required for fit.  That will decide whether weakening reconstruction merely moves the same
+exponential cost into `L`, or leaves a quantitatively viable interface that still supplies the
+proved `LayeredCollapseLeafAt` payload.  No P-versus-NP conclusion follows.
+
+### Bounded ambiguity moves the cost; it does not remove it
+
+The list-decoding audit is now complete at the intended first-round parameters.  A
+`BoundedAmbiguityFirstRoundCode bad L` permits at most `L` bad roots for each endpoint/label pair.
+Its generic shell count is
+
+```text
+card(bad) <= L * labelCard * card(endpoint shell).
+```
+
+For the full residual-depth-zero parity bad shell, clearing the endpoint-shell denominator gives
+
+```text
+(n-K+1)^d <= (L * labelCard) * (2*K)^d.
+```
+
+Thus the quantitatively honest first-round alphabet is the effective product
+`L * labelCard`.  At `n = 1000*A*r`, `K = 20*r`, and `d = 10*r`, the existing arithmetic audit
+applies directly to that product and proves
+
+```text
+1000*A*r < 20*(24*(L*labelCard)+26).
+```
+
+The theorem `parity_normalized_intended_boundedAmbiguity_productAware_not_fit` propagates this
+strict first-round inequality through every positive-round product-aware recurrence with a
+positive terminal survivor.  Later alphabets are arbitrary.  Therefore bounded ambiguity has two
+possibilities: omit `L` from the recurrence and lose a sound population bound, or charge `L` and
+recover the same ambient obstruction.  It cannot provide the missing restriction saving within
+this fixed-shell, fixed-expenditure interface.
+
+Focused Lean elaboration passed.  The new capstones use only the standard logical axioms already
+present in the module; no `sorry`, `admit`, custom axiom, `unsafe`, or `native_decide` was added.
+This closes the bounded-ambiguity/list-decoding branch, but it does not prove P versus NP.
+
+The next viable frontier must alter a structural premise of the shell balance: spend fewer than
+`10*r` live coordinates, avoid transporting the full parity bad shell through one round, or obtain
+a survivor-conditioned counting invariant whose population is genuinely smaller before the
+ambiguity charge is applied.  Any such proposal must still compose with `LayeredCollapseLeafAt`
+and must be audited against the exact multi-round recurrence.

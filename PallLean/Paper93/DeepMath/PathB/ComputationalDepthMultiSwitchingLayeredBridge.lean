@@ -664,6 +664,68 @@ theorem CommonShallowAt.leaf_shallows {n G : ℕ} {gates : Fin G → List (Claus
   · rw [← hgneg fuel (CommonTree.run trunk x)]
     exact Nat.lt_succ_of_le (hshallow gneg)
 
+/-- The pointwise payload actually consumed at a layered-collapse leaf.  It retains the two
+provenance facts needed to regard `τ` as the leaf reached from `σ` by the assignment `x`, the
+fuel monotonicity needed by iteration, and the residual shallowness needed by `collapseRound`.
+
+Unlike a conditioned counting code, this semantic interface contains no label, decoder, or
+reconstruction of the bad root.  Those belong to the counting argument, not to the collapse
+transformation itself. -/
+def LayeredCollapseLeafAt {n : ℕ} (fuel : ℕ) (σ : Restriction n)
+    (x : Fin n → Bool) (residualDepth : ℕ) (C : Layered n)
+    (τ : Restriction n) : Prop :=
+  RestrictionExtends σ τ ∧
+  Rung4Restriction.Extends τ x ∧
+  stars τ ≤ stars σ ∧
+  Shallows fuel τ (residualDepth + 1) C
+
+/-- A covered common-shallow trunk produces the pointwise layered-collapse payload at every
+reached leaf.  The shared trunk and its depth charge remain outside the payload; exact bad-root
+reconstruction is not required. -/
+theorem CommonShallowAt.exists_leaf_layeredCollapseLeafAt
+    {n G : ℕ} {gates : Fin G → List (Clause n)}
+    {fuel : ℕ} {σ : Restriction n} {trunkDepth residualDepth : ℕ} {C : Layered n}
+    (h : CommonShallowAt gates fuel σ trunkDepth residualDepth)
+    (hcover : CoversLayeredBottoms gates C)
+    (x : Fin n → Bool) (hx : Rung4Restriction.Extends σ x) :
+    ∃ trunk : CommonTree n (Restriction n),
+      CommonTree.depth trunk ≤ trunkDepth ∧
+      LayeredCollapseLeafAt fuel σ x residualDepth C (CommonTree.run trunk x) := by
+  obtain ⟨trunk, hdepth, hleaf⟩ := h
+  obtain ⟨hext, hagree, hcanonical⟩ := hleaf x hx
+  have hstars : stars (CommonTree.run trunk x) ≤ stars σ :=
+    stars_le_of_restrictionExtends hext
+  have hshallow : Shallows fuel (CommonTree.run trunk x) (residualDepth + 1) C := by
+    intro cs hcs
+    obtain ⟨⟨g, hg⟩, ⟨gneg, hgneg⟩⟩ := hcover cs hcs
+    constructor
+    · rw [← hg fuel (CommonTree.run trunk x)]
+      exact Nat.lt_succ_of_le (hcanonical g)
+    · rw [← hgneg fuel (CommonTree.run trunk x)]
+      exact Nat.lt_succ_of_le (hcanonical gneg)
+  exact ⟨trunk, hdepth, hext, hagree, hstars, hshallow⟩
+
+/-- The pointwise leaf payload is sufficient for the existing semantic collapse and alternation
+reduction.  In particular, no inverse map from the leaf (with or without a label) to the original
+root occurs in the layered-collapse proof. -/
+theorem LayeredCollapseLeafAt.collapseRound_altO
+    {n k fuel residualDepth : ℕ} {σ τ : Restriction n}
+    {x : Fin n → Bool} {C : Layered n}
+    (h : LayeredCollapseLeafAt fuel σ x residualDepth C τ)
+    (hfuel : stars σ ≤ fuel) (halt : AltO (k + 3) C) :
+    RestrictionExtends σ τ ∧
+    Rung4Restriction.Extends τ x ∧
+    stars τ ≤ fuel ∧
+    EquivOn τ C (collapseRound fuel τ C) ∧
+    BottomWidth (residualDepth + 1) (collapseRound fuel τ C) ∧
+    AltO (k + 2) (collapseRound fuel τ C) := by
+  rcases h with ⟨hext, hagree, hstars, hshallow⟩
+  have hstarsFuel : stars τ ≤ fuel := hstars.trans hfuel
+  exact ⟨hext, hagree, hstarsFuel,
+    collapseRound_EquivOn fuel hstarsFuel C,
+    collapseRound_BottomWidth fuel τ hshallow,
+    collapseRound_AltO fuel τ halt⟩
+
 /-- A common-shallow trunk can be followed by the existing collapse round at every reached leaf.
 The conclusion records all interfaces needed for iteration: trunk cost, leaf fuel, semantic
 equivalence, output bottom width, and the one-level alternation reduction. -/
@@ -10851,6 +10913,8 @@ theorem prefixEndpoint_replicate_singleLiteral_baseline_mass_of_not_mem
 end PallLean.Paper93.DeepMath.PathB.MultiSwitching
 
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_altO
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.exists_leaf_layeredCollapseLeafAt
+#print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.LayeredCollapseLeafAt.collapseRound_altO
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.CommonShallowAt.leaf_collapseRound_bottomSlotCount_bound
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.layered_commonShallowBad_scaled_le_of_realized_density
 #print axioms PallLean.Paper93.DeepMath.PathB.MultiSwitching.normalizedLayered_commonShallowBad_scaled_le_of_realized_density
