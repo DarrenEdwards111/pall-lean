@@ -13095,3 +13095,37 @@ axiom.  This is another genuine obstruction, not a P-versus-NP conclusion.  The 
 frontier is to formulate the minimum live-set sampler condition that transfers a full-shell bad
 bound to the selected atlas, then determine whether the canonical switching selector satisfies
 it or whether parity provides a counterexample.
+
+### The canonical parity selector is maximally concentrated
+
+The actual selector—not merely an abstract assignment-covering map—has now been audited on the
+explicit compact parity family.  Its fresh tagged witness stream is exactly the increasing list of
+live ambient coordinates, independent of the extending assignment.  Consequently, on the
+fixed-live-set atlas `fixedFreeSetSurvivors(S)`, a depth-`d` prefix always produces the one residual
+live set
+
+```text
+S \ first_d_in_ambient_order(S).
+```
+
+`widthOneParityCompactFamily_fixedFreeSet_endpoint_freeVars` proves this pointwise for every root
+in the atlas and every assignment.  The theorem
+`widthOneParityCompactFamily_canonicalSelector_concentrates` packages the endpoint live-set image
+as a singleton in the strongest pointwise form.
+
+Finally, `parity_canonicalSelector_sampler_gap` combines the whole obstruction:
+
+1. the atlas covers every assignment;
+2. every atlas root is parity-bad at residual depth zero;
+3. the atlas is compatible with the advertised global shell contraction; and
+4. the actual canonical selector maps the entire atlas to one residual live-coordinate set.
+
+Therefore the canonical selector does **not** satisfy any universal anti-concentration/sampler
+property over assignment-covering survivor populations.  Its deterministic ambient ordering is
+exactly what permits maximal concentration.  A viable route would have to introduce genuine
+randomization or a balanced family of coordinate orders and then pay/prove that balancing inside
+the recurrence; it cannot be recovered from the current canonical selector.
+
+Focused Lean elaboration passed with standard logical axioms only and no `sorryAx`.  This closes
+the canonical-selector sampler repair for the present deterministic construction.  It still does
+not prove P versus NP.

@@ -7591,6 +7591,69 @@ theorem independentLiveOrder_eq_finRange_filter_mem {n : ℕ} (S : Finset (Fin n
         by_cases ha : a ∈ S <;> simp [ha, ih]
   exact aux _
 
+/-! ### The actual canonical parity selector is maximally concentrated on a fixed-live-set atlas -/
+
+/-- The residual live set produced by the compact parity selector from a prescribed initial live
+set.  The selector fixes the first `d` coordinates in ambient order. -/
+def orderedParityResidualLiveSet {n : ℕ} (S : Finset (Fin n)) (d : ℕ) :
+    Finset (Fin n) :=
+  S \ ((independentLiveOrder S).take d).toFinset
+
+/-- On the explicit compact parity family, the *actual canonical tagged selector* sends every
+root with live set `S` to the same residual live set, independently of both the root's fixed
+values and the extending assignment. -/
+theorem widthOneParityCompactFamily_fixedFreeSet_endpoint_freeVars
+    {n fuel d : ℕ} {S : Finset (Fin n)} {rho : Restriction n}
+    (hrho : rho ∈ fixedFreeSetSurvivors S) (x : Fin n → Bool) :
+    freeVars (freshTaggedPrefixEndpoint (widthOneParityCompactFamily n)
+      (fuel + 1) rho x d) = orderedParityResidualLiveSet S d := by
+  rw [freeVars_freshTaggedPrefixEndpoint,
+    widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take]
+  have hfree : freeVars rho = S := mem_fixedFreeSetSurvivors.mp hrho
+  have horder : independentLiveOrder (freeVars rho) =
+      (List.finRange n).filter (fun i => rho i = none) := by
+    simpa only [mem_freeVars] using
+      independentLiveOrder_eq_finRange_filter_mem (freeVars rho)
+  rw [← horder, hfree]
+  rfl
+
+/-- Hence the endpoint live-set image of this assignment-covering atlas has cardinality one in
+the strongest possible pointwise sense. -/
+theorem widthOneParityCompactFamily_canonicalSelector_concentrates
+    {n fuel d : ℕ} (S : Finset (Fin n)) :
+    ∃ E : Finset (Fin n),
+      ∀ rho ∈ fixedFreeSetSurvivors S, ∀ x : Fin n → Bool,
+        freeVars (freshTaggedPrefixEndpoint (widthOneParityCompactFamily n)
+          (fuel + 1) rho x d) = E := by
+  exact ⟨orderedParityResidualLiveSet S d,
+    fun rho hrho x =>
+      widthOneParityCompactFamily_fixedFreeSet_endpoint_freeVars hrho x⟩
+
+/-- Full canonical-selector obstruction package: the survivor atlas covers all assignments, lies
+wholly in the parity bad event, satisfies the advertised global contraction, and the actual
+canonical selector maps all of its roots to one residual live-coordinate set. -/
+theorem parity_canonicalSelector_sampler_gap
+    {n fuel K trunkDepth d selectorFuel : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K)
+    (hchoose : 2 ^ d ≤ Nat.choose n K) :
+    (∀ x : Fin n → Bool, ∃ rho ∈ fixedFreeSetSurvivors S,
+        DTree.agreeRestriction rho x) ∧
+    fixedFreeSetSurvivors S ⊆
+      commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0 ∧
+    (fixedFreeSetSurvivors S).card * 2 ^ d ≤
+      (Finset.univ.filter fun rho : Restriction n => stars rho = K).card ∧
+    ∃ E : Finset (Fin n),
+      ∀ rho ∈ fixedFreeSetSurvivors S, ∀ x : Fin n → Bool,
+        freeVars (freshTaggedPrefixEndpoint (widthOneParityCompactFamily n)
+          (selectorFuel + 1) rho x d) = E := by
+  obtain ⟨hcover, hbad, hcontract⟩ := parity_fixedFreeSet_survivor_conditioning_gap
+    C phase hparity hKfuel htrunk S hScard hchoose
+  exact ⟨hcover, hbad, hcontract,
+    widthOneParityCompactFamily_canonicalSelector_concentrates S⟩
+
 /-- Every exact candidate in a compact-family endpoint fiber is obtained by re-freeing a
 `d`-set strictly below every residual live coordinate.  This includes the empty-residual case:
 `independentStrictBelow ∅` is the whole ambient coordinate set.
@@ -10932,6 +10995,9 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedWitSeq_decode
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedPrefixVars_eq_take
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_freshTaggedPrefixEndpoint_eq_fixOn
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_fixedFreeSet_endpoint_freeVars
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_canonicalSelector_concentrates
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_canonicalSelector_sampler_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_subset_ordered
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_orderedChoose
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_choose_min'
