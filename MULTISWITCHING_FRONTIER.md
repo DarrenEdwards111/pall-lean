@@ -13054,3 +13054,44 @@ scale used by the existing round construction, so it cannot simply be substitute
 current proof.  The next meaningful test is whether a genuinely survivor-conditioned bad
 population can be proved small enough to compensate for that lost trunk depth; otherwise the
 full-parity-shell premise itself must be abandoned.  No P-versus-NP conclusion follows.
+
+### Survivor conditioning requires anti-concentration
+
+The survivor-conditioned alternative has now been tested at its weakest semantic interface, and
+assignment coverage alone is insufficient.  For any prescribed `K`-coordinate live set `S`, the
+new finite atlas
+
+```text
+fixedFreeSetSurvivors(S) = {rho : freeVars(rho) = S}
+```
+
+has exact cardinality `2^(n-K)` and covers every total assignment: copy that assignment on the
+fixed coordinates and leave exactly `S` live.  Nevertheless, for residual-depth-zero parity,
+every member of this atlas is in `commonShallowBad` whenever the trunk is shorter than `K`.
+
+Moreover, whenever `2^d <= choose(n,K)`, this wholly bad atlas is still compatible with the usual
+global shell contraction:
+
+```text
+card(fixedFreeSetSurvivors(S)) * 2^d
+  <= card(the full K-live restriction shell).
+```
+
+The capstone `parity_fixedFreeSet_survivor_conditioning_gap` packages all three facts:
+
+1. every assignment is covered;
+2. every selected survivor is bad;
+3. the global `2^d` shell-count inequality still holds.
+
+Thus a survivor selector can concentrate on a tiny, measure-zero-in-live-set-space portion of the
+uniform shell and destroy the probabilistic saving.  The existing generated-path coverage and
+fiber bounds cannot rule this out.  A sound survivor-conditioned route must prove an additional
+anti-concentration or sampler property tying the selector's live-set distribution to uniform
+shell measure; simply counting distinct selected restrictions or covering all assignments is not
+enough.
+
+Focused Lean elaboration passed, using only standard logical axioms and adding no `sorry` or custom
+axiom.  This is another genuine obstruction, not a P-versus-NP conclusion.  The next precise
+frontier is to formulate the minimum live-set sampler condition that transfers a full-shell bad
+bound to the selected atlas, then determine whether the canonical switching selector satisfies
+it or whether parity provides a counterexample.

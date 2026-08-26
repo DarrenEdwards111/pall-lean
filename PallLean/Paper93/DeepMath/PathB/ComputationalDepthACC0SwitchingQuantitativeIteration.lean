@@ -6360,6 +6360,89 @@ theorem parity_normalized_commonShallowBad_zero_card
   rw [parity_normalized_commonShallowBad_zero_eq_shell C phase hparity hKfuel htrunk,
     card_stars_eq]
 
+/-! ### Survivor conditioning can concentrate on the bad event -/
+
+/-- The smallest natural assignment-covering survivor atlas with one prescribed live-coordinate
+set.  It contains all Boolean settings of the fixed coordinates and no other live-set choice. -/
+noncomputable def fixedFreeSetSurvivors {n : ℕ} (S : Finset (Fin n)) :
+    Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun rho => freeVars rho = S
+
+@[simp] theorem mem_fixedFreeSetSurvivors {n : ℕ} {S : Finset (Fin n)}
+    {rho : Restriction n} :
+    rho ∈ fixedFreeSetSurvivors S ↔ freeVars rho = S := by
+  classical
+  simp [fixedFreeSetSurvivors]
+
+/-- The atlas pays only for the settings outside its one fixed live set. -/
+theorem card_fixedFreeSetSurvivors {n : ℕ} (S : Finset (Fin n)) :
+    (fixedFreeSetSurvivors S).card = 2 ^ (n - S.card) := by
+  classical
+  exact card_freeVars_eq S
+
+/-- Despite using only one live-coordinate set, the atlas covers every total assignment: retain
+`S` as live and copy the assignment on every coordinate outside `S`. -/
+theorem fixedFreeSetSurvivors_covers_assignments {n : ℕ} (S : Finset (Fin n))
+    (x : Fin n → Bool) :
+    ∃ rho ∈ fixedFreeSetSurvivors S, DTree.agreeRestriction rho x := by
+  let rho := restrictionWithFreeSet x S
+  refine ⟨rho, ?_, agreeRestriction_restrictionWithFreeSet x S⟩
+  rw [mem_fixedFreeSetSurvivors]
+  exact freeVars_restrictionWithFreeSet x S
+
+/-- For residual-depth-zero parity, every member of an assignment-covering fixed-free-set atlas is
+bad.  Thus semantic coverage by survivors does not imply that the survivor population inherits
+the good fraction of the uniform shell. -/
+theorem fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K) :
+    fixedFreeSetSurvivors S ⊆
+      commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0 := by
+  intro rho hrho
+  apply parity_mem_normalized_commonShallowBad_zero C phase hparity hKfuel htrunk
+  rw [stars, (mem_fixedFreeSetSurvivors.mp hrho), hScard]
+
+/-- A full-shell contraction by `2^d` is numerically compatible with the entire selected survivor
+atlas being bad whenever `2^d ≤ choose(n,K)`.  This is the precise conditioning gap: the binomial
+live-set multiplicity can absorb the advertised shell saving while the selected atlas uses only
+one live set. -/
+theorem fixedFreeSetSurvivors_contraction_compatible
+    {n K d : ℕ} (S : Finset (Fin n)) (hScard : S.card = K)
+    (hchoose : 2 ^ d ≤ Nat.choose n K) :
+    (fixedFreeSetSurvivors S).card * 2 ^ d ≤
+      (Finset.univ.filter fun rho : Restriction n => stars rho = K).card := by
+  rw [card_fixedFreeSetSurvivors, hScard, card_stars_eq]
+  calc
+    2 ^ (n - K) * 2 ^ d ≤ 2 ^ (n - K) * Nat.choose n K :=
+      Nat.mul_le_mul_left _ hchoose
+    _ = Nat.choose n K * 2 ^ (n - K) := by ring
+
+/-- Concrete survivor-conditioning no-go package.  Even with assignment coverage and a valid
+`2^d` global shell contraction, the selected survivor population may be wholly bad.  Any valid
+transfer theorem therefore needs an additional anti-concentration or sampler property relating
+the selector to the shell measure. -/
+theorem parity_fixedFreeSet_survivor_conditioning_gap
+    {n fuel K trunkDepth d : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K)
+    (hchoose : 2 ^ d ≤ Nat.choose n K) :
+    (∀ x : Fin n → Bool, ∃ rho ∈ fixedFreeSetSurvivors S,
+        DTree.agreeRestriction rho x) ∧
+    fixedFreeSetSurvivors S ⊆
+      commonShallowBad (normalizedLayeredBottomFamily C) fuel K trunkDepth 0 ∧
+    (fixedFreeSetSurvivors S).card * 2 ^ d ≤
+      (Finset.univ.filter fun rho : Restriction n => stars rho = K).card := by
+  exact ⟨fixedFreeSetSurvivors_covers_assignments S,
+    fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero
+      C phase hparity hKfuel htrunk S hScard,
+    fixedFreeSetSurvivors_contraction_compatible S hScard hchoose⟩
+
 /-- Encoder-independent first-alphabet balance for residual-depth-zero parity.  This applies to
 any decoder-sound conditioned code on the full parity bad shell, provided only that its endpoints
 have the live-variable count required of a `trunkDepth`-step round.  In particular, changing the
@@ -10806,6 +10889,11 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_mem_normalized_commonShallowBad_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_commonShallowBad_zero_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_fixedFreeSetSurvivors
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_covers_assignments
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_contraction_compatible
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_fixedFreeSet_survivor_conditioning_gap
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_mul_endpointShell_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_power_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.intended_power_lower_forces_firstRoundDemand
