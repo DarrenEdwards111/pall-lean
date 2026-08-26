@@ -6452,6 +6452,39 @@ theorem intended_power_lower_forces_firstRoundDemand
       _ ≤ labelCard := halphabet
   nlinarith
 
+/-- Variable-expenditure form of the intended-density audit.  The original `10*r` is not the
+source of the obstruction: every first round spending at least `r` live coordinates already has
+an oversized effective alphabet.  Hence merely reducing the trunk from `10*r` to any `d ≥ r`
+cannot make the recurrence fit. -/
+theorem intended_variable_power_lower_forces_firstRoundDemand
+    {A r d effectiveCard : ℕ} (hA : 0 < A) (hr : 0 < r) (hrd : r ≤ d)
+    (hpower :
+      (1000 * A * r - 20 * r + 1) ^ d ≤
+        effectiveCard * (40 * r) ^ d) :
+    1000 * A * r < 20 * (24 * effectiveCard + 26) := by
+  have hbase : (24 * A) * (40 * r) ≤ 1000 * A * r - 20 * r + 1 := by
+    have hbefore : (24 * A) * (40 * r) + 20 * r ≤ 1000 * A * r := by
+      nlinarith
+    exact (Nat.le_sub_of_add_le hbefore).trans (Nat.le_add_right _ _)
+  have hpowMul : ((24 * A) * (40 * r)) ^ d ≤
+      (1000 * A * r - 20 * r + 1) ^ d :=
+    Nat.pow_le_pow_left hbase _
+  have hcancel : (24 * A) ^ d * (40 * r) ^ d ≤
+      effectiveCard * (40 * r) ^ d := by
+    rw [← Nat.mul_pow]
+    exact hpowMul.trans hpower
+  have hfactor : 0 < (40 * r) ^ d := by positivity
+  have halphabet : (24 * A) ^ d ≤ effectiveCard :=
+    Nat.le_of_mul_le_mul_right hcancel hfactor
+  have hgrowth : (24 * A) * d ≤ (24 * A) ^ d := by
+    exact Nat.mul_le_pow (by omega) _
+  have hlinear : 24 * A * r ≤ effectiveCard := by
+    calc
+      24 * A * r ≤ (24 * A) * d := by nlinarith
+      _ ≤ (24 * A) ^ d := hgrowth
+      _ ≤ effectiveCard := halphabet
+  nlinarith
+
 /-- Encoder-independent resolution of the intended first-round comparison.  Every decoder-sound
 code for the full residual-zero parity bad shell whose endpoints spend exactly `10*r` live
 coordinates has first-round product-aware demand strictly larger than the ambient dimension. -/
@@ -6582,6 +6615,25 @@ theorem parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
       (by nlinarith) (by nlinarith) code
       (by simpa only [show 20 * r - 10 * r = 10 * r by omega] using hendpoint))
 
+/-- The bounded-ambiguity parity obstruction holds for every variable expenditure in the entire
+range `r ≤ d < 20*r`.  Therefore the only expenditure regime not eliminated by this population
+argument is the strictly sub-`r` regime. -/
+theorem parity_normalized_intended_variable_effectiveAlphabet_demand_exceeds_ambient
+    {A r d fuel L : ℕ} (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hrd : r ≤ d) (hdK : d < 20 * r)
+    (hKfuel : 20 * r ≤ fuel)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) d 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = 20 * r - d) :
+    1000 * A * r < 20 * (24 * (L * code.labelCard) + 26) := by
+  apply intended_variable_power_lower_forces_firstRoundDemand hA hr hrd
+  simpa only [show 2 * (20 * r) = 40 * r by ring] using
+    (parity_normalized_ambiguity_mul_labelCard_power_lower C phase hparity hKfuel
+      hdK (by nlinarith) code hendpoint)
+
 /-- Consequently no positive product-aware schedule fits when its first key honestly charges both
 the label alphabet and the maximum list size.  Later keys remain arbitrary. -/
 theorem parity_normalized_intended_boundedAmbiguity_productAware_not_fit
@@ -6617,6 +6669,45 @@ theorem parity_normalized_intended_boundedAmbiguity_productAware_not_fit
   rw [hfirst] at hfirstDemand
   have htooLarge := parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
     C phase hparity hA hr hKfuel code hendpoint
+  omega
+
+/-- No positive product-aware schedule can fit for any first-round expenditure `d` between `r`
+and `20*r`.  This closes the entire linear-in-`r` smaller-trunk escape hatch, not merely the
+original choice `d = 10*r`. -/
+theorem parity_normalized_intended_variable_boundedAmbiguity_productAware_not_fit
+    {A r d fuel rounds terminal L : ℕ}
+    (C : Layered (1000 * A * r)) (phase : Bool)
+    (hparity : ∀ x : Fin (1000 * A * r) → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hA : 0 < A) (hr : 0 < r) (hrd : r ≤ d) (hdK : d < 20 * r)
+    (hKfuel : 20 * r ≤ fuel) (hrounds : 0 < rounds) (hterminal : 0 < terminal)
+    (code : BoundedAmbiguityFirstRoundCode
+      (commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel (20 * r) d 0) L)
+    (hendpoint : ∀ root, stars (code.endpoint root) = 20 * r - d)
+    (actualKeys : ℕ → ℕ) (hfirst : actualKeys 1 = L * code.labelCard) :
+    ¬20 * leastFiniteProductAwareBudget rounds actualKeys terminal ≤ 1000 * A * r := by
+  intro hfit
+  obtain ⟨remainingRounds, rfl⟩ :=
+    Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hrounds)
+  have htail : 0 < leastFiniteProductAwareBudget remainingRounds
+      (fun i ↦ actualKeys (i + 1)) terminal :=
+    leastFiniteProductAwareBudget_pos remainingRounds _ hterminal
+  have hfirstDemand : 20 * (24 * actualKeys 1 + 26) ≤ 1000 * A * r := by
+    calc
+      20 * (24 * actualKeys 1 + 26) ≤
+          20 * ((24 * actualKeys 1 + 26) *
+            leastFiniteProductAwareBudget remainingRounds
+              (fun i ↦ actualKeys (i + 1)) terminal) := by
+        exact Nat.mul_le_mul_left 20 (Nat.le_mul_of_pos_right _ htail)
+      _ = 20 * leastFiniteProductAwareBudget (remainingRounds + 1)
+          actualKeys terminal := by
+        rw [leastFiniteProductAwareBudget_succ, leastProductAwarePredecessor_eq]
+      _ ≤ 1000 * A * r := hfit
+  rw [hfirst] at hfirstDemand
+  have htooLarge :=
+    parity_normalized_intended_variable_effectiveAlphabet_demand_exceeds_ambient
+      C phase hparity hA hr hrd hdK hKfuel code hendpoint
   omega
 
 /-- Representation-independent largest-fiber balance for residual-depth-zero parity.  The exact
@@ -10718,12 +10809,15 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_mul_endpointShell_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_labelCard_power_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.intended_power_lower_forces_firstRoundDemand
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.intended_variable_power_lower_forces_firstRoundDemand
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_labelCard_demand_exceeds_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_conditionedCode_productAware_not_fit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_ambiguity_mul_labelCard_mul_endpointShell_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_ambiguity_mul_labelCard_power_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_effectiveAlphabet_demand_exceeds_ambient
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_variable_effectiveAlphabet_demand_exceeds_ambient
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_boundedAmbiguity_productAware_not_fit
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_intended_variable_boundedAmbiguity_productAware_not_fit
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_maxFiber_mul_endpointShell_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_endpointShell_ratio_lower
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_endpointShell_power_lower

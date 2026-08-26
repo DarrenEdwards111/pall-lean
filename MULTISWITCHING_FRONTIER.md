@@ -13023,3 +13023,34 @@ The next viable frontier must alter a structural premise of the shell balance: s
 a survivor-conditioned counting invariant whose population is genuinely smaller before the
 ambiguity charge is applied.  Any such proposal must still compose with `LayeredCollapseLeafAt`
 and must be audited against the exact multi-round recurrence.
+
+### Smaller first-round expenditure: the exact threshold
+
+The first structural alternative has now been audited with a variable trunk expenditure `d`.
+The obstruction is not peculiar to the original choice `d = 10*r`.  The theorem
+`intended_variable_power_lower_forces_firstRoundDemand` shows that whenever `r <= d`, the shell
+power balance forces
+
+```text
+(24*A)^d <= effectiveCard,
+24*A*r <= effectiveCard,
+1000*A*r < 20*(24*effectiveCard+26).
+```
+
+Specializing the generic bounded-ambiguity parity count gives this conclusion for every
+
+```text
+r <= d < 20*r,
+effectiveCard = L*labelCard.
+```
+
+`parity_normalized_intended_variable_boundedAmbiguity_productAware_not_fit` propagates the result
+through arbitrary positive-round schedules.  Therefore reducing the trunk by any constant factor
+from `10*r`—including `5*r`, `2*r`, or `r`—does not help.  The only expenditure window not ruled
+out by this shell-population argument is `d < r`.
+
+This narrows the structural frontier sharply.  A sub-`r` trunk provides less than the switching
+scale used by the existing round construction, so it cannot simply be substituted into the
+current proof.  The next meaningful test is whether a genuinely survivor-conditioned bad
+population can be proved small enough to compensate for that lost trunk depth; otherwise the
+full-parity-shell premise itself must be abandoned.  No P-versus-NP conclusion follows.
