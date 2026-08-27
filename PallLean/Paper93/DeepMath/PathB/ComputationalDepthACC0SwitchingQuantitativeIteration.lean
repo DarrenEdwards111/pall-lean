@@ -6419,6 +6419,111 @@ theorem parity_normalized_distributional_escape_forces_off_shell
   exact hescape (parity_normalized_shellPopulation_filter_bad_eq_self
     C phase hparity hKfuel htrunk population hoff)
 
+/-! ### Variable-live-dimension round state
+
+Leaving one exact shell suggests carrying the live dimension as part of the state.  The next
+definition removes `K` from the bad-event interface and ranges over every restriction at once.
+The only retained round conditions are the ones genuinely needed by the semantic proof: the
+restriction fits within fuel and has more live variables than the common trunk can query. -/
+
+/-- Residual-depth-zero bad restrictions across all live dimensions that are simultaneously
+fuel-valid and nontrivial relative to the requested trunk depth. -/
+noncomputable def variableLiveCommonShallowBadZero {n G : ℕ}
+    (gates : Fin G → List (Clause n)) (fuel trunkDepth : ℕ) :
+    Finset (Restriction n) := by
+  classical
+  exact Finset.univ.filter fun rho =>
+    stars rho ≤ fuel ∧ trunkDepth < stars rho ∧
+      ¬ CommonShallowAt gates fuel rho trunkDepth 0
+
+@[simp] theorem mem_variableLiveCommonShallowBadZero
+    {n G fuel trunkDepth : ℕ} {gates : Fin G → List (Clause n)}
+    {rho : Restriction n} :
+    rho ∈ variableLiveCommonShallowBadZero gates fuel trunkDepth ↔
+      stars rho ≤ fuel ∧ trunkDepth < stars rho ∧
+        ¬ CommonShallowAt gates fuel rho trunkDepth 0 := by
+  classical
+  simp [variableLiveCommonShallowBadZero]
+
+/-- Exact variable-dimension parity identity.  Mixing shells does not create a good interior:
+every fuel-valid restriction above the trunk threshold is bad, pointwise. -/
+theorem parity_normalized_variableLiveBadZero_eq_viable
+    {n fuel trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase) :
+    variableLiveCommonShallowBadZero
+        (normalizedLayeredBottomFamily C) fuel trunkDepth =
+      Finset.univ.filter fun rho : Restriction n =>
+        stars rho ≤ fuel ∧ trunkDepth < stars rho := by
+  classical
+  ext rho
+  simp only [mem_variableLiveCommonShallowBadZero, Finset.mem_filter,
+    Finset.mem_univ, true_and]
+  constructor
+  · exact fun h => ⟨h.1, h.2.1⟩
+  · rintro ⟨hfuel, htrunk⟩
+    refine ⟨hfuel, htrunk, ?_⟩
+    have hbad := parity_mem_normalized_commonShallowBad_zero
+      C phase hparity hfuel htrunk rho rfl
+    exact (mem_commonShallowBad.mp hbad).2
+
+/-- Every population supported in the useful variable-dimension regime remains entirely bad.
+This permits arbitrary mixtures of shell sizes, adaptive correlations, and duplicate-free finite
+supports; no exact-`K` assumption remains. -/
+theorem parity_normalized_variableLivePopulation_filter_bad_eq_self
+    {n fuel trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (population : Finset (Restriction n))
+    (hviable : ∀ rho ∈ population,
+      stars rho ≤ fuel ∧ trunkDepth < stars rho) :
+    population.filter (fun rho =>
+      rho ∈ variableLiveCommonShallowBadZero
+        (normalizedLayeredBottomFamily C) fuel trunkDepth) = population := by
+  apply Finset.filter_eq_self.mpr
+  intro rho hrho
+  rw [parity_normalized_variableLiveBadZero_eq_viable C phase hparity]
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+  exact hviable rho hrho
+
+/-- Weighted variable-dimension form: every distribution supported above the trunk and within
+fuel has bad mass exactly equal to total mass. -/
+theorem parity_normalized_variableLivePopulation_bad_weight_eq_total
+    {n fuel trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (population : Finset (Restriction n)) (weight : Restriction n → ℕ)
+    (hviable : ∀ rho ∈ population,
+      stars rho ≤ fuel ∧ trunkDepth < stars rho) :
+    ∑ rho ∈ population.filter (fun rho =>
+        rho ∈ variableLiveCommonShallowBadZero
+          (normalizedLayeredBottomFamily C) fuel trunkDepth), weight rho =
+      ∑ rho ∈ population, weight rho := by
+  rw [parity_normalized_variableLivePopulation_filter_bad_eq_self
+    C phase hparity population hviable]
+
+/-- Any escape in the variable-dimension state must be quantitatively trivial for this round:
+some supported restriction either has no more live variables than the trunk, or exceeds fuel. -/
+theorem parity_normalized_variableLive_escape_forces_trivial_or_overfuel
+    {n fuel trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (population : Finset (Restriction n))
+    (hescape : population.filter (fun rho =>
+      rho ∈ variableLiveCommonShallowBadZero
+        (normalizedLayeredBottomFamily C) fuel trunkDepth) ≠ population) :
+    ∃ rho ∈ population,
+      stars rho ≤ trunkDepth ∨ fuel < stars rho := by
+  by_contra hboundary
+  push_neg at hboundary
+  have hviable : ∀ rho ∈ population,
+      stars rho ≤ fuel ∧ trunkDepth < stars rho := by
+    intro rho hrho
+    have h := hboundary rho hrho
+    omega
+  exact hescape (parity_normalized_variableLivePopulation_filter_bad_eq_self
+    C phase hparity population hviable)
+
 /-! ### Survivor conditioning can concentrate on the bad event -/
 
 /-- The smallest natural assignment-covering survivor atlas with one prescribed live-coordinate
@@ -11087,6 +11192,11 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_shellPopulation_filter_bad_eq_self
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_shellPopulation_bad_weight_eq_total
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_distributional_escape_forces_off_shell
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.mem_variableLiveCommonShallowBadZero
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_variableLiveBadZero_eq_viable
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_variableLivePopulation_filter_bad_eq_self
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_variableLivePopulation_bad_weight_eq_total
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_variableLive_escape_forces_trivial_or_overfuel
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_fixedFreeSetSurvivors
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_covers_assignments
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero

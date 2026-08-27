@@ -49,6 +49,33 @@ interface and replace it with a variable-live-dimension invariant, then rebuild 
 fuel preservation, and the layered recurrence for that new state space.  Merely reweighting the
 current restrictions gives conditioned bad probability one.
 
+## Variable-live-dimension state audit (2026-08-27)
+
+The off-shell continuation is now formalized rather than left as a suggestion.
+`variableLiveCommonShallowBadZero` removes the exact shell parameter and ranges over all
+restrictions simultaneously, retaining only the two useful-round conditions
+
+```text
+stars(ρ) ≤ fuel,    trunkDepth < stars(ρ).
+```
+
+For parity, `parity_normalized_variableLiveBadZero_eq_viable` proves an exact pointwise identity:
+the variable-dimension bad set is the entire fuel-valid region above the trunk threshold.  The
+weighted population capstone then proves that arbitrary mixtures of shell sizes still have bad
+mass equal to total mass.  Finally,
+`parity_normalized_variableLive_escape_forces_trivial_or_overfuel` proves that any escaping
+population must contain a restriction satisfying
+
+```text
+stars(ρ) ≤ trunkDepth  or  fuel < stars(ρ).
+```
+
+The first branch has already spent enough variables to make the requested trunk quantitatively
+trivial; the second invalidates the ample-fuel semantic interface.  Thus even rebuilding the
+state space to mix live dimensions does not rescue residual-depth-zero parity.  A viable new bad
+event must request positive residual depth or abandon the common-trunk semantic target entirely;
+either change requires a new counting theorem and recurrence, not a distributional repair.
+
 This ledger records only the current machine-checked state of the common-tree route.  It is a
 restricted-circuit counting project, not a proof of `P ≠ NP`.
 
