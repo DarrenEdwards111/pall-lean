@@ -6360,6 +6360,65 @@ theorem parity_normalized_commonShallowBad_zero_card
   rw [parity_normalized_commonShallowBad_zero_eq_shell C phase hparity hKfuel htrunk,
     card_stars_eq]
 
+/-! ### Changing the restriction distribution while retaining the exact shell
+
+The full-shell identity is distribution-independent.  A probability distribution is represented
+below by its finite support together with arbitrary natural weights (rational probabilities follow
+after clearing denominators).  If the support remains on the exact `K`-live shell required by the
+round interface, filtering by the parity bad event changes neither the support nor its total
+weight.  Thus changing only the probabilities on that shell cannot repair the route. -/
+
+/-- Every finitely supported restriction population on the exact `K`-shell is entirely bad,
+regardless of how nonuniform or adaptively chosen that population is. -/
+theorem parity_normalized_shellPopulation_filter_bad_eq_self
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (population : Finset (Restriction n))
+    (hshell : ∀ rho ∈ population, stars rho = K) :
+    population.filter (fun rho =>
+      rho ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel K trunkDepth 0) = population := by
+  apply Finset.filter_eq_self.mpr
+  intro rho hrho
+  exact parity_mem_normalized_commonShallowBad_zero
+    C phase hparity hKfuel htrunk rho (hshell rho hrho)
+
+/-- Weighted distribution form: after clearing denominators, the bad mass equals the total mass
+for every weighting of an exact-shell support. -/
+theorem parity_normalized_shellPopulation_bad_weight_eq_total
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (population : Finset (Restriction n)) (weight : Restriction n → ℕ)
+    (hshell : ∀ rho ∈ population, stars rho = K) :
+    ∑ rho ∈ population.filter (fun rho =>
+        rho ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+          fuel K trunkDepth 0), weight rho =
+      ∑ rho ∈ population, weight rho := by
+  rw [parity_normalized_shellPopulation_filter_bad_eq_self
+    C phase hparity hKfuel htrunk population hshell]
+
+/-- Any support-level escape from the bad event must leave the exact live-dimension shell.
+Consequently a viable distributional repair must change the round's shell invariant itself, not
+merely reweight restrictions inside it. -/
+theorem parity_normalized_distributional_escape_forces_off_shell
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (population : Finset (Restriction n))
+    (hescape : population.filter (fun rho =>
+      rho ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel K trunkDepth 0) ≠ population) :
+    ∃ rho ∈ population, stars rho ≠ K := by
+  by_contra hoff
+  push_neg at hoff
+  exact hescape (parity_normalized_shellPopulation_filter_bad_eq_self
+    C phase hparity hKfuel htrunk population hoff)
+
 /-! ### Survivor conditioning can concentrate on the bad event -/
 
 /-- The smallest natural assignment-covering survivor atlas with one prescribed live-coordinate
@@ -11025,6 +11084,9 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.Layered.eval_eq_of_bottom_canonicalDT_depth_eq_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_mem_normalized_commonShallowBad_zero
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_commonShallowBad_zero_card
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_shellPopulation_filter_bad_eq_self
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_shellPopulation_bad_weight_eq_total
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_normalized_distributional_escape_forces_off_shell
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.card_fixedFreeSetSurvivors
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_covers_assignments
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero

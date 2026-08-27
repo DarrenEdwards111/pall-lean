@@ -28,6 +28,27 @@ the bad event or the restriction distribution itself (rather than only the selec
 must still prove a switching lemma compatible with the layered recurrence.  This remains a
 restricted-circuit obstruction, not a proof of `P ≠ NP`.
 
+## Restriction-distribution audit (2026-08-27)
+
+The next structural repair—replace the uniform shell measure by an arbitrary adaptive/nonuniform
+restriction distribution—is now closed as long as the round retains its exact `K`-live shell
+invariant.  The full-shell parity identity is pointwise, so it survives every reweighting.
+
+The new capstones prove:
+
+- `parity_normalized_shellPopulation_filter_bad_eq_self`: every finite population supported on
+  the exact `K`-shell is unchanged when filtered by the residual-depth-zero bad event;
+- `parity_normalized_shellPopulation_bad_weight_eq_total`: for arbitrary natural weights, bad
+  mass equals total mass (covering rational distributions after clearing denominators);
+- `parity_normalized_distributional_escape_forces_off_shell`: any support-level escape from the
+  bad event necessarily contains a restriction whose live dimension is not `K`.
+
+Therefore neither uniformity, independence, nor the particular `p`-biased probabilities are the
+source of this obstruction.  A distributional continuation must abandon the exact-shell round
+interface and replace it with a variable-live-dimension invariant, then rebuild endpoint counting,
+fuel preservation, and the layered recurrence for that new state space.  Merely reweighting the
+current restrictions gives conditioned bad probability one.
+
 This ledger records only the current machine-checked state of the common-tree route.  It is a
 restricted-circuit counting project, not a proof of `P ≠ NP`.
 
