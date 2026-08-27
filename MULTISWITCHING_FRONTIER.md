@@ -1,5 +1,33 @@
 # Multi-switching frontier (2026-08-21)
 
+## Randomized/balanced selector audit (2026-08-27)
+
+The proposed randomized-coordinate-order repair is now formally closed for the present parity
+calibration.  The obstruction occurs before an order is chosen: for residual depth zero, the
+fixed-live-set survivor atlas is wholly contained in the bad event.  Hence every seed sees the
+same all-bad conditioned atlas.
+
+The new capstones prove:
+
+- `parity_fixedFreeSet_every_seed_all_bad`: for an arbitrary seed type, each seed's conditioned
+  bad slice is exactly the full fixed-live-set atlas;
+- `parity_fixedFreeSet_randomSeed_bad_pairs_eq_product`: for every finite seed set, the bad
+  seed/root pairs are the whole Cartesian product;
+- `parity_fixedFreeSet_randomSeed_bad_pairs_card`: the exact count is
+  `|seeds| * 2^(n-K)`, so conditioned bad probability is one.
+
+This covers arbitrary seed-dependent orders and prefixes because root badness precedes the seeded
+selection.  Uniform randomness cannot help, rational nonuniform distributions reduce to repeated
+seeds, and averaging cannot fix a good seed because no good seed exists.  There is therefore no
+balancing cost to fit into the recurrence: the required saving is zero on this witness.
+
+Together with the exact coherent-fiber lower bound already proved, this blocks both possible uses
+of randomization in the current construction: hiding the conditioning gap by averaging, or using
+a balanced order to shrink the first-round decoder alphabet.  Any viable continuation must alter
+the bad event or the restriction distribution itself (rather than only the selector order), and
+must still prove a switching lemma compatible with the layered recurrence.  This remains a
+restricted-circuit obstruction, not a proof of `P ≠ NP`.
+
 This ledger records only the current machine-checked state of the common-tree route.  It is a
 restricted-circuit counting project, not a proof of `P ≠ NP`.
 

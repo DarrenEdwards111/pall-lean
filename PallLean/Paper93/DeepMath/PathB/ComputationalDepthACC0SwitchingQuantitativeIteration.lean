@@ -7654,6 +7654,79 @@ theorem parity_canonicalSelector_sampler_gap
   exact ⟨hcover, hbad, hcontract,
     widthOneParityCompactFamily_canonicalSelector_concentrates S⟩
 
+/-! ### Randomized coordinate orders cannot repair the parity conditioning gap
+
+The preceding obstruction did not actually depend on the increasing order once badness was
+conditioned on the fixed-live-set atlas.  The whole atlas is already contained in the residual
+depth-zero bad event.  Consequently adding a finite random seed, allowing the coordinate order
+or selected prefix to depend arbitrarily on that seed, cannot lower the conditioned bad mass:
+every seed sees exactly the same all-bad atlas.
+
+This is the relevant quantifier order for an averaging repair.  A randomized construction would
+need some seed with a small conditioned bad slice before fixing the public randomness.  The next
+two theorems show that no such seed exists for the explicit compact parity family. -/
+
+/-- Every random seed retains the complete fixed-live-set atlas inside the parity bad event.
+The selector itself is deliberately absent from the conclusion: membership in the bad event is
+decided at the root and hence precedes any seeded choice of coordinate order. -/
+theorem parity_fixedFreeSet_every_seed_all_bad
+    {Seed : Type} {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K) :
+    ∀ _seed : Seed,
+      (fixedFreeSetSurvivors S).filter (fun rho =>
+        rho ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+          fuel K trunkDepth 0) = fixedFreeSetSurvivors S := by
+  intro seed
+  apply Finset.filter_eq_self.mpr
+  intro rho hrho
+  exact (fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero
+    C phase hparity hKfuel htrunk S hScard) hrho
+
+/-- Exact finite-seed formulation: the bad seed/root pairs are the entire Cartesian product.
+Thus uniform random seeds, nonuniform distributions after clearing denominators, and an averaging
+argument all have conditioned bad probability one on this atlas. -/
+theorem parity_fixedFreeSet_randomSeed_bad_pairs_eq_product
+    {Seed : Type} [DecidableEq Seed]
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K) (seeds : Finset Seed) :
+    (seeds.product (fixedFreeSetSurvivors S)).filter (fun pair =>
+      pair.2 ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel K trunkDepth 0) =
+      seeds.product (fixedFreeSetSurvivors S) := by
+  apply Finset.filter_eq_self.mpr
+  intro pair hpair
+  have hrho : pair.2 ∈ fixedFreeSetSurvivors S :=
+    (Finset.mem_product.mp hpair).2
+  exact (fixedFreeSetSurvivors_subset_parity_normalized_commonShallowBad_zero
+    C phase hparity hKfuel htrunk S hScard) hrho
+
+/-- Cardinality form of the randomized obstruction.  There is no balancing loss to estimate:
+the conditioned bad-pair count is exactly `|seeds| * 2^(n-K)`. -/
+theorem parity_fixedFreeSet_randomSeed_bad_pairs_card
+    {Seed : Type} [DecidableEq Seed]
+    {n fuel K trunkDepth : ℕ} (C : Layered n) (phase : Bool)
+    (hparity : ∀ x : Fin n → Bool,
+      Layered.eval C x = xor (DTree.parity x) phase)
+    (hKfuel : K ≤ fuel) (htrunk : trunkDepth < K)
+    (S : Finset (Fin n)) (hScard : S.card = K) (seeds : Finset Seed) :
+    ((seeds.product (fixedFreeSetSurvivors S)).filter (fun pair =>
+      pair.2 ∈ commonShallowBad (normalizedLayeredBottomFamily C)
+        fuel K trunkDepth 0)).card = seeds.card * 2 ^ (n - K) := by
+  rw [parity_fixedFreeSet_randomSeed_bad_pairs_eq_product
+    C phase hparity hKfuel htrunk S hScard seeds]
+  calc
+    (seeds.product (fixedFreeSetSurvivors S)).card =
+        seeds.card * (fixedFreeSetSurvivors S).card := by
+      simpa only using Finset.card_product seeds (fixedFreeSetSurvivors S)
+    _ = seeds.card * 2 ^ (n - K) := by
+      rw [card_fixedFreeSetSurvivors S, hScard]
+
 /-- Every exact candidate in a compact-family endpoint fiber is obtained by re-freeing a
 `d`-set strictly below every residual live coordinate.  This includes the empty-residual case:
 `independentStrictBelow ∅` is the whole ambient coordinate set.
@@ -10998,6 +11071,9 @@ end PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_fixedFreeSet_endpoint_freeVars
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_canonicalSelector_concentrates
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_canonicalSelector_sampler_gap
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_fixedFreeSet_every_seed_all_bad
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_fixedFreeSet_randomSeed_bad_pairs_eq_product
+#print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.parity_fixedFreeSet_randomSeed_bad_pairs_card
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_subset_ordered
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_orderedChoose
 #print axioms PallLean.Paper93.DeepMath.PathB.ACC0SwitchingQuantitativeIteration.widthOneParityCompactFamily_candidateSets_card_le_choose_min'
