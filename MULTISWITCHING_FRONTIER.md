@@ -13205,3 +13205,20 @@ the recurrence; it cannot be recovered from the current canonical selector.
 Focused Lean elaboration passed with standard logical axioms only and no `sorryAx`.  This closes
 the canonical-selector sampler repair for the present deterministic construction.  It still does
 not prove P versus NP.
+# Semantic-entanglement bridge (2026-08-28)
+
+`PallLean/SemanticEntanglementBridge.lean` now formalizes the
+representation-invariant version of the desired lower-bound route.  Semantic
+entanglement is the minimum cost over **all** representations computing the
+same Boolean function.  Lean proves that a superpolynomial semantic lower
+bound rules out every polynomial-cost realization, and derives an abstract
+`P ≠ NP` theorem from:
+
+1. polynomial-cost realizations for every `P` family;
+2. `SAT ∈ NP`; and
+3. a superpolynomial semantic-entanglement lower bound for `SAT`.
+
+Item 3 is intentionally an explicit theorem premise.  Neither the verifier
+sheet lower bound nor a choice of compiler representation proves it.  This
+closes the logical/formal bridge without claiming the still-open general
+circuit lower bound.

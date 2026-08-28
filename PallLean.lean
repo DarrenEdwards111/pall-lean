@@ -21,6 +21,11 @@ import PallLean.GaugeMonotonicity
 -- (paper Definition 6(i): restrict tableau blocks to fixed constants)
 import PallLean.PiStarConcrete
 
+-- Representation-invariant formulation of the honest remaining lower-bound
+-- bridge.  This minimizes CEW/SPDP-style cost over every representation of the
+-- same Boolean function and keeps the SAT lower bound as an explicit premise.
+import PallLean.SemanticEntanglementBridge
+
 -- Path A: paper-faithful u/v variable split for Cook-Levin compilation
 -- (paper §§6, 29 Definition 7: distinguishing clause-sheet u from tableau v)
 import PallLean.PaperFaithfulCompilation
