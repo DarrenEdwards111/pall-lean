@@ -68,6 +68,25 @@ def HasSuperpolynomialSemanticEntanglement
     (M : Model Input) (f : BoolFamily Input) : Prop :=
   ∀ c : Nat, ∃ n : Nat, (n + 1) ^ c < semanticEntanglement M f n
 
+/-- Every length of `f` has at least one representation in `M`. -/
+def IsTotalFor (M : Model Input) (f : BoolFamily Input) : Prop :=
+  ∀ n : Nat, ∃ r : M.Rep n, M.computes r (f n)
+
+/--
+For a total model, the semantic infimum is an attained natural-number
+minimum.  This excludes the degenerate empty-realization case, where
+`Nat.sInf ∅ = 0` would otherwise make semantic cost misleading.
+-/
+theorem semanticEntanglement_attained
+    (M : Model Input) (f : BoolFamily Input) (hTotal : IsTotalFor M f)
+    (n : Nat) :
+    ∃ r : M.Rep n,
+      M.computes r (f n) ∧ M.cost r = semanticEntanglement M f n := by
+  have hCosts : (realizationCosts M f n).Nonempty := by
+    obtain ⟨r, hr⟩ := hTotal n
+    exact ⟨M.cost r, r, hr, rfl⟩
+  exact Nat.sInf_mem hCosts
+
 /-- Polynomial concrete realizations give a polynomial semantic upper bound. -/
 theorem polynomial_realizations_bound_semanticEntanglement
     (M : Model Input) (f : BoolFamily Input)
@@ -94,6 +113,37 @@ theorem superpolynomial_semanticEntanglement_not_polynomial
   exact (Nat.not_lt_of_ge (hc n)) hn
 
 /--
+Conversely, in a total model, failure of polynomial-cost realizations forces
+the semantic minimum to escape every polynomial.  The proof chooses a
+minimum-cost representation at each length.
+-/
+theorem not_polynomial_implies_superpolynomial_semanticEntanglement
+    (M : Model Input) (f : BoolFamily Input) (hTotal : IsTotalFor M f)
+    (hNoPoly : ¬ HasPolynomialRealizations M f) :
+    HasSuperpolynomialSemanticEntanglement M f := by
+  intro c
+  by_contra hEscape
+  simp only [not_exists, not_lt] at hEscape
+  apply hNoPoly
+  refine ⟨c, ?_⟩
+  intro n
+  obtain ⟨r, hr, hcost⟩ := semanticEntanglement_attained M f hTotal n
+  exact ⟨r, hr, hcost.symm ▸ hEscape n⟩
+
+/--
+Exact frontier theorem: for any total representation model, a
+superpolynomial semantic-entanglement lower bound is *equivalent* to proving
+that the function has no polynomial-cost realizations in that model.
+-/
+theorem superpolynomial_semanticEntanglement_iff_not_polynomial
+    (M : Model Input) (f : BoolFamily Input) (hTotal : IsTotalFor M f) :
+    HasSuperpolynomialSemanticEntanglement M f ↔
+      ¬ HasPolynomialRealizations M f := by
+  constructor
+  · exact superpolynomial_semanticEntanglement_not_polynomial M f
+  · exact not_polynomial_implies_superpolynomial_semanticEntanglement M f hTotal
+
+/--
 Abstract P-versus-NP corollary.  An actual application must prove both named
 premises for a concrete general-computation model.  In particular, `hSAT` is
 the genuine general-circuit lower bound and is not manufactured by this file.
@@ -113,8 +163,11 @@ theorem separation_of_semantic_entanglement
 
 #print axioms semanticEntanglement_le_cost
 #print axioms cost_ge_semanticEntanglement
+#print axioms semanticEntanglement_attained
 #print axioms polynomial_realizations_bound_semanticEntanglement
 #print axioms superpolynomial_semanticEntanglement_not_polynomial
+#print axioms not_polynomial_implies_superpolynomial_semanticEntanglement
+#print axioms superpolynomial_semanticEntanglement_iff_not_polynomial
 #print axioms separation_of_semantic_entanglement
 
 end SemanticEntanglementBridge

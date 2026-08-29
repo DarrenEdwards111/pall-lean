@@ -13222,3 +13222,27 @@ Item 3 is intentionally an explicit theorem premise.  Neither the verifier
 sheet lower bound nor a choice of compiler representation proves it.  This
 closes the logical/formal bridge without claiming the still-open general
 circuit lower bound.
+
+### The semantic lower bound is exactly the model lower bound
+
+The bridge has now been tightened to exclude the empty-representation edge
+case and to characterize the remaining premise precisely.  `IsTotalFor M f`
+states that `f` has at least one representation at every input length.  Under
+that condition, `semanticEntanglement_attained` proves that the natural-valued
+infimum is achieved by a concrete minimum-cost representation.
+
+The converse to the original bridge is therefore provable:
+
+```text
+HasSuperpolynomialSemanticEntanglement M f
+  iff
+not HasPolynomialRealizations M f.
+```
+
+Consequently, once `M` is instantiated by general Boolean circuits (or an
+equivalent universal polynomial-time representation model), proving the
+requested semantic lower bound for SAT is not an easier consequence of the
+existing verifier-polynomial lower bound.  It is exactly the missing general
+circuit lower bound, expressed with a representation-invariant cost.  The
+equivalence is formalized without a custom axiom; it prevents either direction
+from being hidden behind the word “entanglement.”
