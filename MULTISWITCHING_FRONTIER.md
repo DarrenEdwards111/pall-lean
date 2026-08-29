@@ -13275,3 +13275,31 @@ to any SAT-computing endpoint crosses a superpolynomial bottleneck, while also
 proving that all polynomial-time computations are simulated by such paths.
 Removing free singleton sources is necessary, but the source/transition
 simulation and the bottleneck lower bound remain new mathematical obligations.
+
+### Source-constrained minimax bridge
+
+The corrected graph object is now formalized.  `sourcedGraphEntanglement`
+minimizes dynamic path cost only over legal trajectories whose initial state
+belongs to a specified source set and whose endpoint computes the target
+family.  Thus an arbitrary easy endpoint can no longer enter for free as a
+singleton path.
+
+For targets reachable from the permitted source, Lean proves that the
+infimum definition is equivalent to the direct energy-barrier statement:
+
+```text
+for every exponent c,
+there is a length n such that every legal source-to-target path
+has dynamic cost greater than (n+1)^c.
+```
+
+It also proves the exact conditional separation theorem.  If every `P` family
+has polynomial-bottleneck legal paths from the canonical source, `SAT` is in
+`NP`, and SAT has the source-constrained superpolynomial path barrier, then
+`P ≠ NP`.
+
+This is the non-collapsing infinite-graph architecture.  Its two remaining
+mathematical obligations are explicit and separate: prove the universal
+polynomial-time path simulation theorem for the chosen graph, and prove the
+dynamic-SPDP energy barrier for every legal source-to-SAT path.  Neither is
+inserted as an axiom or inferred from hardness of one selected verifier path.
