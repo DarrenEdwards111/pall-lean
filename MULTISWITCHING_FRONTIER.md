@@ -13246,3 +13246,32 @@ existing verifier-polynomial lower bound.  It is exactly the missing general
 circuit lower bound, expressed with a representation-invariant cost.  The
 equivalence is formalized without a custom axiom; it prevents either direction
 from being hidden behind the word “entanglement.”
+
+### Infinite-dimensional dynamic graph: free-source collapse
+
+`PallLean/DynamicGraphEntanglement.lean` now formalizes the proposed dynamic
+SPDP graph/minimax lift.  The graph may have an arbitrary (including infinite)
+state type, and legal finite trajectories have an endpoint and a dynamic path
+cost.  The intended minimax interpretation is that `pathCost` can be the
+maximum SPDP/CEW cost encountered along a trajectory.
+
+The first necessary audit produces an exact theorem.  If every representation
+is admitted as a singleton trajectory, singleton paths cost their endpoint,
+and a path costs at least its endpoint, then
+
+```text
+graphEntanglement G f n = semanticEntanglement G.toModel f n.
+```
+
+Hence superpolynomial free-source graph entanglement is equivalent to the
+already-isolated superpolynomial semantic lower bound.  Merely making the
+state graph infinite-dimensional does not evade the quantifier obstruction:
+an easy representation enters as a free length-zero/singleton path.
+
+This identifies the exact additional structure a nontrivial graph route must
+supply: a fixed or canonical source together with restricted legal edges.  A
+future energy-barrier theorem must show that every legal path from that source
+to any SAT-computing endpoint crosses a superpolynomial bottleneck, while also
+proving that all polynomial-time computations are simulated by such paths.
+Removing free singleton sources is necessary, but the source/transition
+simulation and the bottleneck lower bound remain new mathematical obligations.

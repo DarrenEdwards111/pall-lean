@@ -26,6 +26,10 @@ import PallLean.PiStarConcrete
 -- same Boolean function and keeps the SAT lower bound as an explicit premise.
 import PallLean.SemanticEntanglementBridge
 
+-- Infinite-state dynamic-SPDP graph/minimax formulation and the free-source
+-- singleton-path collapse audit.
+import PallLean.DynamicGraphEntanglement
+
 -- Path A: paper-faithful u/v variable split for Cook-Levin compilation
 -- (paper §§6, 29 Definition 7: distinguishing clause-sheet u from tableau v)
 import PallLean.PaperFaithfulCompilation
