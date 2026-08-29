@@ -13303,3 +13303,29 @@ mathematical obligations are explicit and separate: prove the universal
 polynomial-time path simulation theorem for the chosen graph, and prove the
 dynamic-SPDP energy barrier for every legal source-to-SAT path.  Neither is
 inserted as an axiom or inferred from hardness of one selected verifier path.
+
+### Dynamic extraction interface for the verifier sheet
+
+The source-constrained graph is now connected to the form of the existing
+dynamic-SPDP lower bound through `DynamicExtractionBarrier`.  For every legal
+source-to-SAT trajectory it requires extraction of a hard witness whose cost
+is at most the trajectory bottleneck.  A uniform superpolynomial lower bound
+on these witnesses then proves the path energy barrier and feeds the graph
+separation theorem.
+
+The canonical-verifier specialization makes the audit exact.  Taking one hard
+verifier-sheet cost `hardCost(n)` at each length divides the application into:
+
+1. `hardCost_lower`: the existing superpolynomial dynamic-SPDP lower bound;
+2. `hardCost_le_every_path`: the verifier-sheet cost is bounded by the dynamic
+   cost of **every** legal canonical-source-to-SAT path.
+
+The first item is the part supplied by hardness of the selected verifier
+object.  The second is not currently present in the compiler/SPDP library: the
+available rank/CEW transfer theorems concern constructed compiler outputs and
+selected projections, not arbitrary paths ending at any representation of the
+SAT decision function.  It is precisely the universal extraction/path
+monotonicity theorem required to turn the verifier result into a semantic
+lower bound.  The new Lean capstone proves the separation if this interface is
+instantiated, but does not mislabel the selected-object theorem as the missing
+universal path theorem.

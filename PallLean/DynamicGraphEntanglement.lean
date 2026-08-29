@@ -219,6 +219,73 @@ theorem superpolynomial_sourced_not_polynomial
   obtain ⟨n, hn⟩ := hHard c
   exact (Nat.not_lt_of_ge (hc n)) hn
 
+/-! ## Extraction of a hard dynamic witness from every legal path -/
+
+/--
+The non-circular interface required to transfer a verifier-sheet/dynamic-SPDP
+lower bound to the graph.  Crucially, `extract` is defined for every legal
+trajectory, not just for one chosen compiler encoding.
+-/
+structure DynamicExtractionBarrier
+    (G : GraphModel Input) (source : SourceSet G)
+    (f : BoolFamily Input) where
+  Witness : Nat → Type
+  witnessCost : {n : Nat} → Witness n → Nat
+  extract : {n : Nat} → G.Trajectory n → Witness n
+  witnessCost_le_pathCost : ∀ {n : Nat} (p : G.Trajectory n),
+    source n (G.start p) →
+    G.computes (G.finish p) (f n) →
+    witnessCost (extract p) ≤ G.pathCost p
+  witness_lower : ∀ c : Nat, ∃ n : Nat, ∀ w : Witness n,
+    (n + 1) ^ c < witnessCost w
+
+/--
+Specialization to one canonical hard object at each length (for example the
+verifier sheet).  Its known lower bound handles `hardCost_lower`; the genuinely
+new bridge is `hardCost_le_every_path`, quantified over all legal SAT paths.
+-/
+def canonicalDynamicExtractionBarrier
+    (G : GraphModel Input) (source : SourceSet G)
+    (f : BoolFamily Input) (hardCost : Nat → Nat)
+    (hardCost_le_every_path : ∀ {n : Nat} (p : G.Trajectory n),
+      source n (G.start p) →
+      G.computes (G.finish p) (f n) →
+      hardCost n ≤ G.pathCost p)
+    (hardCost_lower : ∀ c : Nat, ∃ n : Nat,
+      (n + 1) ^ c < hardCost n) :
+    DynamicExtractionBarrier G source f where
+  Witness := fun _ => PUnit
+  witnessCost := fun {n} _ => hardCost n
+  extract := fun _ => PUnit.unit
+  witnessCost_le_pathCost := by
+    intro n p hs hf
+    exact hardCost_le_every_path p hs hf
+  witness_lower := by
+    intro c
+    obtain ⟨n, hn⟩ := hardCost_lower c
+    exact ⟨n, fun _ => hn⟩
+
+/-- Universal hard-witness extraction supplies the sourced path barrier. -/
+theorem pathBarrier_of_dynamicExtraction
+    (G : GraphModel Input) (source : SourceSet G)
+    (f : BoolFamily Input)
+    (E : DynamicExtractionBarrier G source f) :
+    HasSuperpolynomialPathBarrier G source f := by
+  intro c
+  obtain ⟨n, hn⟩ := E.witness_lower c
+  refine ⟨n, ?_⟩
+  intro p hs hf
+  exact (hn (E.extract p)).trans_le (E.witnessCost_le_pathCost p hs hf)
+
+/-- Universal hard-witness extraction supplies sourced graph hardness. -/
+theorem sourced_hardness_of_dynamicExtraction
+    (G : GraphModel Input) (source : SourceSet G)
+    (f : BoolFamily Input) (hReach : SourceReachable G source f)
+    (E : DynamicExtractionBarrier G source f) :
+    HasSuperpolynomialSourcedGraphEntanglement G source f :=
+  (superpolynomial_sourced_iff_pathBarrier G source f hReach).2
+    (pathBarrier_of_dynamicExtraction G source f E)
+
 /--
 Abstract graph separation theorem.  `p_has_paths` is the universal simulation
 theorem for polynomial time; `hSATBarrier` is the source-to-SAT dynamic-SPDP
@@ -240,11 +307,31 @@ theorem separation_of_sourced_graph_barrier
   exact superpolynomial_sourced_not_polynomial G source SAT hSATBarrier
     (p_has_paths SAT hSATP)
 
+/--
+Extraction-form capstone.  This is the exact theorem shape needed to combine
+the dynamic verifier-sheet lower bound with the infinite graph route.
+-/
+theorem separation_of_dynamicExtraction
+    (G : GraphModel Input) (source : SourceSet G)
+    (InP InNP : BoolFamily Input → Prop)
+    (SAT : BoolFamily Input)
+    (p_has_paths : ∀ f, InP f →
+      HasPolynomialSourcedTrajectories G source f)
+    (hSATNP : InNP SAT)
+    (hReach : SourceReachable G source SAT)
+    (E : DynamicExtractionBarrier G source SAT) :
+    InP ≠ InNP :=
+  separation_of_sourced_graph_barrier G source InP InNP SAT p_has_paths
+    hSATNP (sourced_hardness_of_dynamicExtraction G source SAT hReach E)
+
 #print axioms graphEntanglement_eq_semanticEntanglement
 #print axioms superpolynomial_graph_iff_semantic
 #print axioms polynomial_sourced_trajectories_bound_entanglement
 #print axioms superpolynomial_sourced_iff_pathBarrier
 #print axioms superpolynomial_sourced_not_polynomial
+#print axioms pathBarrier_of_dynamicExtraction
+#print axioms sourced_hardness_of_dynamicExtraction
 #print axioms separation_of_sourced_graph_barrier
+#print axioms separation_of_dynamicExtraction
 
 end DynamicGraphEntanglement
