@@ -131,6 +131,37 @@ therefore SAT ∉ C.
 
 The forbidden leap is replacing `C` by all polynomial-time machines without an
 independently proved machine-to-quotient theorem.
+
+## 7. Capstone result: the first restricted version already exists
+
+The repository audit found that the proposed restricted quotient programme was
+already formalized under the **crossing-state** vocabulary:
+
+- `CrossingStateModel.subfunctionCount_le_width` proves that every computation
+  whose left-side influence factors through a finite state quotient has at most
+  that many residual subfunctions.
+- `crossing_width_ge_exponential` gives a genuine exponential lower bound for
+  equality in this restricted model.
+- `crossing_bottleneck_must_blow_up` proves that the naive extension to general
+  efficient computation is false: the polynomial-time storage-access function
+  already forces exponentially many crossing residuals.
+
+These results and `restrictAt_comm` are now assembled in
+`ComputationalDepthQuaternionMomentCapstone.lean`.  The capstone is
+`sorry`-free and has no custom axioms.  It establishes the exact three-part
+frontier:
+
+```text
+semantic noncommutativity      = flat (dead)
+finite crossing quotient       = valid restricted lower-bound method
+small quotient for all of P    = false for this quotient notion
+```
+
+Therefore the next general candidate cannot merely count residual functions
+across a fixed cut.  It must allow efficient random access/re-reading (so it
+compresses storage access) while still charging an explicit NP-complete family.
+Finding and proving such a **multi-access, reuse-aware** invariant remains the
+open mathematical step.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.
