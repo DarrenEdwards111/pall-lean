@@ -224,6 +224,23 @@ polynomial number of visible state bits makes the lower bound polynomial and
 therefore compatible with polynomial time.  The next mathematical target is
 to strengthen the hard family/model so that increasing reusable boundary
 memory cannot absorb the energy lower bound.
+
+### Direct-sum amplification
+
+The first amplification step is also proved.  For `blocks` independent
+equality-CNF components of dimension `m`, allowing a separate pass count for
+every block but a shared `bits`-bit visible-state ceiling, correctness implies
+
+```text
+blocks · m² ≤ bits² · totalCrossingEnergy.
+```
+
+Hence one-bit energy is additive across independent blocks: it is at least
+`blocks · m²`.  The components cannot amortize their independent distinctions
+through a common low-energy total.  This is formalized in
+`ComputationalDepthDirectSumCrossingEnergy.lean` and incorporated into the
+multi-access capstone.  The surviving loophole is specifically reusable
+memory growth, not ordinary direct-sum sharing.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.

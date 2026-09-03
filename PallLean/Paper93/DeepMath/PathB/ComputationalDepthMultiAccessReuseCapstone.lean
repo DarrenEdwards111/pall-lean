@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTranscriptInfoCap
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCumulativeNoveltyStress
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTimeAxisWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBoundedPassCrossingEnergy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDirectSumCrossingEnergy
 
 /-!
 # Multi-access, reuse-aware invariant capstone
@@ -34,6 +35,7 @@ open PallLean.Paper93.DeepMath.PathB.ObserverClassSemantics
 open PallLean.Paper93.DeepMath.PathB.ObserverInvariantBridge
 open PallLean.Paper93.DeepMath.PathB.TimeAxisWall
 open PallLean.Paper93.DeepMath.PathB.BoundedPassCrossingEnergy
+open PallLean.Paper93.DeepMath.PathB.DirectSumCrossingEnergy
 
 /-- The machine-checked status of the reuse-aware candidate family. -/
 structure MultiAccessReuseStatus : Prop where
@@ -63,6 +65,11 @@ structure MultiAccessReuseStatus : Prop where
         SATDepthMachine.Satisfiable
           (PvsNPSATBoundaryFoolingWidthLB.equalityCNF a b)) →
       n ^ 2 ≤ observerCrossingEnergy O
+  /-- Independent equality-CNF blocks cannot amortize away their quadratic
+  crossing-energy costs in the one-bit bounded-pass model. -/
+  direct_sum_energy_lower_bound :
+    ∀ {blocks m : ℕ} (O : DirectSumObserver blocks m 1),
+      Correct O → blocks * m ^ 2 ≤ totalCrossingEnergy O
 
 /-- **Multi-access capstone.**  All soundness/cap statements are discharged;
 the only separation-producing premise left is `InvHard` for crossing energy. -/
@@ -85,6 +92,9 @@ theorem multiAccessReuseStatus : MultiAccessReuseStatus where
   bounded_pass_energy_lower_bound := by
     intro n passes O hSAT
     exact equalityCNF_oneBit_crossingEnergy_lower_bound O hSAT
+  direct_sum_energy_lower_bound := by
+    intro blocks m O hcorrect
+    exact equalityCNF_directSum_oneBit_lower_bound O hcorrect
 
 end PallLean.Paper93.DeepMath.PathB.MultiAccessReuseCapstone
 
