@@ -241,6 +241,36 @@ through a common low-energy total.  This is formalized in
 `ComputationalDepthDirectSumCrossingEnergy.lean` and incorporated into the
 multi-access capstone.  The surviving loophole is specifically reusable
 memory growth, not ordinary direct-sum sharing.
+
+### Memory-robust combined cost
+
+The reusable-memory escape is now charged explicitly on the restricted rung.
+Define
+
+```text
+reuseCost = passes² + bits².
+```
+
+From correctness (`n ≤ passes · bits`) and
+`2 · passes · bits ≤ passes² + bits²`, every equality-CNF observer satisfies
+
+```text
+2n ≤ reuseCost.
+```
+
+Across `blocks` independent dimension-`m` components, even with different
+pass counts, this adds to
+
+```text
+blocks · 2m ≤ totalReuseCost.
+```
+
+Thus a bounded-pass observer cannot reduce crossing energy by increasing
+reusable visible memory without paying the memory term.  This is proved in
+`ComputationalDepthMemoryRobustCrossingCost.lean` and exported by the capstone.
+The bound is linear, so the remaining problem is no longer calibration but
+amplification beyond every polynomial while retaining a valid universal
+P-side upper bound; that is again the separation-strength frontier.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.

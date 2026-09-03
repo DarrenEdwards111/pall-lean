@@ -5,6 +5,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthCumulativeNoveltyStress
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTimeAxisWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBoundedPassCrossingEnergy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDirectSumCrossingEnergy
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMemoryRobustCrossingCost
 
 /-!
 # Multi-access, reuse-aware invariant capstone
@@ -36,6 +37,7 @@ open PallLean.Paper93.DeepMath.PathB.ObserverInvariantBridge
 open PallLean.Paper93.DeepMath.PathB.TimeAxisWall
 open PallLean.Paper93.DeepMath.PathB.BoundedPassCrossingEnergy
 open PallLean.Paper93.DeepMath.PathB.DirectSumCrossingEnergy
+open PallLean.Paper93.DeepMath.PathB.MemoryRobustCrossingCost
 
 /-- The machine-checked status of the reuse-aware candidate family. -/
 structure MultiAccessReuseStatus : Prop where
@@ -70,6 +72,11 @@ structure MultiAccessReuseStatus : Prop where
   direct_sum_energy_lower_bound :
     ∀ {blocks m : ℕ} (O : DirectSumObserver blocks m 1),
       Correct O → blocks * m ^ 2 ≤ totalCrossingEnergy O
+  /-- Charging both crossing energy and reusable boundary memory closes the
+  memory-absorption escape on the bounded-pass direct-sum rung. -/
+  memory_robust_direct_sum_lower_bound :
+    ∀ {blocks m bits : ℕ} (O : DirectSumObserver blocks m bits),
+      Correct O → blocks * (2 * m) ≤ totalReuseCost O
 
 /-- **Multi-access capstone.**  All soundness/cap statements are discharged;
 the only separation-producing premise left is `InvHard` for crossing energy. -/
@@ -95,6 +102,9 @@ theorem multiAccessReuseStatus : MultiAccessReuseStatus where
   direct_sum_energy_lower_bound := by
     intro blocks m O hcorrect
     exact equalityCNF_directSum_oneBit_lower_bound O hcorrect
+  memory_robust_direct_sum_lower_bound := by
+    intro blocks m bits O hcorrect
+    exact equalityCNF_directSum_reuseCost_lower_bound O hcorrect
 
 end PallLean.Paper93.DeepMath.PathB.MultiAccessReuseCapstone
 
