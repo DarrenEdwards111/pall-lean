@@ -162,6 +162,45 @@ across a fixed cut.  It must allow efficient random access/re-reading (so it
 compresses storage access) while still charging an explicit NP-complete family.
 Finding and proving such a **multi-access, reuse-aware** invariant remains the
 open mathematical step.
+
+## 8. Multi-access/reuse-aware audit
+
+That next candidate also already has a concrete representative in the archive:
+**crossing energy**,
+
+```text
+E(M,x,T) = Σ_boundary crossingCount(boundary)^2.
+```
+
+Unlike a one-cut quotient, it permits arbitrary re-reading and charges the
+cumulative traffic.  The P-side requirement is proved universally:
+`crossingEnergy ≤ space · time²`, so every polynomial-time SAT decider has
+polynomial crossing energy (`crossingEnergyInv_invSound`).
+
+Two simpler multi-access information candidates are also formally capped:
+
+- static crossing-transcript information is at most the `n` input bits;
+- distinct configurations on one run are at most `T+1`.
+
+The remaining statement is exactly `InvHard SAT crossingEnergyInv`: every SAT
+decider has super-polynomial crossing energy.  The proved
+`crossingEnergy_route` shows that this implies the desired non-collapse, while
+`space_machinery_cannot_supply_bridge` proves that the existing space/debt
+machinery cannot generate the required time lower bound.
+
+These facts are assembled in
+`ComputationalDepthMultiAccessReuseCapstone.lean`.  The new endpoint is:
+
+```text
+P-side multi-access soundness     PROVED
+static/transcript alternatives    CAPPED
+space-to-time derivation           IMPOSSIBLE by current machinery
+SAT crossing-energy hardness       OPEN, separation-strength
+```
+
+Thus reuse-awareness repairs the storage-access counterexample but does not
+yet provide leverage: its unproved hardness half is a genuine super-polynomial
+time lower bound for SAT.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.
