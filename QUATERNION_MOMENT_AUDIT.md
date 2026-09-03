@@ -201,6 +201,29 @@ SAT crossing-energy hardness       OPEN, separation-strength
 Thus reuse-awareness repairs the storage-access counterexample but does not
 yet provide leverage: its unproved hardness half is a genuine super-polynomial
 time lower bound for SAT.
+
+## 9. First restricted crossing-energy lower bound
+
+The bounded-pass programme now reaches crossing energy itself.  For a
+`passes`-crossing contextual observer with at most `bits` visible bits of
+boundary state, correctness on the explicit `equalityCNF` SAT family implies
+
+```text
+n² ≤ bits² · crossingEnergy,
+```
+
+where the one-cut quadratic energy is `passes²`.  Consequently a one-bit
+observer must pay energy at least `n²`, and no one-bit observer below that
+energy can decide the whole family.  This is machine-checked in
+`ComputationalDepthBoundedPassCrossingEnergy.lean` and exported by the
+multi-access capstone.
+
+The theorem is an unconditional time-space-energy tradeoff for bounded-pass
+observers.  It does not extend automatically to unrestricted machines: a
+polynomial number of visible state bits makes the lower bound polynomial and
+therefore compatible with polynomial time.  The next mathematical target is
+to strengthen the hard family/model so that increasing reusable boundary
+memory cannot absorb the energy lower bound.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.
