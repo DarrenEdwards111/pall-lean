@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.ComputationalDepthTimeAxisWall
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthBoundedPassCrossingEnergy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthDirectSumCrossingEnergy
 import PallLean.Paper93.DeepMath.PathB.ComputationalDepthMemoryRobustCrossingCost
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthAmplificationCalibrationBarrier
 
 /-!
 # Multi-access, reuse-aware invariant capstone
@@ -38,6 +39,7 @@ open PallLean.Paper93.DeepMath.PathB.TimeAxisWall
 open PallLean.Paper93.DeepMath.PathB.BoundedPassCrossingEnergy
 open PallLean.Paper93.DeepMath.PathB.DirectSumCrossingEnergy
 open PallLean.Paper93.DeepMath.PathB.MemoryRobustCrossingCost
+open PallLean.Paper93.DeepMath.PathB.AmplificationCalibrationBarrier
 
 /-- The machine-checked status of the reuse-aware candidate family. -/
 structure MultiAccessReuseStatus : Prop where
@@ -77,6 +79,12 @@ structure MultiAccessReuseStatus : Prop where
   memory_robust_direct_sum_lower_bound :
     ∀ {blocks m bits : ℕ} (O : DirectSumObserver blocks m bits),
       Correct O → blocks * (2 * m) ≤ totalReuseCost O
+  /-- Generic numerical amplification cannot make the linear floor
+  non-polynomial without breaking universal P-side calibration. -/
+  numerical_amplification_barrier :
+    ∀ (A : ℕ → ℕ → ℕ), PolynomiallyCalibrated A →
+      PvsNPSeparatingInvariant.PolyBounded
+        (fun n => A n (linearFloor n))
 
 /-- **Multi-access capstone.**  All soundness/cap statements are discharged;
 the only separation-producing premise left is `InvHard` for crossing energy. -/
@@ -105,6 +113,9 @@ theorem multiAccessReuseStatus : MultiAccessReuseStatus where
   memory_robust_direct_sum_lower_bound := by
     intro blocks m bits O hcorrect
     exact equalityCNF_directSum_reuseCost_lower_bound O hcorrect
+  numerical_amplification_barrier := by
+    intro A hA
+    exact calibrated_cannot_make_linearFloor_superpoly A hA
 
 end PallLean.Paper93.DeepMath.PathB.MultiAccessReuseCapstone
 

@@ -271,6 +271,29 @@ reusable visible memory without paying the memory term.  This is proved in
 The bound is linear, so the remaining problem is no longer calibration but
 amplification beyond every polynomial while retaining a valid universal
 P-side upper bound; that is again the separation-strength frontier.
+
+### Generic amplification is ruled out
+
+The obvious numerical amplification route is now formally closed.  Call an
+amplifier `A(n,cost)` polynomially calibrated when it maps every polynomially
+bounded cost profile to another polynomially bounded profile.  Since the
+proved floor `linearFloor(n) = 2n` is polynomially bounded, every calibrated
+amplifier satisfies
+
+```text
+A(n, 2n) is polynomially bounded.
+```
+
+Conversely, if `A(n,2n)` is non-polynomial, then `A` fails P-side calibration,
+with `2n` itself as the explicit counterexample.  This is proved in
+`ComputationalDepthAmplificationCalibrationBarrier.lean` and included in the
+multi-access capstone.
+
+Therefore exponentiating, iterating, or otherwise numerically rescaling the
+restricted lower bound cannot produce the missing separation.  Any genuine
+amplification must exploit new SAT-family/algorithm interaction that is absent
+on easy polynomial profiles; it cannot be a function of the resource value
+alone.
 ## Sources used for the barrier check
 
 - S. Aaronson and A. Wigderson, *Algebrization: A New Barrier in Complexity Theory*, ECCC TR08-005.
