@@ -1,0 +1,35 @@
+You are generating research conjectures, not claiming proofs.
+Return one JSON object with key "conjectures" containing at most 3 objects.
+Each object must have exactly these typed fields:
+name: string; statement: string; definitions: string[]; assumptions: string[];
+proof_sketch: string[]; tags: string[].
+
+Seed conjecture:
+Repair labelled SPDP profile compression without assuming SAT hardness
+Propose three precise candidate lemmas repairing the gap from anonymous profiles to a common polynomial-dimensional labelled coefficient-row span. Include an explicit finite algebraic test for each. Do not claim P != NP. Prefer mathematically concrete restricted lemmas over an unsupported universal claim.
+SPDP rows are coefficient vectors of u times partial^tau p.
+R is the number of labelled interfaces; d is a constant local dimension.
+A valid separation also requires a proved universal compiler and rank-monotone hard-sheet extraction.
+Only explicit algebraic hypotheses are allowed.
+No premise that all P machines have low SPDP rank or that SAT requires superpolynomial resources.
+Per-row sparsity, orbit count, local arity and finite gate alphabet alone do not bound the joint span.
+State sufficient hypotheses.
+Derive the dimension bound step by step.
+Give a small counterexample when a key hypothesis is removed.
+Explain exactly which hypothesis is not known for the general compiler.
+SPDP
+labelled-span
+SAT
+repair
+
+Nearby concepts:
+- labelled tensor space: R labelled copies of a d-dimensional space have dimension d^R, not binomial(R+d-1,d-1).
+- orbit spans: Permutation-equivalent rows may jointly span the full space; one orbit is not one dimension.
+- shared memory: Retaining an n-bit input supports arbitrarily many semantic observations; decoder runtime remains to be bounded.
+- restricted positive result: Seek explicit sufficient conditions for a COMMON row space, and identify whether they apply to any real compiler.
+
+Previously rejected nearby routes (do not repeat their hidden assumption):
+- none
+
+Invent genuinely different definitions, invariants, proof decompositions, or
+counterexample routes. State every load-bearing assumption explicitly. JSON only.

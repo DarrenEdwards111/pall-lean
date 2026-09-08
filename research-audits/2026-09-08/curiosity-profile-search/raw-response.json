@@ -1,0 +1,28 @@
+{
+"conjectures": [
+{
+"name": "SPDP Repair Lemma 1",
+"statement": "There exists a polynomial function f: R -> d such that for any labelled SPDP profile P, if the row span of P is not full dimensional, then there exists an f(P) which can repair this gap by adding at most (f(P))^2 new rows.",
+"definitions": ["SPDP", "labelled-span"],
+"assumptions": ["finite algebraic hypotheses", "no assumption on SAT hardness", "universal compiler existence", "rank-monotone hard-sheet extraction"],
+"proof_sketch": ["Construct a finite set of polynomial functions that can repair the span gap for each SPDP profile.", "Show that for any profile, f(P) ≤ (dim(R))^2, where dim(R) is the number of labelled interfaces.", "Use algebraic invariants to prove that the added rows indeed repair the span gap without requiring SAT hardness."],
+"tags": ["SPDP", "labelled-span", "SAT", "repair"]
+},
+{
+"name": "SPDP Repair Lemma 2",
+"statement": "For any given SPDP profile P with row span deficiency, there exists a finite set of polynomial functions S such that adding one function from S to each deficient row in P results in an SPDP profile with full-dimensional row span.",
+"definitions": ["SPDP", "row-span-deficiency"],
+"assumptions": ["finite algebraic hypotheses", "no assumption on SAT hardness", "universal compiler existence", "rank-monotone hard-sheet extraction"],
+"proof_sketch": ["Construct a finite set of polynomial functions that can repair the row span deficiency for each deficient SPDP profile.", "Show that applying any function from S to a deficient row increases its dimension without requiring SAT hardness or exceeding polynomial bounds.", "Prove through algebraic means that this process results in a full-dimensional row span."],
+"tags": ["SPDP", "labelled-span", "SAT", "repair"]
+},
+{
+"name": "SPDP Repair Lemma 3",
+"statement": "For any given SPDP profile P with an orbit span deficiency, there exists a finite set of polynomial functions T such that applying each function from T to every row in P results in an SPDP profile with no orbit span deficiencies.",
+"definitions": ["SPDP", "orbit-span-deficiency"],
+"assumptions": ["finite algebraic hypotheses", "no assumption on SAT hardness", "universal compiler existence", "rank-monotone hard-sheet extraction"],
+"proof_sketch": ["Construct a finite set of polynomial functions that can repair the orbit span deficiency for each deficient SPDP profile.", "Show that applying any function from T to a row decreases its orbit size without requiring SAT hardness or exceeding polynomial bounds.", "Prove through algebraic means that this process results in an SPDP profile with no orbit span deficiencies."],
+"tags": ["SPDP", "labelled-span", "SAT", "repair"]
+}
+]
+}

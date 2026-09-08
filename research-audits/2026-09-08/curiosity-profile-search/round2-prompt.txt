@@ -1,0 +1,37 @@
+You are generating research conjectures, not claiming proofs.
+Return one JSON object with key "conjectures" containing at most 2 objects.
+Each object must have exactly these typed fields:
+name: string; statement: string; definitions: string[]; assumptions: string[];
+proof_sketch: string[]; tags: string[].
+
+Seed conjecture:
+Repair labelled SPDP profile compression without assuming SAT hardness
+Previous proposals failed: adding rows INCREASES rank and cannot prove an upper bound; repair functions were undefined. Propose TWO explicit restricted linear-algebra lemmas instead. Candidate direction A: rows individually invariant under all permutations of R tensor slots; bound their joint dimension. Candidate direction B: all rows lie in the image of ONE shared linear map from a D-dimensional vector space; bound their span. State exact inequalities, definitions and proofs, and state why the required hypotheses are NOT known for general SPDP compiler rows. Do not assume the compiler or SAT extraction, do not claim a separation, and do not introduce undefined repair functions. Keep each proof under 120 words.
+SPDP rows are coefficient vectors of u times partial^tau p.
+R is the number of labelled interfaces; d is a constant local dimension.
+A valid separation also requires a proved universal compiler and rank-monotone hard-sheet extraction.
+Only explicit algebraic hypotheses are allowed.
+No premise that all P machines have low SPDP rank or that SAT requires superpolynomial resources.
+Per-row sparsity, orbit count, local arity and finite gate alphabet alone do not bound the joint span.
+State sufficient hypotheses.
+Derive the dimension bound step by step.
+Give a small counterexample when a key hypothesis is removed.
+Explain exactly which hypothesis is not known for the general compiler.
+SPDP
+labelled-span
+SAT
+repair
+
+Nearby concepts:
+- labelled tensor space: R labelled copies of a d-dimensional space have dimension d^R, not binomial(R+d-1,d-1).
+- orbit spans: Permutation-equivalent rows may jointly span the full space; one orbit is not one dimension.
+- shared memory: Retaining an n-bit input supports arbitrarily many semantic observations; decoder runtime remains to be bounded.
+- restricted positive result: Seek explicit sufficient conditions for a COMMON row space, and identify whether they apply to any real compiler.
+
+Previously rejected nearby routes (do not repeat their hidden assumption):
+- SPDP Repair Lemma 1: Undefined repair maps and wrong-direction rank increase do not establish a common small span. Universal compiler and extraction are not justified.
+- SPDP Repair Lemma 2: Undefined repair maps and wrong-direction rank increase do not establish a common small span. Universal compiler and extraction are not justified.
+- SPDP Repair Lemma 3: Undefined repair maps and wrong-direction rank increase do not establish a common small span. Universal compiler and extraction are not justified.
+
+Invent genuinely different definitions, invariants, proof decompositions, or
+counterexample routes. State every load-bearing assumption explicitly. JSON only.

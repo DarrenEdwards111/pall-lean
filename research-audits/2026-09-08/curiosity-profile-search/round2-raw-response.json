@@ -1,0 +1,24 @@
+{
+"conjectures": [
+{
+"name": "SPDP Repair Conjecture A",
+"statement": "The joint span of SPDP rows is bounded by the dimension of their individual invariant subspaces under permutation of R tensor slots.",
+"definitions": ["SPDP row", "R labelled interfaces", "d constant local dimension"],
+"assumptions": ["All SPDP compiler rows are coefficient vectors of u times partial^tau p.", "Permutation invariance of individual rows"],
+"proof_sketch": [
+"Show that each SPDP row is permutation invariant.",
+"Establish that the joint span of such rows cannot exceed the dimension of their individual invariant subspaces under permutations.",
+"Demonstrate the inequality holds without assuming a universal SPDP compiler or rank-monotone hard-sheet extraction."]
+},
+{
+"name": "SPDP Repair Conjecture B",
+"statement": "The joint span of SPDP rows is bounded by the dimension of the image space of a shared linear map from a D-dimensional vector space.",
+"definitions": ["SPDP row", "R labelled interfaces", "D-dimensional vector space"],
+"assumptions": ["All SPDP compiler rows are coefficient vectors of u times partial^tau p.", "Linear dependence among all rows"],
+"proof_sketch": [
+"Prove that the rows lie in the image space of a shared linear map.",
+"Show that this assumption implies a bound on the joint span without relying on SAT hardness or assuming repair functions.",
+"Demonstrate the hypothesis holds with the necessary but not sufficient conditions for SPDP compiler."]
+}
+]
+}

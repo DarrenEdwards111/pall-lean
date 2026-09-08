@@ -1,0 +1,58 @@
+[
+  {
+    "R": 2,
+    "k": 1,
+    "constructed_rows": 2,
+    "columns": 4,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 3,
+    "k": 1,
+    "constructed_rows": 3,
+    "columns": 8,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 4,
+    "k": 2,
+    "constructed_rows": 6,
+    "columns": 16,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 5,
+    "k": 2,
+    "constructed_rows": 10,
+    "columns": 32,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 6,
+    "k": 3,
+    "constructed_rows": 20,
+    "columns": 64,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 7,
+    "k": 3,
+    "constructed_rows": 35,
+    "columns": 128,
+    "identity_minor_verified": true,
+    "histograms": 1
+  },
+  {
+    "R": 8,
+    "k": 4,
+    "constructed_rows": 70,
+    "columns": 256,
+    "identity_minor_verified": true,
+    "histograms": 1
+  }
+]

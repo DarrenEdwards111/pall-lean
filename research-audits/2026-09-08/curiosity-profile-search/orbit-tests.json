@@ -1,0 +1,137 @@
+[
+  {
+    "interfaces": 2,
+    "weight": 1,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 2,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 4,
+    "symmetric_power_dimension": 3
+  },
+  {
+    "interfaces": 3,
+    "weight": 1,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 3,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 8,
+    "symmetric_power_dimension": 4
+  },
+  {
+    "interfaces": 4,
+    "weight": 2,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 6,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 16,
+    "symmetric_power_dimension": 5
+  },
+  {
+    "interfaces": 5,
+    "weight": 2,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 10,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 32,
+    "symmetric_power_dimension": 6
+  },
+  {
+    "interfaces": 6,
+    "weight": 3,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 20,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 64,
+    "symmetric_power_dimension": 7
+  },
+  {
+    "interfaces": 7,
+    "weight": 3,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 35,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 128,
+    "symmetric_power_dimension": 8
+  },
+  {
+    "interfaces": 8,
+    "weight": 4,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 70,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 256,
+    "symmetric_power_dimension": 9
+  },
+  {
+    "interfaces": 9,
+    "weight": 4,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 126,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 512,
+    "symmetric_power_dimension": 10
+  },
+  {
+    "interfaces": 10,
+    "weight": 5,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 252,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 1024,
+    "symmetric_power_dimension": 11
+  },
+  {
+    "interfaces": 11,
+    "weight": 5,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 462,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 2048,
+    "symmetric_power_dimension": 12
+  },
+  {
+    "interfaces": 12,
+    "weight": 6,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 924,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 4096,
+    "symmetric_power_dimension": 13
+  },
+  {
+    "interfaces": 13,
+    "weight": 6,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 1716,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 8192,
+    "symmetric_power_dimension": 14
+  },
+  {
+    "interfaces": 14,
+    "weight": 7,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 3432,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 16384,
+    "symmetric_power_dimension": 15
+  },
+  {
+    "interfaces": 15,
+    "weight": 7,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 6435,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 32768,
+    "symmetric_power_dimension": 16
+  },
+  {
+    "interfaces": 16,
+    "weight": 8,
+    "anonymous_profiles": 1,
+    "labelled_orbit_span_rank": 12870,
+    "symmetrized_orbit_span_rank": 1,
+    "full_tensor_dimension": 65536,
+    "symmetric_power_dimension": 17
+  }
+]
