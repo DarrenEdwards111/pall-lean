@@ -6,6 +6,7 @@ separation attempts. **No P ≠ NP proof is claimed.**
 - [Dynamic kinetic-rank experiment](dynamic-lagrangian/REPORT.md): configuration-dependent matrix rank, with proved space/time bounds.
 - [Full-action extraction](dynamic-lagrangian/FULL-ACTION-STATUS.md): exact coefficient identity, not a machine-derived gauge.
 - [Holographic reconstruction audit](dynamic-lagrangian/HolographicBoundaryBulkAudit.md): boundary/bulk semantics and the remaining necessity gap.
+- [Separate P/NP observer audit](dynamic-lagrangian/SeparateObserverBoundaryAudit.md): independent boundaries are already present; the execution-derived cost gap remains unproved.
 - [Continuation necessity](dynamic-lagrangian/ReconstructionNecessity.lean): distinguishability and conditional runtime capacity.
 - [SAT specialization](dynamic-lagrangian/SATReconstructionNecessity.lean): equality-CNF one-way boundary needs n bits; this bound is attained. No unrestricted SAT lower bound is claimed.
 - [Curiosity search](curiosity-profile-search/REPORT.md): five generated proposals and mathematical review.
