@@ -4,6 +4,10 @@ These artifacts document checked restricted/conditional results and unsuccessful
 separation attempts. **No P ≠ NP proof is claimed.**
 
 - [Dynamic kinetic-rank experiment](dynamic-lagrangian/REPORT.md): configuration-dependent matrix rank, with proved space/time bounds.
+- [Full-action extraction](dynamic-lagrangian/FULL-ACTION-STATUS.md): exact coefficient identity, not a machine-derived gauge.
+- [Holographic reconstruction audit](dynamic-lagrangian/HolographicBoundaryBulkAudit.md): boundary/bulk semantics and the remaining necessity gap.
+- [Continuation necessity](dynamic-lagrangian/ReconstructionNecessity.lean): distinguishability and conditional runtime capacity.
+- [SAT specialization](dynamic-lagrangian/SATReconstructionNecessity.lean): equality-CNF one-way boundary needs n bits; this bound is attained. No unrestricted SAT lower bound is claimed.
 - [Curiosity search](curiosity-profile-search/REPORT.md): five generated proposals and mathematical review.
 - [Concrete easy-machine refutation](curiosity-profile-search/EASY-MACHINE-FINDING.md): the old unprojected profile target fails even for an accept-all machine.
 - [Paper audit](p-vs-np1-paper-audit-2026-09-08.md): identified gaps in the supplied manuscript.
