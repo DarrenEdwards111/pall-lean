@@ -1,0 +1,6 @@
+{
+  "cases": 288,
+  "passed": true,
+  "construction": "compute, XOR copy, uncompute; each NAND-target XOR is self-inverse",
+  "scope": "finite sanity check, not a SAT runtime lower bound"
+}

@@ -1,0 +1,30 @@
+{
+  "results": [
+    {
+      "variables": 0,
+      "truth_tables": 2,
+      "max_oracle_calls": 1
+    },
+    {
+      "variables": 1,
+      "truth_tables": 4,
+      "max_oracle_calls": 2
+    },
+    {
+      "variables": 2,
+      "truth_tables": 16,
+      "max_oracle_calls": 3
+    },
+    {
+      "variables": 3,
+      "truth_tables": 256,
+      "max_oracle_calls": 4
+    },
+    {
+      "variables": 4,
+      "truth_tables": 65536,
+      "max_oracle_calls": 5
+    }
+  ],
+  "scope": "exhaustive abstract predicate checks; oracle evaluation cost not counted as constant runtime"
+}

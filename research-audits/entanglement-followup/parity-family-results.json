@@ -1,0 +1,18 @@
+[
+  {
+    "graph": "K4",
+    "vertices": 4,
+    "edges": 6,
+    "clauses": 16,
+    "cases": 1024,
+    "passed": true
+  },
+  {
+    "graph": "K33",
+    "vertices": 6,
+    "edges": 9,
+    "clauses": 24,
+    "cases": 32768,
+    "passed": true
+  }
+]

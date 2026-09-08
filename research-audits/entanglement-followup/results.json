@@ -1,0 +1,101 @@
+{
+  "method": "exhaustive CNF evaluation; exact identity-matrix spectrum argument",
+  "results": [
+    {
+      "n": 1,
+      "variables": 2,
+      "clauses": 2,
+      "assignments_checked": 4,
+      "satisfying_assignments": 2,
+      "schmidt_rank": 2,
+      "entropy_bits": 1,
+      "postselection_probability": "1/2",
+      "known_preparation_H_gates": 1,
+      "known_preparation_CNOT_gates": 1
+    },
+    {
+      "n": 2,
+      "variables": 4,
+      "clauses": 4,
+      "assignments_checked": 16,
+      "satisfying_assignments": 4,
+      "schmidt_rank": 4,
+      "entropy_bits": 2,
+      "postselection_probability": "1/4",
+      "known_preparation_H_gates": 2,
+      "known_preparation_CNOT_gates": 2
+    },
+    {
+      "n": 3,
+      "variables": 6,
+      "clauses": 6,
+      "assignments_checked": 64,
+      "satisfying_assignments": 8,
+      "schmidt_rank": 8,
+      "entropy_bits": 3,
+      "postselection_probability": "1/8",
+      "known_preparation_H_gates": 3,
+      "known_preparation_CNOT_gates": 3
+    },
+    {
+      "n": 4,
+      "variables": 8,
+      "clauses": 8,
+      "assignments_checked": 256,
+      "satisfying_assignments": 16,
+      "schmidt_rank": 16,
+      "entropy_bits": 4,
+      "postselection_probability": "1/16",
+      "known_preparation_H_gates": 4,
+      "known_preparation_CNOT_gates": 4
+    },
+    {
+      "n": 5,
+      "variables": 10,
+      "clauses": 10,
+      "assignments_checked": 1024,
+      "satisfying_assignments": 32,
+      "schmidt_rank": 32,
+      "entropy_bits": 5,
+      "postselection_probability": "1/32",
+      "known_preparation_H_gates": 5,
+      "known_preparation_CNOT_gates": 5
+    },
+    {
+      "n": 6,
+      "variables": 12,
+      "clauses": 12,
+      "assignments_checked": 4096,
+      "satisfying_assignments": 64,
+      "schmidt_rank": 64,
+      "entropy_bits": 6,
+      "postselection_probability": "1/64",
+      "known_preparation_H_gates": 6,
+      "known_preparation_CNOT_gates": 6
+    },
+    {
+      "n": 7,
+      "variables": 14,
+      "clauses": 14,
+      "assignments_checked": 16384,
+      "satisfying_assignments": 128,
+      "schmidt_rank": 128,
+      "entropy_bits": 7,
+      "postselection_probability": "1/128",
+      "known_preparation_H_gates": 7,
+      "known_preparation_CNOT_gates": 7
+    },
+    {
+      "n": 8,
+      "variables": 16,
+      "clauses": 16,
+      "assignments_checked": 65536,
+      "satisfying_assignments": 256,
+      "schmidt_rank": 256,
+      "entropy_bits": 8,
+      "postselection_probability": "1/256",
+      "known_preparation_H_gates": 8,
+      "known_preparation_CNOT_gates": 8
+    }
+  ]
+}
