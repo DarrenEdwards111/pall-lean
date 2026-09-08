@@ -1,0 +1,38 @@
+[
+  {
+    "n": 2,
+    "extension_clauses": 7,
+    "boundary_implicates": 2,
+    "passed": true
+  },
+  {
+    "n": 3,
+    "extension_clauses": 11,
+    "boundary_implicates": 4,
+    "passed": true
+  },
+  {
+    "n": 4,
+    "extension_clauses": 15,
+    "boundary_implicates": 8,
+    "passed": true
+  },
+  {
+    "n": 5,
+    "extension_clauses": 19,
+    "boundary_implicates": 16,
+    "passed": true
+  },
+  {
+    "n": 6,
+    "extension_clauses": 23,
+    "boundary_implicates": 32,
+    "passed": true
+  },
+  {
+    "n": 7,
+    "extension_clauses": 27,
+    "boundary_implicates": 64,
+    "passed": true
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "formulas": 4096,
+  "pointwise_elimination_checks": 49152,
+  "full_decision_checks": 4096,
+  "passed": true
+}
