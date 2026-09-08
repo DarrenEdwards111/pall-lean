@@ -1,0 +1,68 @@
+[
+  {
+    "qubits": 2,
+    "unordered_cuts": 1,
+    "cuts_entangled_by_one_CNOT": 1,
+    "sum_log_rank_after": 1
+  },
+  {
+    "qubits": 3,
+    "unordered_cuts": 3,
+    "cuts_entangled_by_one_CNOT": 2,
+    "sum_log_rank_after": 2
+  },
+  {
+    "qubits": 4,
+    "unordered_cuts": 7,
+    "cuts_entangled_by_one_CNOT": 4,
+    "sum_log_rank_after": 4
+  },
+  {
+    "qubits": 5,
+    "unordered_cuts": 15,
+    "cuts_entangled_by_one_CNOT": 8,
+    "sum_log_rank_after": 8
+  },
+  {
+    "qubits": 6,
+    "unordered_cuts": 31,
+    "cuts_entangled_by_one_CNOT": 16,
+    "sum_log_rank_after": 16
+  },
+  {
+    "qubits": 7,
+    "unordered_cuts": 63,
+    "cuts_entangled_by_one_CNOT": 32,
+    "sum_log_rank_after": 32
+  },
+  {
+    "qubits": 8,
+    "unordered_cuts": 127,
+    "cuts_entangled_by_one_CNOT": 64,
+    "sum_log_rank_after": 64
+  },
+  {
+    "qubits": 9,
+    "unordered_cuts": 255,
+    "cuts_entangled_by_one_CNOT": 128,
+    "sum_log_rank_after": 128
+  },
+  {
+    "qubits": 10,
+    "unordered_cuts": 511,
+    "cuts_entangled_by_one_CNOT": 256,
+    "sum_log_rank_after": 256
+  },
+  {
+    "qubits": 11,
+    "unordered_cuts": 1023,
+    "cuts_entangled_by_one_CNOT": 512,
+    "sum_log_rank_after": 512
+  },
+  {
+    "qubits": 12,
+    "unordered_cuts": 2047,
+    "cuts_entangled_by_one_CNOT": 1024,
+    "sum_log_rank_after": 1024
+  }
+]
