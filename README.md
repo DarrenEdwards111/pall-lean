@@ -2,6 +2,16 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## God-Move gap-repair update (2026-09-09)
+
+The desktop paper's product-encoding and common-span steps are being checked
+without changing the production invariant. See
+[GodMoveGapRepairs.md](research-audits/nframe-fixed-invariant/GodMoveGapRepairs.md)
+for the checked constructions, their exact scope, and reproduction commands.
+The original common-span premise is false for the current raw product compiler;
+the corrected placement-sensitive bound does not complete its P-side budget.
+**The P versus NP separation remains unproved.**
+
 ## Proved lower bounds — capstone ledger
 
 For a machine-checked, honestly-scoped inventory of the restricted-class circuit / formula / proof-space

@@ -20,8 +20,9 @@ This does not establish a polynomial bound on the placements needed for all
 SPDP rows of the proposed compiler.
 
 The file also constructs a single idempotent linear projection that identifies
-coordinate rows. It proves exactly that the original rows span dimension `N`
-and the projected rows span dimension `1`. More generally, **any** linear map
+coordinate rows. For `N > 0` (with a chosen `anchor : Fin N`), it proves that
+the original rows span dimension `N` and the projected rows span dimension
+`1`. More generally, **any** linear map
 identifying two distinct coordinate rows kills their nonzero difference and
 fails to be injective on their original span. Identifying all coordinate rows
 forces factorization through coordinate summation.
@@ -78,7 +79,7 @@ the product. It does not identify the additive constraint expression `E` with
 the product polynomial, and it is not a completed SAT compiler with verified
 CEW, bit complexity, or SPDP rank bounds.
 
-### Elimination still needs a rank-transport theorem
+### The local-equation elimination is not generically rank-monotone
 
 `GodMoveAccumulatorEliminationCheck.lean` constructs a concrete algebra
 homomorphism eliminating an output wire by substituting the product of two
@@ -89,12 +90,70 @@ thus this elimination does not commute with those derivatives.
 This check identifies an issue a proposed derivative-space transport proof
 must handle. Noncommutation alone is not asserted to refute every possible
 rank inequality. The important distinction is that existential elimination
-of local equations is not automatically the constant/affine restriction
+of local equations is not automatically one of the coordinate restrictions
 covered by the God-Move rank-monotonicity lemmas.
+
+`GodMoveAccumulatorRankCheck.lean` strengthens that check to a counterexample
+using the repository's actual `mlBlockedSpdpRank`. With one block for each of
+three variables and strict derivative order `kappa=2`, shift degree `ell=0`,
+
+    rank(X_0) = 0,
+    rank((1-X_1)*(1-X_2)) > 0.
+
+The second statement is witnessed by the admissible derivative list `[1,2]`,
+whose row is the constant one in the actual multilinear SPDP subspace.
+Thus the explicit algebra homomorphism eliminating `X_0` by the product
+strictly increases this rank. This disproves a generic monotonicity theorem
+for that nonlinear substitution, not every possible source-specific bridge.
+The statement uses the strict `|S|=kappa` convention, not the inclusive
+`|S|<=kappa` variant. It does not silently replace the paper's convention.
+
+### A constructive rank-monotone extraction for a genuine product source
+
+`GodMoveProductSourceExtraction.lean` supplies a valid extraction under
+explicit, checkable support conditions. Let `Q` use only kept variables and
+let
+
+    R = product_(j in admin) (1-X_j)
+
+use only dropped variables. Setting the dropped variables to zero is a
+single, explicit algebra homomorphism `piZero`; the file proves
+
+    piZero(R) = 1,
+    piZero(Q*R) = Q,
+    rank(Q) <= rank(Q*R).
+
+The inequality uses the repository's strict multilinear blocked SPDP rank,
+at arbitrary derivative order and shift degree, with the same partition on
+both sides. Its proof invokes the already verified rank monotonicity of
+zero substitution. No rank-transport premise is assumed.
+
+This completes that product-source extraction step. **The source already
+contains `Q` multiplicatively.** The theorem does not turn the additive
+accumulator constraint energy into this source, or prove that `Q*R` has
+polynomial rank. If `Q` carries a large minor, the inequality transfers its
+lower bound back to the source; it does not supply the missing upper bound.
+
+### Where this connects to the existing Route B extraction
+
+The repository already proves concrete strict coupled-sheet extraction in
+`RouteBPaperFaithfulTPhiExtraction.lean`, notably
+`routeBPaperFaithfulTPhi_canonicalTargetExtractionTransfer` and the same-target
+minor package `routeBPaperFaithfulTPhi_canonicalTargetIdentityMinorData`.
+These use the raw product compiler, whose desired common-span budget is
+refuted above. They are not an extraction theorem from the newly introduced
+additive accumulator energy.
+
+For a different instrumented source, the exact open pairing is
+`GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound` with
+`GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge`, instantiated
+on the **same** constructed source and target and justified from the
+hypothetical SAT decider. Those interfaces record the requirements; they
+are not proofs that a source satisfying them has been constructed.
 
 ## Verified scope
 
-All four new files compiled successfully under Lean 4.28.0. Every printed
+The six gap-repair Lean files compiled successfully under Lean 4.28.0. Every printed
 axiom check contains only `[propext, Classical.choice, Quot.sound]`, with no
 `sorryAx` or custom axioms. Their statements retain the conditions described
 above; no hard premise was silently discharged or renamed into a solution.
@@ -107,12 +166,23 @@ lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant
 lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant/GodMoveProductAccumulator.lean
 lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant/GodMoveAccumulatorEliminationCheck.lean
 lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant/GodMoveExistingCompilerVerdict.lean
+lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant/GodMoveAccumulatorRankCheck.lean
+lake env lean /tmp/pall-separation-o8uSzb/research-audits/nframe-fixed-invariant/GodMoveProductSourceExtraction.lean
 ```
 
-The product and vector constructions use Mathlib directly. For the existing
-compiler verdict, the imported `ProfileCompression`, `GodMoveReal`, and
-`WithinProfileBound` sources agree between the isolated and cached home
-checkouts. This was focused verification, not a rebuild of the entire repo.
+The product and vector constructions use Mathlib directly. For the
+repository-specific checks, the imported `ProfileCompression`, `GodMoveReal`,
+`WithinProfileBound`, `MultilinearSPDP`, and `PiStarConcrete` sources agree
+between the isolated and cached home checkouts. This was focused verification,
+not a rebuild of the entire repo. The earlier `ConcreteRateDilution.lean` and
+`GodMoveAdditiveExtractionCheck.lean` were also rechecked before publication.
+
+To reproduce in a checkout with its own dependencies/build cache, first run
+`lake build PallLean.ProfileCompression PallLean.GodMoveReal PallLean.PiStarConcrete`,
+then replace the absolute paths above with
+`research-audits/nframe-fixed-invariant/<file>.lean` relative to that checkout.
+The audit files are standalone checks, not imports into the main separation
+entrypoint.
 
 The outstanding separation requirement is one explicitly justified source
 construction that has the universal polynomial upper bound and a valid

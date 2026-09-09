@@ -1,5 +1,9 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the subsequent desktop-paper God-Move work, see
+[GodMoveGapRepairs.md](GodMoveGapRepairs.md). That report separates constructive
+product/common-span repairs from the unresolved separation obligations.
+
 2026-09-09. The user requires keeping the N-Frame invariant, not replacing it with surrogate entropies or cut sums.
 
 This check imports FullLagrangianFixed unchanged. With alpha>=0 and beta=gamma=1, the action is alpha times edge energy + r + 1/(1+r). For every r>=0, r+1/(1+r)>=1. The repository's trivialObserverGauge has zero coordinates and zero projection rank, so its action is exactly 1. Hence it is a global minimizer over ObserverGauge N for these allowed positive rank/barrier coefficients.
