@@ -6,6 +6,11 @@ constructions, and a checked negation of the original common-span target for
 the repository's current raw product compiler. No production invariant,
 compiler definition, or theorem hypothesis was changed.
 
+The subsequent [semantic handshake construction](GodMoveHandshake.md)
+derives actual row/rank equality from faithful encoded SAT-query correctness.
+Its truth-table presentation and shared-span budget are exponential; it does
+not close the efficient extraction, polynomial-span, or hard-minor obligations.
+
 ## 1. Common span: retain positions, or account for lost rank
 
 `GodMoveCommonSpanRepair.lean` supplies an actual shared spanning space.

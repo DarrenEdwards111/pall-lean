@@ -12,6 +12,12 @@ The original common-span premise is false for the current raw product compiler;
 the corrected placement-sensitive bound does not complete its P-side budget.
 **The P versus NP separation remains unproved.**
 
+A subsequent [semantic handshake](research-audits/nframe-fixed-invariant/GodMoveHandshake.md)
+connects actual faithfully encoded SAT-query outputs to a Boolean verifier
+polynomial with equal SPDP rows and ranks, assuming faithful SAT correctness.
+Its explicit common-span bound is
+exponential, not the polynomial bound required for separation.
+
 ## Proved lower bounds — capstone ledger
 
 For a machine-checked, honestly-scoped inventory of the restricted-class circuit / formula / proof-space
