@@ -21,6 +21,9 @@ A [matched calibration](research-audits/nframe-fixed-invariant/GodMoveCharacteri
 constructs a compact product and binomial identity minor for the easy unit-CNF
 target, and proves unsatisfiable characteristic targets have zero rank.
 Neither establishes the missing general-SAT separation construction.
+Further [characteristic-target checks](research-audits/nframe-fixed-invariant/GodMoveCharacteristicNextStep.md)
+prove that ignored witness padding cancels exactly and that exact midpoint
+evaluation recovers the number of satisfying assignments.
 
 ## Proved lower bounds — capstone ledger
 

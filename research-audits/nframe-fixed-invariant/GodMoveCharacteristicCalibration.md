@@ -7,6 +7,11 @@ even on a very easy family, while an unsatisfiable formula gives exactly the
 zero target. These are restrictions on this representation, not a proof or
 disproof of P versus NP.
 
+The [next-step checks](GodMoveCharacteristicNextStep.md) prove exact cancellation
+of free witness padding and an exact model-counting identity at the rational
+midpoint. They also record the computation-dependent candidates inspected;
+none currently supplies the missing separation combination.
+
 ## A constructed product and identity minor on the same target
 
 `GodMoveUnitCharacteristic.lean` defines the signed CNF

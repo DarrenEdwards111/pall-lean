@@ -12,6 +12,8 @@ constructs a linear-operation product program and a binomial identity minor
 for the same **easy unit-CNF** target. It also proves that every unsatisfiable
 signed CNF gives the zero characteristic target. Neither result supplies the
 missing general-SAT extraction/common-span/hard-family combination.
+The [subsequent checks](GodMoveCharacteristicNextStep.md) establish free-slack
+cancellation and the counting information carried by exact midpoint evaluation.
 
 ## What is constructed
 
