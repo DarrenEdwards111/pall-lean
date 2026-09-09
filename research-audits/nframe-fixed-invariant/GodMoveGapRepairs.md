@@ -10,6 +10,10 @@ The subsequent [semantic handshake construction](GodMoveHandshake.md)
 derives actual row/rank equality from faithful encoded SAT-query correctness.
 Its truth-table presentation and shared-span budget are exponential; it does
 not close the efficient extraction, polynomial-span, or hard-minor obligations.
+The [characteristic-target calibration](GodMoveCharacteristicCalibration.md)
+now provides a compact product program and binomial minor on an easy unit-CNF
+family, plus exact zero rank for unsatisfiable characteristic targets. It does
+not fill the missing general-SAT obligations.
 
 ## 1. Common span: retain positions, or account for lost rank
 

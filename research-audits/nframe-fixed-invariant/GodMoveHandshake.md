@@ -7,6 +7,12 @@ the requested P-versus-NP separation: its explicit presentation and proved
 common-span bound are exponential, and the required hard minor for its new
 target has not been established.
 
+The follow-up [characteristic-target calibration](GodMoveCharacteristicCalibration.md)
+constructs a linear-operation product program and a binomial identity minor
+for the same **easy unit-CNF** target. It also proves that every unsatisfiable
+signed CNF gives the zero characteristic target. Neither result supplies the
+missing general-SAT extraction/common-span/hard-family combination.
+
 ## What is constructed
 
 1. `GodMovePinnedSATQueries.lean` uses the actual `ComposableMachine`,
@@ -68,7 +74,7 @@ zero, while the raw clause product is the nonzero polynomial `X*(1-X)`.
 - The shared space has a verified **exponential** bound, not the desired
   polynomial common-span bound. Its containment theorem is general algebra
   and does not use SAT correctness.
-- The designated hard-minor lower bound has not been proved for this new
+- The designated hard-family minor lower bound has not been proved for this new
   characteristic target. It is not silently substituted for the paper's raw
   coupled-sheet target.
 
@@ -78,8 +84,8 @@ needed for the separation. That remaining step is still open.
 
 ## Lean checks
 
-All three files compiled under Lean 4.28.0 without warnings. Printed axiom
-checks contain only subsets of `propext`, `Classical.choice`, and `Quot.sound`.
+The three original handshake files compiled under Lean 4.28.0 without warnings.
+Printed axiom checks contain only subsets of `propext`, `Classical.choice`, and `Quot.sound`.
 The focused checks used the cached build in `/home/darre/pall-lean`; relevant
 imported source files agree with the isolated worktree. This was not a fresh
 build of the entire repository.
@@ -87,11 +93,14 @@ build of the entire repository.
 To reproduce from a checkout with its own dependencies, run from its root:
 
 ```sh
-lake build PallLean.Step4Compiler PallLean.MlProjFar PallLean.Paper93.DeepMath.PathB.ComputationalDepthSATVerifierSpec
+lake build PallLean.Step4Compiler PallLean.MlProjFar PallLean.ProductDeriv PallLean.BinomialBound2 PallLean.Paper93.DeepMath.PathB.ComputationalDepthSATVerifierSpec
 handshake_audit_dir="$PWD/research-audits/nframe-fixed-invariant"
 lake env lean --root="$handshake_audit_dir" -o "$handshake_audit_dir/GodMoveBooleanInterpolation.olean" "$handshake_audit_dir/GodMoveBooleanInterpolation.lean"
 lake env lean --root="$handshake_audit_dir" -o "$handshake_audit_dir/GodMovePinnedSATQueries.olean" "$handshake_audit_dir/GodMovePinnedSATQueries.lean"
-lake env bash -c 'export LEAN_PATH="$1:$LEAN_PATH"; lean --root="$1" "$1/GodMoveFaithfulHandshake.lean"' _ "$handshake_audit_dir"
+lake env lean --root="$handshake_audit_dir" -o "$handshake_audit_dir/GodMoveMonomialMinor.olean" "$handshake_audit_dir/GodMoveMonomialMinor.lean"
+lake env bash -c 'export LEAN_PATH="$1:$LEAN_PATH"; lean --root="$1" -o "$1/GodMoveFaithfulHandshake.olean" "$1/GodMoveFaithfulHandshake.lean"' _ "$handshake_audit_dir"
+lake env bash -c 'export LEAN_PATH="$1:$LEAN_PATH"; lean --root="$1" "$1/GodMoveCharacteristicUnsat.lean"' _ "$handshake_audit_dir"
+lake env bash -c 'export LEAN_PATH="$1:$LEAN_PATH"; lean --root="$1" "$1/GodMoveUnitCharacteristic.lean"' _ "$handshake_audit_dir"
 ```
 
 The auxiliary `.olean` files are ignored build artifacts. None of these

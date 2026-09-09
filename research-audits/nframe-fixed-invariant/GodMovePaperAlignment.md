@@ -99,6 +99,16 @@ Lean exposes this requirement in `WithinProfileBound.lean`, notably
 
 ## Status
 
+The new [characteristic-target calibration](GodMoveCharacteristicCalibration.md)
+also checks a separate representation issue. Section 25.1 (p.126) starts
+with Tseitin contradictions and Theorem 117 asserts positive rank for their
+characteristic polynomial. But the characteristic polynomial defined in
+section 23.2 (pp.122–123) sums only over satisfying assignments: for an
+unsatisfiable formula it is exactly zero. This is now verified for genuine
+signed CNFs in `GodMoveCharacteristicUnsat.lean`. It is not a refutation of
+the later **satisfiable** padded family in Lemma 189 (p.177), or of raw gadget
+products that have not been identified with this characteristic polynomial.
+
 The correct continuation is the God-Move compiler/collapse/extraction chain,
 not an assertion that the local log-det ceiling refutes it. No new proof of
 the universal, same-source collapse and minor-preservation combination has

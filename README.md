@@ -17,6 +17,10 @@ connects actual faithfully encoded SAT-query outputs to a Boolean verifier
 polynomial with equal SPDP rows and ranks, assuming faithful SAT correctness.
 Its explicit common-span bound is
 exponential, not the polynomial bound required for separation.
+A [matched calibration](research-audits/nframe-fixed-invariant/GodMoveCharacteristicCalibration.md)
+constructs a compact product and binomial identity minor for the easy unit-CNF
+target, and proves unsatisfiable characteristic targets have zero rank.
+Neither establishes the missing general-SAT separation construction.
 
 ## Proved lower bounds — capstone ledger
 
