@@ -56,6 +56,18 @@ an idempotent linear projection. The existing designated identity-minor
 bound survives. This supplies the named source-to-target bridge for that
 source, while its SAT-runtime-derived upper bound remains unproved.
 
+The subsequent [SAT runtime-bound audit](GodMoveSATRuntimeBoundAudit.md)
+proves the direct finite-row upper bound and matches it with the actual
+source minor at the paper's exact log/log window. The resulting source
+growth is quasipolynomial. A bound polynomial in encoded length plus
+runtime, if proved for polynomial-clock SAT deciders, would contradict
+that lower bound with all constants and exponents accounted for. That
+restricted estimate is equivalent to `SAT_not_in_P`; the equivalence does
+not prove either statement. A machine-dependent polynomial exponent also
+does not automatically supply the specific `n^200` bound without further
+scaling. The arbitrary-power lower bound handles the general conditional
+contradiction directly.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.

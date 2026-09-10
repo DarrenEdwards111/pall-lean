@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [designated-sheet extraction](GodMoveDesignatedProjection.md)
+The latest [SAT runtime-bound audit](GodMoveSATRuntimeBoundAudit.md) proves
+an upper bound by explicitly counting shifted-derivative rows. At the exact
+paper log/log window, the normalized SAT source has rank between
+`n^(log₂ n / 4)` and `n^(3 log₂ n)` for `n ≥ 2²⁰`. This is a quasipolynomial
+growth estimate, not a polynomial runtime bound. The still-unproved estimate
+restricted to polynomial-clock SAT deciders is shown to be equivalent to
+the faithful `SAT_not_in_P` target. Separation remains unproved.
+
+The preceding [designated-sheet extraction](GodMoveDesignatedProjection.md)
 recovers the actual nonmultilinear production sheet from the normalized
 SAT-machine source by an explicit witness-free map. Its idempotent extension
 preserves the sheet's identity-minor lower bound and does not increase SPDP

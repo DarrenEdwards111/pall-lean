@@ -126,3 +126,17 @@ or clock, and a binomial minor already occurs on easy unit-query faces. The sepa
 proves that this rank is superpolynomial even in the actual encoded input length. Deriving an upper
 bound from a hypothetical polynomial SAT clock remains the missing mathematical argument, not a
 consequence of the compact extraction formula or the dimension of its unrestricted output range.
+
+The [SAT runtime-bound audit](research-audits/nframe-fixed-invariant/GodMoveSATRuntimeBoundAudit.md)
+now proves the direct upper bound for every source polynomial by spanning its actual shifted rows:
+`rank ≤ choose(L,k) * sum_{j ≤ min(k,ell)} choose(k,j) ≤ (2L)^k`. On the specified normalized SAT
+source this yields a quasipolynomial upper bound, matched by the existing lower bound at the exact
+paper log/log window. It does not yield a fixed polynomial exponent.
+
+`GodMoveSATRuntimeFrontier.satPolynomialClockRankBound_iff_separation` proves that the requested
+runtime-rank estimate, restricted to hypothetical polynomial-clock SAT deciders, is equivalent to
+the faithful separation target. The forward proof substitutes the polynomial clock into the
+runtime budget and invokes the encoded-length rank lower bound; the reverse is vacuous when no
+such decider exists. This validates the contradiction strategy but supplies no independent proof
+of its missing estimate. An estimate for all SAT deciders, including superpolynomial clocks, would
+be a stronger assertion and is not established by this equivalence.
