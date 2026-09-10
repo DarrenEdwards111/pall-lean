@@ -1,5 +1,11 @@
 # Continuing the characteristic-target construction
 
+**10 September continuation:** [the compact machine-circuit connection](GodMoveCircuitConnection.md)
+now supplies a shared symbolic source with explicit size bounds and exact
+normal-form semantics. It also proves circuit-level obstructions to the
+generic rank bound and to normalization-rank monotonicity. The runtime-derived
+bound on the target's rank and the required hard-family lower bound remain open.
+
 The requested separation is still **unproved**. This continuation checks two
 specific steps needed by the proposed new characteristic target: obtaining a
 minor from free witness padding, and representing/extracting the target

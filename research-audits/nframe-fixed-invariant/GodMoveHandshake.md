@@ -1,5 +1,10 @@
 # A constructed semantic handshake, not an efficient separation certificate
 
+The [10 September circuit continuation](GodMoveCircuitConnection.md) replaces
+assignment enumeration in the retained source representation with one shared
+symbolic machine circuit. Its exact characteristic connection is proved, but
+its expanded normalization cost and target-rank upper bound are not.
+
 The three files below construct a genuine correspondence from faithful SAT
 correctness. No polynomial identity, row equality, rank bridge, or common-span
 containment is supplied as a hypothesis. The construction does **not** close

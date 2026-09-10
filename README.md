@@ -2,6 +2,20 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Compact machine-circuit connection (2026-09-10)
+
+The [new circuit connection](research-audits/nframe-fixed-invariant/GodMoveCircuitConnection.md)
+constructs one shared machine circuit over a symbolic pinned-SAT input, without
+enumerating assignments in the source representation. Lean proves its actual
+clocked-run semantics, polynomial gate/DAG/storage bounds, verified bit-codec
+roundtrip, and exact equality of its Boolean-normalized polynomial with the
+verifier characteristic under SAT correctness.
+
+The rank-bounded extraction remains unproved. Actual linear-size Boolean
+circuits already disprove a generic polynomial characteristic-rank bound, and
+a three-gate circuit shows Boolean normalization can increase the existing
+projected derivative rank. The new work does not establish `P ≠ NP`.
+
 ## God-Move gap-repair update (2026-09-09)
 
 The desktop paper's product-encoding and common-span steps are being checked
