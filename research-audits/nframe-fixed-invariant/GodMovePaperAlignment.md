@@ -7,6 +7,13 @@ Page numbers below are the PDF's printed page numbers.
 
 ## Correct proof target
 
+The continuation remains the Global God-Move compiler/collapse/extraction
+chain. Recent sample and wire-basis discovery results do not establish the
+required SPDP transport. The [scope note](../../SCOPE_GODMOVE_OBLIGATION.md)
+has been corrected: a rank contradiction derived under a hypothetical
+faithful polynomial-time SAT decider would be a valid proof strategy, not
+a reason that the strategy is impossible.
+
 Section 2.2, pp.13–14, explicitly designates the Global God-Move as the
 primary separation route. The local log-det rate audit does not settle this
 route. Theorem 207, pp.198–199, needs all of the following on the same objects

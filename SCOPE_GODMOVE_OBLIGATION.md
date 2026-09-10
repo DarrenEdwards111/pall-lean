@@ -8,7 +8,7 @@ formalized in `ComputationalDepthGodMoveObligation.lean` (sorry-free, axiom-clea
 
 ## The two routes, and the honest status of each
 
-A `P ≠ NP` proof becomes unconditional iff one of these becomes a theorem:
+The historical scope organized the attempted proof around these interfaces:
 
 * **Route F — `CookLevinFrontierHyp`** (P-side rank frontier): every bounded Cook–Levin compilation has the
   within-profile / SPDP rank upper bound.  Already isolated as a `Prop`; `peqnp_false_of_frontier` is
@@ -28,15 +28,20 @@ A `P ≠ NP` proof becomes unconditional iff one of these becomes a theorem:
   axiom-free NP-side minor.
 * **`globalGodMoveHyp_iff_no_hard`** — **`GlobalGodMoveHyp ↔ ¬∃ hard instance`**, given the per-instance gap.
 
-**Verdict.**  Route G is **not** an independent path.  `GlobalGodMoveHyp` is *logically equivalent* to the
-restricted separation.  Proving it cannot mean *constructing* a gauge — for a hard instance the gauge is
-internally contradictory (the sandwich) — it can only mean proving no hard instance exists, i.e. proving the
-separation directly.  The amplituhedron / God-Move language faithfully re-encodes the problem; it does not
-reduce it.  (Same shape as `ObserverFrontierHyp` and the Layer-10 bridges.)
+**Logical scope, corrected 2026-09-10.** The equivalence does **not** rule out the God-Move as a proof
+strategy. Under a hypothetical polynomial-time SAT decider, deriving a source, a valid extraction, and
+incompatible rank bounds would be a legitimate proof by contradiction. The equivalence shows that the
+abstract existence hypothesis already carries the missing conclusion; merely assuming it does not prove
+separation. It does not show that its component properties cannot be derived from the hypothetical decider.
+
+This file's skeleton is an abstract rank sandwich. It does not itself construct a computation encoding,
+prove witness independence or instance uniformity, or identify the semantic hard target. Those obligations
+must be discharged by the concrete construction rather than inferred from the skeleton's name.
 
 ## Decomposition of the two load-bearing lemmas (the local targets)
 
-These remain genuinely open; each is a named obligation, never asserted.
+These describe obligations for the intended faithful construction. Existing abstract or special-case
+lemmas must not be mistaken for a proof that all of them hold together for that construction.
 
 ### Route G local lemmas (the gauge)
 1. `godMove_gauge_exists` — the amplituhedron/global gauge exists for the instance.
@@ -48,11 +53,11 @@ These remain genuinely open; each is a named obligation, never asserted.
 7. `godMove_rank_monotone` — `rank(T_Φ p) ≤ rank p` (profile rank cannot increase).
 8. `godMove_witness_free` — `T_Φ` depends only on `Φ`, not on a satisfying assignment.
 
-**But (1)+(5)+(7) jointly, for a *hard* instance, are impossible** (`not_godMoveGaugeExists_of_gap`): the
-gauge that is correct *and* rank-monotone *and* P-side-bounded *and* minor-preserving cannot exist when
-`B < k`.  So this list is not a to-do list whose completion yields a proof — completing 1–8 for a hard
-instance is contradictory.  The only consistent way they all hold is if the instance is not hard — the
-separation.
+The complete upper/lower rank sandwich is contradictory when `B < k`
+(`not_godMoveGaugeExists_of_gap`). That is the intended endpoint if every component is derived under a
+hypothetical faithful polynomial-time SAT decider. The contradiction is not a reason to abandon the
+component proof program. It is a reason to keep its hypotheses explicit and to ensure that all bounds
+concern the same source, extracted target, partition, and SPDP parameters.
 
 ### Route F local lemmas (the P-side frontier — `CookLevinFrontierHyp`)
 1. profile classification (finitely many local profiles);
@@ -62,9 +67,16 @@ separation.
 5. profile-span compression;
 6. final SPDP rank bound `≤ n²⁰⁰`.
 
-This is the cleaner route (no gauge to construct): it is a genuine upper-bound program on the SPDP rank of
-the *unprojected* Cook–Levin compilation.  It does not collapse to "the separation" the way Route G does —
-it is a concrete (open) rank bound.  Recommended target if the work continues.
+These local claims need to be checked against a specific compiler. Subsequent work has refuted the desired
+polynomial bound for the existing raw product-form `compiledPoly`; its large rank occurs even without SAT
+correctness. Thus that exact raw-source frontier is not an open lemma to fill in. See
+[GodMoveGapRepairs.md](research-audits/nframe-fixed-invariant/GodMoveGapRepairs.md).
+
+The paper's primary Global God-Move route instead needs a faithful instrumented source with a
+runtime-derived upper bound and a valid extraction to the designated hard coupled sheet. The remaining
+paired interfaces are `GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound` and
+`GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge`, on the same constructed objects. Their
+arithmetic closure is proved; their joint construction from a faithful hypothetical SAT decider is not.
 
 ## Tiny-instance test (item 3)
 
@@ -78,9 +90,15 @@ before and after via `native_decide`.  Two things to look for: (a) does the cand
 `rank(T p) ≤ rank p` (most projections do *not* — rank monotonicity is special); (b) can any `T` both
 collapse the P-side rank and keep the minor — which the skeleton theorem says is impossible once `B < k`.
 
-## Bottom line
+## Current continuation target
 
-The God-Move architecture is now fully precise and its skeleton proven.  The honest finding is that **Route
-G ≡ the separation** (proving the gauge = proving `P ≠ NP`), so the productive frontier is **Route F**
-(`CookLevinFrontierHyp`): a concrete SPDP rank upper bound, decomposed above, that does not secretly contain
-the whole problem.  Neither is asserted; both stay explicit hypotheses until genuinely proved.
+Continue with the God-Move compiler/collapse/extraction chain described in
+[GodMovePaperAlignment.md](research-audits/nframe-fixed-invariant/GodMovePaperAlignment.md). Sample and
+wire-basis discovery does not by itself supply this SPDP transport. A correct conditional construction
+must preserve the hard minor while obtaining the source bound from legal computation.
+
+The historical `PaperFaithfulSeparation.DecidesSAT` also needs care: the existing audit proves an
+always-accept machine satisfies that positive-only, encoding-free predicate. The actual separation target
+is `SeparationTarget.SAT_not_in_P`, with the faithful formula codec and correctness on every input.
+Neither an abstract God-Move hypothesis nor a contradiction involving that legacy predicate is a proof
+of this target.
