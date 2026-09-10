@@ -1,5 +1,9 @@
 # Computed-wire rank, repaired derivatives, and the remaining separation gap
 
+The subsequent [production connection](GodMoveProductionConnection.md) realizes
+this wire rank in the existing gauge type, proves a linear SAT lower bound,
+and proves that every unrestricted production minimizer has bounded rank.
+
 This continuation proves an operational upper bound for the span of computed
 wires and an exact differentiation identity through Boolean normalization.
 It also proves why combining them does not supply the full rank-bounded

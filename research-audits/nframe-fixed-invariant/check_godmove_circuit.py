@@ -31,6 +31,9 @@ STAGES = [
      'GodMoveDirectVerifierCircuit'],
     ['GodMoveComputedWireRank'],
     ['GodMoveVerifierInvariantBarrier'],
+    ['GodMoveComputedWireLowerBound', 'GodMoveProductionGaugeBridge',
+     'GodMoveProductionMinimizerBarrier'],
+    ['GodMoveUnitOutputGauge', 'GodMoveProductionConnection'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

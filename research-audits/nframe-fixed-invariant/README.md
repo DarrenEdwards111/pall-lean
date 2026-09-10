@@ -1,8 +1,9 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-For the latest checked machine/wire-rank and Boolean-difference continuation,
-see [GodMoveRankConnection.md](GodMoveRankConnection.md). The matched SAT
-lower-bound connection remains unproved.
+For the latest production gauge bridge, linear SAT lower bound, and obstruction
+for every unrestricted minimizer, see
+[GodMoveProductionConnection.md](GodMoveProductionConnection.md). The required
+superpolynomial SAT lower bound remains unproved.
 
 For the subsequent desktop-paper God-Move work, see
 [GodMoveGapRepairs.md](GodMoveGapRepairs.md). That report separates constructive

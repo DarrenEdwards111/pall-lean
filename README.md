@@ -2,6 +2,22 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Production gauge and SAT lower-bound continuation (2026-09-10)
+
+The [production connection](research-audits/nframe-fixed-invariant/GodMoveProductionConnection.md)
+realizes computed-wire rank exactly in the existing production gauge type and
+derives a genuine `N-22` lower bound for every circuit deciding the encoded SAT
+input slice. The gauge minimizes the existing action among candidates explicitly
+required to preserve all computed wires; efficient projection construction and
+a superpolynomial SAT lower bound remain unproved.
+
+The unrestricted minimizer requirement has a stronger obstruction: for
+nonnegative weights and a positive rank weight, every global minimizer of
+`FullLagrangianFixed` has rank bounded by the ratio of its barrier and rank
+weights. With both weights one, every minimizer is the zero
+projection. Even the existing unit-preserving refinement permits a rank-at-most-two
+gauge fixing any chosen output. These results do not establish `P ≠ NP`.
+
 ## Rank-connection continuation (2026-09-10)
 
 The [rank continuation](research-audits/nframe-fixed-invariant/GodMoveRankConnection.md)
