@@ -34,6 +34,8 @@ STAGES = [
     ['GodMoveComputedWireLowerBound', 'GodMoveProductionGaugeBridge',
      'GodMoveProductionMinimizerBarrier'],
     ['GodMoveUnitOutputGauge', 'GodMoveProductionConnection'],
+    ['GodMoveSamplingBarrier', 'GodMoveSampledWireGauge', 'GodMoveRankIncrementSAT'],
+    ['GodMoveSampledSAT', 'GodMoveSmallSeparatingSamples', 'GodMoveWireSampleCertificate'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

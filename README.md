@@ -2,6 +2,21 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Explicit sampled gauge construction (2026-09-10)
+
+The [sampled gauge continuation](research-audits/nframe-fixed-invariant/GodMoveGaugeConstruction.md)
+defines a production projection directly from supplied basis wires, Boolean
+samples, and a finite inverse matrix. Its executable evaluator reads actual
+circuit wires, and Lean proves that separating sample lists exist with at
+most one sample per gate.
+
+Efficient discovery remains unresolved: the verified sample-selector reduction
+already supplies a SAT solver. A separate four-gate construction proves that
+one exact wire-rank increment detects satisfiability. Small sample lists and finite matrix arithmetic
+do not establish an efficient way to find the required samples and spanning
+basis. The production minimizer obstruction remains, and no superpolynomial
+SAT lower bound or `P ≠ NP` result is claimed.
+
 ## Production gauge and SAT lower-bound continuation (2026-09-10)
 
 The [production connection](research-audits/nframe-fixed-invariant/GodMoveProductionConnection.md)

@@ -1,5 +1,9 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the explicit sampled projection, executable wire-based evaluator, and
+SAT reductions for finding the required data, see
+[GodMoveGaugeConstruction.md](GodMoveGaugeConstruction.md).
+
 For the latest production gauge bridge, linear SAT lower bound, and obstruction
 for every unrestricted minimizer, see
 [GodMoveProductionConnection.md](GodMoveProductionConnection.md). The required

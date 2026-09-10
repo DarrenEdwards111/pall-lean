@@ -1,5 +1,9 @@
 # Production gauge connection and a genuine linear SAT lower bound
 
+The subsequent [sampled gauge construction](GodMoveGaugeConstruction.md)
+replaces the chosen ambient complement with an explicit finite interpolation
+formula and establishes the SAT work contained in discovering its sample data.
+
 This continuation constructs an exact algebraic bridge from computed-wire rank
 to the existing production gauge and action definitions. It derives a linear
 SAT lower bound on that same rank, uniformly over all circuits deciding an
