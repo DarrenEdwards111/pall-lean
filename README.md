@@ -2,6 +2,21 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Adaptive discovery with an explicit oracle (2026-09-10)
+
+The [adaptive continuation](research-audits/nframe-fixed-invariant/GodMoveAdaptiveDiscovery.md)
+constructs separating samples and exact basis wires using at most
+`(s+1)*(n+1)` predicate-existence oracle calls for an `s`-gate circuit on `n`
+inputs. Exact rational residuals supply the semantic counterexample witnesses.
+The oracle's implementation and cost remain external; this is not a
+polynomial-time discovery theorem.
+
+A separate theorem proves a `2^n` lower bound for exact adaptive testing using
+only scalar output queries, with circuit descriptions and internal wires
+unavailable. That restricted query bound is not a SAT runtime lower bound.
+Efficient unrestricted discovery and the requested superpolynomial SAT lower
+bound remain unproved.
+
 ## Executable sample and basis discovery (2026-09-10)
 
 The [discovery continuation](research-audits/nframe-fixed-invariant/GodMoveExecutableDiscovery.md)

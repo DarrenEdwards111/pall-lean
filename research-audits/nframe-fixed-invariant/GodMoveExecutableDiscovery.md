@@ -1,5 +1,10 @@
 # Executable discovery of separating samples and basis wires
 
+The subsequent [adaptive continuation](GodMoveAdaptiveDiscovery.md) replaces
+the outer exhaustive scan with boundedly many predicate-existence oracle
+calls. It keeps the oracle's implementation cost explicit and proves a
+separate obstruction for algorithms restricted to scalar output queries.
+
 This work replaces the supplied sample-selector hypothesis with an executable algorithm. It scans actual circuit-wire values, retains assignments only when they add a new rational direction, and proves that those assignments separate the entire computed-wire polynomial space. A second scan of the transposed sample matrix selects actual wire indices whose normalized polynomials are an exact basis. Their number equals `wireRank c`, giving an executable exact rank calculation as well.
 
 The first scan uses all `2^n` Boolean assignments. This completes an exhaustive discovery construction; **efficient general discovery and a superpolynomial SAT lower bound remain unproved**. The finite output can be small even though finding it inspects an exponential input table.

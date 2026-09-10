@@ -1,5 +1,11 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For adaptive discovery with an explicit predicate-existence oracle and the
+separate scalar-query lower bound, see
+[GodMoveAdaptiveDiscovery.md](GodMoveAdaptiveDiscovery.md). Oracle-call
+counts do not establish polynomial runtime, and the restricted query lower
+bound does not establish SAT hardness.
+
 For executable exhaustive sample selection, exact basis-wire discovery, and
 the bound on successful sample refinements, see
 [GodMoveExecutableDiscovery.md](GodMoveExecutableDiscovery.md). Discovery

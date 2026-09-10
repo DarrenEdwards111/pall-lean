@@ -40,6 +40,9 @@ STAGES = [
     ['GodMoveRowSpanSeparation'],
     ['GodMoveExhaustiveDiscovery', 'GodMoveSampledWireBasis'],
     ['GodMoveExhaustiveWireBasis'],
+    ['GodMoveCubeWitnessSearch', 'GodMoveNumericCounterexample', 'GodMoveBlackBoxQueryBarrier'],
+    ['GodMoveAdaptiveDiscovery'],
+    ['GodMoveAdaptiveRefinement', 'GodMoveAdaptiveDiscoveryExamples'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
