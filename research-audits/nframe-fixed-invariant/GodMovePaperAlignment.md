@@ -28,6 +28,16 @@ and at matched SPDP parameters:
 
 The final numerical contradiction follows if these inputs hold. The remaining
 work is establishing them together for the intended computation encoding.
+
+The subsequent [Boolean-face extraction](GodMoveFaceExtraction.md) proves
+an actual source-specific restriction and unchanged-parameter SPDP transport
+for the normalized machine output and its verifier characteristic. It does
+not supply the instrumented source's polynomial rank bound or identify this
+characteristic with the designated hard coupled sheet. The same work proves
+that every accumulator certificate of the local initial/step form contains
+the target's rank in its initial-equation multiplier; the generators' small
+degree alone cannot bound that certificate cost.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.

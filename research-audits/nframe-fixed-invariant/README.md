@@ -1,5 +1,12 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the latest Global God-Move work, see
+[GodMoveFaceExtraction.md](GodMoveFaceExtraction.md). It derives a concrete
+rank-monotone extraction from the normalized actual machine polynomial to the
+verifier characteristic, and proves a necessary rank/degree cost for every
+local accumulator certificate. A runtime-derived source-rank bound and the
+connection to the designated hard coupled sheet remain unproved.
+
 For whether the machine-dependent revision resolves the selector-to-SAT
 objection, see [GodMoveDiscoveryRevisionAudit.md](GodMoveDiscoveryRevisionAudit.md).
 It validates the conditional strategy while retaining the independent lower

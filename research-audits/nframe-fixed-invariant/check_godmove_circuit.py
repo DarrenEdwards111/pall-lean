@@ -18,15 +18,17 @@ import time
 
 
 STAGES = [
-    ['GodMoveBooleanInterpolation', 'GodMovePinnedSATQueries', 'GodMoveMonomialMinor'],
+    ['GodMoveBooleanInterpolation', 'GodMovePinnedSATQueries', 'GodMoveMonomialMinor',
+     'GodMoveMultilinearRestriction', 'GodMoveAnyCertificateRank'],
     ['GodMoveFaithfulHandshake', 'GodMoveCircuitArithmetization',
      'GodMoveCircuitRuntimeCost', 'GodMoveSymbolicPinnedInput', 'GodMoveCircuitNormalization'],
     ['GodMoveUnitCharacteristic', 'GodMoveCharacteristicUnsat',
      'GodMoveCharacteristicPadding', 'GodMoveCharacteristicCounting',
-     'GodMoveCircuitStorage', 'GodMoveNormalizationDerivativeObstruction'],
+     'GodMoveCircuitStorage', 'GodMoveNormalizationDerivativeObstruction',
+     'GodMovePinnedFaceLayout', 'GodMoveBooleanFace'],
     ['GodMoveCircuitRankObstruction'],
     ['GodMoveCircuitConnection'],
-    ['GodMoveCircuitPolynomialSize'],
+    ['GodMoveCircuitPolynomialSize', 'GodMoveMachineFaceExtraction'],
     ['GodMoveBooleanDifferentiation', 'GodMoveZeroShiftRankCeiling',
      'GodMoveDirectVerifierCircuit'],
     ['GodMoveComputedWireRank'],
