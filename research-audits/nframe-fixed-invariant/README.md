@@ -1,6 +1,13 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [SAT runtime-bound audit](GodMoveSATRuntimeBoundAudit.md) proves
+The latest [expander and positive-boundary construction](GodMoveExpanderPositiveProjection.md)
+protects the actual SAT and designated-sheet derivative minors against
+bounded edge erasure, then encodes them with a positive Vandermonde matrix
+and an exact decoder. It includes an adjacency-based Ramanujan calibration.
+Preserving the full minor requires its binomial boundary dimension; the
+construction does not supply a polynomial runtime-rank bound or separation.
+
+The preceding [SAT runtime-bound audit](GodMoveSATRuntimeBoundAudit.md) proves
 an upper bound by explicitly counting shifted-derivative rows. At the exact
 paper log/log window, the normalized SAT source has rank between
 `n^(log₂ n / 4)` and `n^(3 log₂ n)` for `n ≥ 2²⁰`. This is a quasipolynomial

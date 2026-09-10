@@ -140,3 +140,11 @@ runtime budget and invokes the encoded-length rank lower bound; the reverse is v
 such decider exists. This validates the contradiction strategy but supplies no independent proof
 of its missing estimate. An estimate for all SAT deciders, including superpolynomial clocks, would
 be a stronger assertion and is not established by this equivalence.
+
+The subsequent [expander and positive-boundary construction](research-audits/nframe-fixed-invariant/GodMoveExpanderPositiveProjection.md)
+derives erased-edge label protection from actual graph expansion and maps
+the unit-source and designated-sheet derivative minors through a positive
+Vandermonde external matrix. An explicit decoder recovers their coordinates.
+The boundary dimension must be at least the retained minor dimension; the
+rank-one positive-cone construction does not provide polynomial compression.
+It supplies no SAT runtime-rank upper bound and leaves separation unproved.

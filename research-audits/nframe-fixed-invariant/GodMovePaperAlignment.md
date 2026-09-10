@@ -68,6 +68,14 @@ does not automatically supply the specific `n^200` bound without further
 scaling. The arbitrary-power lower bound handles the general conditional
 contradiction directly.
 
+The [expander and positive-boundary continuation](GodMoveExpanderPositiveProjection.md)
+now protects actual minor labels against erased edge coordinates and maps
+the SAT and designated-sheet derivative rows to a proved positive external
+matrix with exact decoding. Expansion supplies label preservation; the
+coefficient identities supply row transport. Preserving all these rows
+requires their full binomial boundary dimension. This adds concrete geometry
+to the extraction side without deriving the missing runtime upper bound.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.
