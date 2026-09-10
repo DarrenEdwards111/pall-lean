@@ -1,5 +1,10 @@
 # A compact machine-circuit connection with an explicit rank obstruction
 
+The subsequent [rank continuation](GodMoveRankConnection.md) proves a
+computed-wire rank upper bound and repairs differentiation through Boolean
+normalization. It also proves that generic derivative-row containment in
+that bounded space fails and sharpens the fixed-verifier obstruction.
+
 This continuation constructs the circuit-to-characteristic connection and
 accounts for the retained representation. It does **not** establish the
 runtime-derived bound on the characteristic's SPDP rank or a SAT separation.

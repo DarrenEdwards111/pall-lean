@@ -1,5 +1,9 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the latest checked machine/wire-rank and Boolean-difference continuation,
+see [GodMoveRankConnection.md](GodMoveRankConnection.md). The matched SAT
+lower-bound connection remains unproved.
+
 For the subsequent desktop-paper God-Move work, see
 [GodMoveGapRepairs.md](GodMoveGapRepairs.md). That report separates constructive
 product/common-span repairs from the unresolved separation obligations.

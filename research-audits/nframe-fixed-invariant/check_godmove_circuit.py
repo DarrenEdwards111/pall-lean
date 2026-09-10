@@ -27,6 +27,10 @@ STAGES = [
     ['GodMoveCircuitRankObstruction'],
     ['GodMoveCircuitConnection'],
     ['GodMoveCircuitPolynomialSize'],
+    ['GodMoveBooleanDifferentiation', 'GodMoveZeroShiftRankCeiling',
+     'GodMoveDirectVerifierCircuit'],
+    ['GodMoveComputedWireRank'],
+    ['GodMoveVerifierInvariantBarrier'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

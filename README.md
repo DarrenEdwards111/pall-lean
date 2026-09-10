@@ -2,6 +2,22 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Rank-connection continuation (2026-09-10)
+
+The [rank continuation](research-audits/nframe-fixed-invariant/GodMoveRankConnection.md)
+proves that the span of actual circuit wires gains at most one dimension per
+gate, that normalization cannot increase this span's rank, and that the
+machine clock supplies a polynomial upper bound. Under SAT correctness, the
+same construction captures the SAT decision polynomial over encoded inputs.
+Boolean finite differences also recover the normalized target's derivative
+rows exactly.
+
+The missing lower-bound transport remains unresolved: Lean proves that those
+derivative rows cannot always fit inside the bounded wire span. It also proves
+that every fixed CNF verifier target has a small circuit and that the easy
+product already maximizes the strict zero-shift rank. These results constrain
+the proposed connection; they do not establish a SAT lower bound or `P ≠ NP`.
+
 ## Compact machine-circuit connection (2026-09-10)
 
 The [new circuit connection](research-audits/nframe-fixed-invariant/GodMoveCircuitConnection.md)
