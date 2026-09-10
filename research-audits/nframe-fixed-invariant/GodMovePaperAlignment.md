@@ -86,6 +86,16 @@ output and permits exact extraction while failing to preserve the 1820-row
 designated family. A SAT-specific preservation and efficiency theorem is
 still needed to combine the source bound with that hard-row requirement.
 
+The [compact projector continuation](GodMoveImplicitGaugeConstruction.md)
+constructs shared arithmetic syntax for the exact production row-projector
+kernel with polynomial node count, including the actual input factors.
+Contraction equals the unchanged projector on every polynomial. Its rank
+and unit-weight action still exceed every polynomial in descriptor size;
+compact syntax therefore does not establish the paper's runtime collapse.
+The incorporated dense-output barrier is now derived from legal machine
+steps with encoded input length accounted for. Efficient contraction and
+the SAT-specific runtime bound remain unproved.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.

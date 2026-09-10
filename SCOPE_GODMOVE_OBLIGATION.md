@@ -160,3 +160,16 @@ row-preservation by the runtime-bounded wire gauge nor necessary boundary
 materialization by every SAT decider is proved. The concrete small-circuit
 counterexample confirms that output preservation and exact extraction alone
 do not imply preservation of the designated derivative family.
+
+The [compact projector construction](research-audits/nframe-fixed-invariant/GodMoveImplicitGaugeConstruction.md)
+now gives executable syntax for the exact production projection's coefficient
+kernel, including small input factors and shared recurrence references.
+Its node count is `2+3m(k+1)+11m`, and contraction recovers the unchanged
+projection on all polynomial inputs. This removes subset enumeration from
+descriptor construction. It does not make expanded polynomial evaluation or
+coefficient contraction polynomial-time. The actual rank and unit-weight
+production action remain superpolynomial in descriptor size. The supplied
+boundary-runtime barrier has also been connected to actual machine output
+with polynomial encoded lengths. It constrains dense serialization, not
+arbitrary SAT deciders. The SAT-specific runtime-controlled connection and
+faithful separation target remain unproved.

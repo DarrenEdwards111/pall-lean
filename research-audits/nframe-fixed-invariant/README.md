@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [executable production N-Frame connection](GodMoveExecutableNFrameConnection.md)
+The latest [compact projector construction](GodMoveImplicitGaugeConstruction.md)
+gives executable arithmetic syntax for the exact production row-projector
+kernel, with `2+3m(k+1)+11m` nodes and proved contraction semantics.
+Its rank remains superpolynomial in that descriptor size. The incorporated
+runtime barrier now follows from actual machine steps for dense output,
+including polynomially related encoded input lengths. Efficient contraction,
+the SAT-specific runtime-controlled connection, and separation remain unproved.
+
+The preceding [executable production N-Frame connection](GodMoveExecutableNFrameConnection.md)
 constructs a concrete gauge with proved rank and action, establishes its
 minimum under explicit derivative-row preservation constraints, and bounds
 that action by runtime for machines materializing the boundary. Direct
