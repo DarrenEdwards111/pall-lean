@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [expander and positive-boundary construction](GodMoveExpanderPositiveProjection.md)
+The latest [executable production N-Frame connection](GodMoveExecutableNFrameConnection.md)
+constructs a concrete gauge with proved rank and action, establishes its
+minimum under explicit derivative-row preservation constraints, and bounds
+that action by runtime for machines materializing the boundary. Direct
+binary coding also removes full-screen enumeration from individual entries.
+The required preservation/efficiency theorem for every SAT decider and
+separation remain unproved.
+
+The preceding [expander and positive-boundary construction](GodMoveExpanderPositiveProjection.md)
 protects the actual SAT and designated-sheet derivative minors against
 bounded edge erasure, then encodes them with a positive Vandermonde matrix
 and an exact decoder. It includes an adjacency-based Ramanujan calibration.

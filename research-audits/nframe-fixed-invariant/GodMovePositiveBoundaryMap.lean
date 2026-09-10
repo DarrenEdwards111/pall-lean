@@ -162,6 +162,18 @@ theorem selectedBoundaryProjection_rank {N q r : ℕ} (f : Fin r → Fin N)
     rw [selected_encoder_mul_projection f hf hrq] at h
     exact hr.trans h
 
+/-- At minimal capacity, decoding and re-encoding is simply the identity
+matrix. Its large semantic rank is not a construction-time lower bound. -/
+theorem selectedBoundaryProjection_square_eq_one {N r : ℕ} (f : Fin r → Fin N)
+    (hf : Function.Injective f) : selectedBoundaryProjection f (le_refl r) = 1 := by
+  have hfirst : firstCoordinateSelector (le_refl r) = (1 : Matrix (Fin r) (Fin r) ℚ) := by
+    ext i j
+    simp [firstCoordinateSelector, Matrix.one_apply]
+  have hminor : (boundaryMatrix N r).submatrix f (Fin.castLE (le_refl r)) =
+      (boundaryMatrix N r).submatrix f id := rfl
+  rw [selectedBoundaryProjection, selectedDecoder, hfirst, Matrix.one_mul, hminor]
+  exact Matrix.nonsing_inv_mul _ (isUnit_iff_ne_zero.mpr (maximal_minor_ne_zero f hf))
+
 /-- Rational positive-cone moment map c ↦ c Z. -/
 noncomputable def positiveBoundaryMap (N q : ℕ) :
     (Fin N → ℚ) →ₗ[ℚ] (Fin q → ℚ) :=
@@ -220,6 +232,7 @@ end GodMovePositiveBoundaryMap
 #print axioms GodMovePositiveBoundaryMap.selectedBoundaryProjection_idempotent
 #print axioms GodMovePositiveBoundaryMap.selected_encoder_mul_projection
 #print axioms GodMovePositiveBoundaryMap.selectedBoundaryProjection_rank
+#print axioms GodMovePositiveBoundaryMap.selectedBoundaryProjection_square_eq_one
 #print axioms GodMovePositiveBoundaryMap.positiveBoundaryMap_first_pos
 #print axioms GodMovePositiveBoundaryMap.positiveBoundaryMap_ne_zero
 #print axioms GodMovePositiveBoundaryMap.boundaryMatrix_rank_le

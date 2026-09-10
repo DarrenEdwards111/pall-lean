@@ -148,3 +148,15 @@ Vandermonde external matrix. An explicit decoder recovers their coordinates.
 The boundary dimension must be at least the retained minor dimension; the
 rank-one positive-cone construction does not provide polynomial compression.
 It supplies no SAT runtime-rank upper bound and leaves separation unproved.
+
+The [executable production connection](research-audits/nframe-fixed-invariant/GodMoveExecutableNFrameConnection.md)
+subsequently constructs the designated-row projector in the unchanged
+`ObserverGauge` type, derives its exact rank and action, and proves a
+minimum over gauges explicitly required to fix those rows. This additional
+domain predicate is not substituted for production admissibility. Actual
+machine transitions bound the action when that machine materializes the
+boundary coordinates, under an explicit serialization contract. Neither
+row-preservation by the runtime-bounded wire gauge nor necessary boundary
+materialization by every SAT decider is proved. The concrete small-circuit
+counterexample confirms that output preservation and exact extraction alone
+do not imply preservation of the designated derivative family.

@@ -76,6 +76,16 @@ coefficient identities supply row transport. Preserving all these rows
 requires their full binomial boundary dimension. This adds concrete geometry
 to the extraction side without deriving the missing runtime upper bound.
 
+The [executable production connection](GodMoveExecutableNFrameConnection.md)
+now realizes those rows by an explicit production `ObserverGauge`, with
+derived rank and exact action. It proves a minimum subject to row-fixing
+constraints and a runtime/action bound under an actual boundary-output
+contract. Direct code execution computes individual positive entries. The
+computed-wire gauge is still a different object: a 33-gate example fixes the
+output and permits exact extraction while failing to preserve the 1820-row
+designated family. A SAT-specific preservation and efficiency theorem is
+still needed to combine the source bound with that hard-row requirement.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.
