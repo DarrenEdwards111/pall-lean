@@ -47,7 +47,7 @@ STAGES = [
      'GodMoveExpanderBoundaryExamples', 'GodMoveBoundaryNFrameGauge',
      'GodMoveExecutableBoundary'],
     ['GodMoveConstrainedBoundaryMinimum', 'GodMoveBoundaryRuntimeCost'],
-    ['GodMoveBoundaryWireGap'],
+    ['GodMoveBoundaryWireGap', 'GodMoveBoundaryRuntimeBarrier'],
     ['GodMoveSamplingBarrier', 'GodMoveSampledWireGauge', 'GodMoveRankIncrementSAT'],
     ['GodMoveSampledSAT', 'GodMoveSmallSeparatingSamples', 'GodMoveWireSampleCertificate'],
     ['GodMoveBooleanWireTable', 'GodMoveRationalRowBasis', 'GodMoveSampleRefinement'],
