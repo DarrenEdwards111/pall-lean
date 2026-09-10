@@ -44,6 +44,7 @@ STAGES = [
      'GodMoveSATRuntimeFrontier', 'GodMoveDesignatedPositiveBoundary'],
     ['GodMoveUnitOutputGauge', 'GodMoveProductionConnection',
      'GodMoveExpanderBoundaryExamples'],
+    ['GodMoveBoundaryRuntimeBarrier'],
     ['GodMoveSamplingBarrier', 'GodMoveSampledWireGauge', 'GodMoveRankIncrementSAT'],
     ['GodMoveSampledSAT', 'GodMoveSmallSeparatingSamples', 'GodMoveWireSampleCertificate'],
     ['GodMoveBooleanWireTable', 'GodMoveRationalRowBasis', 'GodMoveSampleRefinement'],
