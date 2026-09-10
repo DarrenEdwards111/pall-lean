@@ -38,6 +38,15 @@ that every accumulator certificate of the local initial/step form contains
 the target's rank in its initial-equation multiplier; the generators' small
 degree alone cannot bound that certificate cost.
 
+The next [runtime and designated-sheet audit](GodMoveRuntimeAndSheetAudit.md)
+proves that the actual strict `TΦ` target normalizes to one, losing its
+same-window identity-minor rank. It cannot equal the multilinear verifier
+characteristic. The same audit constructs a fixed machine with a proved
+linear clock and superpolynomial normalized rank, refuting a general
+runtime-only collapse for that invariant. This does not refute a bound
+conditioned additionally on faithful SAT correctness or every alternative
+God-Move source/map.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.

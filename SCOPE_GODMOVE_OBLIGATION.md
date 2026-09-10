@@ -102,3 +102,11 @@ always-accept machine satisfies that positive-only, encoding-free predicate. The
 is `SeparationTarget.SAT_not_in_P`, with the faithful formula codec and correctness on every input.
 Neither an abstract God-Move hypothesis nor a contradiction involving that legacy predicate is a proof
 of this target.
+
+The [runtime and designated-sheet audit](research-audits/nframe-fixed-invariant/GodMoveRuntimeAndSheetAudit.md)
+now proves two specific limitations of the normalized machine-output route. A fixed linear-time
+`ComposableMachine` has superpolynomial normalized SPDP rank under discrete blocks, so the general
+runtime-only bound is false. The actual strict first-of-block target normalizes to one and cannot equal
+a multilinear verifier characteristic at paper scale. These do not refute every God-Move source/map or
+a theorem that additionally uses faithful SAT correctness, but the current characteristic equality and
+generic runtime bound cannot supply the two remaining obligations.

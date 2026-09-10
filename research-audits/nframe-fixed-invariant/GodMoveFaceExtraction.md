@@ -1,5 +1,11 @@
 # God-Move: actual machine face extraction and certificate cost
 
+The subsequent [runtime and designated-sheet audit](GodMoveRuntimeAndSheetAudit.md)
+checks the proposed continuation: a general normalized-rank runtime bound is
+false, and the actual designated sheet normalizes to one, so it cannot equal
+the multilinear verifier characteristic. The extraction proved below remains
+valid for its stated characteristic target.
+
 This continuation proves a concrete extraction with derived rank transport.
 It does **not** prove P ≠ NP. The polynomial upper bound for the normalized
 machine source, and its connection to the paper's hard coupled sheet, remain

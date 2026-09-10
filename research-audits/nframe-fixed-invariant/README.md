@@ -1,5 +1,12 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the subsequent checks of the runtime bound and designated target, see
+[GodMoveRuntimeAndSheetAudit.md](GodMoveRuntimeAndSheetAudit.md). A fixed
+linear-time machine disproves the generic normalized-rank runtime bound;
+the actual designated sheet normalizes to one and cannot equal a multilinear
+characteristic. An explicit binomial minor is also transported into the actual
+normalized SAT-machine source. These results do not establish separation.
+
 For the latest Global God-Move work, see
 [GodMoveFaceExtraction.md](GodMoveFaceExtraction.md). It derives a concrete
 rank-monotone extraction from the normalized actual machine polynomial to the
