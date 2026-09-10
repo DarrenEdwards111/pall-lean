@@ -1,18 +1,27 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-For the subsequent checks of the runtime bound and designated target, see
+The latest [designated-sheet extraction](GodMoveDesignatedProjection.md)
+recovers the actual nonmultilinear production sheet from the normalized
+SAT-machine source by an explicit witness-free map. Its idempotent extension
+preserves the sheet's identity-minor lower bound and does not increase SPDP
+rank on that source at the same log/log parameters. This fills the named
+source-to-target rank bridge for the specified source. The SAT-specific
+runtime-derived source upper bound and separation remain unproved.
+
+For the preceding checks of the runtime bound and designated target, see
 [GodMoveRuntimeAndSheetAudit.md](GodMoveRuntimeAndSheetAudit.md). A fixed
 linear-time machine disproves the generic normalized-rank runtime bound;
 the actual designated sheet normalizes to one and cannot equal a multilinear
 characteristic. An explicit binomial minor is also transported into the actual
 normalized SAT-machine source. These results do not establish separation.
 
-For the latest Global God-Move work, see
+For the earlier Global God-Move face extraction, see
 [GodMoveFaceExtraction.md](GodMoveFaceExtraction.md). It derives a concrete
 rank-monotone extraction from the normalized actual machine polynomial to the
 verifier characteristic, and proves a necessary rank/degree cost for every
-local accumulator certificate. A runtime-derived source-rank bound and the
-connection to the designated hard coupled sheet remain unproved.
+local accumulator certificate. The new extraction above extends that face
+construction to the actual designated coupled sheet; a runtime-derived
+source-rank bound remains unproved.
 
 For whether the machine-dependent revision resolves the selector-to-SAT
 objection, see [GodMoveDiscoveryRevisionAudit.md](GodMoveDiscoveryRevisionAudit.md).

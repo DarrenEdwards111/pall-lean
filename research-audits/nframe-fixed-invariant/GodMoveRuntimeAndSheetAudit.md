@@ -6,6 +6,12 @@ SPDP rank is false**, and that **the current multilinear characteristic cannot
 equal the designated strict coupled sheet**. It also transports an explicit
 binomial lower bound into the actual normalized SAT-machine source.
 
+The later [designated-sheet extraction](GodMoveDesignatedProjection.md)
+supplies a quadratic lift that retains the nonmultilinear target and a
+source-specific rank comparison. This does not invalidate the normalization
+obstruction proved here; the lift does not normalize the target. The
+SAT-runtime-derived source upper bound remains unproved.
+
 These results do not prove P ≠ NP. The runtime counterexample is an easy
 language, so it does not refute a theorem with an additional faithful
 SAT-correctness premise. The designated-sheet result concerns the current

@@ -47,6 +47,15 @@ runtime-only collapse for that invariant. This does not refute a bound
 conditioned additionally on faithful SAT correctness or every alternative
 God-Move source/map.
 
+The latest [designated-sheet extraction](GodMoveDesignatedProjection.md)
+now supplies an explicit map from the normalized operational SAT source to
+the actual nonmultilinear target. It substitutes `X_i -> 1-X_i+X_i^2` into
+the extracted unit monomial. A proved row-space containment gives the
+same-parameter rank inequality, and a separate-coordinate extension gives
+an idempotent linear projection. The existing designated identity-minor
+bound survives. This supplies the named source-to-target bridge for that
+source, while its SAT-runtime-derived upper bound remains unproved.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.
@@ -59,9 +68,15 @@ compiler and final argument are found at Theorems 203 and 207.
   extraction and same-target identity-minor data, including
   `routeBPaperFaithfulTPhi_extraction_and_identity_minor`.
 - `GlobalGodMoveGauge.lean` distinguishes the raw local product compiler
-  from a candidate paper-faithful instrumented source. The remaining source
+  from a candidate paper-faithful instrumented source. The separate source
   conditions are named `Theorem207PaperSourcePSideUpperBound` and
   `Theorem207PaperSourceToTargetRankBridge`.
+- `GodMoveSATDesignatedExtraction.operationalPaperSource_rank_bridge`
+  proves the latter for its concrete normalized SAT-machine source.
+  `GodMoveSATDesignatedProjection` gives exact extraction, idempotence, and
+  source-specific rank transport in a common enlarged variable space. No
+  polynomial source upper bound or global rank-monotonicity contract is
+  supplied by these results.
 - For the existing raw product compiler, that file already contains
   `theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly`: the
   requested polynomial bound conflicts with its separately established
@@ -135,7 +150,10 @@ signed CNFs in `GodMoveCharacteristicUnsat.lean`. It is not a refutation of
 the later **satisfiable** padded family in Lemma 189 (p.177), or of raw gadget
 products that have not been identified with this characteristic polynomial.
 
-The correct continuation is the God-Move compiler/collapse/extraction chain,
-not an assertion that the local log-det ceiling refutes it. No new proof of
-the universal, same-source collapse and minor-preservation combination has
-been obtained in this attempt. The separation remains unproved.
+The current extraction preserves the actual designated sheet and its rank
+lower bound for a specified normalized SAT-machine source. Its polynomial
+runtime-derived upper bound remains unproved. The source is a language
+characteristic over all words of an encoded length, and the extracted
+product is already available from easy unit-query behavior; its large rank
+alone does not establish unavoidable SAT computation time. The separation
+remains unproved.

@@ -73,10 +73,11 @@ correctness. Thus that exact raw-source frontier is not an open lemma to fill in
 [GodMoveGapRepairs.md](research-audits/nframe-fixed-invariant/GodMoveGapRepairs.md).
 
 The paper's primary Global God-Move route instead needs a faithful instrumented source with a
-runtime-derived upper bound and a valid extraction to the designated hard coupled sheet. The remaining
+runtime-derived upper bound and a valid extraction to the designated hard coupled sheet. The separate
 paired interfaces are `GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound` and
 `GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge`, on the same constructed objects. Their
-arithmetic closure is proved; their joint construction from a faithful hypothetical SAT decider is not.
+arithmetic closure is proved. The new extraction below supplies the latter for a specified normalized
+operational SAT source; the former remains unproved, so their joint construction is not complete.
 
 ## Tiny-instance test (item 3)
 
@@ -109,4 +110,19 @@ now proves two specific limitations of the normalized machine-output route. A fi
 runtime-only bound is false. The actual strict first-of-block target normalizes to one and cannot equal
 a multilinear verifier characteristic at paper scale. These do not refute every God-Move source/map or
 a theorem that additionally uses faithful SAT correctness, but the current characteristic equality and
-generic runtime bound cannot supply the two remaining obligations.
+generic runtime bound cannot supply the required combination.
+
+The subsequent [designated-sheet extraction](research-audits/nframe-fixed-invariant/GodMoveDesignatedProjection.md)
+recovers the nonmultilinear sheet explicitly, without normalizing it. A quadratic substitution after
+the unit-query face gives exact equality with the actual production target; a row-space argument
+proves same-parameter rank transport. Its extension to separate source/output coordinates is an
+idempotent linear projection and retains the designated lower bound at the paper's log/log window.
+`GodMoveSATDesignatedExtraction.operationalPaperSource_rank_bridge` supplies the named rank bridge.
+The rank comparison applies to this source; it is not a global rank-monotonicity theorem.
+
+This does not prove a SAT-specific polynomial runtime bound for the normalized source. Correctness
+fixes that source as the canonical SAT language characteristic, independently of the implementation
+or clock, and a binomial minor already occurs on easy unit-query faces. The separate canonicity audit
+proves that this rank is superpolynomial even in the actual encoded input length. Deriving an upper
+bound from a hypothetical polynomial SAT clock remains the missing mathematical argument, not a
+consequence of the compact extraction formula or the dimension of its unrestricted output range.
