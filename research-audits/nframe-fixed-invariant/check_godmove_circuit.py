@@ -43,6 +43,16 @@ STAGES = [
     ['GodMoveCubeWitnessSearch', 'GodMoveNumericCounterexample', 'GodMoveBlackBoxQueryBarrier'],
     ['GodMoveAdaptiveDiscovery'],
     ['GodMoveAdaptiveRefinement', 'GodMoveAdaptiveDiscoveryExamples'],
+    ['GodMoveBinaryAdder', 'GodMoveCircuitCNFSize', 'GodMoveGramPrecision'],
+    ['GodMoveRationalClearing', 'GodMoveMachineCircuitOracle'],
+    ['GodMoveSignedBinary', 'GodMoveResidualQueries'],
+    ['GodMoveControlledWord', 'GodMoveGramSamplePrecision'],
+    ['GodMoveWireSum'],
+    ['GodMoveWeightedWireQuery'],
+    ['GodMoveRationalMachineQuery'],
+    ['GodMoveMachineRowFinder'],
+    ['GodMoveMachineDiscovery'],
+    ['GodMoveMachineDiscoveryPrecision'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

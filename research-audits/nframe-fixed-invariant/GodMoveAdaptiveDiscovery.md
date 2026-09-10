@@ -1,5 +1,11 @@
 # Adaptive discovery and the scalar-query barrier
 
+Subsequent work in [GodMoveMachineDiscovery.md](GodMoveMachineDiscovery.md)
+implements the residual-query path using a supplied actual SAT machine and
+derives adaptive coefficient and query-size bounds. Its correctness assumes
+that machine decides SAT; complete construction runtime and the SAT lower
+bound remain unproved. The report below records the preceding oracle stage.
+
 This work adds a concrete adaptive alternative to the exhaustive sample scan. Given a correct Boolean predicate-existence oracle, it discovers separating samples and independent basis wires using at most `(s + 1) * (n + 1)` oracle calls for an `s`-gate circuit on `n` Boolean inputs. The oracle is an explicit input whose implementation cost remains unresolved. **Polynomial-time discovery without that oracle and a superpolynomial SAT runtime lower bound are not proved.**
 
 The work also proves an unconditional exponential query bound in a different, restricted model: a deterministic decision tree receiving only scalar Boolean output values must make at least `2^n` queries on its all-zero-answer path to decide whether the unknown function is ever true. That model withholds circuit syntax and internal wire values. Its bound does not apply to the circuit-aware adaptive algorithm, which instead uses an existential oracle over a numeric full-wire-row predicate.

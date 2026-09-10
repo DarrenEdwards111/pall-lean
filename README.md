@@ -2,6 +2,22 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Discovery through a supplied SAT machine (2026-09-10)
+
+The [machine discovery continuation](research-audits/nframe-fixed-invariant/GodMoveMachineDiscovery.md)
+replaces the abstract discovery oracle with exact arithmetic circuits, actual
+CNF encodings, and clocked calls to a supplied correct SAT machine. It returns
+separating samples and exact basis wires without an assignment scan. Lean
+derives polynomial request counts, coefficient bit bounds throughout discovery,
+and query sizes; a supplied polynomial SAT clock also bounds each query's
+machine steps. The same machine can discover a basis for its own unrolled
+computation, capturing the SAT decision polynomial.
+
+Correctness still assumes the supplied machine decides SAT. Full construction
+runtime, complete gauge certificate construction, and the requested
+superpolynomial SAT lower bound remain unproved. This does not establish
+`P ≠ NP`. Earlier continuation reports below record their respective stages.
+
 ## Adaptive discovery with an explicit oracle (2026-09-10)
 
 The [adaptive continuation](research-audits/nframe-fixed-invariant/GodMoveAdaptiveDiscovery.md)

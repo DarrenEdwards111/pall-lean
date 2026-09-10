@@ -1,5 +1,11 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For the latest construction using an actual supplied SAT machine, with exact
+sample/basis correctness and derived adaptive coefficient and query-size
+bounds, see [GodMoveMachineDiscovery.md](GodMoveMachineDiscovery.md).
+The complete construction runtime and superpolynomial SAT lower bound remain
+unproved. Earlier reports below retain their historical verification results.
+
 For adaptive discovery with an explicit predicate-existence oracle and the
 separate scalar-query lower bound, see
 [GodMoveAdaptiveDiscovery.md](GodMoveAdaptiveDiscovery.md). Oracle-call
