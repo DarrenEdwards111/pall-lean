@@ -2,6 +2,21 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Executable sample and basis discovery (2026-09-10)
+
+The [discovery continuation](research-audits/nframe-fixed-invariant/GodMoveExecutableDiscovery.md)
+implements exact rational selection from actual Boolean circuit-wire values.
+It constructs separating assignments and selects independent wire columns that
+span the entire computed-wire polynomial space. Their number equals the exact
+wire rank. The resulting SAT program has verified language-level correctness
+without a supplied sample selector.
+
+Discovery still scans all `2^n` Boolean assignments. The small returned lists
+do not establish polynomial runtime. A separate refinement theorem bounds
+successful counterexample steps by the gate count, while leaving the search
+for each counterexample unbounded. Efficient general discovery, complete gauge
+certificate construction, and a superpolynomial SAT lower bound remain unproved.
+
 ## Explicit sampled gauge construction (2026-09-10)
 
 The [sampled gauge continuation](research-audits/nframe-fixed-invariant/GodMoveGaugeConstruction.md)

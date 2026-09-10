@@ -1,5 +1,10 @@
 # Explicit sampled gauges and SAT reductions
 
+The subsequent [executable discovery report](GodMoveExecutableDiscovery.md)
+adds an exhaustive algorithm for the separating samples and exact basis-wire
+indices discussed below. The search uses all Boolean assignments; inverse
+weights and an efficient complete gauge constructor remain separate requirements.
+
 This continuation replaces an arbitrary chosen complementary subspace with an
 explicit projection formula built from supplied Boolean samples and a finite
 inverse matrix. It provides an executable evaluator using the original circuit

@@ -36,6 +36,10 @@ STAGES = [
     ['GodMoveUnitOutputGauge', 'GodMoveProductionConnection'],
     ['GodMoveSamplingBarrier', 'GodMoveSampledWireGauge', 'GodMoveRankIncrementSAT'],
     ['GodMoveSampledSAT', 'GodMoveSmallSeparatingSamples', 'GodMoveWireSampleCertificate'],
+    ['GodMoveBooleanWireTable', 'GodMoveRationalRowBasis', 'GodMoveSampleRefinement'],
+    ['GodMoveRowSpanSeparation'],
+    ['GodMoveExhaustiveDiscovery', 'GodMoveSampledWireBasis'],
+    ['GodMoveExhaustiveWireBasis'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

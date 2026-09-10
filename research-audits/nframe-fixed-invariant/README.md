@@ -1,5 +1,11 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For executable exhaustive sample selection, exact basis-wire discovery, and
+the bound on successful sample refinements, see
+[GodMoveExecutableDiscovery.md](GodMoveExecutableDiscovery.md). Discovery
+still scans all Boolean assignments; no efficient discovery or superpolynomial
+SAT lower bound is claimed.
+
 For the explicit sampled projection, executable wire-based evaluator, and
 SAT reductions for finding the required data, see
 [GodMoveGaugeConstruction.md](GodMoveGaugeConstruction.md).
