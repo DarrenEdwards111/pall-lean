@@ -1,5 +1,10 @@
 # Fixed N-Frame invariant: concrete implementation check
 
+For whether the machine-dependent revision resolves the selector-to-SAT
+objection, see [GodMoveDiscoveryRevisionAudit.md](GodMoveDiscoveryRevisionAudit.md).
+It validates the conditional strategy while retaining the independent lower
+bound as an unproved requirement for separation.
+
 For the latest construction using an actual supplied SAT machine, with exact
 sample/basis correctness and derived adaptive coefficient and query-size
 bounds, see [GodMoveMachineDiscovery.md](GodMoveMachineDiscovery.md).

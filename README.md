@@ -2,6 +2,20 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Revision audit: the selector-to-SAT objection (2026-09-10)
+
+The [revision audit](research-audits/nframe-fixed-invariant/GodMoveDiscoveryRevisionAudit.md)
+confirms that the new discovery uses a supplied correct SAT machine. This is
+valid under a hypothetical polynomial-time SAT decider in a contradiction
+argument, and the original selector-to-SAT implication still holds. Lean
+checks the semantic round trip and proves that the revision's derived
+guarantees do not restrict that hypothetical decider further.
+
+A concrete rejecting machine satisfies the numerical bounds but fails sample
+correctness, showing why the SAT-correctness premise cannot be dropped. The
+independent superpolynomial wire-rank lower bound remains unproved; discovery
+does not amplify rank or establish separation.
+
 ## Discovery through a supplied SAT machine (2026-09-10)
 
 The [machine discovery continuation](research-audits/nframe-fixed-invariant/GodMoveMachineDiscovery.md)

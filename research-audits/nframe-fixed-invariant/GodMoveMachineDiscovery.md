@@ -1,5 +1,10 @@
 # Discovery through an actual supplied SAT machine
 
+The subsequent [revision audit](GodMoveDiscoveryRevisionAudit.md) checks this
+construction against the selector-to-SAT objection. It validates the
+conditional use of a hypothetical correct SAT machine, while proving that
+the added guarantees do not eliminate that hypothesis or establish separation.
+
 This continuation replaces the abstract predicate-existence oracle on the
 wire-discovery path with explicit Boolean circuits, their actual CNF encodings,
 and clocked runs of a supplied SAT machine. Lean proves that the returned

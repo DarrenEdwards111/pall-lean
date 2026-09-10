@@ -53,6 +53,7 @@ STAGES = [
     ['GodMoveMachineRowFinder'],
     ['GodMoveMachineDiscovery'],
     ['GodMoveMachineDiscoveryPrecision'],
+    ['GodMoveDiscoveryQuantifierAudit', 'GodMoveDiscoveryAssumptionCheck'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
