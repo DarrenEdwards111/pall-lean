@@ -4,6 +4,7 @@
 Run from any directory. By default use this checkout's Lake environment.
 --dependency-checkout may select an existing cache only after every imported
 PallLean source has been checked byte-for-byte against this checkout.
+--module checks selected endpoints and their complete GodMove import closure.
 """
 
 import argparse
@@ -95,6 +96,11 @@ STAGES = [
     ['GodMoveCachedBasisPrecision', 'GodMoveBinarySubtract'],
     ['GodMoveCachedArithmeticPrecision'],
     ['GodMoveCachedConstructionPrecision'],
+    ['GodMoveEuclideanBitIterations', 'GodMoveBinaryMultiply', 'GodMoveBooleanExecutionCost'],
+    ['GodMoveBinaryDivision', 'GodMoveRationalPrimitiveBounds'],
+    ['GodMoveBinaryGCD'],
+    ['GodMoveBinaryFractionNormalize'],
+    ['GodMoveBinaryArithmeticExecution'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
@@ -112,11 +118,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dependency-checkout', type=Path, default=checkout)
     parser.add_argument('--log-dir', type=Path)
+    known_modules = {name for stage in STAGES for name in stage}
+    parser.add_argument('--module', action='append', choices=sorted(known_modules),
+                        help='Check this endpoint and its GodMove imports; repeat for multiple endpoints')
     args = parser.parse_args()
+    wanted = set()
+    module_queue = list(args.module or known_modules)
+    while module_queue:
+        name = module_queue.pop()
+        if name in wanted:
+            continue
+        if name not in known_modules:
+            raise RuntimeError(f'GodMove import missing from checker stages: {name}')
+        wanted.add(name)
+        module_queue.extend(m for m in imports(audit / (name + '.lean'))
+                            if m.startswith('GodMove'))
+    stages = [[name for name in stage if name in wanted] for stage in STAGES]
+    stages = [stage for stage in stages if stage]
     base = args.dependency_checkout.resolve()
     logs = args.log_dir or Path(tempfile.mkdtemp(prefix='godmove-circuit-checks-'))
     logs.mkdir(parents=True, exist_ok=True)
-    pending = [audit / (name + '.lean') for stage in STAGES for name in stage]
+    pending = [audit / (name + '.lean') for stage in stages for name in stage]
     direct = set()
     for path in pending:
         direct.update(m for m in imports(path) if m.startswith('PallLean.'))
@@ -172,7 +194,7 @@ def main():
         return record
 
     records = []
-    for stage in STAGES:
+    for stage in stages:
         with ThreadPoolExecutor(max_workers=3) as pool:
             stage_records = list(pool.map(check, stage))
         records.extend(stage_records)
@@ -182,8 +204,9 @@ def main():
         'checkout_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'],
                                                 cwd=checkout, text=True).strip(),
         'lean_version': subprocess.check_output([lean, '--version'], text=True).strip(),
+        'requested_modules': args.module,
         'source_closure_files': len(seen), 'checks': records,
-        'all_passed': len(records) == sum(map(len, STAGES)) and all(r['passed'] for r in records),
+        'all_passed': len(records) == sum(map(len, stages)) and all(r['passed'] for r in records),
     }
     (logs / 'results.json').write_text(json.dumps(summary, indent=2) + '\n')
     print('ALL_PASSED=' + str(summary['all_passed']), flush=True)

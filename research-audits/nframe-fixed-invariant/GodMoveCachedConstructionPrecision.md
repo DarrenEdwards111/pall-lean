@@ -85,12 +85,11 @@ external integer implementation.
 
 ## The remaining two requested bounds
 
-For complete construction runtime, the rational primitives still need a
-verified binary implementation and cost bridge, including division, gcd and
-normalization. The builder also needs accounting for its remaining host
-operations and linkage to the existing bound on actual SAT-call clocks.
-The new subtraction circuit is one primitive toward that implementation;
-it is not a division, gcd or complete rational-arithmetic backend.
+The subsequent [binary arithmetic implementation](GodMoveBinaryArithmeticExecution.md)
+now supplies division, gcd and normalization circuits, with a counted Boolean
+evaluator for normalization. Complete construction runtime still needs the
+backend integrated into the builder, code-generation and remaining host costs,
+a machine-model bridge, and linkage to the existing actual SAT-call clocks.
 
 For the SAT-specific derivative-rank bound, none of these precision or
 arithmetic results places the labelled derivative rows into the computed

@@ -1,6 +1,13 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [precision throughout cached construction](GodMoveCachedConstructionPrecision.md)
+The latest [binary arithmetic and counted normalization execution](GodMoveBinaryArithmeticExecution.md)
+provides variable-word multiplication, division, gcd and normalization circuits,
+raw integer precision bounds, and a polynomial bound for normalization in an
+explicit Boolean/list traversal model, including output collection. Complete
+construction runtime and the SAT-specific derivative-rank bound remain
+unproved; separation is not established.
+
+The preceding [precision throughout cached construction](GodMoveCachedConstructionPrecision.md)
 bounds rational stages along actual discovery and selection branches, including
 rejected rows, and the inverse on the returned descriptor's sample data. It
 combines this with the existing quartic rational-operation count and adds a
