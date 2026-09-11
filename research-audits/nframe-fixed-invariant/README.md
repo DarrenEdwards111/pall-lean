@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [actual-runtime snapshot connection](GodMoveRuntimeSnapshotConnection.md)
+The latest [constructed wire projection](GodMoveConstructedProjection.md)
+computes the inverse weights for the actual SAT-machine discovery's sample
+matrix and derives the full existing wire certificate. Its cached numeric
+weight builder uses at most `8r³` rational arithmetic operations, with
+polynomial bit length for the final weights. The complete construction
+bit-runtime bound and SAT-specific derivative-rank bound remain unproved;
+this does not establish separation.
+
+The preceding [actual-runtime snapshot connection](GodMoveRuntimeSnapshotConnection.md)
 proves a quadratic production N-Frame rank bound for the span of actual
 tape, head, and control coordinate functions. For a correct SAT decider,
 this gauge fixes the exact SAT decision polynomial. The required derivative

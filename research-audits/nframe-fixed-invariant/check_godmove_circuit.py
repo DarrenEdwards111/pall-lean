@@ -78,6 +78,10 @@ STAGES = [
     ['GodMoveMachineDiscovery'],
     ['GodMoveMachineDiscoveryPrecision'],
     ['GodMoveDiscoveryQuantifierAudit', 'GodMoveDiscoveryAssumptionCheck'],
+    ['GodMoveTrackedOrthogonalization', 'GodMoveProjectionSamples',
+     'GodMoveProjectionWeightPrecision'],
+    ['GodMoveTrackedOrthogonalizationCost'],
+    ['GodMoveConstructedProjection'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

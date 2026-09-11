@@ -197,3 +197,14 @@ the snapshot span. Thus the bound does not establish containment or rank
 control of the hard derivative family. Efficient projection construction,
 the required SAT-specific derivative connection, and separation remain
 unproved.
+
+The [constructed wire projection](research-audits/nframe-fixed-invariant/GodMoveConstructedProjection.md)
+subsequently computes the actual discovered sample matrix's inverse
+weights and derives the complete existing `WireCertificate`. Its stored
+numeric row algorithm uses at most `8r³` rational operations; the final
+weights have polynomial bit length. Neither a supplied inverse nor a
+spanning certificate is assumed by the machine-level wrapper. The supplied
+SAT machine's correctness remains necessary. This realizes the computed-wire
+range, and does not prove a complete bit-runtime bound or containment of
+the hard derivative rows. The SAT-specific source-rank bound and separation
+remain unproved.

@@ -119,6 +119,16 @@ The missing SAT-specific derivative containment is therefore not supplied
 by this runtime bound. Classical complement selection also supplies no
 efficient projection algorithm. Separation remains unproved.
 
+The [constructed wire projection](GodMoveConstructedProjection.md) now
+computes the discovered sample matrix's inverse weights with cached
+rational rows and proves their exact duality. It derives the existing
+`WireCertificate` using only the supplied SAT machine's correctness,
+with no supplied inverse or spanning certificate. The numerical phase
+uses at most `8r³` rational operations, and its final weights have
+polynomial bit length. This realizes the earlier computed-wire gauge's
+range; it does not supply derivative containment, a complete construction
+bit-runtime bound, or the missing SAT source-rank estimate.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.
