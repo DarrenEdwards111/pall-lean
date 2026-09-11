@@ -102,9 +102,9 @@ interpreting those calls remains separate.
 
 A complete bit-runtime theorem must account for coefficient clearing and
 serialization, Boolean query construction and execution, data handling and
-rational/integer primitives. It must also link precision bounds to every new
-discovery and selection intermediate. The earlier theorem for all intermediate
-values in the inverse kernel does not automatically cover these other loops.
+rational/integer primitives. The subsequent [cached construction precision proof](GodMoveCachedConstructionPrecision.md)
+now links precision bounds to discovery and selection intermediates as well
+as the inverse. It does not yet supply those implementation-cost bounds.
 
 The SAT rank investigation found no valid replacement for the missing joint
 derivative-span argument. Deterministic simulation and circuit gluing bound

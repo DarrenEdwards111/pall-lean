@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [cached construction and SAT-clock accounting](GodMoveCachedConstructionRuntime.md)
+The latest [precision throughout cached construction](GodMoveCachedConstructionPrecision.md)
+bounds rational stages along actual discovery and selection branches, including
+rejected rows, and the inverse on the returned descriptor's sample data. It
+combines this with the existing quartic rational-operation count and adds a
+verified binary subtractor using eight gates per bit. Complete construction
+bit-runtime and the SAT-specific derivative-rank bound remain unproved;
+separation is not established.
+
+The preceding [cached construction and SAT-clock accounting](GodMoveCachedConstructionRuntime.md)
 replaces nested residual-function evaluation with stored rows, norms and query
 matrices. It preserves the original descriptor and exact ordered SAT query log,
 proves a quartic count for the residual/basis/inverse arithmetic, and bounds

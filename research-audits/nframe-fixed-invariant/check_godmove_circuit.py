@@ -92,6 +92,9 @@ STAGES = [
     ['GodMoveCachedRowFinder'],
     ['GodMoveCachedMachineDiscovery'],
     ['GodMoveCachedProjectionConstruction', 'GodMoveCachedDiscoveryTrace'],
+    ['GodMoveCachedBasisPrecision', 'GodMoveBinarySubtract'],
+    ['GodMoveCachedArithmeticPrecision'],
+    ['GodMoveCachedConstructionPrecision'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
