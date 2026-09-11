@@ -1,3 +1,11 @@
+## 2026-09-11: constructed projection preservation test
+
+[Finite derivative obstruction](GodMoveConstructedDerivativeObstruction.md):
+the actual constructed wire projection cannot preserve every second-derivative
+direction of the 13-gate six-input conjunction (at least 15 directions).
+This specializes the existing generic obstruction to the new numeric builder;
+it does not refute a SAT-specific theorem or establish separation.
+
 # Fixed N-Frame invariant: concrete implementation check
 
 The latest [constructed wire projection](GodMoveConstructedProjection.md)
