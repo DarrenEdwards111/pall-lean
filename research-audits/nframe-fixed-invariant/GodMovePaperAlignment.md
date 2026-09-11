@@ -96,6 +96,17 @@ The incorporated dense-output barrier is now derived from legal machine
 steps with encoded input length accounted for. Efficient contraction and
 the SAT-specific runtime bound remain unproved.
 
+The [circuit gluing/application continuation](GodMoveCircuitGluingAndApplication.md)
+now constructs literal shared-wire circuit composition and derives its
+response factorization from the actual gate trace. An r-bit interface gives
+up to 2^r response directions; a logarithmic interface bound is needed for
+the corresponding polynomial rank estimate. Theorem 203's locality claim
+and Lemmas 213–214's anonymous profile counts do not alone establish that
+bound or the required SPDP common-span argument. The same continuation
+provides compact application of the existing projector to separated affine
+products and the designated quadratic sheet. Its applicability to the
+actual SAT source with a runtime bound remains unproved.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.

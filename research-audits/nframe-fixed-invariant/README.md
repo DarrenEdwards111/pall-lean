@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [compact projector construction](GodMoveImplicitGaugeConstruction.md)
+The latest [circuit gluing and projector application](GodMoveCircuitGluingAndApplication.md)
+proves exact shared-wire composition and its joint-state factorization.
+It also applies the unchanged production projector in compact form to
+separated affine factors and the designated quadratic sheet. The interface
+rank bound is exponential in the number of Boolean ports, and a linear-size
+equality circuit attains it. These results do not prove the SAT-specific
+runtime-controlled N-Frame bound or separation.
+
+The preceding [compact projector construction](GodMoveImplicitGaugeConstruction.md)
 gives executable arithmetic syntax for the exact production row-projector
 kernel, with `2+3m(k+1)+11m` nodes and proved contraction semantics.
 Its rank remains superpolynomial in that descriptor size. The incorporated

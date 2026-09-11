@@ -173,3 +173,14 @@ boundary-runtime barrier has also been connected to actual machine output
 with polynomial encoded lengths. It constrains dense serialization, not
 arbitrary SAT deciders. The SAT-specific runtime-controlled connection and
 faithful separation target remain unproved.
+
+The [circuit gluing/application continuation](research-audits/nframe-fixed-invariant/GodMoveCircuitGluingAndApplication.md)
+proves executable shared-wire composition, exact trace preservation, and
+response factorization through actual computed Boolean ports. Its rank
+bound is `2^r` for `r` ports; a verified `4r+1`-gate equality circuit attains
+that exponential response rank. This response matrix is not substituted
+for the production N-Frame invariant. For that unchanged invariant, the
+continuation gives compact projector application on separated affine
+products and the actual designated quadratic sheet. General application
+to the SAT source, a runtime-controlled source upper bound, and separation
+remain unproved.
