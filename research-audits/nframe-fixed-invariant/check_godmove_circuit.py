@@ -101,6 +101,11 @@ STAGES = [
     ['GodMoveBinaryGCD'],
     ['GodMoveBinaryFractionNormalize'],
     ['GodMoveBinaryArithmeticExecution'],
+    ['GodMoveRationalWireEncoding', 'GodMoveSATPaddingInvariance'],
+    ['GodMoveSignedArithmetic', 'GodMoveBinaryRationalMultiply', 'GodMoveBinaryScalarExecution'],
+    ['GodMoveBinaryRationalAdd', 'GodMoveBinaryRationalDivide', 'GodMoveMarkedFrameMachine'],
+    ['GodMoveBinaryDotProduct', 'GodMoveBinaryRationalBackend'],
+    ['GodMoveCachedBinaryDotExecution'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

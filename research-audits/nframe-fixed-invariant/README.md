@@ -1,6 +1,13 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [binary arithmetic and counted normalization execution](GodMoveBinaryArithmeticExecution.md)
+The latest [signed rational backend and cached dot execution](GodMoveBinaryRationalBackend.md)
+provides canonical Boolean implementations of all four rational operations,
+fixed-width dot circuits, and polynomial evaluator traversal bounds tied to
+cached precision. It also proves an exact clock for a framed tape append.
+Complete construction machine runtime and the SAT derivative-rank bound remain
+unproved; separation is not established.
+
+The preceding [binary arithmetic and counted normalization execution](GodMoveBinaryArithmeticExecution.md)
 provides variable-word multiplication, division, gcd and normalization circuits,
 raw integer precision bounds, and a polynomial bound for normalization in an
 explicit Boolean/list traversal model, including output collection. Complete
