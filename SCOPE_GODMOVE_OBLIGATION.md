@@ -184,3 +184,16 @@ continuation gives compact projector application on separated affine
 products and the actual designated quadratic sheet. General application
 to the SAT source, a runtime-controlled source upper bound, and separation
 remain unproved.
+
+The [actual-runtime snapshot connection](research-audits/nframe-fixed-invariant/GodMoveRuntimeSnapshotConnection.md)
+proves a quadratic rank bound in the unchanged production gauge type:
+the span of actual tape, head, and control coordinate polynomials through
+time `t` has dimension at most `(t+1)(2(L+t+1)+q)`. The resulting gauge
+fixes the actual SAT decision characteristic when the machine correctly
+decides SAT. This is a new snapshot gauge, distinct from the earlier
+runtime-bounded wire gauge and from the designated-row gauge. A concrete
+four-state scanner proves that its output's derivative space can exceed
+the snapshot span. Thus the bound does not establish containment or rank
+control of the hard derivative family. Efficient projection construction,
+the required SAT-specific derivative connection, and separation remain
+unproved.

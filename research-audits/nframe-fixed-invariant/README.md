@@ -1,6 +1,14 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [circuit gluing and projector application](GodMoveCircuitGluingAndApplication.md)
+The latest [actual-runtime snapshot connection](GodMoveRuntimeSnapshotConnection.md)
+proves a quadratic production N-Frame rank bound for the span of actual
+tape, head, and control coordinate functions. For a correct SAT decider,
+this gauge fixes the exact SAT decision polynomial. The required derivative
+space need not lie in that span: a concrete four-state scanner has snapshot dimension at most
+1,296 and fourth-derivative rank at least 1,820. A SAT-specific argument
+controlling the hard derivative rows and separation remain unproved.
+
+The preceding [circuit gluing and projector application](GodMoveCircuitGluingAndApplication.md)
 proves exact shared-wire composition and its joint-state factorization.
 It also applies the unchanged production projector in compact form to
 separated affine factors and the designated quadratic sheet. The interface

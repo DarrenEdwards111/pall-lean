@@ -107,6 +107,18 @@ provides compact application of the existing projector to separated affine
 products and the designated quadratic sheet. Its applicability to the
 actual SAT source with a runtime bound remains unproved.
 
+The [actual-runtime snapshot connection](GodMoveRuntimeSnapshotConnection.md)
+now bounds a specific production gauge's rank by
+`(t+1)(2(L+t+1)+q) ≤ (q+2)(L+t+1)²`, using the actual tape, head, and
+control coordinate functions. Acceptance is a derived linear combination
+of final control indicators, so this gauge fixes the exact SAT decision
+polynomial under faithful correctness. Its span is not automatically a
+common span for the required derivative rows: a concrete four-state
+scanner has more independent fourth derivatives than snapshot dimensions.
+The missing SAT-specific derivative containment is therefore not supplied
+by this runtime bound. Classical complement selection also supplies no
+efficient projection algorithm. Separation remains unproved.
+
 Theorem-number caution: p.14 refers to a collapse "Theorem 170", but the
 current item numbered 170 is a restricted-DNF construction. The actual
 compiler and final argument are found at Theorems 203 and 207.
