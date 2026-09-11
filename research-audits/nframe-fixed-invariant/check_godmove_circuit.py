@@ -83,6 +83,10 @@ STAGES = [
     ['GodMoveTrackedOrthogonalizationCost'],
     ['GodMoveConstructedProjection'],
     ['GodMoveConstructedDerivativeObstruction'],
+    ['GodMoveRationalPrecisionArithmetic'],
+    ['GodMoveTrackedRowPrecision', 'GodMoveDotLoopPrecision'],
+    ['GodMoveTrackedArithmeticPrecision'],
+    ['GodMoveConstructedProjectionPrecision'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

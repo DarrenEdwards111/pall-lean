@@ -253,6 +253,16 @@ theorem inverseWeights_operations_le_cubic {n : ℕ}
     (inverseWeights A).operations ≤ 8 * n ^ 3 :=
   inverseTable_operations_le_cubic _
 
+/-- Correctness and arithmetic cost of the same executed weight builder. -/
+theorem inverseWeights_correct_and_cost {n : ℕ}
+    (A : Matrix (Fin n) (Fin n) ℚ) (hA : LinearIndependent ℚ A) :
+    (inverseWeights A).value * A = 1 ∧
+      (inverseWeights A).operations ≤ 8 * n ^ 3 := by
+  constructor
+  · rw [inverseWeights_value]
+    exact GodMoveTrackedOrthogonalization.inverseWeights_mul A hA
+  · exact inverseWeights_operations_le_cubic A
+
 end GodMoveTrackedOrthogonalizationCost
 
 #print axioms GodMoveTrackedOrthogonalizationCost.sumProducts_value
@@ -266,3 +276,4 @@ end GodMoveTrackedOrthogonalizationCost
 #print axioms GodMoveTrackedOrthogonalizationCost.inverseTable_operations_le_cubic
 #print axioms GodMoveTrackedOrthogonalizationCost.inverseWeights_value
 #print axioms GodMoveTrackedOrthogonalizationCost.inverseWeights_operations_le_cubic
+#print axioms GodMoveTrackedOrthogonalizationCost.inverseWeights_correct_and_cost

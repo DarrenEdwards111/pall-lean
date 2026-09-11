@@ -1,3 +1,12 @@
+# Fixed N-Frame invariant: concrete implementation check
+
+The latest [constructed projection precision proof](GodMoveConstructedProjectionPrecision.md)
+bounds every rational stage of the cached inverse, including its dot-product
+partial sums, by `100*(r+1)^4+1` magnitude bits. Together with the existing
+`8r³` rational-operation bound, this closes the numeric kernel's intermediate
+precision gap. The complete construction bit-runtime and SAT-specific joint
+derivative-rank bound remain unproved; separation is not established.
+
 ## 2026-09-11: constructed projection preservation test
 
 [Finite derivative obstruction](GodMoveConstructedDerivativeObstruction.md):
@@ -6,9 +15,7 @@ direction of the 13-gate six-input conjunction (at least 15 directions).
 This specializes the existing generic obstruction to the new numeric builder;
 it does not refute a SAT-specific theorem or establish separation.
 
-# Fixed N-Frame invariant: concrete implementation check
-
-The latest [constructed wire projection](GodMoveConstructedProjection.md)
+The preceding [constructed wire projection](GodMoveConstructedProjection.md)
 computes the inverse weights for the actual SAT-machine discovery's sample
 matrix and derives the full existing wire certificate. Its cached numeric
 weight builder uses at most `8r³` rational arithmetic operations, with
