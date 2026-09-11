@@ -87,6 +87,11 @@ STAGES = [
     ['GodMoveTrackedRowPrecision', 'GodMoveDotLoopPrecision'],
     ['GodMoveTrackedArithmeticPrecision'],
     ['GodMoveConstructedProjectionPrecision'],
+    ['GodMoveCachedDiscoveryBasis', 'GodMoveDiscoveryClockTrace'],
+    ['GodMoveCachedResidualMatrix', 'GodMoveCachedSelection', 'GodMoveDiscoveryClockBudget'],
+    ['GodMoveCachedRowFinder'],
+    ['GodMoveCachedMachineDiscovery'],
+    ['GodMoveCachedProjectionConstruction', 'GodMoveCachedDiscoveryTrace'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 

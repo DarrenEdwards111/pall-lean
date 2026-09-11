@@ -1,6 +1,13 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [constructed projection precision proof](GodMoveConstructedProjectionPrecision.md)
+The latest [cached construction and SAT-clock accounting](GodMoveCachedConstructionRuntime.md)
+replaces nested residual-function evaluation with stored rows, norms and query
+matrices. It preserves the original descriptor and exact ordered SAT query log,
+proves a quartic count for the residual/basis/inverse arithmetic, and bounds
+the summed clocks of all emitted SAT calls. Complete host bit-runtime and the
+SAT-specific derivative-rank bound remain unproved; separation is not established.
+
+The preceding [constructed projection precision proof](GodMoveConstructedProjectionPrecision.md)
 bounds every rational stage of the cached inverse, including its dot-product
 partial sums, by `100*(r+1)^4+1` magnitude bits. Together with the existing
 `8r³` rational-operation bound, this closes the numeric kernel's intermediate
