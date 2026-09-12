@@ -1,6 +1,13 @@
 # Fixed N-Frame invariant: concrete implementation check
 
-The latest [signed rational backend and cached dot execution](GodMoveBinaryRationalBackend.md)
+The latest [stored program execution and restoring lookup](GodMoveStoredRuntime.md)
+counts scalar preparation, serialization, decoding, execution and output reads;
+adds counted adder/multiplier generation and a uniform 46-state tape lookup;
+and proves a SAT-specific obstruction to using one easy run's time to bound the
+full canonical rank. Complete construction machine runtime and the global SAT
+derivative-rank bound remain unproved; separation is not established.
+
+The preceding [signed rational backend and cached dot execution](GodMoveBinaryRationalBackend.md)
 provides canonical Boolean implementations of all four rational operations,
 fixed-width dot circuits, and polynomial evaluator traversal bounds tied to
 cached precision. It also proves an exact clock for a framed tape append.

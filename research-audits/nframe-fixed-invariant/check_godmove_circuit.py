@@ -106,6 +106,10 @@ STAGES = [
     ['GodMoveBinaryRationalAdd', 'GodMoveBinaryRationalDivide', 'GodMoveMarkedFrameMachine'],
     ['GodMoveBinaryDotProduct', 'GodMoveBinaryRationalBackend'],
     ['GodMoveCachedBinaryDotExecution'],
+    ['GodMoveBinaryPackingCost', 'GodMoveStoredBooleanProgram',
+     'GodMoveMarkedReadMachine', 'GodMoveSATLocalClockObstruction'],
+    ['GodMoveBinaryMultiplyCompileCost', 'GodMoveStoredProgramExecution'],
+    ['GodMoveStoredScalarBackend'],
 ]
 STANDARD_AXIOMS = {'propext', 'Classical.choice', 'Quot.sound'}
 
