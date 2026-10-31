@@ -1,0 +1,9 @@
+PAC.gadget_spdp_subspace_factoring: not in this environment (skipped)
+MatrixSPDP.gadget_factoring_linearmap_form: not in this environment (skipped)
+PAC.gadget_spdp_subspace_factoring_paperFaithful: 4 modules import its module
+PAC.gadget_spdp_subspace_factoring_paperFaithful: 0 transitive dependents
+PAC.GadgetSpdpSubspaceFactoring: 4 modules import its module
+PAC.GadgetSpdpSubspaceFactoring: 3 transitive dependents
+MatrixSPDP.GadgetFactoringLinearMapForm: 5 modules import its module
+MatrixSPDP.GadgetFactoringLinearMapForm: 1 transitive dependents
+exit 0

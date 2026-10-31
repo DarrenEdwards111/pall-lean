@@ -9,6 +9,7 @@ Branch `fix/remove-contradictory-axioms`, based on `main` @ `7f539465`. Prepared
 | `DependentCensus.lean` | Meta script. For every constant in the `PallLean` environment it decides, by memoised DFS over `ConstantInfo.getUsedConstantsAsSet` (type + value), pruned to modules that import the axiom's module, whether the constant transitively uses each target | `lake env lean …/DependentCensus.lean` → `dependents_<tree>.tsv` |
 | `dependents_main7f53946.tsv` | Census output on main @ 7f53946 (pre-fix) | – |
 | `dependents_postfix.tsv`, `DependentCensus_postfix.out` | Census output after this PR (dependents of the new hypothesis `Prop`s) | – |
+| `ArchivePaperSpdpMatrix_axioms.out` | `lake build PallLean.Archive.PaperSpdpMatrix` post-fix (off the default target; it contains the only off-closure dependent, `mlBlockedSpdpRank_gadget_mul_le`): build succeeds, all axiom lists standard | – |
 | `EntryAxioms.lean` / `.out` | `#print axioms` for the entry theorems of the default target after the fix | `lake env lean …/EntryAxioms.lean` |
 
 The derivation of `False` is the same for both statements. The instance is N = 2, singleton blocks, gadget g = X₀
