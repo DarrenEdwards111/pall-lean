@@ -302,6 +302,17 @@ Prepared 2026-10-31 (Europe/London, GMT), branch `research/gap-g1` (based on `re
 Same tags: [K] kernel-checked (axioms listed), [C] computed, [I] informal proof written here, [X] disproved, [O] open.
 **Nothing here proves or claims P ≠ NP or P = NP.**
 
+> **Scope label (added 2026-10-31 on Darren's correction).** Every G1 result in this phase was tested against
+> *our own reconstruction* of the God-Move/P-side construction from **arXiv v5** and **pall-lean `main` @ 7f53946**
+> (objects `compiledPoly`, `templatePMn`, `PaperFaithfulCompilation`, `GlobalGodMoveGauge.Theorem207*`,
+> Def. 12 of v5). It was **not** tested against Darren's latest repaired construction (branch
+> `codex/godmove-gap-repairs` @ 21921958, normalized operational SAT source `machineSource` +
+> `sheetExtraction`); see Phase 3, G3-B for that construction.
+> Known/new: R2 (always-accept product horn) restates a fact already in main (`GodMoveReal.compiled_np_lower_bound_any_dtm`
+> holds for every DTM, no correctness) and in 21921958 (`GodMoveExistingCompilerVerdict`, `EasyMachineProfileRefutation`)
+> — **known**. R1 (degree obstruction to extraction from low-degree SoS) — **new** (no equivalent found in main or 21921958).
+> Lemma 18 counterexample and the Def. 12/Lean mismatch — **new** as far as we found (21921958 docs mention neither).
+
 ## G1.0 Current lemma (exact statement attacked)
 
 Paper v5 object (§17.1, Thm 92, Thm 218, §40.4): for a DTM M with T(n) = n^c, variables b_{t,i}, s_{t,q}, h_{t,i}
@@ -452,3 +463,170 @@ does not apply to G1 directly.
 ## G1.6 Branch
 `research/gap-g1` in pall-lean, based on `research/dependency-map` 81a085b. Content commit
 `ea1ba8856225…` (pushed 31 Oct 2026, ~21:55 GMT; no PR opened); this hash line added in the following commit.
+
+---
+
+# Phase 3 — Gap G3 (does extraction distinguish a correct machine from a trivial one?)
+
+Prepared 2026-10-31 (Europe/London, GMT), branch `research/gap-g3` (child of `research/gap-g1` f32d764).
+Tags as before: [K] kernel-checked, [C] computed, [I] informal argument written here.
+**Nothing here proves or claims P ≠ NP or P = NP.** No other branch is modified. `codex/godmove-gap-repairs`
+was only read, through a separate detached worktree (`/workspace/pvsnp/wt-g3`, its own build copy).
+
+Two constructions are examined, and each one is labelled:
+* **G3-A, our reconstruction** from arXiv v5 + `main` @ 7f53946 (Lemma 123/222, Thm 223(iii), `templatePMn`,
+  `GlobalGodMoveGauge.Theorem207*`). Lean file: `research-audits/gap-g3/G3TemplateObstruction.lean`, built on
+  the repo at f32d764 (= main-based `research/gap-g1`).
+* **G3-B, Darren's latest repaired construction**, `codex/godmove-gap-repairs` @ **21921958**:
+  * the normalized operational SAT source `GodMoveMachineFaceExtraction.machineSource M T φ n`, i.e. the
+    Boolean-normalized output polynomial of the unrolled machine on all words of the pinned length;
+  * the extraction `GodMoveSATDesignatedExtraction.sheetExtraction` = `quadraticLift ∘ unitExtraction`;
+  * `operationalPaperSource`, `operationalPaperSource_rank_bridge`, and the target `cookLevinStrictFOBTarget`.
+
+  Lean file: `research-audits/gap-g3/repaired/G3RepairedFaceLocality.lean`, which compiles against the 23-module
+  research-audit chain of 21921958 (`research-audits/gap-g3/repaired/build_repaired.sh`).
+
+## G3.0 Definition of PassesG3 (Lean measure; Def. 12 variant)
+* G3-A: `GapG3.PassesG3 B κ ℓ bound P_acc := mlBlockedSpdpRank B κ ℓ P_acc < bound` and
+  `GapG3.PassesG3Extracted B κ ℓ bound T P_acc := mlBlockedSpdpRank B κ ℓ (T P_acc) < bound`, where P_acc is the
+  always-accept machine's compiled polynomial, T is the same extraction used for the solver,
+  bound = `GapG3.npBound n` = C(n/3, ⌊log₂ n⌋), and κ = ℓ = ⌊log₂ n⌋. The lemma `passesG3Extracted_of_passesG3`
+  shows the first implies the second for rank-monotone T.
+* G3-B: the same predicate instantiated with the branch's own objects: rank(discreteBlocks L, log n, log n,
+  machineSource acceptAll T (unitFormula (n/3)) (n/3)) < C(n/3, log n), and the same after `sheetExtraction`.
+* **Def. 12 variant [I]:** PassesG3^{Def12} replaces mlBlockedSpdpRank with Def. 12's Γ (any shift monomial,
+  x²→x or drop). Every G3-A theorem uses only three measure properties, and Def. 12 has all three:
+  (a) rank does not increase under v := 0, because zero-restriction commutes with x²→x and with dropping
+  non-multilinear monomials, so every row of p|_{v=0} is a restricted row of p, or 0;
+  (b) adding a constant does not change rank when κ ≥ 1;
+  (c) an injective rename into a larger space does not decrease rank (Def. 12's block condition is vacuous).
+  So G3-A transfers to Def. 12. This is not kernel-checked. G3-B uses the branch's `mlBlockedSpdpRank`
+  (strict |S| = κ) with discrete blocks, as that branch does.
+
+## G3.1 Results. Each entry gives the commit, the exact statement, the counterexample/witness, and known/new.
+G3-A: all `#print axioms` are [propext, Classical.choice, Quot.sound] (log `research-audits/gap-g3/axioms.log`).
+G3-B: **compile status recorded in G3.7** (the 21921958 dependency build was still running on the loaded box when
+this section was first committed; B1–B3 are stated exactly as in the Lean file and count as [K] only once G3.7 says so). The research/gap-g3 commit hash is recorded in G3.7.
+
+### G3-A — against our reconstruction (arXiv v5 / main 7f53946)
+| # | Lean name(s) | exact statement | counterexample / witness | known? |
+|---|---|---|---|---|
+| A1 | `GapG3.piPhi_rename_inlV`, `GapG3.rank_of_extraction` | Π_Φ(rename_{inlV} R) = C(R(0)); and if Π_Φ P = embed Q + C c with κ ≥ 1, then rank(Π_Φ P) = rank(embed Q) ≤ rank P | — | Lemma 123's computation, formalised: new as a Lean statement, known in content (paper) |
+| A2 | `GapG3.g3_fails_of_mblind_extraction`, `GapG3.not_passesG3_of_mblind_extraction` | if ∀M Φ, Π_Φ(P_{M,Φ}) = embed(Q_Φ) + c_{M,Φ} (M-blind, witness-free) and rank(Π_Φ P_{Msol,Φ}) ≥ bound for one machine Msol, then for every M both rank(P_{M,Φ}) ≥ bound and rank(Π_Φ P_{M,Φ}) ≥ bound; in particular ¬PassesG3 ∧ ¬PassesG3Extracted for always-accept | `GapG3.alwaysAccept` (3-state DTM, accepts everything) | **new** as a formal theorem; the principle "machine-blind invariants cannot separate" is **known** (21921958 and main: `ComputationalDepthSeparationNoGo.invHard_diag`; `EasyMachineProfileRefutation`) |
+| A3 | `GapG3.mblind_of_additive`, `GapG3.g3_fails_additive` | Lemma 222/123 + Thm 223(iii) shape: P_{M,Φ} = embed(Q_Φ) + rename_{inlV}(R_{M,Φ}) ⇒ G3 fails | always-accept | **new** |
+| A4 | `GapG3.mblind_of_multiplicative`, `GapG3.g3_fails_multiplicative`, `GapG3.templatePMn_shape` | `templatePMn` shape P = embed(Q_Φ)·F_{M,Φ} with Π_Φ F = 1 ⇒ G3 fails | always-accept | **new** |
+| A5 | `GapG3.routeB_witnessFree_not_PSide` | Route-B interfaces: suppose Eacc (always-accept) and Esol have the same coupled sheet, Eacc is rank-monotone, and Esol satisfies the NP-side bound. Then `Theorem207PSideUpperBound alwaysAccept …` is false (n ≥ 2^804) | always-accept | **new** |
+| A6 | `GapG3.g3_fails_of_answer_view` | if the extracted object depends on M only through its answer on Φ, then always-accept or always-reject inherits the solver's extracted rank | `alwaysAccept` / `alwaysReject` | **new** (formal); folklore in content |
+| A7 | non-vacuity: `GapG3.concrete_shape`, `concrete_hNP`, `concrete_not_passesG3`, `concrete_template_not_passesG3`, `routeB_hypotheses_satisfiable` | for every n ≥ 2^804, the hypotheses of A2–A5 hold with σ = `cookLevinUVSplit`, B = `extendedCookLevinPartition`, Q = `cookLevinQ` and a machine-dependent v-part, and their conclusions follow | concrete instance | **new** |
+
+G3-A caveats:
+1. The concrete sheet is `cookLevinQ`, not a Ramanujan–Tseitin ∏(1 − z_C V_C²). No Lean theorem lower-bounds
+   the latter, and the general theorems hold for arbitrary Q.
+2. The theorems are short. Their content is that the paper's own hypotheses (Lemma 123: P = Q×_Φ + R(v),
+   π: v := 0; Thm 223(iii): T_Φ depends only on Φ and the templates) make the extraction M-blind.
+3. Thm 207's ζ(u,v)-coupled form becomes Q×_Φ(u, ζ(u,c)) after v := c. That form is covered when ζ and c are
+   template-determined, which is what Thm 223(iii) says.
+
+### G3-B — against the repaired construction (codex/godmove-gap-repairs @ 21921958)
+| # | Lean name(s) | exact statement | counterexample / witness | known? |
+|---|---|---|---|---|
+| B1 | `GapG3Repaired.acceptAll_source_eq_one`, `acceptAll_source_rank_zero`, `acceptAll_passesG3`, `acceptAll_passesG3_extracted` | for the branch's `ComposableMachine` `acceptAll` (one halted accepting state): machineSource acceptAll T φ n = 1. Its rank is 0 for κ ≥ 1, so PassesG3 **holds**, before and after `sheetExtraction`, at the paper window (n ≥ 2^804). | `acceptAll` | **new**. Consequence: the G3-A obstruction **does not apply** to the repaired construction. Its source is not M-blind, because it interpolates M's output on all 2^L words. |
+| B2 | `GapG3Repaired.extraction_depends_only_on_face` | if M₁ and M₂ give the same `queryOutput` on all 2^m pinned unit queries `pinnedFormula (unitFormula m) a`, then unitExtraction m (machineSource M₁ …) = unitExtraction m (machineSource M₂ …). No correctness is assumed. | — | **new** (formal); implicit in the branch's proofs |
+| B3 | `GapG3Repaired.FaceCorrect`, `faceCorrect_of_decides`, `unitExtraction_of_faceCorrect`, `designated_sheet_of_faceCorrect`, `verifier_rank_le_source_of_faceCorrect`, `choose_le_source_of_faceCorrect`, `designated_rank_le_source_of_faceCorrect`, `npow200_lt_source_of_faceCorrect` | the branch's `unitExtraction_of_decides`, `sheetExtraction_correct`, `designated_sheet_rank_le_source` and its C(n/3, log n) > n^200 source lower bound hold with `Decides M SATLang T` weakened to `FaceCorrect M T (n/3)`, which is correctness only on the 2^{n/3} face queries | the face queries are CNFs of unit clauses (all-true units plus the units pinning a). Such a formula is satisfiable iff every pinned bit is true, which is decidable in linear time [I] | **new** as a formal weakening. The branch already says in prose that "a binomial minor already occurs on easy unit-query faces" (`GodMoveCharacteristicCalibration.md`), so the content is **known** |
+| B4 | (21921958's own) `GodMoveSATSourceCanonicity.machineSource_eq_SATCharacteristic`, `no_eventual_polynomial_encoded_source_bound`; `GodMoveSATRuntimeFrontier.satPolynomialClockRankBound_iff_separation`; `GodMoveLinearTimeRankObstruction` | for every correct SAT decider, the source equals the fixed `languageCharacteristic SATLang L`, whose rank is superpolynomial in L. The P-side runtime-rank estimate for poly-clock SAT deciders is **equivalent** to the separation. A linear-time scanner already violates any runtime-only rank bound. | scanner machine | **known** (Darren's branch) |
+
+## G3.2 Verdict
+* **G3-A (our v5/main reconstruction): refuted.** Every witness-free, template-generated architecture has
+  PassesG3 false, whether additive (Lemma 222/123), multiplicative (`templatePMn`), Route-B (`Theorem207*`), or
+  answer-only. Extraction that succeeds for a correct M also succeeds for always-accept. This is kernel-checked,
+  and the hypotheses are shown satisfiable. With Phase 2 (R1 degree, R2 product horn), that reconstruction is
+  blocked on all routes we know.
+* **G3-B (repaired, 21921958): G3 literally holds** (B1). The repair evades the template obstruction because
+  its source depends on M's whole input/output function. The analogous obstruction moves to the face:
+  * By B2/B3, the extraction and the entire lower-bound chain use only M's answers on an easy family (consistent
+    unit CNFs). So the lower bound holds for every face-correct machine, including machines that are correct only
+    on that easy family. Such machines exist in P [I], and the branch's linear-time scanner shows the
+    phenomenon formally for a related source.
+  * The required P-side bound therefore has to come from correctness **off** the face. By the branch's own B4,
+    for correct deciders the source is the fixed SAT characteristic polynomial, so "rank ≤ n^200 for every
+    poly-clock SAT decider" is equivalent to the separation.
+  * **Status:** the repaired construction is not refuted. Its extraction and lower bound are sound and
+    machine-checked, and its remaining obligation (the P-side source bound) is, by Darren's own theorem,
+    equivalent to the target. No known route discharges it without assuming it, so the God-Move architecture is
+    **blocked on all known routes in both versions**.
+  * What would unblock it: a P-side argument that uses SAT-correctness on inputs outside the unit face, which
+    the extraction never reads. Nothing in the paper or either branch does this.
+
+## G3.3 Lemma 18 counterexample (v5, p.32; result of research/gap-g1 f32d764, re-stated precisely) — **new**
+* **Paper Lemma 18 (paraphrase):** for multilinear p in N variables, Γ_{ℓ,ℓ}(p) ≤ C(N,ℓ)·2^ℓ. The proof asserts
+  that for multilinear p, the admissible shifts of degree ≤ ℓ can be chosen with support contained in S.
+* **Counterexample.** Take κ = ℓ = 1, N = 3, singleton blocks, p = x₁ + x₂x₃; it holds under both x²→x and drop.
+  The rows are u·∂_i p with u ∈ {1, x₁, x₂, x₃}:
+  * ∂₁p = 1 gives the rows 1, x₁, x₂, x₃;
+  * ∂₂p = x₃ gives x₃, x₁x₃, x₂x₃, and x₃² (reduced to x₃, or dropped);
+  * ∂₃p = x₂ gives x₂, x₁x₂, x₂², and x₂x₃.
+
+  The span is ⟨1, x₁, x₂, x₃, x₁x₂, x₁x₃, x₂x₃⟩, so **Γ = 7 > C(3,1)·2¹ = 6.** If shifts are restricted to
+  vars ⊆ S (Lean's definition), the rows are 1, x₁, x₃, x₂x₃, x₂, of rank 5. Both the inequality and the
+  "WLOG shifts ⊆ S" step are therefore false. The exact check is `scripts/gap_g1/lemma18_counterexample.py`
+  (Fraction arithmetic).
+* Random dense multilinear p also violate the lemma [C]: N=6, ℓ=1 gives 42 > 12; N=6, ℓ=2 gives 64 > 60.
+* Not mentioned anywhere in 21921958 (searched for "Lemma 18": only paper Lemmas 188/189 appear).
+
+## G3.4 Def. 12 (paper) vs Lean `MultilinearSPDP.mlBlockedSpdpSubspace` — **new** (precise list)
+1. **Shifts.** Def. 12 allows any monomial u of degree ≤ ℓ in all N variables. Lean requires m with
+   totalDegree ≤ ℓ **and m.vars ⊆ S**; the source comment cites Lemma 18, which is false (G3.3).
+2. **Ambient reduction.** Def. 12 works "modulo ⟨x_i² − x_i⟩" (x²→x). Lean's `mlProj` **deletes**
+   non-multilinear monomials.
+3. **Derivatives.** Def. 12 uses τ ∈ ℕ^N with |τ| = κ, repeated variables allowed, and a block condition
+   "block support ≤ κ" that is vacuous when |τ| = κ. Lean uses a Nodup list S with ≤ 1 variable per block
+   (`SPDP.isBlockAdmissible`).
+4. **Order.** Def. 12 uses strict |τ| = κ, but Lemma 40(c) and the recap use |α| ≤ κ, so the paper is
+   inconsistent. Lean has both: `mlBlockedSpdpSubspace` (strict) and `…Inc` (inclusive).
+5. **Columns.** Def. 12 restricts to multilinear monomials of degree ≤ deg p − κ + ℓ. Lean has no column
+   restriction; its rows satisfy it automatically.
+* **Quantitative scale [C].** Take p = x₁⋯x_κ with κ = ℓ.
+  * Def. 12 gives Γ = Σ_{j≤κ} C(N,j) under both conventions, since every multilinear monomial of degree ≤ κ is a
+    shift of ∂_{[κ]}p = 1.
+  * Lean gives Γ = 2^κ.
+  * Computed: N=6, κ=2 gives 22 vs 4; N=8, κ=3 gives 93 vs 8. With N ≥ n and κ = log₂ n this is n^{Θ(log n)}
+    vs n.
+* **Consequences.**
+  * Lean rank ≤ Def.-12-drop rank always, since Lean's rows are a subset of Def.-12-drop rows.
+  * Under Def. 12, any p with a κ-th derivative equal to a nonzero constant has Γ ≥ Σ_{j≤ℓ} C(N,j) (Phase 2 R3).
+    So the paper's P-side claims fail for Def. 12, while the Lean measure is not Def. 12.
+  * 21921958 consistently uses the Lean strict measure. Its `GodMoveAccumulatorRankCheck` notes the strict
+    convention, but we found no statement of the shift-support or reduce/drop discrepancies there.
+
+## G3.5 Next justified subproblem
+The God-Move architecture is blocked on all known routes in both the v5/main reconstruction and the repaired
+21921958 construction. Another extraction/P-side cycle is **not** justified unless it brings a new idea of the
+following specific kind:
+1. **Only open target (repaired construction):** a P-side upper bound on rank(machineSource M) for a poly-clock
+   SAT decider M that uses M's correctness *off* the unit face. Any argument that only uses runtime, or only uses
+   behaviour on the face, is refuted by the scanner (B4) or by face-correct easy machines (B3).
+   Darren's own `satPolynomialClockRankBound_iff_separation` says this target is the separation itself, so it
+   needs a genuinely new lower-bound idea. Natural proofs, relativization and algebrization apply.
+2. **Recommended instead:**
+   * record the no-go package (Phase 1 axiom issue, Phase 2 R1/R2, Phase 3 G3-A/B, Lemma 18, the Def. 12
+     mismatch) as the honest status;
+   * fix one SPDP measure explicitly;
+   * if SPDP work continues, aim at a restricted-model lower bound (for example homogeneous depth-4 or
+     multilinear formulas), where shifted-partial measures are known to give checkable results.
+3. **Optional formalisation:** a Lean Def. 12 measure with the G3-A transfer properties (a)–(c), and the
+   Lemma 18 counterexample as a kernel-checked statement.
+
+## G3.6 Reproducibility
+* G3-A: `cd pall-lean && lake env lean research-audits/gap-g3/G3TemplateObstruction.lean`
+  (needs the main-based build of PallLean; about 4 min on the shared box).
+* G3-B: `research-audits/gap-g3/repaired/build_repaired.sh`. It:
+  1. creates a detached worktree at 21921958;
+  2. runs `lake build` on the 9 PallLean modules imported by the chain;
+  3. compiles the 23 research-audit modules into a scratch directory;
+  4. then compiles `G3RepairedFaceLocality.lean`.
+
+  The branch itself is untouched.
+
+## G3.7 Commits and status log
+* First G3 commit: see `git log research/gap-g3` (content commit). G3-A compiled, axioms clean.
+* G3-B (`G3RepairedFaceLocality.lean`): compile pending at first commit.
