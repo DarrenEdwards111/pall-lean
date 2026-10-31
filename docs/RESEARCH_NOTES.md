@@ -448,3 +448,7 @@ does not apply to G1 directly.
 * Kill loop: `cd /workspace/einstein/repo && PYTHONPATH=<pall-lean>/scripts/gap_g1 python3 -m killloop --max-n 10
   --plugins killloop_spdp_plugin --spec <pall-lean>/scripts/gap_g1/killloop_specs.jsonl --ledger <...>/killloop_ledger.jsonl`.
 * Box was heavily loaded (load avg 16–30); computations ran niced, ≤ 3 processes.
+
+## G1.6 Branch
+`research/gap-g1` in pall-lean, based on `research/dependency-map` 81a085b. Content commit
+`ea1ba8856225…` (pushed 31 Oct 2026, ~21:55 GMT; no PR opened); this hash line added in the following commit.
