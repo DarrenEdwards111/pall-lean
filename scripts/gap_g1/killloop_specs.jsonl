@@ -1,0 +1,4 @@
+{"kind": "invariance", "name": "G1-fn: Lean SPDP(chi_f) invariant under permutation/negation (paper Lemmas 36-37 at function level)", "measure": "spdp_lean_logn", "aggregate": "natural"}
+{"kind": "invariance", "name": "G1-fn: Def12 SPDP(chi_f) invariant under permutation/negation (paper Lemmas 36-37 at function level)", "measure": "spdp_def12_reduce_logn", "aggregate": "natural"}
+{"kind": "measure_bound", "name": "G1-fn: Lean SPDP(chi_f) <= s^2 (explicit poly budget, De Morgan size s)", "measure": "spdp_lean_logn", "aggregate": "each", "budget": {"type": "poly", "terms": [[1, 2]]}}
+{"kind": "measure_bound", "name": "G1-fn: Def12 SPDP(chi_f) <= s^2 (explicit poly budget, De Morgan size s)", "measure": "spdp_def12_reduce_logn", "aggregate": "each", "budget": {"type": "poly", "terms": [[1, 2]]}}

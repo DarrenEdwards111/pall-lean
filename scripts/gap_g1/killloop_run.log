@@ -1,0 +1,8 @@
+SURVIVED G1-fn: Lean SPDP(chi_f) invariant under permutation/negation (paper Lemmas 36-37 at function level) checked= 448 kills=0 (311.6s)
+SURVIVED G1-fn: Def12 SPDP(chi_f) invariant under permutation/negation (paper Lemmas 36-37 at function level) checked= 416 kills=0 (1.8s)
+KILLED   G1-fn: Lean SPDP(chi_f) <= s^2 (explicit poly budget, De Morgan size s) checked= 113 kills=8 (0.0s) first kill: product/AND_1: spdp_lean_logn=2 > B(0)=0 although a verified size-0 circuit certificate exists
+KILLED   G1-fn: Def12 SPDP(chi_f) <= s^2 (explicit poly budget, De Morgan size s) checked=  88 kills=7 (0.0s) first kill: product/AND_1: spdp_def12_reduce_logn=2 > B(0)=0 although a verified size-0 circuit certificate exists
+ledger: /workspace/pvsnp/pall-lean/scripts/gap_g1/killloop_ledger.jsonl. KILLED = exact counterexample; SURVIVED = finite tests only, not a proof.
+KILLED   G1-fn: Lean SPDP(chi_f) <= (s+1)^2 (explicit poly budget, De Morgan size s) checked= 127 kills=6 (6.2s) first kill: product/AND_1: spdp_lean_logn=2 > B(0)=1 although a verified size-0 circuit certificate exists
+KILLED   G1-fn: Def12 SPDP(chi_f) <= (s+1)^2 (explicit poly budget, De Morgan size s) checked= 101 kills=5 (0.3s) first kill: product/AND_1: spdp_def12_reduce_logn=2 > B(0)=1 although a verified size-0 circuit certificate exists
+ledger: /workspace/pvsnp/pall-lean/scripts/gap_g1/killloop_ledger.jsonl. KILLED = exact counterexample; SURVIVED = finite tests only, not a proof.

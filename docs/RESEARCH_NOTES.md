@@ -292,4 +292,159 @@ form (this is what any continuation must supply):
 
 
 ## 9. Branch
-`research/dependency-map` in pall-lean, based on main `7f539465ca9a850d525517dc8196dd9cb9b68840` (includes merge 7f53946; re-fetched 31 Oct 2026, unchanged). Commit hash: see `git log` on that branch (recorded in the report).
+`research/dependency-map` in pall-lean, based on main `7f539465ca9a850d525517dc8196dd9cb9b68840` (includes merge 7f53946; re-fetched 31 Oct 2026, unchanged). Commit hash: `81a085b1c9d0cfef44569bb92da85a497d2fd69b` (pushed 31 Oct 2026; no PR opened).
+
+---
+
+# Phase 2 — Gap G1 (repaired P-side Width⇒Rank for COMPILED TABLEAU polynomials)
+
+Prepared 2026-10-31 (Europe/London, GMT), branch `research/gap-g1` (based on `research/dependency-map` 81a085b).
+Same tags: [K] kernel-checked (axioms listed), [C] computed, [I] informal proof written here, [X] disproved, [O] open.
+**Nothing here proves or claims P ≠ NP or P = NP.**
+
+## G1.0 Current lemma (exact statement attacked)
+
+Paper v5 object (§17.1, Thm 92, Thm 218, §40.4): for a DTM M with T(n) = n^c, variables b_{t,i}, s_{t,q}, h_{t,i}
+on a (T+1)×(T+1) tableau with b_{0,i} = x_i, local constraints C (booleanity, one-hot, head/tape transition,
+init, accept), each of degree ≤ d₀ = O(1). Three compiled polynomials occur:
+* PROD  P_{M,n} = ∏_C (1 − C)               (paper's first definition; Lean `CookLevinDefs.compiledPoly` shape),
+* SOS   P̃_{M,n} = 1 − Σ_C C²                (paper: "from now on write P_{M,n} for this", Thm 92/218; degree ≤ 2d₀),
+* YV    Y·V, Y = y₁⋯y_κ, V = Σ_C C²         (Lemma 39 κ-padding; Lean `TuringMachine.compiledPoly`).
+For the God-Move route the object also carries the verifier wiring (§40.4 clarification, Def. 53, Lemma 222):
+P_{M,Φ}(u,z,v) = V_{M,Φ}(u,z) + R_{M,Φ}(v) with V containing Q×_Φ = ∏_C(1 − z_C V_C(u)²) (Lemma 123).
+
+**G1 (Lemma 27/31 repaired, Thm 23/92(2)).** ∃ d(c): ∀ M ∈ DTIME(n^c), Γ^B_{κ,ℓ}(P_{M,n}) ≤ n^{d(c)} at
+κ = ⌊α log n⌋, ℓ = ⌊β log n⌋ (we test α = β = 1, log₂), B = compiler partition (Lean: singletons), for the SAME
+object that Item 3 maps onto Q×_Φ by a block-local T_Φ = basis ∘ affine ∘ restriction ∘ projection (Thm 223), and
+with Item 2: Γ(Q×_Φ) ≥ C(n/3, ⌊log₂ n⌋). Measures: LEAN-drop (shifts with vars ⊆ S, `mlProj` drops), PAPER-reduce
+(Def. 12 literally: any shift u of degree ≤ ℓ, x_i² → x_i), PAPER-drop.
+
+## G1.1 Results
+
+**(R1) Degree obstruction for Item 3 [K + I].** `research-audits/gap-g1/G1DegreeObstruction.lean`:
+* `GapG1.totalDegree_aeval_le`: any algebra map sending each variable to a polynomial of degree ≤ 1 (restriction to
+  constants, affine relabelling, renaming, basis change by linear substitution) does not increase total degree;
+  `totalDegree_mlProj_le` (multilinear projection), `totalDegree_piSubst_le`, `totalDegree_piPhi_le` (the repo's
+  God-Move restriction) likewise; `DegNonincr.comp` closes under composition.
+* `GapG1.coupledSheet_totalDegree`: deg ∏_C (1 − z_C g_C) = Σ_C (1 + deg g_C) for nonzero gadgets (repo
+  `coupledSheetFromList`), hence ≥ #clauses (`coupledSheet_totalDegree_ge_length`).
+* `GapG1.no_extraction_from_padded_SoS`: for EVERY DTM M and constraints of degree ≤ 3, no degree-non-increasing T maps
+  `TuringMachine.compiledPoly` (= Y·ΣC², degree ≤ κ+6) onto a coupled sheet with > κ+6 clauses.
+* `GapG1.no_extraction_from_constant_degree_SoS`: same for the paper's constant-degree 1 − ΣC² with > 6 clauses.
+* Axioms of all of these: `[propext, Classical.choice, Quot.sound]` (no sorry, no custom axioms).
+Informal consequence [I]: on the constant-degree SOS object of Thm 92/218, G1 is TRUE trivially (every κ-th
+derivative vanishes once κ > deg, so Γ = 0 at κ = Θ(log n), in every convention) but Thm 223 / Lemma 7 / Lemma 123
+(T_Φ(P_{M′}) = Q×_Φ with T_Φ built from basis/affine/restriction/projection) is impossible for ANY machine M′ once
+m > deg P (the full Q×_Φ has degree ≥ 3m). The paper's Thm 218 ("degree O(1)") and Lemma 123 ("P_{M′} = Q×_Φ + R(v)",
+degree ≥ 3m) are mutually inconsistent. So a compiled object usable for Item 3 must have degree ≥ #clauses = Ω(n).
+(Caveat: the "activated" sheet Q×_{Φ,S} with |S| = Θ(log n) has degree Θ(log n); the K-results then apply when
+|S|·min(1+deg g_C) > κ+6, which depends on constants not fixed in the paper.)
+
+**(R2) Product horn — explicit easy machine [K].** `GapG1.alwaysAccept_product_rank_ge_NP_bound`:
+for the 3-state always-accept DTM and n ≥ 2^804, C(n/3, ⌊log₂ n⌋) ≤ mlBlockedSpdpRank(partition, log n, log n,
+compiledPoly(cook_levin_compilation alwaysAccept n)), and `alwaysAccept_product_rank_gt_npow200`: n^200 < that rank.
+Axioms `[propext, Classical.choice, Quot.sound]`. (Instantiation of the repo's `compiled_np_lower_bound_any_dtm`;
+caveat: `cook_levin_compilation` is a toy with numVars = n, not a full tableau.) **G1 is false for the product
+encoding, already for the trivial machine.** Mechanism = the x₁⋯x_n obstruction: ∏_v(1 − v + v²) over the
+booleanity factors is a product of univariate factors in distinct variables, present for every M.
+
+**(R3) Literal Def. 12 kills G1 for the padded SoS object, every machine [I + C].**
+Claim: let p = Y·V with V = Σ_C C², and suppose some constraint C₀ takes a nonzero value at some Boolean
+assignment ρ of its own variables (e.g. the init constraint 1 − s_{0,q₀}). Under Def. 12 with x²→x (PAPER-reduce),
+Γ_{κ,ℓ}(p) ≥ Σ_{j≤ℓ} C(N − |vars C₀|, j) ≥ C(N−1, ⌊log₂ n⌋) ≥ C(n, ⌊log₂ n⌋) > C(n/3, ⌊log₂ n⌋).
+Proof: row τ = (y₁,…,y_κ) gives ∂^τ p = V; with shifts u = x_A (A ⊆ W := vars ∖ vars(C₀), |A| ≤ ℓ) the rows are
+reduce(x_A V). Restricting the Boolean cube to the subcube {vars(C₀) = ρ} is a linear map on multilinear polynomials
+(it commutes with x²→x), sending reduce(x_A V) ↦ x_A · V|ρ. On that subcube V|ρ ≥ C₀(ρ)² > 0 pointwise (a sum of
+squares of rationals), so multiplication by V|ρ is injective on functions, and the x_A are linearly independent
+functions on {0,1}^W. Column-degree guard is respected (deg(x_A V) ≤ ℓ + deg p − κ). ∎ This holds for the
+always-accept machine and for every M. [C] check: `scripts/gap_g1/ranks.py yv` (rows τ = padding, shifts over 30
+variables) gives full rank 466/466 for ACC and AND at n = 4, 5 (mod 2³¹−1, a lower bound).
+The same argument shows the literal Def. 12 is "large" for essentially every polynomial with a nowhere-vanishing
+κ-th derivative on a large subcube; the Lean measure avoids this only through the shift restriction vars(u) ⊆ S,
+which is paper **Lemma 18's** claim "admissible shifts can be chosen with support contained in S".
+**Lemma 18 is false [C, hand-checkable]:** p = x₁ + x₂x₃, N = 3, κ = ℓ = 1: rows 1·{1,x₁,x₂,x₃}, x₃·{1,x₁,x₂},
+x₂·{1,x₁,x₃} span {1,x₁,x₂,x₃,x₁x₂,x₁x₃,x₂x₃}: Γ = 7 > C(3,1)·2¹ = 6 (both reduce and drop). Random dense
+multilinear p violate it for N = 3…6 (e.g. N=6, ℓ=1: 42 > 12; N=6, ℓ=2: 64 > 60). The Lean rank of the same
+p is 5. So Lean's `mlBlockedSpdpRank` is not Def. 12, and the paper's measure needs to be fixed before G1 means anything.
+
+**(R4) Lean measure on the SoS objects: G1 true but structural, machine-independent [C + I].**
+`scripts/gap_g1/ranks.py lean` (exact Fraction for n ≤ 5, mod p for n = 6, 8), real tableaux of ACC and AND:
+
+| n | N_tab | κ=ℓ | rank SOS (deg 8) ACC / AND | rank YV ACC / AND | C(n,κ) | C(n/3,κ) |
+|---|---|---|---|---|---|---|
+| 4 | 65 | 2 | 236 / 236 | 493 / 493 | 6 | 0 |
+| 5 | 90 | 2 | 343 / 343 | 699 / 699 | 10 | 0 |
+| 6 | 119 | 2 | 470 / 470 | 941 / 941 | 15 | 1 |
+| 8 | 189 | 3 | 1585 / 1585 | 5148 / 5148 | 56 | 0 |
+
+Identical for the trivial and the AND machine. Informal bound [I]: for the Lean measure, a nonzero row needs
+S∩tableau ⊆ vars(one constraint) (≤ 6 variables, Lean `width_bound`; for SOS also |S| ≤ deg = 8), shifts are
+≤ C(2κ, κ) ≤ 4^κ = n² monomials in S, so Γ ≤ #constraints · 2^6 · κ^6 · n² = n^{O(1)} for every M — degree/locality only, no semantics. Hence G1 holds
+for SOS/YV under the Lean measure, but (R1) shows such objects cannot carry Item 3, and the bound is the same for
+a SAT-solver and for always-accept (no information).
+
+**(R5) Real tableau product encoding, PAPER-reduce, ℓ = 0 [C, small n only].** `ranks.py prod`: rank lower bounds
+(rows ∂_S ∏(1−C) for all 2-sets S, evaluated at sampled Boolean points near valid tableaux):
+n = 4: ACC ≥ 223, AND ≥ 105 (C(4,2) = 6); rows with S ⊆ inputs only: ACC 6 = C(4,2), AND 4.
+(Lower bounds limited by the point sample; ACC vs AND not comparable — AND has one accepting tableau.)
+n = 5: ACC ≥ 324, AND ≥ 141 (C(5,2) = 10); S ⊆ inputs: ACC 10 = C(5,2), AND 5.
+At these n the NP-side bound C(n/3, log n) is 0 or 1, so small-n data cannot "exceed the NP bound" meaningfully;
+the asymptotic statements are (R2) [K] and (R3) [I].
+
+**(R6) "Proves too much" for the verifier-wired object [I].** In the paper the compiled object fed to Item 3 is
+P_{M,Φ} = V_{M,Φ}(u,z) + R_{M,Φ}(v) where the verifier/clause-sheet part comes from the fixed templates T_ver and
+depends only on Φ (Def. 53, Lemma 222, Thm 223(iii)). Then the same Lemma 123 extraction applies to the always-accept
+machine wired the same way, and Γ(P_{M_acc,Φ}) ≥ Γ(Q×_Φ) ≥ C(n/3, log n) by the paper's own monotonicity — G1 fails
+for M_acc. (In Lean, `PaperFaithfulCompilation.templatePMn σ Q` does not mention any machine at all.)
+
+**Kill loop (Einstein's `killloop`, code b86b551 + their uncommitted edits; external plugin, Einstein repo not
+modified):** plugin `scripts/gap_g1/killloop_spdp_plugin.py` registers `spdp_lean_logn` and
+`spdp_def12_reduce_logn` (SPDP of the multilinear extension χ_f, κ=ℓ=⌊log₂ n⌋). Runs (`killloop_run.log`,
+`killloop_ledger.jsonl`): invariance under permutation/input negation — SURVIVED for both (finite tests, n ≤ 8/7);
+"Γ(χ_f) ≤ s²" and "≤ (s+1)²" — KILLED (first kills are degenerate n=1 instances; the non-degenerate one is
+AUDIT_INDSET_matching8: Lean Γ = 174 > (11+1)² = 144 with an 11-gate circuit). These are function-level checks
+(relevant to Thm 10/46, already refuted by x₁⋯x_n); compiled tableaux are not Boolean functions, so the kill loop
+does not apply to G1 directly.
+
+## G1.2 Verdict
+
+* **Refuted (with counterexample machine = always-accept)** for every compiled-tableau encoding in the paper/Lean that
+  can feed Item 3: product encoding [K, R2]; verifier-wired P_{M,Φ} [I, R6]; and the padded SoS Y·V under the
+  paper's literal Def. 12 [I + C, R3].
+* **True but vacuous** for the constant-degree SOS P_{M,n} (Γ = 0, all conventions) and for SOS/YV under the Lean
+  measure (structural n^{O(1)}, machine-independent, R4) — and for exactly these objects Item 3 is impossible by
+  degree [K, R1].
+* **The Phase-1 encoding dilemma does kill G1-with-Item-3 for both paper encodings**: proved precisely as R1 (SoS horn,
+  now a kernel-checked degree obstruction rather than "Γ = 0") and R2 (product horn, explicit trivial machine).
+* **Open in the abstract** (Gap G: ∃ encoding S with G1 ∧ G2 ∧ G3). Precise obstacle: by R1 the object must have
+  degree ≥ #clauses; by R2/R6 any construction in which the clause sheet (or any product of Ω(n) factors in distinct
+  variables) is present syntactically, independent of whether M is correct, violates G1 for always-accept. So S_{M,n}
+  must contain high-rank structure **only when M is SAT-correct on all inputs**, i.e. the compiled object must depend on
+  a global semantic property of M; no local/syntactic compiler (all those in the paper and in Lean) has this property.
+  No candidate is known [O].
+
+## G1.3 Attempts / counterexamples log
+* x₁⋯x_n (function level): Phase 1, [C]+analytic.
+* p = x₁ + x₂x₃: counterexample to paper Lemma 18 (Def. 12 vs Lean shift restriction) [C, by hand].
+* Always-accept machine: counterexample to G1 for the product compiler [K] and for Y·V under Def. 12 [I+C].
+* Degree mismatch Thm 218 vs Lemma 123/Thm 223 [K for the Lean objects, I for the paper].
+
+## G1.4 Next actions (recommended next subproblem)
+1. **G3-first (correctness dependence):** before any further P-side work, any candidate encoding must pass the
+   kernel-checkable sanity test "Γ(T_Φ(S_{M_acc,n})) < C(n/3, log n)" for the always-accept machine with the SAME T_Φ.
+   Recommended next subproblem: formalize this as a Lean predicate `PassesG3 S T` and prove it FAILS for every encoding
+   whose T_Φ is witness-free and whose sheet is template-generated (generalizing R6 into a theorem), to settle whether
+   the God-Move architecture can be repaired at all.
+2. Fix the measure: decide between Def. 12 (with R3 it is superpolynomial for almost everything) and the Lean measure
+   (vars(u) ⊆ S, which is not Def. 12; Lemma 18 false). Record the choice in the paper.
+3. Phase-1 hygiene still pending (remove/demote the refuted PAC/MatrixSPDP axioms, fix ThreeCNF/DecidesSAT).
+4. Optional: formalize R3 in Lean (needs a Def.-12 measure with unrestricted shifts and x²→x reduction).
+
+## G1.5 Reproducibility
+* Lean: `lake env lean research-audits/gap-g1/G1DegreeObstruction.lean` (imports only already-built modules
+  `TuringMachine`, `MultilinearSPDP`, `PiStarConcrete`, `PaperFaithfulCompilation`, `GodMoveReal`; no `lake build` needed).
+* Python: `cd scripts/gap_g1; python3 ranks.py lean|yv|prod` (outputs `lean.jsonl`, `yv.jsonl`, `prod.jsonl`);
+  tableau semantics are checked by `tableau.sanity` (unique valid tableau per input; accept iff machine accepts).
+* Kill loop: `cd /workspace/einstein/repo && PYTHONPATH=<pall-lean>/scripts/gap_g1 python3 -m killloop --max-n 10
+  --plugins killloop_spdp_plugin --spec <pall-lean>/scripts/gap_g1/killloop_specs.jsonl --ledger <...>/killloop_ledger.jsonl`.
+* Box was heavily loaded (load avg 16–30); computations ran niced, ≤ 3 processes.

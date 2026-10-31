@@ -1,0 +1,8 @@
+{"test": "LEAN-drop", "machine": "ACC", "n": 4, "N_tab": 65, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 236, "deg_YV": 10, "rank_YV": 493, "NP_bound_C_n3_k": 0, "C_n_k": 6, "exact": true, "secs": 3.2}
+{"test": "LEAN-drop", "machine": "AND", "n": 4, "N_tab": 65, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 236, "deg_YV": 10, "rank_YV": 493, "NP_bound_C_n3_k": 0, "C_n_k": 6, "exact": true, "secs": 2.3}
+{"test": "LEAN-drop", "machine": "ACC", "n": 5, "N_tab": 90, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 343, "deg_YV": 10, "rank_YV": 699, "NP_bound_C_n3_k": 0, "C_n_k": 10, "exact": true, "secs": 8.7}
+{"test": "LEAN-drop", "machine": "AND", "n": 5, "N_tab": 90, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 343, "deg_YV": 10, "rank_YV": 699, "NP_bound_C_n3_k": 0, "C_n_k": 10, "exact": true, "secs": 5.1}
+{"test": "LEAN-drop", "machine": "ACC", "n": 6, "N_tab": 119, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 470, "deg_YV": 10, "rank_YV": 941, "NP_bound_C_n3_k": 1, "C_n_k": 15, "exact": false, "secs": 16.8}
+{"test": "LEAN-drop", "machine": "AND", "n": 6, "N_tab": 119, "kappa": 2, "ell": 2, "deg_SOS": 8, "rank_SOS": 470, "deg_YV": 10, "rank_YV": 941, "NP_bound_C_n3_k": 1, "C_n_k": 15, "exact": false, "secs": 14.7}
+{"test": "LEAN-drop", "machine": "ACC", "n": 8, "N_tab": 189, "kappa": 3, "ell": 3, "deg_SOS": 8, "rank_SOS": 1585, "deg_YV": 11, "rank_YV": 5148, "NP_bound_C_n3_k": 0, "C_n_k": 56, "exact": false, "secs": 145.8}
+{"test": "LEAN-drop", "machine": "AND", "n": 8, "N_tab": 189, "kappa": 3, "ell": 3, "deg_SOS": 8, "rank_SOS": 1585, "deg_YV": 11, "rank_YV": 5148, "NP_bound_C_n3_k": 0, "C_n_k": 56, "exact": false, "secs": 253.0}
