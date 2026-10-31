@@ -2962,13 +2962,16 @@ proved (modulo `PAC.gadget_spdp_subspace_factoring`) directly at the
 subspace level — with multipliers included from the start, as the
 paper intends. The two `BoundedGadget` records are field-identical, so
 the conversion `BoundedGadget.toPAC` is trivial. -/
-theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+-- GAP: depends on the refuted hypothesis `PAC.GadgetSpdpSubspaceFactoring` (formerly the
+-- axiom `PAC.gadget_spdp_subspace_factoring`).  Vacuous until a proved replacement exists.
+theorem mlBlockedSpdpRank_gadget_mul_le (hfact : PAC.GadgetSpdpSubspaceFactoring)
+    {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
       N ^ (g.supportSize + g.degreeBound) *
         mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
   -- Delegate to PAC's subspace-level Lemma 40(c), converting gadget record.
-  have h := PAC.gadget_multiplication_rank_bound (BoundedGadget.toPAC g) B κ ℓ p
+  have h := PAC.gadget_multiplication_rank_bound hfact (BoundedGadget.toPAC g) B κ ℓ p
   -- `BoundedGadget.toPAC g` has the same poly/supportSize/degreeBound as g
   -- by definition, so the statement translates directly.
   simpa [BoundedGadget.toPAC] using h

@@ -1,0 +1,4 @@
+'RemoveContradictoryAxioms.not_gadgetSpdpSubspaceFactoring' depends on axioms: [propext, Classical.choice, Quot.sound]
+'RemoveContradictoryAxioms.not_gadgetFactoringLinearMapForm' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit 0
+exit 0

@@ -134,7 +134,8 @@ structure BoundedGadget (N : ℕ) : Type where
   vars_card_le : poly.vars.card ≤ supportSize
   totalDegree_le : poly.totalDegree ≤ degreeBound
 
-/-- **Paper's Lemma 40(c) at the LinearMap level** (axiom).
+/-- **Paper's Lemma 40(c) at the LinearMap level** (former axiom, now a hypothesis;
+**refuted** under the strict `|S| = κ` convention — see the `-- GAP:` note below).
 
 For a bounded gadget `g` and polynomial `p`, there exists a ℚ-linear map
 
@@ -156,9 +157,16 @@ Equivalently: `mlBlockedSpdpSubspace B κ ℓ (g·p) ⊆ L-image of mlBlockedSpd
 We state the equivalent span-level consequence here, which is what's
 needed to derive the rank bound. For the full matrix-rank statement, use
 `LinearMap.finrank_range_le` after building a `LinearMap`. -/
-axiom gadget_factoring_linearmap_form
-    {N : ℕ} (g : BoundedGadget N)
-    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+-- GAP: this statement used to be the trusted `axiom gadget_factoring_linearmap_form`.
+-- It is REFUTABLE (same instance: N = 2, g = X₀, p = X₁, κ = 1, ℓ = 0, singleton blocks; see
+-- `research-audits/remove-contradictory-axioms/AxiomRefutations.lean`,
+-- `RemoveContradictoryAxioms.not_gadgetFactoringLinearMapForm`), so as an axiom it made the
+-- whole environment inconsistent.  It is now only a named `Prop`; the theorem below takes it
+-- as an explicit hypothesis and is therefore VACUOUS until a corrected, independently proved
+-- replacement is supplied.
+def GadgetFactoringLinearMapForm : Prop :=
+    ∀ {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ),
     ∃ (L : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ),
       mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
         Submodule.map L (mlBlockedSpdpSubspace B (κ + g.degreeBound)
@@ -173,13 +181,16 @@ axiom gadget_factoring_linearmap_form
 Requires `1 ≤ N` so that `N^C ≥ 1` and the factor `N^C` does not collapse
 the bound at `N = 0`. In our use (Cook-Levin compilation at `n ≥ 2^804`),
 `N = n ≥ 2` so the hypothesis is trivially satisfied. -/
+-- GAP: depends on the refuted hypothesis `GadgetFactoringLinearMapForm` (formerly an axiom).
+-- Vacuous as it stands; needs an independently proved Lemma 40(c) replacement.
 theorem gadget_multiplication_rank_bound_matrix_form
+    (hfact : GadgetFactoringLinearMapForm)
     {N : ℕ} (hN : 1 ≤ N) (g : BoundedGadget N)
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
     N ^ (g.supportSize + g.degreeBound) *
       mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
-  obtain ⟨L, hSub, hRank⟩ := gadget_factoring_linearmap_form g B κ ℓ p
+  obtain ⟨L, hSub, hRank⟩ := hfact g B κ ℓ p
   unfold mlBlockedSpdpRank
   have hFinMap :
       Module.finrank ℚ
@@ -361,8 +372,11 @@ From the commits above, axiom-free results include:
 
 ### What remains
 
-One axiom: `gadget_factoring_linearmap_form`, paper-literal Lemma 40(c)
-matrix-factoring statement. Full discharge requires the combinatorial
-counting argument above. -/
+No axiom.  The former axiom `gadget_factoring_linearmap_form` was refuted
+(kernel-checked, `research-audits/remove-contradictory-axioms/AxiomRefutations.lean`)
+and is now the explicit hypothesis `GadgetFactoringLinearMapForm`.
+GAP: a *correct* Lemma 40(c) statement (it must fail on N = 2, g = X₀, p = X₁,
+κ = 1, ℓ = 0 under the strict convention, so it needs a different shift/convention)
+still has to be stated and proved. -/
 
 end MatrixSPDP
