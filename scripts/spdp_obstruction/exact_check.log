@@ -1,0 +1,15 @@
+prod 7 LEAN drop 29 29 OK
+prod 7 PAPER reduce 29 29 OK
+prod 7 PAPER drop 29 29 OK
+parity 7 LEAN drop 29 29 OK
+parity 7 PAPER reduce 99 99 OK
+parity 7 PAPER drop 99 99 OK
+point 7 LEAN drop 29 29 OK
+point 7 PAPER reduce 29 29 OK
+point 7 PAPER drop 82 82 OK
+esym 7 LEAN drop 49 49 OK
+esym 7 PAPER reduce 63 63 OK
+esym 7 PAPER drop 63 63 OK
+det3 9 LEAN drop 34 34 OK
+det3 9 PAPER reduce 130 130 OK
+det3 9 PAPER drop 130 130 OK

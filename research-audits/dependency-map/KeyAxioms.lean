@@ -1,0 +1,17 @@
+import PallLean
+/-! `#print axioms` on the headline / load-bearing declarations of the active entrypoint. -/
+#print axioms Step4Compiler.P_ne_NP_Lean
+#print axioms Step4Compiler.P_ne_NP_Lean_of_PeqNP_False
+#print axioms PaperFaithfulSeparation.separation_3sat
+#print axioms PaperFaithfulSeparation.no_rank_sandwich_at_large_n
+#print axioms PaperFaithfulSeparation.rank_sandwich_axiom_iff_no_bounded_sat_decider
+#print axioms PaperFaithfulSeparation.isAmplituhedronGauge_uninhabited_for_sat_decider
+#print axioms GodMoveReal.compiled_np_lower_bound_any_dtm
+#print axioms GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n
+#print axioms GlobalGodMoveGauge.theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly
+#print axioms GlobalGodMoveGauge.theorem207PaperSource_transport_false
+#print axioms PAC.gadget_multiplication_rank_bound
+#print axioms MatrixSPDP.gadget_multiplication_rank_bound_matrix_form
+#print axioms Step4Compiler.P_side_rank_concrete_bound
+#print axioms Step4Compiler.P_side_rank_concrete_lt_NP_side
+#print axioms BinomialBound.binomial_lower_bound_concrete

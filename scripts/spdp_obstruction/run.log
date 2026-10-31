@@ -1,0 +1,39 @@
+{"poly": "prod x1..xn", "n": 4, "kappa": 2, "ell": 2, "circuit_size_note": "3 AND gates", "LEAN-drop": 11, "PAPER-reduce": 11, "PAPER-drop": 11, "C(n,kappa)": 6}
+{"poly": "parity (2*MLE)", "n": 4, "kappa": 2, "ell": 2, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 11, "PAPER-reduce": 16, "PAPER-drop": 16, "C(n,kappa)": 6}
+{"poly": "point indicator", "n": 4, "kappa": 2, "ell": 2, "circuit_size_note": "3 AND + <= 4 NOT", "LEAN-drop": 11, "PAPER-reduce": 11, "PAPER-drop": 16, "C(n,kappa)": 6}
+{"poly": "e_(n,n/2)", "n": 4, "kappa": 2, "ell": 2, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 11, "PAPER-reduce": 11, "PAPER-drop": 11, "C(n,kappa)": 6}
+{"poly": "prod x1..xn", "n": 5, "kappa": 2, "ell": 2, "circuit_size_note": "4 AND gates", "LEAN-drop": 16, "PAPER-reduce": 16, "PAPER-drop": 16, "C(n,kappa)": 10}
+{"poly": "parity (2*MLE)", "n": 5, "kappa": 2, "ell": 2, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 16, "PAPER-reduce": 31, "PAPER-drop": 31, "C(n,kappa)": 10}
+{"poly": "point indicator", "n": 5, "kappa": 2, "ell": 2, "circuit_size_note": "4 AND + <= 5 NOT", "LEAN-drop": 16, "PAPER-reduce": 16, "PAPER-drop": 28, "C(n,kappa)": 10}
+{"poly": "e_(n,n/2)", "n": 5, "kappa": 2, "ell": 2, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 16, "PAPER-reduce": 16, "PAPER-drop": 16, "C(n,kappa)": 10}
+{"poly": "prod x1..xn", "n": 6, "kappa": 2, "ell": 2, "circuit_size_note": "5 AND gates", "LEAN-drop": 22, "PAPER-reduce": 22, "PAPER-drop": 22, "C(n,kappa)": 15}
+{"poly": "parity (2*MLE)", "n": 6, "kappa": 2, "ell": 2, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 22, "PAPER-reduce": 57, "PAPER-drop": 57, "C(n,kappa)": 15}
+{"poly": "point indicator", "n": 6, "kappa": 2, "ell": 2, "circuit_size_note": "5 AND + <= 6 NOT", "LEAN-drop": 22, "PAPER-reduce": 22, "PAPER-drop": 53, "C(n,kappa)": 15}
+{"poly": "e_(n,n/2)", "n": 6, "kappa": 2, "ell": 2, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 36, "PAPER-reduce": 41, "PAPER-drop": 41, "C(n,kappa)": 15}
+{"poly": "prod x1..xn", "n": 7, "kappa": 2, "ell": 2, "circuit_size_note": "6 AND gates", "LEAN-drop": 29, "PAPER-reduce": 29, "PAPER-drop": 29, "C(n,kappa)": 21}
+{"poly": "parity (2*MLE)", "n": 7, "kappa": 2, "ell": 2, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 29, "PAPER-reduce": 99, "PAPER-drop": 99, "C(n,kappa)": 21}
+{"poly": "point indicator", "n": 7, "kappa": 2, "ell": 2, "circuit_size_note": "6 AND + <= 7 NOT", "LEAN-drop": 29, "PAPER-reduce": 29, "PAPER-drop": 82, "C(n,kappa)": 21}
+{"poly": "e_(n,n/2)", "n": 7, "kappa": 2, "ell": 2, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 49, "PAPER-reduce": 63, "PAPER-drop": 63, "C(n,kappa)": 21}
+{"poly": "prod x1..xn", "n": 8, "kappa": 3, "ell": 3, "circuit_size_note": "7 AND gates", "LEAN-drop": 93, "PAPER-reduce": 93, "PAPER-drop": 93, "C(n,kappa)": 56}
+{"poly": "parity (2*MLE)", "n": 8, "kappa": 3, "ell": 3, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 93, "PAPER-reduce": 247, "PAPER-drop": 247, "C(n,kappa)": 56}
+{"poly": "point indicator", "n": 8, "kappa": 3, "ell": 3, "circuit_size_note": "7 AND + <= 8 NOT", "LEAN-drop": 93, "PAPER-reduce": 93, "PAPER-drop": 236, "C(n,kappa)": 56}
+{"poly": "e_(n,n/2)", "n": 8, "kappa": 3, "ell": 3, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 148, "PAPER-reduce": 162, "PAPER-drop": 162, "C(n,kappa)": 56}
+{"poly": "prod x1..xn", "n": 9, "kappa": 3, "ell": 3, "circuit_size_note": "8 AND gates", "LEAN-drop": 130, "PAPER-reduce": 130, "PAPER-drop": 130, "C(n,kappa)": 84}
+{"poly": "parity (2*MLE)", "n": 9, "kappa": 3, "ell": 3, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 130, "PAPER-reduce": 466, "PAPER-drop": 466, "C(n,kappa)": 84}
+{"poly": "point indicator", "n": 9, "kappa": 3, "ell": 3, "circuit_size_note": "8 AND + <= 9 NOT", "LEAN-drop": 130, "PAPER-reduce": 130, "PAPER-drop": 406, "C(n,kappa)": 84}
+{"poly": "e_(n,n/2)", "n": 9, "kappa": 3, "ell": 3, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 213, "PAPER-reduce": 255, "PAPER-drop": 255, "C(n,kappa)": 84}
+{"poly": "prod x1..xn", "n": 10, "kappa": 3, "ell": 3, "circuit_size_note": "9 AND gates", "LEAN-drop": 176, "PAPER-reduce": 176, "PAPER-drop": 176, "C(n,kappa)": 120}
+{"poly": "parity (2*MLE)", "n": 10, "kappa": 3, "ell": 3, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 176, "PAPER-reduce": 848, "PAPER-drop": 848, "C(n,kappa)": 120}
+{"poly": "point indicator", "n": 10, "kappa": 3, "ell": 3, "circuit_size_note": "9 AND + <= 10 NOT", "LEAN-drop": 176, "PAPER-reduce": 176, "PAPER-drop": 762, "C(n,kappa)": 120}
+{"poly": "e_(n,n/2)", "n": 10, "kappa": 3, "ell": 3, "circuit_size_note": "O(n^2) arithmetic (DP)", "LEAN-drop": 405, "PAPER-reduce": 627, "PAPER-drop": 627, "C(n,kappa)": 120}
+{"poly": "prod x1..xn", "n": 11, "kappa": 3, "ell": 3, "circuit_size_note": "10 AND gates", "LEAN-drop": 232, "PAPER-reduce": 232, "PAPER-drop": 232, "C(n,kappa)": 165}
+{"poly": "parity (2*MLE)", "n": 11, "kappa": 3, "ell": 3, "circuit_size_note": "O(n) XOR gates", "LEAN-drop": 232, "PAPER-reduce": 1486, "PAPER-drop": 1486, "C(n,kappa)": 165}
+{"poly": "point indicator", "n": 11, "kappa": 3, "ell": 3, "circuit_size_note": "10 AND + <= 11 NOT", "LEAN-drop": 232, "PAPER-reduce": 232, "PAPER-drop": 1209, "C(n,kappa)": 165}
+{"poly": "prod x1..xn [kappa=n/2, ell=0]", "n": 4, "kappa": 2, "ell": 0, "circuit_size_note": "3 AND gates", "LEAN-drop": 6, "PAPER-reduce": 6, "PAPER-drop": 6, "C(n,kappa)": 6}
+{"poly": "prod x1..xn [kappa=n/2, ell=0]", "n": 6, "kappa": 3, "ell": 0, "circuit_size_note": "5 AND gates", "LEAN-drop": 20, "PAPER-reduce": 20, "PAPER-drop": 20, "C(n,kappa)": 20}
+{"poly": "prod x1..xn [kappa=n/2, ell=0]", "n": 8, "kappa": 4, "ell": 0, "circuit_size_note": "7 AND gates", "LEAN-drop": 70, "PAPER-reduce": 70, "PAPER-drop": 70, "C(n,kappa)": 70}
+{"poly": "prod x1..xn [kappa=n/2, ell=0]", "n": 10, "kappa": 5, "ell": 0, "circuit_size_note": "9 AND gates", "LEAN-drop": 252, "PAPER-reduce": 252, "PAPER-drop": 252, "C(n,kappa)": 252}
+{"poly": "det_2", "n": 4, "kappa": 2, "ell": 2, "circuit_size_note": "poly-size (Berkowitz)", "LEAN-drop": 7, "PAPER-reduce": 11, "PAPER-drop": 11, "C(n,kappa)": 6}
+{"poly": "det_3", "n": 9, "kappa": 3, "ell": 3, "circuit_size_note": "poly-size (Berkowitz)", "LEAN-drop": 34, "PAPER-reduce": 130, "PAPER-drop": 130, "C(n,kappa)": 84}
+{"poly": "IMM 2x2 x2 entry(1,1)", "n": 8, "kappa": 3, "ell": 3, "circuit_size_note": "16 mults", "LEAN-drop": 0, "PAPER-reduce": 0, "PAPER-drop": 0, "C(n,kappa)": 56}
+{"poly": "IMM 2x2 x3 entry(1,1)", "n": 12, "kappa": 3, "ell": 3, "circuit_size_note": "24 mults", "LEAN-drop": 25, "PAPER-reduce": 299, "PAPER-drop": 299, "C(n,kappa)": 220}

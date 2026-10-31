@@ -1,0 +1,128 @@
+import PallLean.PAC
+
+/-!
+# Phase-1 audit: `PAC.gadget_spdp_subspace_factoring` is refutable
+
+`PallLean.lean` (the active entrypoint) transitively imports `PallLean.PAC`,
+which declares the custom axiom `PAC.gadget_spdp_subspace_factoring`
+(strict `|S| = κ` convention).  The repository already documents a
+counterexample in `Archive/GadgetSubspaceFactoringCounterexample.lean`, but
+only computes the relevant derivatives.  This file closes the loop: it derives
+`False` from the axiom itself.  Hence the Lean environment of the active
+entrypoint is inconsistent, and any theorem whose `#print axioms` lists this
+axiom carries no information.
+
+Instance: N = 2, gadget X₀ (support 1, degree 1), p = X₁, κ = 1, ℓ = 0,
+two singleton blocks.
+-/
+
+namespace Phase1Audit
+
+open MvPolynomial SPDP MultilinearSPDP
+
+noncomputable def g0 : PAC.BoundedGadget 2 where
+  poly := X 0
+  supportSize := 1
+  degreeBound := 1
+  vars_card_le := by rw [vars_X]; simp
+  totalDegree_le := by rw [totalDegree_X]
+
+def B2 : BlockPartition 2 := ⟨2, fun i => i⟩
+
+theorem gadget_spdp_subspace_factoring_false : False := by
+  classical
+  obtain ⟨G, hcard, hsub⟩ :=
+    PAC.gadget_spdp_subspace_factoring g0 B2 1 0 (X 1 : MvPolynomial (Fin 2) ℚ)
+  -- shifted rank of X₁ at κ = 2 is zero (every length-2 derivative kills X₁)
+  have hbot : mlBlockedSpdpSubspace B2 (1 + g0.degreeBound) (0 + g0.degreeBound)
+      (X 1 : MvPolynomial (Fin 2) ℚ) = ⊥ := by
+    unfold mlBlockedSpdpSubspace
+    rw [Submodule.span_eq_bot]
+    rintro x ⟨S, m, hlen, _, _, _, hx⟩
+    have hiter : iterDerivList S (X 1 : MvPolynomial (Fin 2) ℚ) = 0 :=
+      iterDerivList_eq_zero_of_totalDegree_lt S _ (by
+        rw [hlen, totalDegree_X]; simp [g0])
+    rw [hx, hiter, mul_zero, mlProj_zero]
+  have hr : mlBlockedSpdpRank B2 (1 + g0.degreeBound) (0 + g0.degreeBound)
+      (X 1 : MvPolynomial (Fin 2) ℚ) = 0 := by
+    unfold mlBlockedSpdpRank; rw [hbot]; exact finrank_bot _ _
+  rw [hr, mul_zero] at hcard
+  have hG : G = ∅ := Finset.card_eq_zero.mp (Nat.le_zero.mp hcard)
+  subst hG
+  -- but the unshifted space contains mlProj(∂₀(X₀X₁)) = X₁ ≠ 0
+  have hder : iterDerivList [(0 : Fin 2)] (g0.poly * (X 1 : MvPolynomial (Fin 2) ℚ))
+      = X 1 := by
+    simp [iterDerivList, g0, pderiv_X]
+  have hmem : mlProj ((1 : MvPolynomial (Fin 2) ℚ) *
+      iterDerivList [(0 : Fin 2)] (g0.poly * X 1)) ∈
+      mlBlockedSpdpSubspace B2 1 0 (g0.poly * (X 1 : MvPolynomial (Fin 2) ℚ)) := by
+    apply Submodule.subset_span
+    refine ⟨[(0 : Fin 2)], 1, rfl, by simp, by simp, ?_, rfl⟩
+    refine ⟨by simp, ?_⟩
+    intro b
+    simp only [List.filter]
+    split <;> simp
+  have h0 := hsub hmem
+  simp only [Finset.coe_empty, Submodule.span_empty, Submodule.mem_bot] at h0
+  rw [hder, one_mul] at h0
+  have hc := congrArg (coeff (Finsupp.single (1 : Fin 2) 1)) h0
+  rw [coeff_zero] at hc
+  change (Finsupp.filter (fun α => Finsupp.IsMultilinear α) (X 1 : MvPolynomial (Fin 2) ℚ))
+      (Finsupp.single 1 1) = 0 at hc
+  rw [Finsupp.filter_apply_pos _ _ (by
+    intro i; fin_cases i <;> simp)] at hc
+  have h1 : coeff (Finsupp.single (1 : Fin 2) 1) (X 1 : MvPolynomial (Fin 2) ℚ) = 1 :=
+    coeff_X _
+  exact one_ne_zero (h1.symm.trans hc)
+
+/-- The same instance refutes the companion axiom `gadget_factoring_linearmap_form`
+in `PallLean.MatrixSPDP` (also in the active import closure). -/
+noncomputable def g0' : MatrixSPDP.BoundedGadget 2 where
+  poly := X 0
+  supportSize := 1
+  degreeBound := 1
+  vars_card_le := by rw [vars_X]; simp
+  totalDegree_le := by rw [totalDegree_X]
+
+theorem gadget_factoring_linearmap_form_false : False := by
+  classical
+  obtain ⟨L, hsub, -⟩ :=
+    MatrixSPDP.gadget_factoring_linearmap_form g0' B2 1 0 (X 1 : MvPolynomial (Fin 2) ℚ)
+  have hbot : mlBlockedSpdpSubspace B2 (1 + g0'.degreeBound) (0 + g0'.degreeBound)
+      (X 1 : MvPolynomial (Fin 2) ℚ) = ⊥ := by
+    unfold mlBlockedSpdpSubspace
+    rw [Submodule.span_eq_bot]
+    rintro x ⟨S, m, hlen, _, _, _, hx⟩
+    have hiter : iterDerivList S (X 1 : MvPolynomial (Fin 2) ℚ) = 0 :=
+      iterDerivList_eq_zero_of_totalDegree_lt S _ (by
+        rw [hlen, totalDegree_X]; simp [g0'])
+    rw [hx, hiter, mul_zero, mlProj_zero]
+  rw [hbot, Submodule.map_bot] at hsub
+  have hder : iterDerivList [(0 : Fin 2)] (g0'.poly * (X 1 : MvPolynomial (Fin 2) ℚ))
+      = X 1 := by
+    simp [iterDerivList, g0', pderiv_X]
+  have hmem : mlProj ((1 : MvPolynomial (Fin 2) ℚ) *
+      iterDerivList [(0 : Fin 2)] (g0'.poly * X 1)) ∈
+      mlBlockedSpdpSubspace B2 1 0 (g0'.poly * (X 1 : MvPolynomial (Fin 2) ℚ)) := by
+    apply Submodule.subset_span
+    refine ⟨[(0 : Fin 2)], 1, rfl, by simp, by simp, ?_, rfl⟩
+    refine ⟨by simp, ?_⟩
+    intro b
+    simp only [List.filter]
+    split <;> simp
+  have h0 := hsub hmem
+  rw [Submodule.mem_bot, hder, one_mul] at h0
+  have hc := congrArg (coeff (Finsupp.single (1 : Fin 2) 1)) h0
+  rw [coeff_zero] at hc
+  change (Finsupp.filter (fun α => Finsupp.IsMultilinear α) (X 1 : MvPolynomial (Fin 2) ℚ))
+      (Finsupp.single 1 1) = 0 at hc
+  rw [Finsupp.filter_apply_pos _ _ (by
+    intro i; fin_cases i <;> simp)] at hc
+  have h1 : coeff (Finsupp.single (1 : Fin 2) 1) (X 1 : MvPolynomial (Fin 2) ℚ) = 1 :=
+    coeff_X _
+  exact one_ne_zero (h1.symm.trans hc)
+
+end Phase1Audit
+
+#print axioms Phase1Audit.gadget_spdp_subspace_factoring_false
+#print axioms Phase1Audit.gadget_factoring_linearmap_form_false
