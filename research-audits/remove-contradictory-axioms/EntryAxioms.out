@@ -1,0 +1,26 @@
+'Step4Compiler.P_ne_NP_Lean' depends on axioms: [propext, Quot.sound]
+'PaperFaithfulSeparation.separation_3sat' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PaperFaithfulSeparation.no_rank_sandwich_at_large_n' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PaperFaithfulSeparation.rank_sandwich_axiom_iff_no_bounded_sat_decider' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'PaperFaithfulSeparation.isAmplituhedronGauge_uninhabited_for_sat_decider' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'GodMoveReal.compiled_np_lower_bound_any_dtm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n' depends on axioms: [propext, Classical.choice, Quot.sound]
+'GlobalGodMoveGauge.theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'GlobalGodMoveGauge.theorem207PaperSource_transport_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Step4Compiler.P_side_rank_concrete_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Step4Compiler.P_side_rank_concrete_lt_NP_side' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BinomialBound.binomial_lower_bound_concrete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PAC.gadget_multiplication_rank_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PAC.gadgetMultOp' depends on axioms: [propext, Classical.choice, Quot.sound]
+'MatrixSPDP.gadget_multiplication_rank_bound_matrix_form' depends on axioms: [propext, Classical.choice, Quot.sound]
+'PAC.gadget_spdp_subspace_factoring_paperFaithful' depends on axioms: [propext,
+ Classical.choice,
+ PAC.gadget_spdp_subspace_factoring_paperFaithful,
+ Quot.sound]
+exit 0

@@ -190,8 +190,12 @@ structure BoundedGadget (N : ℕ) where
   vars_card_le : poly.vars.card ≤ supportSize
   totalDegree_le : poly.totalDegree ≤ degreeBound
 
-/-- **Axiom (Lemma 40(c), Finset-cardinality form): gadget multiplication
-span is finitely generated with bounded cardinality.**
+/-- **Former axiom, now a hypothesis (Lemma 40(c), Finset-cardinality form):
+gadget multiplication span is finitely generated with bounded cardinality.**
+
+**Status: refuted under the strict `|S| = κ` convention used here** (kernel-checked;
+see the `-- GAP:` note below).  Kept only as a named proposition so that the history
+of the Lemma 40(c) route stays readable.
 
 This is the paper-exact content of Lemma 40(c) at the span level: the
 SPDP subspace of `g · p` is contained in the ℚ-span of some **finite**
@@ -206,9 +210,16 @@ the right size, and its finrank becomes `L.card · rank(p)_shifted`.
 
 The `gadget_multiplication_rank_bound` is then **derived** from this
 axiom + `finrank_span_finset_le_card`. -/
-axiom gadget_spdp_subspace_factoring
-    {N : ℕ} (g : BoundedGadget N)
-    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+-- GAP: this statement used to be the trusted `axiom gadget_spdp_subspace_factoring`.
+-- It is REFUTABLE (N = 2, g = X₀, p = X₁, κ = 1, ℓ = 0, singleton blocks; see
+-- `research-audits/remove-contradictory-axioms/AxiomRefutations.lean`,
+-- `RemoveContradictoryAxioms.not_gadgetSpdpSubspaceFactoring`), so as an axiom it made the
+-- whole environment inconsistent.  It is now only a named `Prop`; theorems that used it take
+-- it as an explicit hypothesis and are therefore VACUOUS until a corrected, independently
+-- proved replacement (e.g. a proved inclusive-κ form) is supplied.
+def GadgetSpdpSubspaceFactoring : Prop :=
+    ∀ {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ),
     ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
       G.card ≤ N ^ (g.supportSize + g.degreeBound) *
                mlBlockedSpdpRank B (κ + g.degreeBound)
@@ -594,14 +605,17 @@ Using the finite-cardinality span factoring axiom above, the paper's
 `rank(g · p) ≤ N^C · rank(p)` follows by chaining:
 
   `finrank(SPDP(g·p)) ≤ finrank(span(G)) ≤ |G| ≤ N^C · finrank(SPDP(p)_shifted)`. -/
+-- GAP: depends on the refuted hypothesis `GadgetSpdpSubspaceFactoring` (formerly an axiom).
+-- Vacuous as it stands; needs an independently proved Lemma 40(c) replacement.
 theorem gadget_multiplication_rank_bound
+    (hfact : GadgetSpdpSubspaceFactoring)
     {N : ℕ} (g : BoundedGadget N)
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
     N ^ (g.supportSize + g.degreeBound) *
       mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
   obtain ⟨G, hG_card, hG_contain⟩ :=
-    gadget_spdp_subspace_factoring g B κ ℓ p
+    hfact g B κ ℓ p
   have step1 := gadget_mult_rank_step1 B κ ℓ p g.poly G hG_contain
   have step2 : Module.finrank ℚ
       (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) ≤ G.card :=
@@ -611,7 +625,10 @@ theorem gadget_multiplication_rank_bound
 /-- **PAC operation from gadget multiplication (Lemma 40(c)).**
 Multiplication by a bounded gadget, with the rank bound from
 `gadget_multiplication_rank_bound`. -/
-noncomputable def gadgetMultOp {N : ℕ} (g : BoundedGadget N) : Op N where
+-- GAP: takes the refuted hypothesis `GadgetSpdpSubspaceFactoring` (formerly an axiom);
+-- unusable until an independently proved Lemma 40(c) replacement exists.
+noncomputable def gadgetMultOp (hfact : GadgetSpdpSubspaceFactoring)
+    {N : ℕ} (g : BoundedGadget N) : Op N where
   toFun :=
     { toFun := fun p => g.poly * p,
       map_add' := fun p q => by ring,
@@ -622,7 +639,7 @@ noncomputable def gadgetMultOp {N : ℕ} (g : BoundedGadget N) : Op N where
   ℓ_shift := g.degreeBound
   rank_factor := g.supportSize + g.degreeBound
   rank_monotone B κ' ℓ' p :=
-    gadget_multiplication_rank_bound g B κ' ℓ' p
+    gadget_multiplication_rank_bound hfact g B κ' ℓ' p
 
 /-! ## Axiom-free constant-multiplication PAC operation
 
@@ -767,8 +784,8 @@ etc.) depend only on this plus the Mathlib standard axioms
 Lemma 40(a) was removed in v1.1 — see the correctness note at its
 section for the reason and what the right formulation would be. -/
 #print axioms gadget_multiplication_rank_bound
--- Expected: propext, Classical.choice, Quot.sound,
---   PAC.gadget_spdp_subspace_factoring.
+-- Expected: propext, Classical.choice, Quot.sound (the former axiom is now the
+--   explicit, refuted hypothesis `GadgetSpdpSubspaceFactoring` — see GAP notes).
 -- (The derived theorem depends only on the narrower span-factoring axiom.
 -- Previously this was itself a top-level axiom in PAC v1.)
 #print axioms gadget_spdp_subspace_factoring_zero
