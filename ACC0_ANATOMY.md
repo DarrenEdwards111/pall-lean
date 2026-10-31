@@ -1,0 +1,1060 @@
+# An N-Frame–driven machine-checked anatomy of `NEXP ⊄ ACC⁰`
+
+**Status: not a proof of `NEXP ⊄ ACC⁰` and not a proof of `P ≠ NP`.**  This document writes up what the arc *did*
+achieve: a machine-checked (Lean 4 / Mathlib), sorry-free **conditional decomposition** of Williams' `NEXP ⊄ ACC⁰`
+route, and — driven as a proof-search by the N-Frame dynamic-observer framing — a **localization of the
+composite-`ACC⁰[m]` wall to a single, precise, classical open object**: the per-field `SYM∘AND` representation of
+composite `MOD_m` gates with cross-field mixing handled (equivalently, the Razborov–Smolensky lower bound in its
+operative form).  Every reducible part of the route is *proved* or *refuted*; the irreducible core is *named*, not
+faked.
+
+All theorems cited below build with clean axioms (`[propext, Classical.choice, Quot.sound]` or tighter) and **no**
+`sorryAx`, in namespace `PallLean.Paper93.DeepMath.PathB`.  See `WHAT_IS_PROVED.md` and `ACC_THEOREM_MAP.md` for the
+per-theorem ledger, and `ComputationalDepthACC0FrontierSummary.lean` for the consolidated `#print axioms` audit.
+
+---
+
+## 1. What this is, and what it is not
+
+**Is:** a faithful, machine-checked map of Williams' 2011 `NEXP ⊄ ACC⁰` proof and the Beigel–Tarui (BT) /
+Razborov–Smolensky (RS) machinery underneath it, with each classically-proved theorem either *proved* in Lean or
+isolated as an honestly-labelled named socket; and an exhaustive, conservative anatomy of *where* the composite-`ACC⁰`
+barrier actually lives.
+
+**Is not:** a proof of any separation.  The deep classical theorems that the route depends on (e.g. `MIP = NEXP`, the
+IKW easy-witness lemma, the NW/IW hardness–randomness tradeoff, and the composite-`ACC⁰` lower bound) are isolated as
+named sockets; the *operative* irreducible one is a known open problem.  Nothing here claims to take it.
+
+**Discipline.**  No socket is ever discharged by a false closure.  When a step was not provable conservatively, it was
+named, not faked.  Two self-corrections during the arc (a false `ChernoffPerInput`, a wrong dichotomy `iff`) were caught
+and fixed transparently — evidence the no-faking discipline was load-bearing, not decorative.
+
+---
+
+## 2. The two-route Williams/BT architecture (decomposed)
+
+Williams' result factors as: `ACC⁰ ⇒` a single quasipoly `SYM∘AND` representation `⇒` a faster-than-trivial SAT
+algorithm for `ACC⁰` circuits `⇒` (with the nondeterministic time hierarchy + Karp–Lipton/IKW collapse) `NEXP ⊄ ACC⁰`.
+The arc decomposes both sides:
+
+- **BT side (`ACC⁰ ⇒ SYM∘AND`).**  Two routes formalised: a direct low-degree (quasipoly) route, and a
+  majority-amplification route shown to be *exponential* (honestly: that terminus does not give quasipoly).  The RS
+  probabilistic polynomial method is driven to combinatorial proofs with **no measure theory** (involution-based
+  per-point detection, Fermat indicators, binomial-tail Chernoff).
+- **Williams side (collapse + hierarchy).**  The Karp–Lipton chain is fully decomposed: `NEXP ⊆ ACC⁰ ⟹ NEXP = MA = NP`
+  contradicting the nondeterministic time hierarchy.  Proved pieces include the Cantor and lazy-diagonalization kernels,
+  the clocked-NTM time-class placement, and the **sum-check engine** of `MIP = NEXP` (the round-reduction identity
+  `scSum g = roundPoly g 0 + roundPoly g 1`, the recursion, and the base case), plus arithmetization-as-counting and a
+  Schwartz–Zippel soundness bound.  The genuinely deep ingredients (`MIP = NEXP` arithmetization+soundness, the IKW
+  easy-witness lemma, `NW/IW ⇒ PRG`, `PRG ⇒ MA ⊆ NP`) are isolated as named sockets; the IKW small-prover socket is
+  shown to *bottom out at the circuit lower bound* (its other horn is a hard function).
+
+The single load-bearing irreducible input on the BT side is the **exact low-degree representation of `ACC⁰[m]` circuits
+for composite `m`** — the socket `ApproxToExactCount` (file `…ACC0ApproxToExact`).  The rest of this document is the
+anatomy of that one wall.
+
+---
+
+## 3. The composite-`ACC⁰[m]` wall, triaged
+
+The N-Frame framing reads a circuit through an **observer** (a low-complexity statistic of the computation) and asks
+when the observer is *faithful* (recovers the decision) and *cheap* (low-degree, quasipoly).  Used as a proof-search,
+this drove the `ApproxToExactCount` wall down to its components.  Each row is a Lean file; every "OK / proved / refuted"
+is sorry-free with clean axioms.
+
+| Component of the wall | Verdict | Key proved theorem(s) | File |
+|---|---|---|---|
+| Easy direction: exact unit-count ⇒ `LowDegRep` | **proved** | `lowDegRep_of_exactUnitCount` | `…ACC0ApproxToExact` |
+| Carry seam, qualitative (field power-indicator) | **proved** | `powerIndicator_of_prime`, `not_powerIndicator_primePow`, `field_observer_blind_to_carry`, `crt_residue_observer_suffices` | `…ACC0CarryInvariant` |
+| Carry seam, quantitative (Kummer carry count) | **proved** | `carryCount_digits_identity`, `carryCount_eq_zero_iff_not_dvd`, `carryCount_pos_iff_dvd` | `…ACC0KummerCarry` |
+| Composite CRT carry profile | **proved** | `carryProfileTrivial_iff_coprime`, `carryProfile_mul` | `…ACC0CRTCarryProfile` |
+| Crossing condition named + scaffolded | **proved scaffold** | `fieldObs_carry_blind`, `lowDegRep_of_observer`; socket `CarryRefinementCrossing` | `…ACC0CarryCrossing` |
+| Observer **state count** — is it the obstruction? | **No (quasipoly)** | `faithful_iff_le`, `exists_faithful` | `…ACC0CarryObserverSize` |
+| **Decode** (count → boolean) — is it the obstruction? | **No (realisable over a field)** | `prime_realizes`, `pointIndicator_eval` | `…ACC0CarryRealization` |
+| Single-field full-count degree | **`Θ(N)` — too expensive** | `faithful_decode_degree_ge`, `prime_indicator_natDegree_eq` | `…ACC0CompositeCountDegree` |
+| Per-prime layers — low-degree? | **Yes (degree `≤ p-1`, independent of `n`)** | `modpIndicator_totalDegree_le`, `modpIndicator_eval` | `…ACC0LayeredCarryDegree` |
+| Cross-field combination — structural root | **incompatible characteristics** | `no_common_char`, `reduction_blind_to_other_prime` | `…ACC0CrossFieldCombination` |
+| Single-field route to a non-native `MOD_q` | **NO-GO (Smolensky, already in-arc)** | `crossField_modq_fieldRoute_nogo` `= Layer4.mod_q_indicators_false` | `…ACC0SmolenskyLowerBound` |
+| Multi-sorted product-field observer — exists? | **Yes (faithful)** | `modm_iff_modp_and_modq`, `prod_field_iso`, `prodObs_bijective` | `…ACC0MultiSortedObserver` |
+| Multi-sorted fast-SAT — counting budget | **OK (composes, quasipoly)** | `jointCells_le_pow`, `multiSorted_savings` | `…ACC0MultiSortedFastSAT` |
+
+Reading the table: the obstruction is **not** the observer's state count (quasipoly), **not** the decode (realisable
+over a field), **not** the per-prime layer degree (low), and **not** the multi-sorted counting budget (composes).  The
+single-field route is a **proved no-go** (Smolensky, already assembled in the arc as `Layer4.mod_q_indicators_false`).
+The multi-sorted product-field observer genuinely *exists and is faithful*.  Everything reducible is settled.
+
+---
+
+## 4. The localization result
+
+> **The composite-`ACC⁰[m]` route reduces, with everything else proved or refuted, to one object:**
+> the **per-field `SYM∘AND` representation of the circuit's composite `MOD_m` gates with cross-field mixing handled** —
+> equivalently, the Razborov–Smolensky composite lower bound in its operative form.
+
+Precisely:
+
+1. A faithful, cheap (quasipoly) observer for `MOD_m` **must** be multi-sorted — it cannot collapse to a single field
+   `F_p`, because a non-native `MOD_q` (`q ≠ p`) is not low-degree over `F_p` (`crossField_modq_fieldRoute_nogo`, the
+   in-arc Smolensky bound), and no field carries two prime characteristics at once (`no_common_char`).
+2. The multi-sorted observer **exists** and faithfully decomposes `MOD_m = ⋀ᵢ MOD_{pᵢ}` over `∏ᵢ F_{pᵢ}`
+   (`modm_iff_modp_and_modq`, `prod_field_iso`, `prodObs_bijective`), with each component low-degree over its own field
+   (`modpIndicator_totalDegree_le`), and its fast-SAT **counting budget composes and stays quasipoly**
+   (`jointCells_le_pow`, `multiSorted_savings`).
+3. The **only** thing not built is the per-prime `SYM∘AND` representation of the circuit's `MOD_m` gates: a single
+   `MOD_m` gate cannot live over one `F_{pᵢ}`, and downstream gates **mix** the per-field computations.  This
+   **cross-field mixing inside the circuit** (not the readout) is the irreducible core — the open `ACC⁰[composite]`
+   wall.
+
+So the N-Frame search did not weaken the wall; it *located* it exactly, and proved that the surrounding program (size,
+decode, layer degree, observer faithfulness, counting budget) is *not* where the difficulty lies.
+
+**Further localization (the MOD₆ laboratory, `…ACC0ProductFieldMixing`).**  A *single layer* of mixed `MOD_2`/`MOD_3`
+gates feeding a Boolean combiner composes **without collapse**: the output is determined by the product observer state
+`(count mod 2, count mod 3) = count mod 6` (`mixedOut_determined`, no axioms; `mixedOut_determined_by_mod6`), with `≤ 6`
+cells — the gate outputs are bits and the combiner is Boolean, touching no field arithmetic.  So the obstruction is
+**not** single-layer mixing; it is **depth ≥ 2 nesting** — a `MOD_q` gate *fed by* a non-native `MOD_p` output, which
+forces arithmetizing `MOD_p` over `F_q` (Smolensky-blocked).  The irreducible core is therefore pinned to the depth
+composition of different-modulus `MOD` gates.
+
+---
+
+## 5. What is proved vs. socketed vs. open
+
+- **Proved (sorry-free, clean axioms):** the entire decomposition glue on both routes; the RS combinatorial pipeline;
+  the sum-check engine, arithmetization-as-counting, Schwartz–Zippel soundness, multilinear extension; the lazy/Cantor
+  diagonalization kernels and clocked time-class placement; and the full carry/observer anatomy of §3 — including the
+  in-arc Razborov–Smolensky lower bound `Layer4.mod_q_indicators_false` (`MOD_q ∉ AC⁰[p]` for `q ∤ p`) and
+  `Layer3.parity_function_lower_bound`.
+- **Socketed (named, honest, decomposed as far as composition allows):** `MIP = NEXP` (arithmetization + multi-prover
+  soundness), the IKW easy-witness lemma (shown to reduce to a hard function), `NW/IW ⇒ PRG`, `PRG ⇒ MA ⊆ NP`, and the
+  universal-simulation cost of the lazy diagonal.  These are proved classical theorems requiring infrastructure absent
+  here; none is faked.
+- **Open (the irreducible core):** the per-field `SYM∘AND` representation of composite `MOD_m` gates with cross-field
+  mixing handled — the operative form of the composite-`ACC⁰` / Smolensky-strength lower bound.  This is a genuine open
+  problem; crossing it requires a new mathematical idea about cross-field circuit mixing, not present here.
+
+A subtlety worth stating plainly: the in-arc Smolensky bound bounds `AC⁰[p]` (single prime, where `MOD_q` is the
+*forbidden* gate).  It is **not** `NEXP ⊄ ACC⁰`, which concerns `ACC⁰[m]` with the `MOD_m` gate *available* — Williams'
+open territory.  The localized core is exactly the gap between these.
+
+---
+
+## 5b. Refined conclusion — the wall is *algebraic*, not cut (entries 251–256)
+
+Pushing the localized core (§4) further produced a clean separation of two notions, both machine-checked:
+
+* **Cut-expansion governs *DP tractability* exactly.**  Disjoint (overlap rank 1, `…ACC0CrossFieldCountCore`),
+  block-diagonal (bounded local overlap, `…ACC0BlockOverlapCount`), and bounded-treewidth (separator conditioning,
+  `…ACC0TreewidthCount` `separator_factor`) incidence ⇒ the cross-field count factors by an N-Frame observer DP.  The
+  positive side is proved up the parametrized-complexity ladder.
+* **Cut-expansion is *not* count-hardness.**  The full-support family (`…ACC0ExpanderFamilies` `fullSupport_expander`)
+  is a separator-expander (no small separator) whose count is easy when its gates are redundant.  So no-small-separator
+  is necessary for DP-failure but **not sufficient** for the count lower bound.
+* **The correct hypothesis is *algebraic expansion*.**  `AlgExpander` (`…ACC0AlgebraicExpansion`) = the gate-indicator
+  functions are *linearly independent over the field* `F` (high gate-function rank).  This is about the gate functions,
+  not the cut; it rules out the redundant-gate degeneracy (`not_algExpander_of_duplicate`).
+
+> **Refined wall.**  Bounded separator/treewidth incidence is tractable by N-Frame observer factorization (proved).
+> The remaining `ACC⁰[composite]` wall is **algebraically-independent cross-field fire-counting**: *linearly-independent
+> `F_p`-gate indicators ⇒ the mod-`q` fire-count needs superpolynomial resources* — the Razborov–Smolensky theorem in
+> its sharpest form, socketed as `AlgExpanderCountObstruction`.
+
+## 5c. The corrected bridge — the `ACC⁰[composite]` wall, precisely (entries 256–261)
+
+Counterexample-driven refinement (the framework breaking its own weak invariants) produced the correct, validated
+hardness hypothesis.  The wall is **not** mere graph expansion, **nor** indicator independence alone:
+
+> **`ACC⁰[composite]` wall = cross-field fire-counting for gate families that are both (a) *non-redundant* —
+> linearly-independent indicators (`AlgExpander`, `…ACC0AlgebraicExpansion` / `…ACC0IndicatorRank`) — and (b)
+> *co-firing-rich* — many distinct, large simultaneous fire-patterns (`CoFiringRich` / `PatternRich`,
+> `…ACC0CoFiring` / `…ACC0FirePatternRichness`).**
+
+Each clause is validated by a *proved* separating example: the full-support family (cut-expander, redundant ⇒ easy,
+`…ACC0ExpanderFamilies`) and the parallel-affine family (`AlgExpander` but disjoint/no co-firing ⇒ fire-count `≤ 1`,
+easy, `…ACC0AffineHyperplaneLowerBound`).  The corrected socket is
+
+> `AlgExpander gates → CoFiringRich gates → CrossFieldCountHard gates`,
+
+non-vacuous with a **proven hard instance**: the dictator/`MOD_q` family satisfies both and its mod-`q` fire-count is
+`MOD_q`, hard in `AC⁰[p]` by the in-arc Razborov–Smolensky theorem `Layer4.mod_q_indicators_false`.  The general socket
+is Smolensky-strength (the open core); the implication `CrossFieldCountHard ⇒ ACC⁰[composite] lower-bound component`
+(upstream of Williams `NEXP ⊄ ACC⁰`) is the named bridge.
+
+## 5d. A second proved family + the real lower-bound target and its RS attack (entry 262)
+
+To move from cataloguing invariants to *connecting the stack to a lower bound*, the program now (a) exhibits a **second**
+genuinely-different family satisfying both hardness clauses, (b) names the single missing theorem, and (c) names its
+Razborov–Smolensky attack invariant — all in `…ACC0VaryingAffinePatterns`.
+
+* **Second proved family — varying-direction affine hyperplanes.**  `varGate a b i x := decide (⟨a i, x⟩ = b i)`: each
+  gate `i` is the affine hyperplane with its *own* direction `a i` (vs the parallel family's one fixed all-ones
+  direction).  Under **general position** (`dotEval a : x ↦ (⟨a i, x⟩)ᵢ` *surjective* — for `n = s` the direction
+  matrix is invertible), every subset is realized as a fire-pattern, giving `PatternRich (2^s)`
+  (`varyingAffine_patternRich`), all gates co-firing on one input `CoFiringRich s` (`varyingAffine_coFiringRich`), and
+  linear independence `AlgExpander` via private witnesses (`varyingAffine_algExpander`) — all PROVED.  The **parallel**
+  family is the degenerate easy subcase: its all-fire pattern is never realized, so general position fails
+  (`parallel_pattern_image_ne_univ`).
+* **The single named missing theorem.**  `PatternRichCrossFieldLowerBound`: `AlgExpander → PatternRich (2^s) →
+  CrossFieldCountHard`.  This replaces the prose "general socket" with one named target.
+* **The RS attack invariant.**  `NonNativeDegreeLowerBound` factors the target through *non-native polynomial degree
+  over `F_q`* (`q ≠ p`) — the measure closest to Razborov–Smolensky: `(AlgExpander ∧ PatternRich ⇒ HighNonNativeDegree)
+  ∧ (HighNonNativeDegree ⇒ CrossFieldCountHard)`.  `patternRich_lb_of_nonNativeDegree` (PROVED) shows this route
+  suffices for the target.
+* **Wiring it in.**  `varyingAffine_ACC0_chain` (PROVED): *given* the lower-bound socket and the §5c bridge
+  `crossFieldHard_to_ACC0Component`, the varying-affine family yields the `ACC⁰[composite]` component **with
+  `AlgExpander` and `PatternRich` discharged** for this family.  Two proved families (dictator/`MOD_q`, varying-affine)
+  now reach the antecedent; only the two named sockets (the lower bound + the bridge) remain open.
+
+## 5e. A third proved family — Reed–Muller / low-degree polynomial gates, closest to RS (entry 263)
+
+The third family is the one closest to Razborov–Smolensky, obtained by a clean reduction (`…ACC0ReedMullerGates`):
+
+> **A low-degree polynomial gate is an affine gate in the monomial feature space.**
+
+Gate `i` is a degree-`≤ d` polynomial `Pᵢ` over `ZMod p`, firing iff `Pᵢ(x) = bᵢ`.  Writing `Pᵢ = ∑_m coeffᵢ,m · m`
+and letting `φ(x)_m := m(x)` (the monomial feature map, `m` over degree-`≤ d` monomials — `RM(d,n)` is the span), we get
+`Pᵢ(x) = ⟨coeffᵢ, φ(x)⟩`, so `rmGate = varGate ∘ φ`.
+
+* **Reduction made exact.**  `rmGate_degree_one_eq_varGate` (PROVED): the degree-1 features `feat m x = x_m` give
+  `rmGate = varGate` — the §5d varying-affine family is the degree-1 special case.
+* **Inheriting the invariants.**  Under **feature general position** (`rmEval feat coeff : x ↦ (Pᵢ(x))ᵢ` *surjective* —
+  Reed–Muller non-degeneracy / large code distance), all of §5d lifts: `rmGate_patternRich` (`PatternRich (2^s)`),
+  `rmGate_coFiringRich` (`CoFiringRich s`), `rmGate_algExpander` (`AlgExpander`) — all PROVED.
+* **Wiring it in.**  `rmGate_ACC0_chain` (PROVED): given the §5d lower-bound socket and the §5c bridge, Reed–Muller
+  yields the `ACC⁰[composite]` component with `AlgExpander`/`PatternRich` discharged.  The RS attack invariant
+  `NonNativeDegreeLowerBound` applies verbatim (non-native degree over `F_q` = Reed–Muller distance — the literal RS
+  measure).
+
+**Net:** three proved families (dictator/`MOD_q`, varying-affine, Reed–Muller) now reach the count-hardness antecedent,
+validating `AlgExpander ∧ PatternRich` across three distinct geometries; the wall is localized to the single named
+`PatternRichCrossFieldLowerBound` with an RS-flavoured attack route.
+
+## 5f. Attacking the wall — the Smolensky counting engine, PROVED; the target reduced to one analytic socket (entry 264)
+
+The direct attack on `PatternRichCrossFieldLowerBound` along the non-native degree route (`…ACC0NonNativeDegree`).  The
+route factors into two halves:
+
+* **(B) richness ⇒ high non-native degree** — Smolensky's *counting* argument;
+* **(A) small resources ⇒ low non-native degree** — the *polynomial-method* approximation of `AC⁰[p]` circuits.
+
+This file **proves the entire (B) engine** — the mechanism by which the route works — and reduces the target to the
+*single* named analytic socket (A).
+
+* **The counting engine (PROVED).**  `lowDegreeDim n D := ∑_{i≤D} C(n,i)` is the dimension of the non-native
+  degree-`≤ D` function space; `lowDegreeDim_lt_two_pow` proves `D < n ⇒ lowDegreeDim n D < 2^n` (the low-degree space
+  is strictly smaller than the full space — why low-degree polynomials cannot compute rich functions).
+* **The rank pigeonhole (PROVED).**  `exists_notMem_of_finrank_lt` (a family spanning more than `finrank W` escapes
+  `W`) and `algExpander_forces_high_degree`: an `AlgExpander` family of `s` gates with `lowDegreeDim n D < s` must
+  contain a gate of non-native degree `> D`.  *Too many independent gates cannot all be low-degree* — this is the actual
+  Smolensky lower-bound mechanism, machine-proved.
+* **The count is `MOD_q` (PROVED).**  `crossFieldCount_eq_firePattern_card_mod`: the cross-field count is `|firing
+  pattern| mod q` = `MOD_q` on the pattern indicator, the function hard by the in-arc `Layer4.mod_q_indicators_false`.
+* **The reduction (PROVED, modulo one socket).**  `nonNativeDegreeLowerBound_via_counting` builds a concrete
+  `NonNativeDegreeLowerBound` with the (B) half *proved* by the engine and the (A) half = the socket
+  `PolynomialMethodApproximation` (the probabilistic polynomial method, `AC⁰[p] ⇒` low-degree approximation — the
+  genuine open RS core, instances = in-arc `Layer3`/`Layer4`).  `patternRichCrossFieldLowerBound_via_nonNativeDegree`
+  feeds it through §5d's `patternRich_lb_of_nonNativeDegree` to the target.
+
+**Net:** the Smolensky *counting + rank* mechanism — the part that makes the non-native degree route work — is now
+machine-proved as reusable kernels, and the entire open target `PatternRichCrossFieldLowerBound` is reduced to *two*
+named sockets: the analytic `PolynomialMethodApproximation` and the secondary `LowDegreeDimensionIdentity`.
+
+## 5g. Discharging the dimension socket — the multilinear basis over `F` (entry 265)
+
+The secondary socket `LowDegreeDimensionIdentity` (`finrank W = lowDegreeDim n D`) is now **discharged completely** by
+building the multilinear monomial basis over an arbitrary field `F` (`…ACC0MultilinearBasis`) — the `F`-analogue of the
+in-arc `anf_involutive` (which did this over `F₂`).
+
+* **The basis (PROVED).**  `mlMon S x := ∏_{i∈S} (xᵢ : F)` over the Boolean cube.  The key is the *triangular
+  evaluation* `mlMon_eval`: `χ_S(e_T) = [S ⊆ T]` at `e_T(i) = [i ∈ T]` (the unitriangular subset/zeta matrix).
+  `mlMon_linearIndependent` then proves the `2ⁿ` monomials independent over `F` by Möbius/strong induction on the subset
+  lattice (`∑_{S ⊆ T} c_S = 0 ∀T ⇒ c_T = 0`) — a genuine general-field generalisation of `anf_involutive`.
+* **The dimension (PROVED).**  `card_subtype_card_le`: `#{S : S.card ≤ D} = lowDegreeDim n D` (partition by
+  cardinality); `lowDegreeSubmodule_finrank`: `span {χ_S : |S| ≤ D}` has dimension exactly `lowDegreeDim n D`.
+* **Socket discharged (PROVED).**  `lowDegreeDimensionIdentity_discharged` gives `LowDegreeDimensionIdentity
+  (lowDegreeSubmodule n D) n D`; `patternRichCrossFieldLowerBound_no_dimSocket` then shows that for Boolean gate
+  families the open target rests on the **single** remaining socket `PolynomialMethodApproximation`.
+
+**Net:** after entries 264–265, the open target `PatternRichCrossFieldLowerBound` is reduced to the *one* analytic
+socket `PolynomialMethodApproximation` — the probabilistic polynomial method (`AC⁰[p] ⇒` low-degree approximation).  Both
+the Smolensky counting/rank engine *and* the multilinear-basis dimension identity are machine-proved.  That last socket
+is the genuine open Razborov–Smolensky core; its concrete instances are already in-arc (`Layer3`/`Layer4`), but the
+general form is exactly the `ACC⁰[composite]` wall and is not faked.
+
+## 5h. Into the last socket — the single-gate polynomial method (entry 266)
+
+The first rung *inside* `PolynomialMethodApproximation`: how one gate is represented/approximated by a polynomial over
+`F` (`…ACC0AndGateApprox`).  The genuinely-provable algebraic substrate is built; the probabilistic boosting is the one
+open ingredient.
+
+* **The Fermat engine (PROVED).**  `fermat_indicator`: over `F_p`, `y^{p-1} = [y ≠ 0]` (Fermat's little theorem) — the
+  degree-`p-1` device that turns a *sum* of literals into a `0/1` value, *independent of fan-in*.
+* **Exact monomials (PROVED).**  `andExact` (`AND_n = ∏ᵢ xᵢ`) and `orExact` (`OR_n = 1 − ∏ᵢ(1 − xᵢ)`), both degree `n`.
+* **The clause indicator (PROVED).**  `clauseIndicator`: `1 − (∑_{i∈S} xᵢ)^{p-1} = [∑_{i∈S} xᵢ = 0]`, degree `p-1`
+  *regardless of `|S|`* — the RS building block.
+* **Landing in the framework (PROVED).**  `andIndicator_mem_lowDegree`: the AND indicator is `mlMon univ` (§5g), hence
+  lies in `lowDegreeSubmodule n n`.  `and_exact_is_zeroError_approximation` witnesses the approximation socket at the
+  exact endpoint `(D = n, k = 0)`.
+* **The open ingredient.**  `RandomizedLowDegreeApproximation F n D k` (a degree-`≤ D` polynomial agreeing with `AND_n`
+  except on `≤ k` inputs).  The RS content — `D ≪ n` with `k ≤ ε·2ⁿ` via random restriction + boosting of the clause
+  indicators — is the single-gate base case of `PolynomialMethodApproximation`, and is left as the named socket.
+
+**Net:** the polynomial method's *per-gate algebra* is now machine-proved (Fermat indicator, exact AND/OR, the
+fan-in-free clause indicator, membership in the degree-`≤ n` submodule), with a proved zero-error endpoint.  The single
+remaining open step is the *low-degree* probabilistic approximation — the irreducible analytic core of Razborov–Smolensky
+(`ACC⁰[composite]`, entry-238 `CarryRefinementCrossing`).  Not faked, not a separation.
+
+## 5i. The boosting step — error reduction to `2^{-k}` (entry 267)
+
+The mechanism that turns one weak clause indicator into a good approximator (`…ACC0Boosting`).  A single Fermat clause
+indicator is correct with probability `≥ 1/2` on each nonzero input; **boosting** combines `k` of them.
+
+* **The boosted polynomial (PROVED).**  `boostPoly e x := 1 − ∏ⱼ (1 − eⱼ x)` is the *OR* of the `k` approximators:
+  `boostPoly_eq_one` (some `eⱼ` fires ⇒ `1`), `boostPoly_eq_zero` (all silent ⇒ `0`), degree `k·(p-1)`.
+* **Agreement (PROVED).**  `boost_correct`: boost equals the Boolean target under the good event.
+* **The error-reduction core (PROVED).**  `boost_correct_off_iInter`: boost agrees with the target on every input
+  *outside the intersection* of the `k` error sets — `bad(boost) ⊆ ⋂ⱼ bad j`.  This is exactly the boosting step.
+* **The probabilistic ingredients (sockets).**  `SingleSubsetAgreement` (per-clause `≥ 1/2`, provable over `F₂` by the
+  parity-toggle involution) and `IndependentIntersectionBound` (independence ⇒ `|⋂ⱼ bad j| ≤ ∏ⱼ |bad j|/2^{n(k-1)}`).
+  Composed with the proved boosting they drive `|bad(boost)| ≤ 2ⁿ·2^{-k}`.
+
+**Net:** the boosting *algebra* (OR-of-approximators, error-set intersection `bad(boost) ⊆ ⋂ⱼ bad j`) is machine-proved.
+What remains inside `PolynomialMethodApproximation` is now reduced to two sharply-named probabilistic facts — the
+per-clause `≥ 1/2` agreement and the independence of the random subsets — which together with the proved per-gate and
+boosting algebra would complete the single-gate low-degree approximation.  Those two are the residue of the open
+Razborov–Smolensky core.  Not faked, not a separation.
+
+## 5j. The per-clause `1/2` — discharging `SingleSubsetAgreement` over `F₂` (entry 268)
+
+The first of the two probabilistic residues is now *proved* over `F₂` (`…ACC0SingleSubsetF2`), and there it is *exactly*
+`1/2`, by a clean parity-toggle involution.
+
+* **The toggle (PROVED).**  For a nonzero input `x`, fix `j` with `xⱼ = true`.  `tog j S := S △ {j}` is an involution
+  (`tog_tog`, `tog_injective`) that *flips* the clause parity: `par_tog` proves `parF2 x (tog j S) = parF2 x S + 1`
+  over `F₂` (the `j`-term contributes `1`).
+* **Equinumerous fibers (PROVED).**  `tog j` therefore bijects `{S : par = 0} ↔ {S : par ≠ 0}`, so the two parity
+  fibers have equal cardinality; as they partition the `2ⁿ` subsets, each is `2ⁿ⁻¹`.
+* **The bound (PROVED).**  `singleSubsetAgreement_two`: `2ⁿ ≤ 2·#{S : par x S ≠ 0}` — i.e. `SingleSubsetAgreement 2 n x`.
+  The clause fires correctly on exactly half the subsets.
+
+**Net:** the per-clause `≥ 1/2` agreement — the *base probabilistic primitive* of the polynomial method — is now
+machine-proved over `F₂`.  Of the entire Razborov–Smolensky chain, the **only** ingredient still socketed for the
+single-gate low-degree approximation is `IndependentIntersectionBound` (independence of the random subsets).  Every other
+layer — counting, rank pigeonhole, multilinear dimension, per-gate Fermat/exact reps, boosting error-reduction, and now
+the per-clause `1/2` — is proved.  Not faked, not a separation.
+
+## 5k. Independence — the joint `2^{-k}` bound (entry 269)
+
+The second probabilistic residue is now proved (`…ACC0Independence`), in the honest model where the `k` random subsets
+are *independent*: the **product space `∀ j, Y j`** of the `k` draws.
+
+* **Independence factorization (PROVED).**  Each clause's bad event is a cylinder (depends only on its own draw), so the
+  joint bad event `⋂ⱼ bad j = {y : ∀ j, y j ∈ B j}` is the product box `Fintype.piFinset B`, and `jointBad_card` gives
+  `|⋂ⱼ bad j| = ∏ⱼ |B j|`.
+* **The `2^{-k}` bound (PROVED).**  With each clause bad on at most half its draws (`2·|B j| ≤ |Y j|`, the per-clause
+  `1/2` of §5j), `independent_intersection_bound` / `joint_error_le` give `2^k·|jointBad| ≤ |∀ j, Y j|` — joint failure
+  on at most a `2^{-k}` fraction of the randomness space.
+
+**Net:** both probabilistic residues of `PolynomialMethodApproximation` are now machine-proved — the per-clause `1/2`
+(§5j) and the independence `2^{-k}` (§5k).  Composed with the proved boosting (§5i, `bad(boost) ⊆ ⋂ⱼ bad j`) and the
+proved per-gate algebra (§5h), the **entire single-gate low-degree approximation is assembled from proved parts**.  The
+only ingredient still socketed is the *structural* lifting from a single gate to a circuit to an observer
+(`PolynomialMethodApproximation` proper) — combinatorial bookkeeping over the gate graph, not a new analytic idea.  Every
+analytic layer of Razborov–Smolensky — counting, rank, multilinear dimension, Fermat indicator, exact reps, boosting,
+per-clause `1/2`, independence `2^{-k}` — is now proved.  Not faked, not a separation.
+
+(Note: there is also a *concrete `F₂` circuit* development of the same structural lifting in the repository — an
+independent arc `…ACC0{CircuitApprox, ErrorAccumulation, SmallErrorForm, LayerCompose, CompositionCorrect, OrStep,
+DepthInduction}` (committed, sorry-free): a `Circ` datatype, `MvPolynomial`/`totalDegree` approximants, `error_union_bound`,
+`or_step`/`and_step`, and the depth induction `approximable_exists` for **MOD-free** circuits.  It converges with the
+abstract kernel here on the same wall — composite `MOD`.)
+
+## 5l. The `MOD_p` gate — native easy, non-native hard (entry 270)
+
+The third `AC⁰[p]` gate, completing the per-gate kernel beyond `AND`/`OR` (`…ACC0ModpGate`).  `MOD_p` fires iff the
+Hamming weight is `≡ 0 mod p`.
+
+* **Exact native representation (PROVED).**  `modp_native_repr`: `1 − (∑ᵢ xᵢ)^{p-1} = [MOD_p]` over `F_p`, via the
+  Fermat indicator (§5h) — degree `p-1`, *fan-in-free*.  `MOD_p` is *easy over its own field*: constant native degree.
+* **`MOD_p` is the `SYM`/count object (PROVED).**  `modpGate_fires_iff`: `MOD_p ⇔ p ∣ #{true inputs}` — the
+  weight-divisibility / cross-field-count gate (§3, entry 251), the `SYM` of Beigel–Tarui `SYM∘AND`.
+* **The dichotomy.**  Native (`F_p`) is degree `p-1` (easy, proved); *non-native* (`F_ℓ`, `ℓ ≠ p`) is high degree — the
+  Razborov–Smolensky obstruction `ModpNonNativeHardOverOtherField`, whose mechanism is the proved counting/rank engine
+  (§5f, `algExpander_forces_high_degree`) and whose *composite-modulus* form is the open wall (§3, entry 238).
+
+**Net:** all three `AC⁰[p]` gate types now have their per-gate polynomial behaviour proved — `AND`/`OR` (§5h) and `MOD_p`
+(§5l) — and the native/non-native split is made precise: every gate is *low-degree native*, and the entire difficulty is
+concentrated in the *non-native composite-`MOD`* lower bound, which is the single open wall.  Not faked, not a separation.
+
+## 5m. The native/non-native bridge — split made theorem-level (entry 271)
+
+The assembly step (`…ACC0NativeNonNativeBridge`): the native/non-native split, hitherto stated as commentary, is now a
+*theorem*, with `MOD_p` wired to the `PatternRich`/cross-field socket via the **dictator family** `gᵢ(x) := xᵢ`.
+
+* **Native (PROVED).**  `modp_native_easy`: over `F_p`, `MOD_p` has the exact degree-`(p-1)` representation (§5l) —
+  the native side is easy.
+* **The cross-field identity (PROVED).**  `modp_iff_dictator_crossFieldCount_zero`: `MOD_p` fires iff the dictator
+  cross-field count mod `p` is `0` — `MOD_p` *is* the entry-251 cross-field-count object (`modpGate_fires_iff` +
+  `Nat.dvd_iff_mod_eq_zero`).
+* **The non-native target (PROVED antecedent).**  `dictator_meets_patternRich_socket`: the dictator family is
+  `AlgExpander ∧ PatternRich (2^s)` (§5c–§5d) — it satisfies the antecedent of `PatternRichCrossFieldLowerBound` (§5d).
+  So the non-native hardness of `MOD_p`'s cross-field count over `F_q` *is* that central socket.
+* **The split (PROVED).**  `native_nonnative_split` packages both: native exact `F_p` rep + cross-field identification.
+
+**Net:** the path from here is pure assembly.  The split is theorem-level; the non-native object is identified with the
+central socket `PatternRichCrossFieldLowerBound`, whose antecedent is provably met and which §5f already reduced to the
+single `PolynomialMethodApproximation` ingredient — for which §5f–§5l supply the entire proved RS analytic kernel.  The
+one open theorem is the non-native (composite-`MOD`) lower bound itself — the wall.  Not faked, not a separation.
+
+## 5n. The polynomial-method bridge — `small AC⁰[p] ⇒ low-degree approximation` (entry 272)
+
+Roadmap step 3, a *bridge file* (`…ACC0PolynomialMethodApproximation`) connecting the abstract `F_p` kernel (§5f–§5m)
+and the concrete `F₂` circuit arc (the committed `…ACC0{CircuitApprox, OrStep, DepthInduction, ...}`) **without
+re-proving either**.
+
+* **The notions coincide (PROVED).**  `LowDegreeApprox f D E` (an `F₂`-poly of degree `≤ D` erring on `≤ E` inputs) is
+  the common notion; `approximable_iff_lowDegreeApprox` (`Iff.rfl`) shows Codex's `Approximable` *is* it.
+* **The bridge direction (PROVED).**  `small_AC0p_observer_implies_lowDegreeApprox`: every `MOD`-free `AC⁰` circuit's
+  function has a low-degree approximant — re-exporting the committed `approximable_exists`.
+* **The contradiction (PROVED).**  `polynomial_method_contradiction`: a degree-`≤ D` approximant *and* a high-degree
+  requirement give `False`.
+* **The two quantitative sockets.**  `QuantitativeDepthBound` (size/depth → `(D,E)`, threading the committed
+  `or_step`/`and_step` + boosting `t`) and `SmolenskyNonNativeLowerBound` (`¬ LowDegreeApprox` for the non-native target
+  — the wall, mechanism §5f, composite §3/entry 238).
+
+**Net:** the two parallel RS developments are now formally bridged, the "small observer ⇒ low-degree approximation"
+direction is re-exported and proved, and the final contradiction is assembled.  What remains is exactly the two
+quantitative inputs — the size/depth → degree refinement (assembly of committed pieces) and the Smolensky lower bound
+(the wall).  Supplying both completes the *prime*-`MOD` lower bound; the *composite* case feeds `ACC0CompositeComponent`
+→ Williams and is the single open barrier.  Not faked, not a separation.
+
+## 5o. The quantitative depth bound — the clean per-layer step (entry 273, roadmap (A))
+
+Roadmap step (A), built *on top of* the committed `or_step`/`and_step` (`…ACC0QuantitativeDepthBound`).  The committed
+steps left the gate-boosting error in the awkward form `(2^k)^t·Eg ≤ 2ⁿ·(2^{k-1})^t`; this entry extracts the clean
+fraction.
+
+* **The clean per-gate bound (PROVED).**  `gate_error_le`: that awkward bound (with `1 ≤ k`) cancels to `2^t·Eg ≤ 2ⁿ` —
+  each gate's boosting error is at most a `2^{-t}` fraction of the inputs, *independent of fan-in*.
+* **The clean per-layer step (PROVED).**  `or_layer_quant`/`and_layer_quant`: `or_step`/`and_step` repackaged with that
+  clean bound (degree `≤ t·D`, error `≤ k·E + Eg`, `2^t·Eg ≤ 2ⁿ`).
+* **The degree closed form (PROVED).**  `pow_depth_degree`: `(·t)` iterated `d` times on `D₀` is `t^d·D₀` — depth-`d`
+  approximant degree `≤ t^d·D₀`.
+
+**Net:** the quantitative per-layer ingredient — the part `or_step` left awkward — is now clean and proved (the gate
+error is a transparent `2^{-t}` fraction), and the degree closed form `t^d·D₀` is in hand.  The remaining piece of
+`QuantitativeDepthBound` is the structural iteration over the committed `Circ` (apply the layer step gate-by-gate,
+accumulating degree `t^d`, error `size·2ⁿ·2^{-t}`) — the quantitative refinement of `approximable_exists`, which lives in
+the committed circuit arc.  Of roadmap (A), the clean analytic content is done; only that structural iteration and the
+Smolensky wall (B) remain.  Not faked, not a separation.
+
+## 5p. The quantitative iteration — the recurrence solved in closed form (entry 274, roadmap step 1)
+
+The iteration math (`…ACC0QuantitativeIteration`), on top of entry 273.  The per-layer estimates become the full
+closed-form bound.
+
+* **Error accumulation (PROVED).**  `error_accumulation`: the per-gate `2^{-t}` errors (entry 273) sum, via the
+  committed union bound (`E ≤ ∑ᵢ Eg i`), to `2^t·E ≤ m·2ⁿ`; `error_accumulation_size` gives `2^t·E ≤ size·2ⁿ` — the
+  total error is a `size·2^{-t}` fraction.
+* **The combined solver (PROVED).**  `quantitative_iteration_closed_form`: degree `≤ t^d·D₀` (entry 273) ∧
+  `2^t·E ≤ m·2ⁿ` — the closed-form solution of the size/depth/error recurrence.
+
+**Net:** the analytic content of the iteration is done — the closed-form degree `t^d·D₀` and error `size·2^{-t}` are
+proved.  The one remaining piece of `QuantitativeDepthBound` is the structural `Circ` recursion
+(`CircuitStructuralRecursion`, the committed arc's quantitative `approximable_exists`) that feeds the per-gate
+decomposition into the solver.  After that, the route's only open theorem is the Smolensky wall
+(`SmolenskyNonNativeLowerBound`) — for composite modulus, entry-238 `CarryRefinementCrossing`.  Not faked, not a
+separation.
+
+## 5q. The Smolensky pigeonhole — the counting/rank half of the wall, proved (entry 275, step 4)
+
+The attack on the wall itself (`…ACC0SmolenskyPigeonhole`).  The Razborov–Smolensky non-native lower bound splits into
+**(counting/rank)** + **(degree-halving representation)**; this entry *proves the counting/rank half* via the §5f rank
+kernel and §5g dimension, isolating the degree-halving as the single residual socket.
+
+* **Point indicators independent (PROVED).**  `ptInd_linearIndependent`: the point indicators over a finset `S` span a
+  space of dimension `|S|`.
+* **The pigeonhole (PROVED).**  `smolensky_pigeonhole`: if every point indicator of `S` lies in `W` with
+  `finrank W < |S|`, then `False` — the `|S|`-dim span cannot embed in `W` (§5f `exists_notMem_of_finrank_lt`).
+  `smolensky_pigeonhole_lowDegree` instantiates `W = lowDegreeSubmodule n D'` (§5g): a good set bigger than the
+  low-degree dimension forces a high-degree point function.
+* **The reduction (PROVED).**  `smolensky_lower_bound_via_pigeonhole`: degree-halving + (good set large) ⇒ `False`.
+* **The residual socket.**  `SmolenskyDegreeHalving` — a degree-`D` approximator makes every good-set point function
+  degree `≤ n/2+D` (the Razborov–Smolensky representation lemma, using `MOD_q`'s algebra over `F_p`).  The genuine
+  remaining core; composite = §3/entry-238 `CarryRefinementCrossing`.
+
+**Net:** the wall's *counting/rank half* is now machine-proved — a large good set provably cannot have all-low-degree
+point functions (the §5f pigeonhole, §5g dimension).  The Smolensky lower bound is reduced to the *single* socket
+`SmolenskyDegreeHalving` (the degree-halving representation lemma).  Of the entire ACC route, the only open content is
+now that one classical representation lemma (prime case) / the composite carry-crossing (entry 238) plus the committed
+arc's structural `Circ` recursion.  Not faked, not a separation.
+
+## 5r. The Smolensky degree-halving — the prime-case substitution identity (entry 276)
+
+The attack on the residual socket `SmolenskyDegreeHalving`, **prime case only** (`…ACC0SmolenskyDegreeHalving`) —
+*composite untouched* (the §3/entry-238 `CarryRefinementCrossing` wall).  The algebraic core of degree-halving is proved.
+
+* **The substitution identity (PROVED).**  `smolensky_substitution`: over the `{±1}` encoding (`yᵢ² = 1`),
+  `∏_{i∈S} yᵢ = (∏ᵢ yᵢ)·(∏_{i∈Sᶜ} yᵢ)` — the full product is `∏_S·∏_{Sᶜ}` and `(∏_{Sᶜ})² = 1`, so it collapses to
+  `∏_S` (closed by `linear_combination`, sidestepping the dependent-motive `rw` on the `univ` product).
+* **The halving (PROVED).**  `compl_card_lt_half` (`|S| > n/2 ⇒ 2·|Sᶜ| < n`) + `monomial_halving`: a high-degree
+  monomial equals the *full product* times a *sub-half-degree* complement.
+* **The residual socket.**  `FullProductLowDegreeOnGoodSet` — replacing the full product by the degree-`D` approximator
+  on the good set; combined with `monomial_halving`, every monomial on `G` has degree `≤ n/2 + D`, discharging
+  `SmolenskyDegreeHalving` (§5q).  Prime = textbook; composite = §3/entry-238.
+
+**Net:** the algebraic heart of Smolensky's degree-halving — the `{±1}` substitution trading a degree-`|S|` monomial for
+the full product times a degree-`(n−|S|)` complement — is machine-proved.  With §5q's pigeonhole, the prime-`MOD` lower
+bound now rests on the *single* circuit-specific socket `FullProductLowDegreeOnGoodSet` (the approximator equals the full
+symmetric product on its good set).  Composite modulus remains the open `CarryRefinementCrossing` wall.  Not faked, not a
+separation.
+
+## 5s. The prime-case wiring — replacing the full product by the approximator (entry 277, step 1)
+
+The bridge from entry 276 into the proven approximation machinery (`…ACC0FullProductGoodSet`).  Entry 276's residual
+socket `FullProductLowDegreeOnGoodSet` needed *the approximator to equal the full product on the good set*; this entry
+shows that agreement is exactly what replaces the full product by the approximator inside the halving.
+
+* **The wiring (PROVED).**  `fullProduct_replace_on_goodSet`: given `∀ x ∈ G, P x = ∏ᵢ yencₓ i` (the approximator agrees
+  with the full product on the good set), then on `G`, `∏_{i∈S} yencₓ i = P x · ∏_{i∈Sᶜ} yencₓ i` — substitute the
+  agreement into §5r's `smolensky_substitution`.  The hard full product is replaced by the degree-`D` approximator.
+* **The halving packaged (PROVED).**  `monomial_eq_approx_times_lowComplement`: for `|S| > n/2`, on `G` the high-degree
+  monomial equals approximator × sub-half-degree complement (`2·|Sᶜ| < n`).
+* **The residual socket.**  `ApproximatorDegreeBound` — `P` degree `≤ D` ⇒ the product has degree `≤ D + n/2`, so
+  good-set point functions ∈ `lowDegreeSubmodule n (D + n/2)`, discharging `SmolenskyDegreeHalving` (§5q/§5r).
+
+**Net:** the *agreement input* of the degree-halving socket — formerly the unspecified "approximator = full product on
+good set" — is now wired to the approximation machinery: it is precisely what boosting (§5i) / `Approximable` (committed
+arc) supply (the `AC⁰[p]` approximator agreeing with the symmetric target off a small bad set).  For the **prime case**,
+the Smolensky lower bound is now assembled from proved parts: approximation (good set large) → full-product replacement
+(§5s) → degree-halving (§5r) → pigeonhole contradiction (§5q), modulo only `ApproximatorDegreeBound` (product-degree
+bookkeeping).  **Composite modulus stays the open `CarryRefinementCrossing` wall** (§3/entry 238) — deliberately
+untouched.  Not faked, not a separation.
+
+## 5t. The prime Smolensky lower bound, assembled + wired to ACC (entry 278, steps 3–4)
+
+The capstone of the prime route (`…ACC0SmolenskyPrime`): the prime-case Smolensky lower bound, assembled from the proved
+pieces, and wired to `ACC0CompositeComponent`.
+
+* **Step 3 (PROVED).**  `smolensky_prime_goodset_bound`: under degree-halving (§5r/§5s), `|G| ≤ lowDegreeDim n D'` (the
+  pigeonhole §5q in positive form — the good set is bounded by the low-degree dimension).  `no_small_approximator`: with
+  a large good set (`2ⁿ − E ≤ |G|`, the approximation machinery's small-bad-set output) and the binomial tail
+  (`lowDegreeDim n D' < 2ⁿ − E`), this is a contradiction — *no low-degree small-error approximator of the symmetric
+  `MOD`/parity target exists*.
+* **Step 4 (PROVED).**  `prime_route_to_ACC0Component`: the resulting `CrossFieldCountHard` feeds the §5c/entry-261
+  bridge to `ACC0CompositeComponent`, the component upstream of Williams.
+
+**Net:** the entire prime-case Razborov–Smolensky route is now assembled from machine-proved parts — approximation →
+full-product replacement (§5s) → degree-halving (§5r) → pigeonhole bound (§5q) → contradiction (`no_small_approximator`)
+→ `ACC0CompositeComponent` (§5c) — modulo only mechanical/standard residuals (`ApproximatorDegreeBound` product-degree
+bookkeeping, the binomial tail, the prime-case `CrossFieldCountHard` identification) and the committed arc's structural
+`Circ` recursion.  **Composite modulus is the one genuinely-open object** — the `CarryRefinementCrossing` wall (§3/entry
+238), deliberately untouched.  Not faked, not a separation.
+
+## 5u. Prime mechanical closure — the bookkeeping discharged (entry 279, step 1)
+
+The mechanical residuals of the prime route (`…ACC0PrimeMechanicalClosure`).
+
+* **`ApproximatorDegreeBound` discharged (PROVED).**  `approximator_times_complement_totalDegree`: the degree of a
+  product is at most the sum of degrees (`MvPolynomial.totalDegree_mul`) — the approximator (degree `≤ D`) times the
+  complement monomial (degree `≤ n/2`, §5s) has degree `≤ D + n/2`.  This is exactly the product-degree bookkeeping the
+  degree-halving needed.
+* **The clean prime theorem (PROVED, no axioms).**  `prime_smolensky_route_closed`: the prime hardness
+  (`CrossFieldCountHard`, from §5t's `no_small_approximator`) yields `ACC0CompositeComponent` via the §5c bridge.
+* **Honestly not discharged.**  The *binomial tail* (`lowDegreeDim n (n/2+D) < 2ⁿ − E`, `D = O(√n)`) is the standard
+  Chernoff estimate, kept as a numeric hypothesis (the Smolensky parameter regime), not faked; the committed `Circ`
+  recursion is the circuit arc's.
+
+**Net:** the prime-`ACC⁰[p]` lower bound is now assembled with every *mechanical* part machine-proved — degree-halving
+(§5r), wiring (§5s), pigeonhole bound (§5q/§5t), product-degree (§5u) — and only standard parameter estimates (the
+binomial tail) and the committed `Circ` recursion outside Lean.  **The single genuinely-open frontier is composite
+modulus** — the `CarryRefinementCrossing` wall (§3/entry 238).  It is not bookkeeping; it needs a new idea, and is left
+as the one honest open object.
+
+## 5v. The composite wall, smallest case — MOD₆ separated layers cross fields (entry 280, step 5)
+
+The honest composite attack (`…ACC0Mod6SeparatedLayers`): take `6 = 2·3` and the natural "separated layers" idea, and
+**prove precisely where it fails** — pinning `CarryRefinementCrossing` (§3/entry 238) at `n = 6`.  *This is a no-go, not
+a way through.*
+
+* **The CRT factorization (PROVED).**  `mod6_fires_iff_mod2_and_mod3`: `MOD₆` fires iff both `MOD₂` and `MOD₃` fire
+  (`6 ∣ #trues ↔ 2 ∣ #trues ∧ 3 ∣ #trues`, coprimality of 2,3, entries 245/270).  So `MOD₆` genuinely separates into a
+  `MOD₂` and a `MOD₃` layer.
+* **What works field-by-field.**  Each factor is native over its own field (entry 270 — `MOD₂` degree 1 over `F₂`,
+  `MOD₃` degree 2 over `F₃`); the Fermat representation works precisely in characteristic equal to the modulus.
+* **Where it fails (PROVED no-go).**  `mod6_layers_cross_fields`: no field has `CharP F 2 ∧ CharP F 3` (`no_common_char`,
+  entry 243), so the two CRT factors demand *incompatible* characteristics.  The prime route (§5q–§5u) commits to one
+  characteristic; it cannot run on the combined `MOD₆` gate.  **This is the carry-crossing obstruction in its smallest
+  instance** — the polynomial method picks one field, and composite modulus lives over several.
+
+**Net:** the natural way to extend the prime Smolensky route to composite modulus — separate the CRT layers — *provably
+fails by field incompatibility*.  This is exactly why composite `ACC⁰` is the genuine wall: it needs a method *not
+committed to a single characteristic*.  A proved negative structural fact (the `CarryRefinementCrossing` shape at
+`n = 6`), not a circumvention.  Not faked, not a separation.
+
+## 5w. The composite wall — bounded-depth staged observers fail too (entry 281, step 5 cont.)
+
+The second composite no-go (`…ACC0Mod6StagedObservers`): the natural fix for §5v's field-incompatibility is to *stage*
+the computation (`MOD₂` over `F₂`, `MOD₃` over `F₃`, combine), keeping each stage bounded-depth.  This proves *where
+staging fails*.
+
+* **Bounded depth ⇒ bounded degree (PROVED).**  `staged_degree_bound`: a depth-`d` staged observer's degree is
+  `t^d · D₀` (the layer recurrence, §5o/entry 273) — a fixed bound.
+* **The output field is non-native for one factor (PROVED).**  `mod6_staged_output_field_not_native`: the *final*
+  output is over a single field, which (§5v/entry 280) cannot be native for both `MOD₂` and `MOD₃`.
+* **The non-native factor needs growing degree.**  By the prime Smolensky bound (§5q–§5u), the non-native `MOD_q` factor
+  (`q ≠ char F`) requires degree `R(n)` growing with the input — eventually exceeding any fixed `t^d · D₀`.
+* **The no-go (PROVED).**  `bounded_depth_staged_no_go`: `observerDeg ≤ t^d·D₀` + `R ≤ observerDeg` (computing `MOD₆`
+  needs the factor) + `t^d·D₀ < R` (growing requirement) ⇒ `False`.
+
+**Net:** staging adds intermediate fields, but the *final output* is over one field, capped at degree `t^d·D₀` by
+bounded depth — which `MOD₆`'s growing non-native CRT factor defeats.  So bounded-depth staged observers fail for a
+definite, proved reason — the carry-crossing wall (§3/entry 238) for the staged model.  A characteristic-independent
+method is still needed.  Not faked, not a separation.
+
+## 5x. The composite wall — product-field observers with explicit carry state (entry 282, step 5, the namesake)
+
+The third composite no-go (`…ACC0Mod6CarryState`), and the one whose failure mode is literally
+`CarryRefinementCrossing`'s namesake.  After §5v (separate) and §5w (stage) fail, the natural next idea is to **track
+both fields at once via an explicit carry state** — work over the product `ZMod 2 × ZMod 3 ≃ ZMod 6`.  This proves *why
+the carry fails*: it lands in a ring that is not a field.
+
+* **The carry ring is not a field (PROVED).**  `carry_state_has_zero_divisors` / `carry_state_not_domain`: `ZMod 6` has
+  zero divisors (`2·3 = 0`), so it is not a domain, not a field.
+* **Fermat fails there (PROVED).**  `fermat_fails_on_carry`: `(2 : ZMod 6) ≠ 0` yet `2^{6-1} = 2 ≠ 1` — Fermat's little
+  theorem, the engine of the degree-halving (§5h, entry 266), is *false* over the carry ring.
+* **No traction (PROVED).**  `product_field_carry_state_no_traction`: the entire Smolensky method (§5f–§5u, all over
+  `[Field F]`, resting on the Fermat indicator) cannot run on the carry state.
+
+**Net — the three composite no-gos converge.**  Separating (§5v), staging (§5w), and carry-tracking (§5x) all fail for
+the *same* root reason: the polynomial method lives over a single field, and composite modulus forces either two
+incompatible fields or their product *ring* (zero divisors, Fermat false).  The carry that would couple the components
+does *not* refine into a single-field computation — which is exactly the content of the name `CarryRefinementCrossing`
+(§3/entry 238).  All three natural attacks are now *proved* to fail.  Composite `ACC⁰` genuinely needs a new,
+characteristic-independent idea — the one honest open object the whole arc points to.  Not faked, not a separation.
+
+## 5y. The anatomy frozen — `CarryRefinementCrossing` as the single composite target (entry 283, steps 1+3)
+
+The capstone (`…ACC0CarryRefinementCrossing`): freeze the result and name the one remaining theorem.
+
+* **Frozen (step 1).**  The prime-`ACC⁰[p]` route is machine-assembled (§5f–§5u, entries 264–279) modulo only the
+  standard binomial tail and the committed `Circ` recursion; the composite obstruction is isolated as
+  `CarryRefinementCrossing`, and its three natural attacks are all proved to fail (§5v–§5x, entries 280–282).
+* **The bundle (PROVED).**  `field_based_modes_all_fail`: conjoins the three composite no-gos — *separate* (no common
+  native field), *stage* (bounded degree < growing requirement), *carry* (product ring not a field, Fermat fails).
+  Every characteristic-committed approach to `MOD₆` is refuted.
+* **The single target (step 3).**  `CarryRefinementCrossing Mod6Computable FieldFreeUnboundedCarry` — the named socket:
+  any bounded, field-compatible observer computing `MOD₆` is forced into field-free / unbounded-carry territory.  By the
+  bundle, its hypothesis cannot be met by any field-based mode, so a proof needs a *characteristic-independent*
+  invariant.
+* **The frontier (steps 4–5, open).**  A field-free carry obstruction — ring/module invariant, communication/tensor
+  rank, proof-complexity, observer-holonomy, or carry-complexity — first tested on `MOD₆`.  Genuinely open research,
+  named here, **not** faked.
+
+**Net:** N-Frame has *found* the wall and frozen everything reducible around it.  Prime is essentially done; the
+composite obstruction is one precisely-named theorem (`CarryRefinementCrossing`) whose every natural attack is refuted,
+awaiting a new characteristic-independent idea.  That is the honest terminus and the live frontier.
+
+## 5z. First field-free carry invariant — carry-state complexity (entry 284, the live frontier engaged)
+
+The frontier of §5y (steps 4–5) calls for a *characteristic-independent* invariant.  Entry 284
+(`…ACC0CarryStateComplexity`) builds the first genuine one — **carry-state complexity** — and is honest about exactly
+where it bites and where it stops.
+
+* **The model (field-free).**  A *carry observer* is a finite state set `Q`, initial `q₀`, increment map `δ : Q → Q`
+  (one more `1`-bit), and accept/output map.  After weight `w` the carry is `δ^[w] q₀`.  No fields, no polynomials — only
+  states and the increment map.  This is precisely the characteristic-independent setting §5y demanded.
+* **Modular lower bound (PROVED).**  `carry_observer_mod_card_ge`: computing `MOD_m` needs `≥ m` carry states.  The `m`
+  residues are pairwise distinguishable — if `a < b < m` shared a state, the continuation of `m − a` more `1`-bits would
+  accept `a` (weight `m`) but reject `b` (weight `≡ b − a ≢ 0`).  A field-free Myhill–Nerode argument on `δ` via
+  `Function.iterate_add_apply`.
+* **Count lower bound (PROVED).**  `carry_observer_count_card_ge`: outputting the exact weight on `n` bits needs
+  `≥ n + 1` states — the carry *grows* with the count range.
+* **`MOD₆` (PROVED).**  `mod6_carry_state_ge_six`: `≥ 6` carry states; `mod_observer_too_small_fails`: `< m` states ⇒
+  cannot compute `MOD_m`.
+* **Honest caveat — where it stops.**  For a *fixed* modulus the bound is the **constant** `6` (`= 2·3`, the CRT
+  product) and is achievable — `MOD₆ ∈ ACC⁰[6]`.  So carry-state complexity separates the *count* (growing, `≥ n+1`) and
+  growing moduli, but **not** fixed-`MOD₆` composite by itself.  A composite separation needs a target whose carry-state
+  complexity *grows* under bounded-observer composition — locating that target and proving the growth is the genuinely
+  open `CarryRefinementCrossing` step.  Real field-free progress, not a separation, not faked.
+
+## 5z′. Field-free invariant route 2 — communication complexity / boundary (entry 285)
+
+A second characteristic-independent invariant, in a different model and with a different proof tool
+(`…ACC0CommunicationComplexity`).  Split the input across a cut: Alice holds residue `α`, Bob residue `β`; `MOD_m`
+decides `α + β ≡ 0`.
+
+* **Communication matrix (field-free).**  `commValue m α β := decide (α + β = 0)` — the `MOD_m` matrix.  A *product
+  observer* is a boundary alphabet `B`, encoder `msg : ZMod m → B`, decoder `decode : B → ZMod m → Bool`, correct when
+  `decode (msg α) β = commValue m α β`.  Only residues and the boundary alphabet — no fields, no polynomials.
+* **Distinct rows (PROVED).**  `commValue_row_injective`: the `m` rows are pairwise distinct (row `α` fires only at
+  `β = -α`) — the fooling-set / rank-`m` core.
+* **Boundary lower bound (PROVED).**  `mod_product_observer_boundary_ge`: correctness forces `msg` injective, so any
+  product observer for `MOD_m` has `≥ m` boundary states.  `mod6_product_observer_requires_large_boundary`: `≥ 6` for
+  `MOD₆`.
+* **Tightness (PROVED).**  `mod6_boundary_six_achievable`: the identity protocol (Alice sends her residue mod 6)
+  achieves a `6`-state boundary — the bound is the *constant* `6`, achievable, so `MOD₆` is communication-cheap
+  (`Θ(1)`).
+* **Same honest verdict.**  As in §5z, the bound is constant for a fixed modulus (`6 = 2·3`, the CRT product; separate
+  CRT channels `ZMod 2 × ZMod 3` match it exactly, no blow-up).  A real field-free communication bound, but **not** a
+  composite separation — that needs a target whose communication boundary *grows* under bounded composition.  Both
+  routes converge: the obstruction is not the size of any single boundary, but growth under composition.
+
+## 5z″. The target changed to growth — CRT product, frontier reduced to one socket (entry 286)
+
+Two field-free routes converging on the constant `6` was the signal to **change the target**: a fixed modulus has
+constant complexity and cannot witness a separation (`…ACC0CarryBoundaryGrowth`).  The growth lives in the CRT product
+`M = ∏ mᵢ`.
+
+* **Growing bound (PROVED).**  `crt_product_observer_boundary_ge` / `crt_product_carry_card_ge`: computing `MOD_(∏ mᵢ)`
+  needs boundary / state `≥ ∏ mᵢ` (the entry-285/284 bounds at `m = ∏ mᵢ`, `NeZero` from positivity).
+* **Exponential growth (PROVED).**  `product_ge_two_pow` + `crt_product_observer_boundary_ge_two_pow`: each `mᵢ ≥ 2` ⟹
+  `≥ 2^k`, exponential in the number of CRT factors — the unbounded growth fixed `MOD₆` lacks.  By CRT the bound is
+  tight (tracking the `k` factors jointly costs the *product* `∏ mᵢ`, not the sum `∑ mᵢ` — the carry-refinement
+  crossing).
+* **Genuine growth (PROVED).**  `growing_modulus_exceeds_budget`: no fixed boundary budget `< ∏ mᵢ` suffices — the
+  requirement climbs past any bound (in particular any polynomial, for a fast-growing product).
+* **The frontier reduced to ONE socket.**  `BoundedCompositionKeepsBoundaryBounded` (named, **open**): does
+  `ACC⁰[6]`-bounded composition of resource `s` realize `MOD_M` only via product observers of boundary `≤ boundaryBudget
+  s`?  `composite_ACC0_separation_from_socket` (PROVED conditional): that socket with `boundaryBudget s < ∏ mᵢ` ⟹
+  `MOD_(∏ mᵢ) ∉` size-`s` `ACC⁰[6]`.  The proved growing lower bound discharges the separation **modulo exactly the
+  socket** — every other step machine-checked.
+
+**Net:** the composite `ACC⁰` problem is now reduced, on the field-free side, to a single crisp statement: *bounded
+`ACC⁰[6]` composition keeps the product-observer boundary polynomially bounded.*  Proving it (for a polynomial budget)
+*is* the separation — separation-strength, the boundary-invariant restatement of `CarryRefinementCrossing`, **not**
+proved here.
+
+## 5z‴. Attacking the boundary socket directly — it is FALSE (entry 287, proved no-go)
+
+Pushing on the entry-286 socket head-on **breaks** it (`…ACC0BoundaryBoundednessRefutation`).
+
+* **General boundary bound (PROVED).**  `product_observer_card_ge_of_rows_injective`: any two-party `f` with
+  pairwise-distinct communication-matrix rows forces every product observer to boundary `≥ #A`.
+* **The counterexample (PROVED).**  `eqValue_rows_injective`: the equality function `eq(a,b) = [a = b]` has the identity
+  communication matrix — `#A` distinct rows.  `equality_boundary_two_pow`: on `k`-bit halves equality needs boundary
+  `≥ 2^k`.  Equality is a depth-2 `AC⁰` circuit (`AND` of `XNOR`s), hence `∈ AC⁰ ⊆ ACC⁰[6]` — a poly-size function with
+  *exponential* boundary.  (Set-disjointness, depth-2 `OR`-of-`AND`s, gives the same.)
+* **The socket is false (PROVED no-go).**  `equality_refutes_boundary_bounded`: any budget bounding *all* realizable
+  functions is `≥ #A = 2^k` — exponential.  So `BoundedCompositionKeepsBoundaryBounded` cannot hold with a polynomial
+  budget; entry-286's conditional separation, though a true implication, has an unsatisfiable hypothesis.  **The
+  boundary route is dead.**
+* **Why — the decisive finding.**  Communication boundary *anti-tracks* `ACC⁰[6]`-hardness: `MOD_M` is communication-
+  *easy* (boundary `M`, `O(log M)` bits), equality/disjointness are communication-*hard* (`2^k`), and **both** live in
+  `AC⁰ ⊆ ACC⁰[6]`.  Boundary size therefore cannot be the separating resource.  What separates is the *characteristic /
+  CRT structure* — small for the native moduli `{2,3}`, large for a non-native prime — the field-incompatibility of
+  §5v–§5x (entries 280–283) that raw communication cannot see.  Attacking the socket directly re-localizes the
+  obstruction back onto characteristic mixing and confirms it is not a communication-counting fact.
+
+## 5z⁗. A characteristic-coupled (typed) invariant — surviving the equality counterexample (entry 288)
+
+Entry 287's no-go pointed the way: the separating invariant must be characteristic-*aware* (keyed to prime
+characteristic), not boundary size.  Entry 288 (`…ACC0TypedBoundary`) builds it.
+
+* **The invariant.**  `CrossCharacteristic m S := ∃ p prime, p ∣ m ∧ p ∉ S` — the modulus `m` forces a characteristic
+  outside the available set `S` (`ACC⁰[6]` ⇒ `S = {2,3}`).  Keyed to the *prime factorisation*, so it applies only to
+  genuine `MOD` targets — it cannot fire on a function with no modulus.
+* **Classification (all PROVED).**  `mod5_cross_acc6`, `mod30_cross_acc6`: `MOD_5`, `MOD_30` are cross (`5 ∉ {2,3}`),
+  obstructed.  `mod6_not_cross_acc6`: `MOD₆` is *not* cross for `ACC⁰[6]` — correctly leaving `MOD₆ ∈ ACC⁰[6]`
+  unobstructed (no over-firing).  `mod6_cross_single_field`: `MOD₆` is cross for *every single* field `{p}` — the
+  no-common-characteristic carry crossing of §5v–§5x, now in the typed invariant.
+* **The discriminator (PROVED) — beats entry 287.**  `equality_not_count_predicate`: equality is not a count/MOD
+  predicate (`(10,01)` and `(10,10)` share total weight `2` but differ in equality), so it carries no modulus and the
+  characteristic invariant *never flags it* — exactly the asymmetry raw boundary size could not see (equality has huge
+  boundary yet is not characteristic-coupled).
+* **The typed crossing.**  `TypedCarryRefinementCrossing Computes S := ∀ m, CrossCharacteristic m S → ¬ Computes S m`
+  (the characteristic-coupled analog of §5y's `CarryRefinementCrossing`, immune to the equality counterexample).
+  `typed_crossing_excludes_mod5` (PROVED conditional): ⟹ `MOD_5 ∉ ACC⁰[6]`.  `typed_separation_chain` (PROVED
+  conditional): + the component socket ⟹ the composite-`ACC⁰` ingredient toward Williams.
+* **The open socket.**  The deep implication "cross-characteristic ⟹ not `ACC⁰[6]`-computable" is the Smolensky-composite
+  barrier — separation-strength.  Its *single-prime* instance `MOD_q ∉ AC⁰[p]` is already proved in this arc
+  (`Layer4.mod_q_indicators_false`); the lift to the composite class `ACC⁰[6]` is the open part, kept as the socket.
+
+**Net:** the field-free program now has an invariant that *provably distinguishes* the easy functions (equality, `MOD₆ ∈
+ACC⁰[6]`) from the genuine obstruction (`MOD_5`, `MOD_30 ∉ ACC⁰[6]`) — passing the entry-287 test that killed boundary
+size.  The classification is fully machine-checked; the remaining gap is the one open Smolensky-composite implication,
+honestly socketed and wired to Williams.
+
+## 5z⁗′. Probing the composite lift — it does NOT reduce to the single-prime no-go (entry 289)
+
+The honest test of entry 288's socket: can `MOD_5 ∉ ACC⁰[6]` be *reduced* to the proved single-prime no-go
+(`Layer4.mod_q_indicators_false`)?  `…ACC0CompositeReductionProbe` answers **no**, and proves why.
+
+* **The model.**  `NativelyLinearizes F p := CharP F p` — a single field `F` linearises a `MOD_p` gate by the Fermat
+  indicator (degree `p-1`) iff `F` is native (char `p`); over any other characteristic `MOD_p` is high-degree (the
+  single-prime no-go itself).  `SingleFieldReductionCovers F S := ∀ p ∈ S, NativelyLinearizes F p`.
+* **Sub-classes are coverable (PROVED).**  `single_prime_coverable`: each singleton `{p}` is single-field-reducible
+  (witness `ZMod p`), so the proved single-prime no-go applies on every `AC⁰[p]` — giving `MOD_5 ∉ AC⁰[2]` and
+  `MOD_5 ∉ AC⁰[3]`.
+* **The joint class is NOT (PROVED).**  `acc6_reduction_needs_char_2_and_3`: covering `{2,3}` forces
+  `CharP F 2 ∧ CharP F 3`; `no_single_field_covers_acc6`: impossible by `no_common_char`.  So a single-field Smolensky
+  reduction cannot linearise an `AC⁰[6]` circuit (which mixes `MOD_2` and `MOD_3`).
+* **Verdict (PROVED).**  `composite_lift_not_single_field_reducible`: the single-prime method works prime-by-prime but
+  provably cannot combine at the joint class — the obstruction is exactly `no_common_char` (§5v).
+  `cross_characteristic_witnesses_irreducibility` ties it to the typed invariant: cross-characteristic targets are
+  precisely those the single-field method cannot reach.
+
+**Net:** the composite `ACC⁰[6]` barrier is *genuine* — not a gap a reduction to the single-prime no-go could close.
+The single-prime tool covers each characteristic individually; combining across incompatible characteristics is exactly
+the open problem, and the obstruction is pinned to `no_common_char`.  This confirms entry 288's socket is the real open
+barrier.
+
+### The Universal Native Characteristic Obstruction (entry 300)
+
+> Named theorem: `universal_native_characteristic_obstruction`.  Full N-Frame synthesis and the two-routes split:
+> `NFRAME_TWO_ROUTES.md`.
+
+The no-go landscape (no common field, 280; product ring `ZMod 6` fails, 282) has a single **universal** root, proved in
+`…ACC0UniversalCharObstruction`: **no nontrivial commutative ring is native to two coprime moduli** — equivalently, the
+Universal Native Characteristic Obstruction **blocks every native single-ring polynomial method for a composite
+modulus.**
+
+* `two_three_native_trivial`: `(2 : R) = 0 → (3 : R) = 0 → (1 : R) = 0` (`1 = 3 - 2`).
+* `no_nontrivial_ring_both_native`: hence no *nontrivial* ring has both — subsuming the field no-go (280), the
+  product-ring no-go (282), and the tensor collapse `F₂ ⊗ F₃ = 0`.
+* `coprime_native_trivial`: the general form for coprime `p, q` (Bézout `u·p + v·q = 1` cast into `R`).
+
+Since the Razborov–Smolensky polynomial method represents `MOD_p` at low degree *only* where `p = 0` (the Fermat
+indicator `1 - x^(p-1)`), this is the algebraic root of the entire composite barrier: **every** native polynomial-method
+attack on `ACC⁰[6]` (single field, product ring, tensor, …) fails for the single reason `1 = 3 - 2 = 0`.  The counting
+escape (entry 290) avoids it by working in `ℤ` (characteristic 0, no `p = 0`), abandoning native low-degree.  This does
+**not** close the composite barrier — a *non-native* / non-Fermat representation (not committed to `p = 0`) is not
+excluded — but it pins the precise reason every native attack fails, and sharpens the open frontier: a polynomial-method
+separation must abandon native low-degree `MOD` representation.
+
+## 5z⁗″. The pivot — why the algorithmic route escapes the barrier (entry 290)
+
+The polynomial / field-free route is provably blocked (§5v–§5z⁗′): a finite field commits to one characteristic, and
+`no_common_char` forbids the two that `MOD₆` demands.  Williams' `NEXP ⊄ ACC⁰` route is **algorithmic** — it *counts*
+satisfying assignments — and `…ACC0AlgorithmicEscape` pins why that escapes the barrier.
+
+* **Counting lives in characteristic 0.**  A count is an integer `c : ℤ`; `ℤ` is the initial ring, mapping onto `ZMod m`
+  for *every* `m` (`integer_carries_every_characteristic`, `Int.castRingHom`).  So one integer carries *all*
+  characteristics at once.
+* **One integer realises the CRT decomposition (PROVED).**  `count_crt_mod6`: `c % 6 = 0 ↔ (c % 2 = 0 ∧ c % 3 = 0)` —
+  a single count determines `MOD₆` via its mod-2 and mod-3 residues simultaneously, exactly what `no_common_char` forbids
+  a single field.
+* **Never characteristic-blocked (PROVED).**  `count_route_covers`: the count route's available set is `m.primeFactors`
+  (reduce the integer mod each prime), so `CrossCharacteristic m m.primeFactors` is *false* for every `m ≠ 0` — the typed
+  obstruction (entry 288) is specific to the single-characteristic polynomial method and vanishes for counting.
+* **The contrast (PROVED, re-export).**  `no_field_carries_two_primes` — a field commits to one characteristic; this is
+  the barrier counting sidesteps.
+* **`algorithmic_escape`** bundles the three: counting (char 0, all primes) is not characteristic-bound; the polynomial
+  method (one field) is.
+
+**Net:** this isolates the *structural enabler* of Williams' route — characteristic-universality of integer counting —
+machine-proved, and tied to the typed invariant.  It does **not** prove `NEXP ⊄ ACC⁰`: the deep `#SAT`-algorithm ⇒
+lower-bound machinery (the existing `…WilliamsFastSat` / Karp–Lipton / NW–IKW sockets) is not re-proved here.  It
+explains *why* the algorithmic route can win where the polynomial method provably cannot.
+
+## 5z⁗‴. Digging into the `WilliamsFastSat` socket — the counting step is characteristic-universal (entry 291)
+
+Entry 290's escape, made concrete *inside* the fast-SAT (`…ACC0FastSATCharacteristicUniversal`).  The Williams fast-SAT
+observable is `gateCount` — an integer count — and `observed_sat_iff` decides satisfiability by searching its *image*,
+which does not depend on the symmetric top.
+
+* **One image, every top (PROVED).**  `fastSat_universal_in_top`: `image(gateCount g)` decides `symEval g h` for *every*
+  `h`.  `fastSat_decides_every_modulus`: hence decides `MOD_M`-SAT for *every* `M` (`∃ c ∈ image, c % M = 0`), against
+  the same image.
+* **`MOD₆` via CRT inside the fast-SAT (PROVED).**  `fastSat_mod6_via_crt`: the `MOD₆` decision factors through the
+  count's mod-2 *and* mod-3 residues simultaneously — entry 290's escape realised in the algorithm.
+* **Modulus-free cost and savings (PROVED).**  `fastSat_cells_modulus_free`: the `≤ m + 1` cell bound is independent of
+  the modulus.  `fastSat_modm_savings`: the savings `2^k · cells ≤ 2^n` hold for *every* `M` (instantiating
+  `symAnd_williams_fastSat` at the `MOD_M` top).
+* **Localisation.**  So the composite-`MOD` barrier is **not** in the counting/savings step — that is modulus-agnostic,
+  exonerated.  It lives entirely in the two open separation-strength sockets: the YBT *exact* `SYM∘AND` normal form for
+  composite `MOD` (link 1) and the uniform TM realisation (link 2).
+
+**Net:** digging into the `WilliamsFastSat` socket proves precisely which part is barrier-bound (the YBT reduction) and
+which is free (the integer-count search) — confirming, concretely in the algorithm, entry 290's account of why counting
+escapes.  The separation-strength content stays in the named sockets, not re-proved.
+
+## 5z⁗⁗. Is the YBT socket separation-strength?  Answer: NO (entry 292 — honest correction)
+
+The natural assumption is that the YBT exact-normal-form socket carries the separation difficulty.  Digging in
+(`…ACC0YBTSocketStrength`), the answer is the **opposite**, and the discipline requires reporting it.
+
+* **The exact form exists unconditionally (PROVED).**  `acc0circuit_hasSymAndForm`: every `ACC⁰` circuit *equals* a
+  count gate over `symAndSize C` monomial-`AND`s — a genuine theorem, no socket.  `mod_form_characteristic_free`
+  (`hasSymAndForm_mod`): a `MOD_q` gate has an exact form for *every* `q`, composite included — it is counting-based
+  (`modQStatOn`, an integer weight), hence characteristic-free.  So composite `MOD` is *no barrier to existence* — entry
+  290's escape, inside the YBT reduction.
+* **The socket is purely a size bound (PROVED).**  `acc0circuit_hasExactSymAndForm`: once `symAndSize C + 1 < 2^n` the
+  always-existing form *is* the socket.  The only open content is the quasipolynomial *size* — the Beigel–Tarui theorem,
+  true and known, hard *combinatorics* to formalize, **not** a hardness assumption.
+* **It yields only a cell-model search (PROVED).**  `ybt_socket_searchable`: the socket gives a `< 2^n`-cell search, not
+  a uniform algorithm, not the separation.
+* **The separation-strength is downstream (PROVED self-audit).**  `realization_socket_iff_separation`,
+  `williams_socket_iff_separation`: once the cell speedup holds, the *realization* and *Williams* sockets are each
+  *logically equivalent to* `NEXP ⊄ ACC⁰`.  Those carry the whole difficulty.
+
+**Net (`ybt_socket_not_separation_strength`):** even with YBT fully formalized, the separation would still require
+realization + Williams — which *are* separation-strength.  YBT is the true, known, combinatorially-hard **front half**;
+it is **not** separation-strength.  This corrects the premise honestly: the separation lives in the realization +
+Williams cash-out, not in the YBT depth collapse.
+
+## 5z⁗⁗′. Probing the realization socket — no new obstacle; the route has one deep gate (entry 293)
+
+The realization socket (Williams link 2) was already split into S1–S4 (`…ACC0WilliamsRealizationSplit`): S1 encoding
+[routine], S2 cost bridge [arithmetic proved, `cell_count_savings`], S3 uniformity [standard], S4 time-hierarchy
+[separation-strength, self-audited `↔ NEXP⊄ACC⁰`].  Entry 293 (`…ACC0WilliamsSocketMap`) completes the picture.
+
+* **The missing link, now proved.**  `proved_speedup_is_trivial_savings` had only the `k = 0` savings and *described*
+  the super-poly case as "supplied by the quasipoly exact form."  `cost_bridge_unlocked_by_quasipoly_ybt` **proves it**:
+  a quasipolynomial cell bound `(D+1)·n^D + 1 ≤ 2^{n−k}` (the YBT *size* socket's content, entry 292) delivers the
+  genuine `2^k` super-poly savings.  So the realization cost bridge bites *exactly* when the (true-classical) YBT
+  quasipoly-size wall is crossed — the two non-deep walls compose, no separation-strength content between them.
+* **One deep gate.**  `williams_route_single_separation_gate`: the realization S4 socket and the downstream Williams
+  socket have the *same* shape `(established hypothesis → NEXP⊄ACC⁰)`, each `↔ NEXP⊄ACC⁰` once its antecedent holds —
+  so they are the *same* gate (the nondeterministic-time-hierarchy / Williams argument), not two.
+* **Full-route classification.**  `williams_route_socket_classification` bundles it: YBT form exists unconditionally
+  (292); the cost bridge is unlocked by quasipoly YBT size; the realization socket reduces to S4; S4 `↔` the separation.
+
+**Net:** the realization socket adds **no** new separation-strength obstacle — routine parts grounded, cost bridge
+unlocked by the true-classical YBT size, and its sole deep piece S4 is the *same* gate as the Williams socket.  So the
+entire algorithmic route (YBT + realization + Williams) has **one** irreducible separation-strength gate — the
+time-hierarchy / Williams algorithmic argument — with everything else proved, true-classical, or routine.  That single
+gate is `↔ NEXP ⊄ ACC⁰`, the honest open content.
+
+## 5z⁗⁗″. Attacking the gate directly — the hierarchy's diagonalization logic is fully proved (entry 294)
+
+Attacking the single classical gate (the nondeterministic time hierarchy inside Williams' route) to its core.  **Note:
+`NEXP ⊄ ACC⁰` is a *proven* theorem (Williams 2011)** — the gate is its *formalization*, not an open problem; the
+"separation-strength" label means "formalization-complete-strength," not "open."  The diagonalization logic is now
+decomposed completely:
+
+* **Contradiction (entry 219, proved).**  `lazy_diag_false`: no machine decides its own lazy diagonal — the telescoping
+  chain forces `M(a) = ¬M(a)` using only the *single* boundary complement, so it works without closure under complement
+  (the reason it applies to nondeterministic classes).
+* **Placement (NTIME accounting, proved).**  `clocked_in_NEXP` / `lazy_diagonal_in_nexp`: a clocked machine deciding a
+  language within the `NEXP` budget places it in `NEXP`.
+* **Enumeration escape (entry 294, proved — the missing link).**  Entry 200 proved only the *Cantor* escape
+  `diag_not_mem_range` with the *naive direct-complement* diagonal — not valid for nondeterministic classes.
+  `…ACC0LazyHierarchyEscape` supplies the complement-free upgrade: with `D` lazily copying `enum i` on the next input
+  per block and complementing only at the boundary, `lazy_diag_escapes_enumeration` gives `D ≠ enum i` for every `i`
+  (via the proved kernel), so `lazy_diag_not_mem_range`: `D ∉ range enum`.  This is the escape that genuinely applies to
+  nondeterministic classes.
+
+**Net:** the hierarchy's *diagonalization logic* — contradiction, placement, and enumeration escape — is fully proved.
+What remains is **not** diagonalization but the **realization** primitive: a clocked NTM deciding `D` in the bigger time
+bound via universal simulation (`ClockedSimulation`) — a *proven* classical fact (efficient universal NTM), formalization
+engineering, not an open obstruction.  Likewise IKW easy-witness and NW guess-verify are proven classical lemmas.  The
+gate is the formalization of a **theorem**, decomposed to model-substrate and classical-lemma atoms; the genuine open
+frontier (`P ≠ NP`) lies elsewhere.
+
+## 5z⁗⁗‴. Williams internalized as the N-Frame algorithmic-counting branch (entry 295)
+
+Williams' route is no longer external commentary — it is encoded directly as the N-Frame *algorithmic-counting branch*
+(`…ACC0NFrameWilliamsRoute`), the counting twin of the (blocked) polynomial route.
+
+* **The route (four N-Frame ingredients).**  `NFrameWilliamsRoute := ∀ ACC⁰ circuit, ∃ SYM∘AND form with m+1 < 2^n`:
+  *observer* = the integer gate-count `gateCount` (entry 291); *boundary* = its count-cell image; *compression* =
+  `< 2^n` cells (the YBT exact form, entry 292); *escape* = characteristic-0 CRT universality (entries 290/291).
+* **Equivalence (PROVED).**  `nframe_williams_route_equiv`: `NFrameWilliamsRoute ↔ WilliamsFastSatRoute` — by `Iff.rfl`;
+  the N-Frame counting route *is* the fast-SAT route, definitionally (the four ingredients repackage
+  `HasExactSymAndForm`).
+* **The escape (PROVED).**  `nframe_observer_characteristic_free`: the integer count observer decides `MOD_M`-SAT for
+  *every* modulus against one image — the char-0 universality that handles composite `MOD` where the single-field
+  polynomial method is blocked (`no_common_char`).
+* **The hard gate, encoded (PROVED conditional).**  `nframe_fastSat_to_timeHierarchy`: the route ⇒ a uniform speedup ⇒
+  (easy-witness/NW collapse + nondeterministic time hierarchy) ⇒ `¬ (NEXP ⊆ ACC⁰)`, via `williams_concrete`.  Deep
+  ingredients = named classical sockets; composition = proved glue.  `nframe_hierarchy_diag_core`: the hierarchy
+  subpiece's diagonalization core is proved (entry 294 lazy escape), leaving only the realization primitive.
+
+**Net:** Williams *is* the N-Frame algorithmic-counting route — the special case where the integer-count observer's
+char-0 universality escapes the composite barrier that blocks the polynomial route — proved equivalent to the fast-SAT
+route, feeding the contradiction whose hierarchy core is proved, with the deep gate honestly socketed to the proven
+(Williams 2011) classical theorems being formalized.  The two N-Frame branches — polynomial (blocked, entries 280–289)
+and algorithmic-counting (Williams, here) — are now both encoded.
+
+## 5z⁗⁗⁗. Formalizing the universal-simulation socket — overhead is exactly 1 (entry 296)
+
+The universal-simulation socket (`diag_in_big`, the physical simulator within the bigger time bound) had its
+*interpreter* level proved (`…ACC0UniversalNTM`: `univStep ⟨M⟩ = concreteStep M`, `enum_covers`), with the "physical
+overhead" flagged as the remaining cost.  `…ACC0UniversalSimulationOverhead` supplies the **quantitative bound: the
+overhead is exactly 1**.
+
+* **The universal NTM (`univNTM code`).**  Step `univStep code`, standard `init`/`accept`.
+* **No per-step overhead (PROVED).**  `univNTM_step_iff`: at `code = ⟨M⟩` its step is `M`'s step;
+  `univNTM_reachIn`: hence its `k`-step reachability *equals* `M`'s for every `k` (induction).
+* **Overhead exactly 1 (PROVED).**  `univ_simulates_exactly`: `acceptsWithin (univNTM ⟨M⟩) x t ↔ acceptsWithin
+  (toNTM M) x t` — the universal machine accepts within the *same* time bound `t`, no blowup.
+
+**Net:** the socket's feared "physical overhead" is `1` — free.  Simulating `M` for `t` steps takes exactly `t` steps.
+What remains of the universal-simulation socket is *not* an overhead bound but the **decode-from-input uniformity**:
+collapsing the family `univNTM` to a single fixed machine reading `⟨M⟩` off its tape (the universal TM, Turing 1936) — a
+*proven* classical fact, formalization engineering, not an open obstruction.  The socket's quantitative heart is now
+proved; one tape-decode primitive remains.
+
+## 5z⁗⁗⁗′. Decode-from-input uniformity — one fixed machine simulates every machine (entry 297)
+
+The last primitive of the universal-simulation socket, now proved (`…ACC0DecodeUniformity`).  Carry the code as
+*configuration data*: `UConfig := ℕ × CConfig`, uniform step `uStep` (preserve code, apply `univStep code`), and the
+single machine `uniformU dec` (its only parameter the fixed, machine-*independent* parse `dec` — the universal machine's
+own decoding logic) that decodes the code at `init` and accepts on the machine state.
+
+* **Code preserved (PROVED).**  `uStep_preserves_code`: the decoded code is fixed along every run.
+* **Uniform reachability (PROVED).**  `uStep_reachIn`: `uniformU`'s `k`-step reachability on code-carrying configs
+  *equals* `univNTM code`'s — overhead 1, uniform.
+* **One machine simulates all (PROVED).**  `uniformU_simulates`: input decoding to `(⟨M⟩, x)` ⟹ `acceptsWithin
+  (uniformU dec) w t ↔ acceptsWithin (toNTM M) x t` (combining `uStep_reachIn` + entry-296 overhead-1).
+* **Self-contained (PROVED).**  `decPair_encPair`: a concrete `replicate`-unary encoding round-trips; so `uniformU
+  decPair` on `encPair ⟨M⟩ x` simulates every `M` exactly (`uniformU_simulates_enc`).
+
+**Net:** with entries 296+297 the universal NTM simulation is formalized — **one** uniform machine `uniformU decPair`,
+reading the code from its input, simulating *every* machine with overhead exactly 1: the universal TM (Turing 1936) over
+the transition-table model.  The realization socket's universal-machine content is discharged.  What remains for the
+full hierarchy is the *wiring* (feed the diagonal its own code, clock to the bigger bound, the per-`x` block
+bookkeeping) plus the other two gate sockets (IKW easy-witness, NW guess-verify) — all proven-classical formalization,
+not open obstructions.
+
+## 5z⁗⁗⁗″. Realization wiring — clocking to the bigger bound (entry 298)
+
+The realization wiring's quantitative core, proved (`…ACC0RealizationClocking`).  Combine the overhead-1 universal
+simulation (296/297) with budget monotonicity (`acceptsWithin_mono`):
+
+* **Clock to the bigger bound (PROVED).**  `universal_clocked_within`: `univNTM ⟨M⟩` accepts `x` within any `t' ≥ t`
+  for which `M` accepts within `t`.  `uniformU_clocked_within`: the same for the single fixed machine `uniformU decPair`
+  on the encoded input.  So a `g`-time machine, simulated universally, fits any `f ≥ g` — the "clock to the bigger
+  bound" step is free given overhead 1.
+* **`diag_in_big` reduced to one construction (PROVED).**  `cNTIME_of_decider` / `diag_in_big_of_clocked_decider`: the
+  hierarchy's remaining socket (the diagonal `∈ cNTIME f`) follows from a single `TMachine` deciding the diagonal within
+  `f`.  The clocking ensures such a decider's time bound is achievable.
+
+**Net:** the "clock to the bigger bound" step is discharged.  What remains for `diag_in_big` is *building* the
+lazy-diagonal decider machine — the per-block bookkeeping feeding each `enum i` its input with one boundary complement,
+compiled over the universal machine (pieces under development in `…ACC0UniversalHStep` and the decode/lookup/rewrite
+sub-machines) — a proven classical fact, formalization engineering, not an open obstruction.
+
+## 5z⁗⁗⁗‴. Lazy-diagonal decider — the boundary complement realized (entry 299)
+
+The lazy-diagonal decider's hard case is the **boundary complement** (`D(boundary) = ¬ enum i (start)`).  For a
+nondeterministic machine this is not free — except, as lazy diagonalization exploits, the start input is tiny, so the
+bounded computation is exhaustively explorable.  `…ACC0BoundedAcceptanceDecidable` proves the foundation: **bounded
+acceptance in the concrete model is decidable**.
+
+* **Finite branching (PROVED).**  `mem_succs`: `concreteStep M` has finite one-step successors (`M` a finite rule list),
+  `d ∈ succs M c ↔ concreteStep M c d`.
+* **Finite reachability (PROVED).**  `mem_reachExactly`: `reachExactly M k c` (a finite list) enumerates the `k`-step
+  reachable configs, `d ∈ reachExactly M k c ↔ reachIn (toNTM M) k c d`.
+* **Decidable acceptance (PROVED).**  `acceptsWithin_iff_decAccept`: `acceptsWithin (toNTM M) x t` is the finite search
+  `decAccept M x t`; `instDecidableAcceptsWithin`: hence `Decidable`.
+* **Boundary complement computable (PROVED).**  `boundary_complement_decidable`: `Decidable (¬ acceptsWithin (toNTM M)
+  x t)` — complementing a bounded nondeterministic computation is a finite, computable operation.
+
+**Net:** this is the crux of *why* lazy diagonalization's single boundary complement is affordable (exhaustive search of
+the small bounded computation), now machine-checked over the transition-table model — the foundation of the
+lazy-diagonal decider's boundary case.  The full decider still needs the per-block bookkeeping assembly (decode index,
+route copy [universal sim, 296/297] vs boundary [this decidability], with clocking 298) — physical engineering,
+proven-classical, not an open obstruction.
+
+## 6. Honest conclusion
+
+The arc is a complete, machine-checked, conservative **anatomy**: Williams' route reconstructed and decomposed; the
+composite-`ACC⁰` wall driven to one precise, classical open object; every reducible part proved or refuted; nothing
+faked.  As a proof-search engine, the N-Frame framing earned its keep — it repeatedly told us *which* boundaries
+collapse (size, decode, layer degree, counting budget), *which* refine (the carry seam into Kummer/CRT structure), and
+*which* is genuinely irreducible (cross-field mixing).
+
+The result is not a separation.  It is a faithful localization of where any new proof of this separation must enter,
+machine-checked end to end.

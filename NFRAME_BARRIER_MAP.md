@@ -1,0 +1,288 @@
+# N-Frame Super-Linear: Conditional Theorem + Barrier Map
+
+**Status.** Every reduction below is machine-checked in Lean 4 (`#print axioms` ⊆
+`[propext, Classical.choice, Quot.sound]`, no `sorry`), on branch `razborov-recoverRho-wip`.
+This document states, as one conditional theorem, exactly what the N-frame program establishes, and
+maps precisely where the single remaining inequality sits and why no current technique reaches it.
+
+**Scope (honest).** This is a *conditional* super-linear lower bound plus a *barrier map*. It reduces
+an explicit-function circuit lower bound to a single inequality and proves that inequality is the
+general super-linear circuit lower bound itself. It is **not** a proof of super-linear circuit lower
+bounds, and **nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.**
+
+---
+
+## 0. The object
+
+The recursive expander-mixer family `{F_k}`, on `N = Θ(2^k)` inputs:
+
+```
+    F_0(x)      = base function on constant-size cells
+    F_{k+1}(x)  = Mix_G( F_k(x_L), F_k(x_R) )      on disjoint blocks x_L, x_R
+```
+
+`Mix_G` is an **injective multi-output** mixer built from a `d`-regular **Ramanujan** graph `G`.
+Complexity is measured by `coneExcess = Σ_wires (readers − 1)` (total excess fan-out), tied to circuit
+length by the ledger `2·K + coneExcess ≤ length + 1` (`K` = essential variables). Write
+`CE(F_k) := coneExcess` of a minimal circuit and `cN := Θ(N/d)` the mixer's fresh charge
+(`fresh_cut_rank_linear`, `ComputationalDepthNFrameFreshLinear.lean` — corrects the earlier `N/d²`).
+
+---
+
+## 1. The Conditional Theorem
+
+> **Theorem (machine-checked reduction).**
+> If the **cross-branch direct sum** holds at every scale —
+> ```
+>         CE_share(F_k) ≤ cN            (equivalently  coneInter ≤ cN)
+> ```
+> — then `CE(F_k) = Ω(N log N)`, i.e. `cbudget(F_k)` is **super-linear**.
+
+`CE_share` = the count of gates that depend on *both* blocks below the mixer (cross-cone /
+cancellation-sharing gates); `coneInter = |cone(F_k(x_L)) ∩ cone(F_k(x_R))|` is the same quantity in
+cone form. The implication is assembled from these frozen links:
+
+| Link | File · theorem | Statement |
+|---|---|---|
+| **Deficit = sharing** | `…CrossBranch` · `single_scale_recurrence_deficit` | `2·CE(F_k) + fresh ≤ CE(F_{k+1}) + CE_share` — the gap from the ideal `2×` is *exactly* `CE_share`, nothing else |
+| **Mixer charged fresh** | `…ConeIntersection` · `cone_intersection_deficit` | cone inclusion–exclusion puts the mixer on the `+` (fresh) side; deficit `= coneInter` |
+| **Share absorbed ⇒ doubling+fresh** | `…CrossBranch` · `share_absorbed_gives_doubling`; `…RigidAdditiveMixer` · `cross_branch_from_additive_step` | `CE_share ≤ fresh − amp ⇒ 2·CE(F_k) + amp ≤ CE(F_{k+1})` |
+| **Recursion unrolls** | `…ConeAmplify` · `coneExcess_amplify`, `amplify_exceeds_linear` | `2·T k + c·2^{k+1} ≤ T(k+1)` for all `k` ⟹ `c·k·2^k ≤ T k`, i.e. `Ω(N log N)` |
+| **Vertical accumulation** | (annulus, proved) `…ConeAmplify` · `cut_rank_linear_bound` | each level's `+cN` is certified by a cut of size `≤` level, never violating `log|Y| ≤ N` |
+| **Fresh is `Θ(N)`** | `…FreshLinear` · `fresh_cut_rank_linear` | `d·N ≤ 4·crossing ∧ crossing ≤ 2d²·matching ⇒ N ≤ 8d·matching` |
+
+So the entire tower reduces to the one inequality. The reduction is **tight** at both ends:
+
+- **Sufficiency** — `…RigidAdditiveMixer` · `additive_mixer_forces_superlinear`,
+  `…MixerTargetSpec` · `MixerTargetSpec.forces_superlinear`,
+  `…HybridSubstitution` · `hybrid_forces_superlinear`.
+- **Necessity / tightness** — dropping the inequality provably breaks it:
+  `…RigidAdditiveMixer` · `non_additive_mixer_breaks_cross_branch`;
+  a constant per-share *ratio* is insufficient (`…ShareChargeBound` · `half_charge_does_not_close`,
+  `ratio_band_survives`) — only the *absolute* `CE_share ≤ cN` closes it
+  (`absolute_savings_bound_closes`); the open content is confined to one bounded regime
+  (`…CrossBranchDichotomy` · `cross_branch_2x_outside_middle`, `cross_branch_gap_is_middle`).
+
+---
+
+## 2. The Reduction Theorem — the inequality *is* the wall
+
+> **Theorem.** `CE_share(F_k) ≤ cN` at every scale ⟺ the general **super-linear circuit lower bound**
+> for the explicit family `F_k`. It is not a sub-problem; it is the problem.
+
+Direction (⇒) is Part 1. Direction (⇐): `CE_share ≤ cN` is an *upper* bound on cross-copy sharing,
+hence a *lower* bound on the 2-copy circuit (`2·cbudget − cN`); unrolled, that is `cbudget(F_k)`
+super-linear. No weaker-looking sufficient condition is known. Every reformulation of the residual —
+`savings ≤ cN`, `coneInter ≤ cN`, `CE_share ≤ cN`, rank-additivity of the mixer — is the *same* quantity
+in different units, because they all measure the sharing between two disjoint-input copies of `F_k`
+(the direct-sum-for-circuits / Uhlig mass-production question).
+
+---
+
+## 3. Barrier Map — both exits terminate at the wall
+
+```
+                        CE_share(F_k) ≤ cN
+                     (= super-linear circuit LB)
+                    /                          \
+        EXIT 0: PROVE IT                 EXIT 1: REFUTE IT
+        (bound the sharing)              (mass-produce 2 copies)
+              |                                  |
+   ┌──────────┴───────────┐                      |
+   measures / rank / info / spectral /      construct a circuit with
+   tensor / substitution / gate-elim        CE_share > cN
+   each dies at:                            fails at:
+   ─ O(1)-Lipschitz  → DRAG CEILING         ─ disjoint inputs → no reusable
+       (caps at N)                             variable-disjoint gate
+   ─ ω(1)-Lipschitz  → CIRCULAR (= cbudget) ─ bilinear mixer → cancellation
+   ─ rank/info/spectral → INFO-VS-SIZE GAP     costs MORE than it saves
+   ─ tensor rigidity → Valiant / Strassen–  ─ injective mixer → NO small-range
+       Shitov; and the BRIDGE is load-         bottleneck → Uhlig table blocked
+       bearing (info-vs-size in rank costume)
+   ─ gate-elimination → DRAG CEILING again
+              \                                  /
+               ────────────  WALL  ────────────
+        super-linear circuit LB: neither provable nor
+        refutable with current techniques
+```
+
+### Exit 0 — proving the bound. Each technique's death is machine-checked or grounded:
+
+- **Restriction measures** cap at `N` — `MeasureBarrier.lean` · `restriction_lipschitz_linear`,
+  `lipschitz_cap_tight` (`O(1)`-restriction-Lipschitz ⇒ `≤ N`); the drag ceiling. `ω(1)`-Lipschitz
+  measures exist only as function-complexity measures = `cbudget` (circular).
+- **Rank / info / spectral** bound *bits*, not *gates* — the **info-vs-size gap**,
+  `InfoSizeGap.lean` · `coneExcess_not_bounded_by_info` (a hard-but-low-information shared
+  subcomputation is few bits yet many gates). Linear/algebraic sharing *is* bounded
+  (`ShareKernel.lean` · `share_kernel_left_dim_bound`, rank–nullity), which is exactly why only the
+  *nonlinear* sharing survives.
+- **Tensor rigidity + additivity** — reducing the mixer to a rigid, direct-sum-additive tensor lands
+  on two named open problems (`…RigidAdditiveMixer` · `flattening_additivity_incompatible_with_coupling`:
+  the clean `R=fr` additivity route forces *decoupling*, incompatible with the coupling that forces the
+  charge — Valiant on one horn, Strassen/Shitov on the other). And critically, the tensor is **not the
+  wall**: an explicit tensor (`identity ⊕ n W-gadgets`) meets *every* rank condition
+  (`…BridgeObstruction` · `rank_spec_satisfiable`, `coupled_substitution_tight_exists`), yet the direct
+  sum still fails, because the load-bearing hypothesis is the **bridge** `CE_share ≤ 2R − R2`
+  (`bridge_is_load_bearing`) — the info-vs-size gap in rank costume.
+- **Substitution method** — the unique direct-sum-*additive* rank tool, so additivity is free
+  (`…HybridSubstitution`); but it reduces to substitution *near-tightness* on an expander tensor
+  (`substitution_tightness_necessary`), which is open, and — via the bridge above — even a perfect
+  tensor does not close the *circuit* bound.
+- **Gate elimination** — the only tool that counts gates directly — caps at `~3.01n` (linear); on
+  `F_k` each variable-restriction kills `O(1)` gates and the recursion does not amplify. This *is* the
+  drag ceiling (`O(1)`-per-step ⇔ `O(1)`-Lipschitz), already frozen.
+
+### Exit 1 — refuting the bound (mass production). Fails **structurally**, tracking actual gates:
+
+- `k=1`: `cbudget(F_1)=4`; two disjoint copies `= 8 = 2×`, `CE_share = 0` (products variable-disjoint).
+- **Cancellation** costs *more* — recovering `{a₁a₃, b₁b₃}` via `(a₁+b₁)(a₃+b₃)` needs 4 products vs 2.
+- **Uhlig table** (the only technique beating direct sum) requires a small-range bottleneck; the
+  **injective** mixer makes `F_k(x)` determine `x`, so there is none.
+- Recursion (`k≥2`): sharing does not emerge — the three firewall properties (disjoint inputs /
+  bilinear mixers / injective mixers) are *exactly* the three that block the three mass-production
+  mechanisms.
+- **But:** this is *failure to refute*, not *proof of resistance* — a clever Boolean circuit not
+  respecting the polynomial structure is not excluded, and excluding it *is* the lower bound.
+
+---
+
+## 4. What a working certificate would have to be
+
+A gate-sharing certificate that closes `CE_share ≤ cN` must be **all four** at once — and no known
+object is:
+
+1. **gate-valued** — bounds a gate count, not information/rank (else info-vs-size gap);
+2. **not per-step-bounded** — not `O(1)`-restriction-Lipschitz (else drag ceiling, `≤ N`);
+3. **non-natural** — not (constructive ∧ large), else Razborov–Rudich breaks PRGs;
+4. **structure-specific** — exploits `F_k`'s recursion, not a generic property.
+
+Conditions 1–2 are frozen walls of this project; 3–4 are the natural-proofs / general-circuit barriers.
+
+---
+
+## 5. Verdict
+
+The N-frame route is **fully mapped**. The internal reductions are machine-checked and reduce an
+explicit-function super-linear circuit lower bound to a single inequality; that inequality is *proven
+to be* the general super-linear circuit lower bound; and both directions of attack — prove and refute —
+terminate at the field-wide wall, for reasons each named precisely above (drag ceiling, info-vs-size
+gap, Valiant/Strassen–Shitov, Uhlig-bottleneck-vs-injectivity). This is a complete conditional result
+and barrier map. It is **not** a path to super-linear lower bounds — hence not to `P ≠ NP` — with
+current techniques, and it does not claim to be. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+*File index (all `PallLean/Paper93/DeepMath/PathB/`, prefix `ComputationalDepthNFrame` unless noted):*
+`ConeAmplify`, `CrossBranch`, `CrossBranchDichotomy`, `ConeIntersection`, `ShareChargeBound`,
+`FreshLinear`, `RigidAdditiveMixer`, `MixerTargetSpec`, `HybridSubstitution`, `BridgeObstruction`;
+barriers `MeasureBarrier`, `InfoSizeGap`, `GlobalNecessity`, `ShareKernel`, `DragCeiling`.
+
+---
+
+## FINAL STATE: the Freshness terminus + restricted-class theorems
+
+The cross-branch direct sum has been compressed, through the whole arc, to a single equivalence:
+
+> **CONDITIONAL THEOREM (final).** For the recursive W-mixer family, the cross-branch direct sum
+> `CE_share(F_k ⊕ F_k) ≤ cN` holds **iff** the Freshness Lemma holds — no double-duty amortization —
+> which is **equivalent to explicit tensor subadditivity (non-Shitov-subadditivity) of the mixer's
+> cross-content tensor.** If it holds, the frozen amplification gives `cbudget(F_k) = Ω(N log N)`
+> (super-linear). Machine-checked: `ComputationalDepthNFrameFreshnessLemma.lean` (contract + restriction
+> pillar), chained through `ConeAmplify.amplify_exceeds_linear`.
+
+Double-duty amortization was analysed to the finest operational level (the `√m`-carrier construction):
+its net saving `= (counting saving) − (foreign-content cancellation cost)`, and the cancellation cost is
+exactly a tensor-rank-under-direct-sum quantity — **rank–nullity for linear (impossible), Shitov for
+nonlinear (open, generically possible)**. So general Freshness = explicit tensor subadditivity = the
+direct-sum / super-linear wall.
+
+**Freshness is a THEOREM in restricted classes** (`ComputationalDepthNFrameRestrictedFreshness.lean`):
+  • FORMULAS (fan-out ≤ 1): `coneInter = 0` structurally (`formula_freshness`).
+  • LINEAR (XOR): rank–nullity (`share_kernel_left_dim_bound`, frozen).
+  • MONOTONE: no negation ⟹ no cancellation ⟹ `beneficialInter = 0` (`no_cancellation_freshness`).
+In each, `restricted_freshness_forces_superlinear` runs the amplification UNCONDITIONALLY — consistent
+with the known monotone (Razborov) and formula (Andreev/KRW) super-polynomial lower bounds, validating
+the framework. General circuits have the amortization mechanism; there Freshness is open.
+
+**Verdict.** The N-frame arc is complete as a conditional framework: every internal reduction is
+machine-checked; the single load-bearing inequality is proved equivalent to explicit tensor subadditivity
+(= super-linear circuit lower bounds); it is a THEOREM for formula/linear/monotone circuits and OPEN for
+general ones. This is not a path to `P ≠ NP` with current techniques; it is an honest conditional
+framework + barrier map + a proved restricted-class stepping stone. Nothing here is `NEXP ⊄ ACC⁰` or
+`P ≠ NP`.
+
+---
+
+## Closing layer: three type-level facts about the target (why the named targets are the theorem)
+
+Three exploratory candidates were floated late in the arc (FOER, observer-visible SPDP, "H4 = the
+super-polynomial scale bridge / Global Godmove"). Each is a correctly-*named* target and each is provably
+the destination, not a lemma feeding it. The three facts below are the honest crystallization; none claims
+progress past the barriers — they state precisely what the target's type-signature is.
+
+**(A) `MeasureBarrier` is the local shadow of Natural Proofs.** A per-gate cone-excess charge that is
+`O(1)`-restriction-Lipschitz is "simple enough to be natural" — constructive and large — and provably caps
+at linear (`DragCeiling.drag_linear_ceiling`, the `N log N` ceiling). A charge that jumps `ω(1)` on a
+single restriction is a *local hardness-detector* = exactly the constructive-and-large distinguisher
+Razborov–Rudich forbids against `P/poly`. So the local ceiling (MeasureBarrier) and the global obstruction
+(Natural Proofs) are one object: `O(1)`-Lipschitz ⟹ linear-capped; `ω(1)`-Lipschitz ⟹ natural ⟹ barriered.
+A non-circular super-poly certification would be an N-frame charge that is `ω(1)`-Lipschitz yet non-natural
+(its jumps correlate only with a non-constructive or target-sparse restriction set) — the GCT /
+bounded-arithmetic corner, unbuilt.
+
+**(B) FOER = the semantic name of Freshness; filter-passing ≠ viability.** "Fixed-Object Exploitation
+Resistance" (min fresh work after a poly observer exploits all structure) is the *semantic umbrella* over
+the Freshness Lemma: the formula/linear/monotone results are FOER lower bounds where exploitation is
+structurally disabled, and in the N-frame instantiation `FOER ≥ cN ⟺ savings ≤ cN` is the cross-branch
+inequality verbatim. But semantic FOER (`FOER(f)` low ⟺ `f ∈ P/poly`) *is* circuit complexity — Branch 1,
+circular. It passes the trivial-DTM/parity/Tseitin filters for the *same* reason it is circular: circuit
+complexity, the maximally circular measure, passes all of them. Filters split the space —
+**intrinsic** measures fail them (wrong on parity/Tseitin), **semantic** ones pass and are circular — so
+filter-passing carries zero evidence toward the hard direction.
+
+**(C) The scale ceiling: H4 is the far shore, not a bridge**
+(`ComputationalDepthNFrameScaleCeiling.lean`). A depth-`d` accumulation with per-level increment `≤ B` is
+capped at `d·B` additively (`scale_ceiling_additive`) and `A^d·c₀` multiplicatively
+(`scale_ceiling_multiplicative`). With `d = log₂N`: additive `≤ cN·log₂N` and even perfect doubling
+`≤ N·c₀` (`doubling_stays_polynomial_at_2pow100`) — both **polynomial in `N`**. Hence a super-polynomial
+total *forces a super-polynomial per-level increment* (`scale_bridge_needs_superpoly_per_level`;
+`scale_ceiling_forces_superpoly_per_level_at_2pow100`: at `N=2^100`, an `N^200` obstruction needs
+`100·B > N^200`), i.e. a single-scale super-poly circuit lower bound = `P ≠ NP` in one step. The only
+alternative — super-log depth — forces object size `2^{poly(n)}` and a vacuous "big object needs big
+circuit" bound. No intermediate regime. **H4 ("Global Godmove") is equivalent to a super-polynomial
+circuit lower bound, not weaker than it**; naming it a hypothesis and deriving `P ≠ NP` is sound but
+content-free. The accumulation mechanism provably cannot reach the far shore; what is on the far shore is
+the whole theorem. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.
+
+**(D) The flexible-boundary projection (PAC / amplituhedron `piPhi`) is the same far shore**
+(`FLEXIBLE_BOUNDARY_STATUS.md`, audit of ~20 gauge/projection files). The SPDP-side "Global Godmove" is a
+projection `Π_flexible` on the Cook–Levin compiled polynomial that should drop the rank to `poly(n)` on a
+trivial/P object (P-side) while preserving the identity-minor rank super-polynomially (NP-side). Audit
+verdict: **the two properties are not both proved for any real projection.**
+  • The only concrete projection on the real flat space, `satDeciderGaugeMapPiPhi`, is **proved `= LinearMap.id`**
+    (`satDeciderGaugeMapPiPhi_eq_id`) — it does nothing, and the P-side bound is **proved FALSE** for it at
+    paper scale (`identitySATDeciderGauge_not_pSideBound_at_large_n`, `r72_identity_not_pSide`,
+    `matrixGaugeToPolynomialProjectionPiPhi_not_pSideBound_at_large_n`). **Trivial-DTM test failed.**
+  • NP identity-minor "survives `piPhi`" is proved but **vacuous** (the projection is the identity there, and
+    the preserved bound is the machine-independent `any-DTM` floor `compiledPoly_rank_gt_npow200_at_large_n`).
+  • Every P-side conclusion carries the hard part as an **undischarged hypothesis** (`hunprojected : rank ≤ n^200`
+    — itself provably false; `CookLevinProfileTemplateCollapseLemma`; `SingletonQuotientSATGaugePSideObligation`;
+    `SATDeciderSpecificGaugeSubgoalDischarge`); `exists_amplituhedron_gauge_for_sat_decider` was demoted from
+    `axiom` to hypothesis. `cookLevinRichProjectionTarget_forces_nonflat_witness` has the codebase itself
+    certify the useful map must be `≠ id, ≠ piPhi` — and it is **unbuilt**.
+
+**The structural reason (same wall as (C)).** A rank-monotone gauge only delivers `rank(gauge p) ≤ rank p`,
+and the floor `rank(compiledPoly) > n^200` is (i) already above target and (ii) **machine-independent** — the
+same `C(n/3, log₂n)` grid family for the trivial and the SAT machine (built from `fobFamily`, a compilation
+artifact). So monotonicity cannot pull it down, and any projection keying **only on the grid** treats trivial
+and SAT identically: leave both high (fails P-side) or drop both low (kills the NP witness). Separating them
+forces `Π_flexible` to key on the machine's **function** — to decide which machine is hard — i.e. a
+super-polynomial separation of a machine-independent rank floor by hardness = a super-polynomial circuit lower
+bound. **`Π_flexible` is not a bridge to `P ≠ NP`; its single unfilled field (`CookLevinRichProjectionTarget`,
+forced non-flat) is the theorem.** The PAC/amplituhedron machinery is honest scaffolding (real
+rank-monotonicity, a real characterisation of `piPhi`, real negative results) around a socket whose discharge
+is `P ≠ NP`.
+
+**The unified far shore.** (C) circuit-side scale bridge and (D) SPDP-side flexible boundary are the *same
+object* seen from two sides: both reduce to producing a super-polynomial gap where a proved mechanism
+(additive/multiplicative accumulation; rank-monotone projection) only reaches a polynomial one, and closing
+the gap requires the target to depend on hardness the mechanism is blind to. That is `P ≠ NP`, not a lemma
+feeding it. Nothing here is `NEXP ⊄ ACC⁰` or `P ≠ NP`.

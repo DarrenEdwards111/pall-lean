@@ -1,0 +1,430 @@
+import PallLean.Paper93.DeepMath.PathB.ComputationalDepthLayer3AC0pFoundations
+import Mathlib.Algebra.MvPolynomial.Degrees
+import Mathlib.Data.ZMod.Basic
+
+/-!
+# Layer 3 — Razborov–Smolensky low-degree approximation: the single-form test (degree atom)
+
+The exact representation (`…AC0pPoly*`) is high-degree (`∧`/`∨` have degree = fan-in).  The lower bound
+comes from the **low-degree approximation** (`SCOPE_LAYER3_RS_APPROXIMATION.md`): replace each `∨`/`∧`
+gate by a *probabilistic* polynomial of degree `O((p-1)·log(1/ε))` agreeing on a `1-ε` fraction.
+
+This file builds the **atom** of that construction — a single random-linear-form "zero test" — and its
+**total-degree bound**:
+
+* `linFormTest p r` — `1 - (∑_i r_i · X_i)^(p-1)`, the Fermat indicator of "the random linear form
+  `∑ r_i x_i` is zero".  (For a `{0,1}` input that is *not* all-zero, the form is nonzero with
+  probability `≥ 1 - 1/p` over random `r` — the *agreement* half, deferred; this file is the degree.)
+* `linFormTest_totalDegree_le` — `totalDegree (linFormTest p r) ≤ p - 1`.
+
+A product of `t` such tests has degree `≤ (p-1)·t`; that is the degree side of the OR-approximator.  No
+lower bound, no capstone.  AC⁰[p] is a higher circuit-lower-bound layer; not P≠NP-strength.
+-/
+
+namespace PallLean.Paper93.DeepMath.PathB.Layer3
+
+open MvPolynomial
+
+variable {m : ℕ}
+
+/-- A single random-linear-form **zero test**: `1 - (∑_i r_i · X_i)^(p-1)`.  Over a prime field this is
+the Fermat indicator of "`∑ r_i x_i = 0`" (`fermat_indicator`), the atom of the OR-approximator. -/
+noncomputable def linFormTest (p : ℕ) (r : Fin m → ZMod p) : MvPolynomial (Fin m) (ZMod p) :=
+  1 - (∑ i, C (r i) * X i) ^ (p - 1)
+
+/-- **Degree of the single-form test:** `totalDegree (linFormTest p r) ≤ p - 1`. -/
+theorem linFormTest_totalDegree_le (p : ℕ) [Fact p.Prime] (r : Fin m → ZMod p) :
+    (linFormTest p r).totalDegree ≤ p - 1 := by
+  have hform : (∑ i : Fin m, C (r i) * X i).totalDegree ≤ 1 := by
+    refine le_trans (totalDegree_finset_sum _ _) (Finset.sup_le fun i _ => ?_)
+    refine le_trans (totalDegree_mul _ _) ?_
+    rw [totalDegree_C, zero_add]
+    exact le_of_eq (totalDegree_X i)
+  have hpow : ((∑ i : Fin m, C (r i) * X i) ^ (p - 1)).totalDegree ≤ p - 1 := by
+    refine le_trans (totalDegree_pow _ _) ?_
+    calc (p - 1) * (∑ i : Fin m, C (r i) * X i).totalDegree
+        ≤ (p - 1) * 1 := Nat.mul_le_mul_left _ hform
+      _ = p - 1 := Nat.mul_one _
+  rw [linFormTest]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one]
+  simpa using hpow
+
+open Finset in
+/-- **OR single-form agreement.**  For a nonzero `{0,1}` input `x` (some `x i = true`), a random linear
+form `∑ r_i x_i` over `ZMod p` is nonzero on all but a `1/p` fraction of `r`: the count of `r` with the
+form nonzero is exactly `p^m - p^(m-1) = (p-1)·p^(m-1)`.  (The agreement half of the OR-approximator;
+combine with `linFormTest_totalDegree_le` for the degree.) -/
+theorem orForm_agreement (p : ℕ) [Fact p.Prime] {m : ℕ} (x : Fin m → Bool) (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) ≠ 0)).card
+      = p ^ m - p ^ (m - 1) := by
+  classical
+  obtain ⟨j, hj⟩ := hx
+  set a : Fin m → ZMod p := fun i => boolToZMod p (x i) with ha
+  have haj : a j = 1 := by rw [ha]; simp [boolToZMod, hj]
+  -- the linear functional `L r = ∑ r_i a_i`
+  let L : (Fin m → ZMod p) →ₗ[ZMod p] ZMod p :=
+    { toFun := fun r => ∑ i, r i * a i
+      map_add' := by intro r s; simp only [Pi.add_apply, add_mul, Finset.sum_add_distrib]
+      map_smul' := by
+        intro c r
+        simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.mul_sum]
+        exact Finset.sum_congr rfl (fun i _ => by ring) }
+  have hsurj : Function.Surjective L := fun c => by
+    refine ⟨Function.update (0 : Fin m → ZMod p) j c, ?_⟩
+    show ∑ i, (Function.update (0 : Fin m → ZMod p) j c) i * a i = c
+    rw [Finset.sum_eq_single j]
+    · rw [Function.update_self, haj, mul_one]
+    · intro i _ hij
+      rw [Function.update_of_ne hij, Pi.zero_apply, zero_mul]
+    · intro h; exact absurd (Finset.mem_univ j) h
+  -- finrank of the kernel is `m - 1`
+  have hV : Module.finrank (ZMod p) (Fin m → ZMod p) = m := by
+    rw [Module.finrank_pi]; simp
+  have hrank : Module.finrank (ZMod p) (LinearMap.range L) = 1 := by
+    rw [LinearMap.range_eq_top.mpr hsurj, finrank_top, Module.finrank_self]
+  have hker : Module.finrank (ZMod p) (LinearMap.ker L) = m - 1 := by
+    have h := LinearMap.finrank_range_add_finrank_ker L
+    rw [hrank, hV] at h; omega
+  -- card of the kernel set
+  have hcardker : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)).card
+      = p ^ (m - 1) := by
+    have hsub : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)).card
+        = Fintype.card (LinearMap.ker L) := by
+      rw [← Fintype.card_subtype (fun r : Fin m → ZMod p => ∑ i, r i * a i = 0)]
+      exact Fintype.card_congr (Equiv.subtypeEquivRight (fun r => Iff.rfl))
+    rw [hsub, Module.card_eq_pow_finrank (K := ZMod p) (V := LinearMap.ker L), ZMod.card, hker]
+  -- assemble
+  have hcompl := Finset.filter_card_add_filter_neg_card_eq_card
+    (s := (Finset.univ : Finset (Fin m → ZMod p))) (p := fun r => ∑ i, r i * a i = 0)
+  rw [hcardker] at hcompl
+  have hcuniv : (Finset.univ : Finset (Fin m → ZMod p)).card = p ^ m := by
+    rw [Finset.card_univ, Fintype.card_fun, ZMod.card, Fintype.card_fin]
+  rw [hcuniv] at hcompl
+  have : (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) ≠ 0)).card
+      = (Finset.univ.filter (fun r : Fin m → ZMod p => ¬ (∑ i, r i * a i = 0))).card := rfl
+  rw [this]; omega
+
+/-! ## `t`-fold OR amplification — degree composition
+
+A single `linFormTest` is `1` exactly when its random linear form vanishes.  Taking a product of `t`
+independent forms, `orApproxProd`, is `1` iff *all* `t` forms vanish; `orApprox := 1 - orApproxProd`
+is then the Razborov OR-approximator: `0` on the all-zero input, and `1` unless all `t` forms vanish
+(probability `p^{-t}` for a nonzero input — the error half, the next frontier).  Here we build only the
+**degree composition**: the product of `t` degree-`(p-1)` atoms has degree `≤ (p-1)·t`. -/
+
+variable {t : ℕ}
+
+/-- The **`t`-fold product** of single-form tests: `∏_{k<t} linFormTest p (R k)`.  Equals `1` iff every
+sampled linear form `∑_i R k i · x_i` vanishes. -/
+noncomputable def orApproxProd (p : ℕ) {m t : ℕ} (R : Fin t → Fin m → ZMod p) :
+    MvPolynomial (Fin m) (ZMod p) :=
+  ∏ k : Fin t, linFormTest p (R k)
+
+/-- The **`t`-fold OR approximator** `1 - ∏_{k<t} linFormTest p (R k)`.  It is `0` on the all-zero input
+and approximates `OR` with one-sided error `≤ p^{-t}` on nonzero inputs (error bound deferred). -/
+noncomputable def orApprox (p : ℕ) {m t : ℕ} (R : Fin t → Fin m → ZMod p) :
+    MvPolynomial (Fin m) (ZMod p) :=
+  1 - orApproxProd p R
+
+/-- **Degree of the `t`-fold product:** `totalDegree (orApproxProd p R) ≤ (p-1)·t` — the `t` degree-`(p-1)`
+atoms (`linFormTest_totalDegree_le`) compose additively under `totalDegree_finset_prod`. -/
+theorem orApproxProd_totalDegree_le (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    (orApproxProd p R).totalDegree ≤ (p - 1) * t := by
+  rw [orApproxProd]
+  refine le_trans (totalDegree_finset_prod _ _) ?_
+  refine le_trans (Finset.sum_le_sum (fun k _ => linFormTest_totalDegree_le p (R k))) ?_
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  exact Nat.le_of_eq (Nat.mul_comm t (p - 1))
+
+/-- **Degree of the OR approximator:** `totalDegree (orApprox p R) ≤ (p-1)·t`.  Subtracting from the
+constant `1` cannot raise the degree (`totalDegree_sub`), so the bound transfers from
+`orApproxProd_totalDegree_le`. -/
+theorem orApprox_totalDegree_le (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    (orApprox p R).totalDegree ≤ (p - 1) * t := by
+  rw [orApprox]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one, Nat.zero_max]
+  exact orApproxProd_totalDegree_le p R
+
+/-- **All-false correctness:** evaluating the OR approximator on the all-zero `{0,1}` input gives `0`
+exactly.  Each linear form `∑_i R k i · 0` vanishes, so each `linFormTest` evaluates to
+`1 - 0^{p-1} = 1`; the product is `1` and `orApprox = 1 - 1 = 0`. -/
+theorem orApprox_eval_allFalse (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) :
+    eval (fun i => boolToZMod p ((fun _ => false) i)) (orApprox p R) = 0 := by
+  have hp1 : p - 1 ≠ 0 := by
+    have h2 := (Fact.out (p := p.Prime)).two_le; omega
+  have hatom : ∀ k, eval (fun i => boolToZMod p ((fun _ => false) i)) (linFormTest p (R k)) = 1 := by
+    intro k
+    rw [linFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C, eval_X,
+      boolToZMod_false, mul_zero, Finset.sum_const_zero, zero_pow hp1, sub_zero]
+  rw [orApprox, orApproxProd]
+  simp only [map_sub, map_one, map_prod, hatom, Finset.prod_const_one, sub_self]
+
+/-! ## `t`-fold error count — the `p^{-t}` bound
+
+On a nonzero `{0,1}` input the OR approximator errs (`orApprox` evaluates to `0` instead of `1`) exactly
+when *all* `t` sampled forms vanish, i.e. `∀ k, ∑_i R k i · x_i = 0`.  `orForm_zero_count` counts the
+single-form bad set — the kernel hyperplane, `p^{m-1}` of the `p^m` samples (the complement of the
+nonzero count `orForm_agreement`).  Independence across the `t` coordinates (`Fintype.piFinset`) raises
+this to `(p^{m-1})^t` bad tuples out of `(p^m)^t` total, so the error rate is exactly `p^{-t}`
+(`orApprox_error_rate`: bad-count · `p^t` = total). -/
+
+/-- **Single-form bad count.**  For a nonzero `{0,1}` input the linear form `∑_i r_i · x_i` vanishes on
+exactly `p^{m-1}` of the `p^m` samples — the kernel hyperplane, complement of `orForm_agreement`'s
+nonzero count. -/
+theorem orForm_zero_count (p : ℕ) [Fact p.Prime] {m : ℕ} (x : Fin m → Bool) (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) = 0)).card
+      = p ^ (m - 1) := by
+  classical
+  have hpos : 0 < p := (Fact.out (p := p.Prime)).pos
+  have hle : p ^ (m - 1) ≤ p ^ m := Nat.pow_le_pow_right hpos (Nat.sub_le m 1)
+  have htot : (Finset.univ : Finset (Fin m → ZMod p)).card = p ^ m := by
+    rw [Finset.card_univ, Fintype.card_fun, ZMod.card, Fintype.card_fin]
+  have hsplit := Finset.card_filter_add_card_filter_not
+    (s := (Finset.univ : Finset (Fin m → ZMod p)))
+    (p := fun r => ∑ i, r i * boolToZMod p (x i) = 0)
+  rw [htot] at hsplit
+  have hne : (Finset.univ.filter
+      (fun r : Fin m → ZMod p => ¬ (∑ i, r i * boolToZMod p (x i) = 0))).card
+        = p ^ m - p ^ (m - 1) := orForm_agreement p x hx
+  omega
+
+/-- **`t`-fold error count.**  For a nonzero `{0,1}` input, *all* `t` sampled forms vanish on exactly
+`(p^{m-1})^t` of the tuples `R : Fin t → Fin m → ZMod p` — the independent product of the single-form
+bad set across the `t` coordinates (`Fintype.piFinset`). -/
+theorem orApprox_error_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0)).card
+      = (p ^ (m - 1)) ^ t := by
+  classical
+  have hpi : (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0))
+      = Fintype.piFinset (fun _ : Fin t =>
+          Finset.univ.filter (fun r : Fin m → ZMod p => ∑ i, r i * boolToZMod p (x i) = 0)) := by
+    ext R
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fintype.mem_piFinset]
+  rw [hpi, Fintype.card_piFinset]
+  simp_rw [orForm_zero_count p x hx]
+  rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+
+/-- **Total sample count:** `(p^m)^t` tuples `R : Fin t → Fin m → ZMod p`. -/
+theorem orApprox_sample_count (p : ℕ) [Fact p.Prime] {m t : ℕ} :
+    (Finset.univ : Finset (Fin t → Fin m → ZMod p)).card = (p ^ m) ^ t := by
+  rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fun, ZMod.card, Fintype.card_fin,
+    Fintype.card_fin]
+
+/-- **Error rate `p^{-t}` (exact).**  The bad-tuple count times `p^t` equals the total sample count
+`(p^{m-1})^t · p^t = (p^m)^t`; equivalently, the fraction of erring samples on any nonzero input is
+exactly `p^{-t}`. -/
+theorem orApprox_error_rate (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter
+        (fun R : Fin t → Fin m → ZMod p => ∀ k, ∑ i, R k i * boolToZMod p (x i) = 0)).card * p ^ t
+      = (Finset.univ : Finset (Fin t → Fin m → ZMod p)).card := by
+  rw [orApprox_error_count p x hx, orApprox_sample_count]
+  obtain ⟨i, _⟩ := hx
+  have hm : 0 < m := lt_of_le_of_lt (Nat.zero_le _) i.isLt
+  have hmm : p ^ (m - 1) * p = p ^ m := by
+    rw [← pow_succ, Nat.sub_add_cancel hm]
+  rw [← mul_pow, hmm]
+
+/-! ## Per-gate agreement — the OR approximator computes OR off the bad-form set
+
+The degree side is paired by the **agreement** side: on a fixed input `x`, the OR approximant
+`orApprox p R` evaluates (via Fermat's little theorem `a^{p-1}=1` for `a≠0`) to `0` exactly when *all*
+`t` sampled forms vanish, and to `1` otherwise.  For a nonzero `{0,1}` input the correct OR value is
+`1`, so the approximant errs precisely on the bad-form set `{R : ∀k, ∑_i R k i·x_i = 0}` — whose size is
+`(p^{m-1})^t` (`orApprox_error_count`), i.e. a `p^{-t}` fraction.  This is the one-sided-error half of
+the Razborov OR-approximator. -/
+
+/-- **Evaluation characterisation.**  On input `x`, `orApprox p R` evaluates to `0` if every sampled
+form `∑_i R k i·x_i` vanishes, and to `1` otherwise (Fermat: a nonzero form raises to `1`). -/
+theorem orApprox_eval (p : ℕ) [Fact p.Prime] {m t : ℕ} (R : Fin t → Fin m → ZMod p)
+    (x : Fin m → Bool) :
+    eval (fun i => boolToZMod p (x i)) (orApprox p R)
+      = if (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) then 0 else 1 := by
+  have hp1 : p - 1 ≠ 0 := by have := (Fact.out (p := p.Prime)).two_le; omega
+  have hfac : ∀ k, eval (fun i => boolToZMod p (x i)) (linFormTest p (R k))
+      = if (∑ i, R k i * boolToZMod p (x i) = 0) then (1 : ZMod p) else 0 := by
+    intro k
+    rw [linFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C, eval_X]
+    by_cases h : (∑ i, R k i * boolToZMod p (x i)) = 0
+    · rw [if_pos h, h, zero_pow hp1, sub_zero]
+    · rw [if_neg h, ZMod.pow_card_sub_one_eq_one h, sub_self]
+  rw [orApprox, orApproxProd]
+  simp only [map_sub, map_one, map_prod, hfac]
+  rw [Fintype.prod_boole]
+  by_cases h : (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) <;> simp [h]
+
+/-- **Per-gate disagreement count.**  For a nonzero `{0,1}` input `x`, the OR approximant errs (outputs
+`≠ 1 = OR x`) exactly on the bad-form set, of size `(p^{m-1})^t` — the `p^{-t}` one-sided error. -/
+theorem orApprox_disagree_count (p : ℕ) [Fact p.Prime] {m t : ℕ} (x : Fin m → Bool)
+    (hx : ∃ i, x i = true) :
+    (Finset.univ.filter (fun R : Fin t → Fin m → ZMod p =>
+        eval (fun i => boolToZMod p (x i)) (orApprox p R) ≠ 1)).card = (p ^ (m - 1)) ^ t := by
+  rw [← orApprox_error_count p x hx]
+  congr 1
+  apply Finset.filter_congr
+  intro R _
+  rw [orApprox_eval]
+  by_cases h : (∀ k, ∑ i, R k i * boolToZMod p (x i) = 0) <;> simp [h]
+
+/-! ## Generalised gate approximant — the per-gate degree recurrence
+
+In the composition step each `∨`/`∧` gate's inputs are *sub-circuits*, represented by polynomials
+`q_j` over the ambient `Fin N` variables, not raw variables `X_j`.  The gate approximant is the same
+Razborov OR-approximator with `X_j` replaced by `q_j`:
+`genOrApprox = 1 - ∏_{k<t}(1 - (∑_j R k j · q_j)^{p-1})`.  Its degree obeys the **per-gate recurrence**
+`deg(genOrApprox) ≤ (p-1)·t·D` when every child has degree `≤ D` — i.e. each gate multiplies the degree
+by the factor `(p-1)·t`.  Composing this over a depth-`d` circuit (leaves degree `≤ 1`) gives the
+Razborov–Smolensky bound `((p-1)·t)^d`.  This file builds the recurrence (the gate step); the structural
+`((p-1)t)^{depth}` lift over `BoolCircuitSyntax` is the surrounding bookkeeping. -/
+
+/-- **Generalised single-form test.**  `1 - (∑_j r_j · q_j)^(p-1)` for arbitrary child polynomials `q_j`
+over `Fin N` (the gate-level form of `linFormTest`, which is the case `q_j = X_j`). -/
+noncomputable def genLinFormTest (p : ℕ) {N k : ℕ} (r : Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  1 - (∑ j, C (r j) * q j) ^ (p - 1)
+
+/-- `genLinFormTest` with `q_j = X_j` is exactly `linFormTest`. -/
+theorem genLinFormTest_eq_linFormTest (p : ℕ) {k : ℕ} (r : Fin k → ZMod p) :
+    genLinFormTest p r (fun j => X j) = linFormTest p r := rfl
+
+/-- **Per-gate degree of the generalised single-form test:** if every child `q_j` has degree `≤ D`, then
+`totalDegree (genLinFormTest p r q) ≤ (p-1)·D`. -/
+theorem genLinFormTest_totalDegree_le (p : ℕ) [Fact p.Prime] {N k : ℕ} (r : Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genLinFormTest p r q).totalDegree ≤ (p - 1) * D := by
+  have hform : (∑ j, C (r j) * q j).totalDegree ≤ D := by
+    refine le_trans (totalDegree_finset_sum _ _) (Finset.sup_le fun j _ => ?_)
+    refine le_trans (totalDegree_mul _ _) ?_
+    rw [totalDegree_C, zero_add]
+    exact hq j
+  have hpow : ((∑ j, C (r j) * q j) ^ (p - 1)).totalDegree ≤ (p - 1) * D := by
+    refine le_trans (totalDegree_pow _ _) ?_
+    exact Nat.mul_le_mul_left _ hform
+  rw [genLinFormTest]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one]
+  simpa using hpow
+
+/-- The `t`-fold product of generalised single-form tests (the gate AND of `t` independent tests). -/
+noncomputable def genOrApproxProd (p : ℕ) {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  ∏ s : Fin t, genLinFormTest p (R s) q
+
+/-- The **generalised `t`-fold OR approximant** for a gate with child polynomials `q_j`. -/
+noncomputable def genOrApprox (p : ℕ) {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) : MvPolynomial (Fin N) (ZMod p) :=
+  1 - genOrApproxProd p R q
+
+/-- **Per-gate degree of the product:** `≤ (p-1)·D·t` when every child has degree `≤ D`. -/
+theorem genOrApproxProd_totalDegree_le (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genOrApproxProd p R q).totalDegree ≤ (p - 1) * D * t := by
+  rw [genOrApproxProd]
+  refine le_trans (totalDegree_finset_prod _ _) ?_
+  refine le_trans (Finset.sum_le_sum
+    (fun s _ => genLinFormTest_totalDegree_le p (R s) q D hq)) ?_
+  rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+  exact Nat.le_of_eq (Nat.mul_comm t ((p - 1) * D))
+
+/-- **The per-gate degree recurrence.**  A gate approximant over children of degree `≤ D` has degree
+`≤ (p-1)·t·D` — each gate multiplies the degree by the factor `(p-1)·t`.  Composed over depth `d`
+(leaves degree `≤ 1`) this yields the `((p-1)·t)^d` Razborov–Smolensky degree. -/
+theorem genOrApprox_totalDegree_le (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (D : ℕ) (hq : ∀ j, (q j).totalDegree ≤ D) :
+    (genOrApprox p R q).totalDegree ≤ (p - 1) * D * t := by
+  rw [genOrApprox]
+  refine le_trans (totalDegree_sub _ _) ?_
+  rw [totalDegree_one, Nat.zero_max]
+  exact genOrApproxProd_totalDegree_le p R q D hq
+
+/-- **Gate-level evaluation (agreement over child values).**  Evaluating the generalised gate
+approximant at a point `pt`: it is `0` if every form `∑_j R s j · (q_j evaluated)` vanishes, and `1`
+otherwise.  This is the `genOrApprox` analogue of `orApprox_eval` — the agreement step a recursive lift
+uses at each gate, with the children's *evaluated values* `eval pt (q_j)` playing the role of inputs.
+(Fermat: a nonzero form raises to `1`.) -/
+theorem genOrApprox_eval (p : ℕ) [Fact p.Prime] {N k t : ℕ} (R : Fin t → Fin k → ZMod p)
+    (q : Fin k → MvPolynomial (Fin N) (ZMod p)) (pt : Fin N → ZMod p) :
+    eval pt (genOrApprox p R q)
+      = if (∀ s, ∑ j, R s j * eval pt (q j) = 0) then 0 else 1 := by
+  have hp1 : p - 1 ≠ 0 := by have := (Fact.out (p := p.Prime)).two_le; omega
+  have hfac : ∀ s, eval pt (genLinFormTest p (R s) q)
+      = if (∑ j, R s j * eval pt (q j) = 0) then (1 : ZMod p) else 0 := by
+    intro s
+    rw [genLinFormTest]
+    simp only [map_sub, map_one, map_pow, map_sum, map_mul, eval_C]
+    by_cases h : (∑ j, R s j * eval pt (q j)) = 0
+    · rw [if_pos h, h, zero_pow hp1, sub_zero]
+    · rw [if_neg h, ZMod.pow_card_sub_one_eq_one h, sub_self]
+  rw [genOrApprox, genOrApproxProd]
+  simp only [map_sub, map_one, map_prod, hfac]
+  rw [Fintype.prod_boole]
+  by_cases h : (∀ s, ∑ j, R s j * eval pt (q j) = 0) <;> simp [h]
+
+/-- **NOT-gate correctness step.**  On a `{0,1}` value, `1 - boolToZMod b = boolToZMod (!b)` — the
+inductive step for `not` gates (the approximant `1 - childApprox` flips a correct child). -/
+theorem one_sub_boolToZMod (p : ℕ) (b : Bool) :
+    1 - boolToZMod p b = boolToZMod p (!b) := by
+  cases b <;> simp [boolToZMod]
+
+/-- **OR-gate correctness step.**  If the children approximants are correct at `pt`
+(`eval pt (q_j) = boolToZMod p (b_j)` for the true child values `b_j`), and the gate is *good*
+(when some child is true, some sampled form over the true values is nonzero), then the OR approximant
+computes the children's OR: `eval pt (genOrApprox p R q) = 1` iff some `b_j` is true.  This is the
+inductive step for `∨` gates in the recursive agreement lift. -/
+theorem genOrApprox_eval_orOfChildren (p : ℕ) [Fact p.Prime] {N k t : ℕ}
+    (R : Fin t → Fin k → ZMod p) (q : Fin k → MvPolynomial (Fin N) (ZMod p))
+    (pt : Fin N → ZMod p) (b : Fin k → Bool)
+    (hchild : ∀ j, eval pt (q j) = boolToZMod p (b j))
+    (hgood : (∃ j, b j = true) → ∃ s, ∑ j, R s j * boolToZMod p (b j) ≠ 0) :
+    eval pt (genOrApprox p R q) = if (∃ j, b j = true) then (1 : ZMod p) else 0 := by
+  rw [genOrApprox_eval]
+  simp only [hchild]
+  by_cases hor : ∃ j, b j = true
+  · rw [if_neg (not_forall.mpr (hgood hor)), if_pos hor]
+  · have hall : ∀ j, b j = false := by
+      intro j; cases hbj : b j
+      · rfl
+      · exact absurd ⟨j, hbj⟩ hor
+    have hform0 : ∀ s, ∑ j, R s j * boolToZMod p (b j) = 0 := by
+      intro s; simp only [hall, boolToZMod_false, mul_zero, Finset.sum_const_zero]
+    rw [if_pos hform0, if_neg hor]
+
+/-- `genOrApprox_eval` recovers `orApprox_eval` at `q_j = X_j`, `pt = boolToZMod ∘ x`. -/
+theorem genOrApprox_eval_eq_orApprox_eval (p : ℕ) [Fact p.Prime] {m t : ℕ}
+    (R : Fin t → Fin m → ZMod p) (x : Fin m → Bool) :
+    eval (fun i => boolToZMod p (x i)) (genOrApprox p R (fun j => X j))
+      = eval (fun i => boolToZMod p (x i)) (orApprox p R) := by
+  rw [genOrApprox_eval, orApprox_eval]
+  simp only [eval_X]
+
+end PallLean.Paper93.DeepMath.PathB.Layer3
+
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.linFormTest_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orForm_agreement
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApproxProd_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval_allFalse
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orForm_zero_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_sample_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_error_rate
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.orApprox_disagree_count
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.one_sub_boolToZMod
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval_orOfChildren
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_eval_eq_orApprox_eval
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_eq_linFormTest
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genLinFormTest_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApproxProd_totalDegree_le
+#print axioms PallLean.Paper93.DeepMath.PathB.Layer3.genOrApprox_totalDegree_le

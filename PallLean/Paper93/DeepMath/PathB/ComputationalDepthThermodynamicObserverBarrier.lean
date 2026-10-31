@@ -259,6 +259,89 @@ theorem not_requires_positive_erasure_of_erasureFree
   rw [hfree] at hreq
   exact Nat.not_lt_of_ge hreq hpos
 
+/-! ## Thermodynamic-boundary audit: reversible relabelling
+
+The observer boundary becomes a complexity obstruction only if the machine
+semantics itself forces irreversible erasure.  The resource trace fields do
+not force that: every trace has an erasure-free relabelling that preserves its
+clock, peak-memory profile, and boundary communication exactly.  Active energy
+is preserved as well; only the Landauer erasure component is removed.
+-/
+
+/-- Remove the irreversible-erasure label from a thermodynamic step while
+preserving every operationally visible resource coordinate. -/
+def reversibleStep (s : ThermodynamicStep) : ThermodynamicStep where
+  erasedBits := 0
+  activeEnergy := s.activeEnergy
+  timeTicks := s.timeTicks
+  liveMemory := s.liveMemory
+  transmittedBits := s.transmittedBits
+
+/-- Reversible relabelling of a complete observer trace. -/
+def reversibleTrace : List ThermodynamicStep → List ThermodynamicStep
+  | [] => []
+  | s :: rest => reversibleStep s :: reversibleTrace rest
+
+/-- Reversible relabelling erases no bits. -/
+theorem reversibleTrace_erasureFree (steps : List ThermodynamicStep) :
+    ErasureFreeTrace (reversibleTrace steps) := by
+  induction steps with
+  | nil => rfl
+  | cons s rest ih =>
+      unfold ErasureFreeTrace at ih ⊢
+      simp [reversibleTrace, reversibleStep, traceErasedBits, ih]
+
+/-- Reversible relabelling preserves elapsed observer time. -/
+theorem traceTime_reversibleTrace (steps : List ThermodynamicStep) :
+    traceTime (reversibleTrace steps) = traceTime steps := by
+  induction steps with
+  | nil => rfl
+  | cons s rest ih => simp [reversibleTrace, reversibleStep, traceTime, ih]
+
+/-- Reversible relabelling preserves the peak live-memory profile. -/
+theorem tracePeakMemory_reversibleTrace (steps : List ThermodynamicStep) :
+    tracePeakMemory (reversibleTrace steps) = tracePeakMemory steps := by
+  induction steps with
+  | nil => rfl
+  | cons s rest ih =>
+      simp [reversibleTrace, reversibleStep, tracePeakMemory, ih]
+
+/-- Reversible relabelling preserves all communication across the observer
+boundary. -/
+theorem traceBandwidth_reversibleTrace (steps : List ThermodynamicStep) :
+    traceBandwidth (reversibleTrace steps) = traceBandwidth steps := by
+  induction steps with
+  | nil => rfl
+  | cons s rest ih =>
+      simp [reversibleTrace, reversibleStep, traceBandwidth, ih]
+
+/-- Reversible relabelling preserves non-erasure active energy. -/
+theorem traceActiveEnergy_reversibleTrace (steps : List ThermodynamicStep) :
+    traceActiveEnergy (reversibleTrace steps) = traceActiveEnergy steps := by
+  induction steps with
+  | nil => rfl
+  | cons s rest ih =>
+      simp [reversibleTrace, reversibleStep, traceActiveEnergy, ih]
+
+/-- **Thermodynamic boundary verdict.**  Time, memory, bandwidth, and active
+energy observations alone cannot imply any positive Landauer erasure floor:
+the same observed resource profile admits an erasure-free trace.  A SAT lower
+bound through the thermodynamic boundary therefore needs an independent
+machine-semantic irreversibility theorem, not merely a polynomial observer
+budget or a polynomial reuse certificate. -/
+theorem exists_erasureFree_trace_with_same_observer_profile
+    (steps : List ThermodynamicStep) :
+    ∃ reversible : List ThermodynamicStep,
+      ErasureFreeTrace reversible ∧
+      traceTime reversible = traceTime steps ∧
+      tracePeakMemory reversible = tracePeakMemory steps ∧
+      traceBandwidth reversible = traceBandwidth steps ∧
+      traceActiveEnergy reversible = traceActiveEnergy steps := by
+  exact ⟨reversibleTrace steps, reversibleTrace_erasureFree steps,
+    traceTime_reversibleTrace steps, tracePeakMemory_reversibleTrace steps,
+    traceBandwidth_reversibleTrace steps,
+    traceActiveEnergy_reversibleTrace steps⟩
+
 /-- The Landauer energy needed for a specified erasure requirement. -/
 def requiredErasureLandauerEnergy
     (c : ThermodynamicConstants)
@@ -803,6 +886,7 @@ end ComplexityErasureLowerBound
 #print axioms exceedsBudget_of_requiredErasurePowerTime_lt
 #print axioms traceLandauerEnergy_eq_zero_of_erasureFree
 #print axioms not_requires_positive_erasure_of_erasureFree
+#print axioms exists_erasureFree_trace_with_same_observer_profile
 #print axioms ComplexityErasureLowerBound.requiredEnergy_le_energyLimit_of_withinBudget_closes
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_energyLimit_lt_requiredEnergy
 #print axioms ComplexityErasureLowerBound.exceedsBudget_of_closes_powerTime_lt_requiredEnergy

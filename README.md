@@ -2,6 +2,28 @@
 
 Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
 
+## Proved lower bounds — capstone ledger
+
+For a machine-checked, honestly-scoped inventory of the restricted-class circuit / formula / proof-space
+lower bounds proved in this repo — separating what is **proved unconditionally** from what is
+**conditional, open, or equivalent to `P ≠ NP`** — see the master ledger:
+
+- **[PRIME_ACC0_CAPSTONE.md](PRIME_ACC0_CAPSTONE.md)** — the index (proved-vs-conditional tables).
+
+Each capstone re-exports its arc's results under citable names, every one `#print axioms`-verified to depend
+on only `[propext, Classical.choice, Quot.sound]` (no custom axioms, no `sorry`):
+
+| Capstone | Result | Status |
+|---|---|---|
+| [Prime `AC⁰[p]`](PRIME_ACC0_CAPSTONE.md) — `…ACC0PrimeCapstone` | `PARITY / MOD_q ∉ AC⁰[p]` (Razborov–Smolensky) | complete |
+| [Nečiporuk](NECIPORUK_CAPSTONE.md) — `…NeciporukCapstone` | `Ω(N²/log N)` De Morgan formula size | complete + ceiling |
+| [Switching-lemma](SWITCHING_CAPSTONE.md) — `…SwitchingCapstone` | Håstad switching bound (`hnf` regime) | partial (tight-general open) |
+| [Forster](FORSTER_CAPSTONE.md) — `…ForsterCapstone` | sign-rank `≥ n/‖·‖`, Walsh UPP `≥ k/2` | complete (circuit-app fenced) |
+| [Tseitin proof-space](TSEITIN_SPACE_CAPSTONE.md) — `…TseitinSpaceCapstone` | resolution proof-space `Ω(\|V\|)` | restricted |
+
+These are genuine restricted-class results. **None is `NEXP ⊄ ACC⁰` or `P ≠ NP`**; the ledger states
+precisely why each stops where it does.
+
 ## Active Proof Chain (Route 2: Tseitin/OBDD)
 
 The main result: **no polynomial-width OBDD computes the Tseitin clause-subset

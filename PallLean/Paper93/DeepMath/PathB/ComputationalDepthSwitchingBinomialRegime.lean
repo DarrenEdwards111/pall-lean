@@ -81,9 +81,80 @@ theorem short_family_ratio {n w K s : ℕ} (hsK : s ≤ K) (hreg : (4 * w) * K +
     _ = 2 ^ (n - K) * ((4 * w) ^ s * n.choose (K - s)) := by ring
     _ ≤ 2 ^ (n - K) * n.choose K := by gcongr
 
+/-- **The strict binomial step (doubled slack).**  Under `(8w)·K + K ≤ n+1` (i.e. `(8w+1)·K ≤ n+1`,
+twice the slack of the `≤ 1` regime) and `s < K`,
+
+  `8w·C(n,K-s-1) ≤ C(n,K-s)`,
+
+i.e. the single-step binomial ratio is `≤ 1/2`.  This is `choose_step` with the constant `8w`
+(the factor of `2` margin over the `4w` of `binomial_ratio_regime`). -/
+theorem binomial_ratio_strict_step {n w K s : ℕ} (hs : s < K)
+    (hreg : (8 * w) * K + K ≤ n + 1) :
+    (8 * w) * n.choose (K - (s + 1)) ≤ n.choose (K - s) := by
+  have hKs : K - s = (K - (s + 1)) + 1 := by omega
+  rw [hKs]
+  refine choose_step ?_
+  have hmul : (8 * w) * ((K - (s + 1)) + 1) ≤ (8 * w) * K :=
+    mul_le_mul_left' (by omega) (8 * w)
+  omega
+
+/-- **Count-form decay.**  The switching count `M_s = 2^(n-K+s)·C(n,K-s)·(2w)^s` at least **halves**
+at each step, in the doubled-slack regime `(8w)·K + K ≤ n+1`:
+
+  `2·M_{s+1} ≤ M_s`   for `s < K`.
+
+This is exactly the decay hypothesis the geometric tail-sum (`geom_range_sum`) consumes: the deep
+fraction is then geometrically dominated, so `∑_{s≥T} M_s ≤ 2·M_T`. -/
+theorem count_decay_step {n w K s : ℕ} (hs : s < K) (hreg : (8 * w) * K + K ≤ n + 1) :
+    2 * (2 ^ (n - K + (s + 1)) * n.choose (K - (s + 1)) * (2 * w) ^ (s + 1))
+      ≤ 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s := by
+  have hstep := binomial_ratio_strict_step hs hreg
+  have hexp : n - K + (s + 1) = (n - K + s) + 1 := by omega
+  rw [hexp, pow_succ, pow_succ]
+  calc 2 * (2 ^ (n - K + s) * 2 * n.choose (K - (s + 1)) * ((2 * w) ^ s * (2 * w)))
+      = (2 ^ (n - K + s) * (2 * w) ^ s) * ((8 * w) * n.choose (K - (s + 1))) := by ring
+    _ ≤ (2 ^ (n - K + s) * (2 * w) ^ s) * n.choose (K - s) := mul_le_mul_left' hstep _
+    _ = 2 ^ (n - K + s) * n.choose (K - s) * (2 * w) ^ s := by ring
+
+/-- **Iterated strict binomial ratio.**  Under the doubled-slack regime `(8w)·K + K ≤ n+1` and
+`T ≤ K`,  `(8w)^T·C(n,K-T) ≤ C(n,K)` (the `8w` analogue of `binomial_ratio_regime`). -/
+theorem binomial_ratio_regime_strict {n w K T : ℕ} (hTK : T ≤ K)
+    (hreg : (8 * w) * K + K ≤ n + 1) :
+    (8 * w) ^ T * n.choose (K - T) ≤ n.choose K := by
+  have hfac : ∀ k, K - T ≤ k → k < (K - T) + T → (8 * w) * (k + 1) ≤ n - k := by
+    intro k _ hk2
+    have hkK : k + 1 ≤ K := by rw [Nat.sub_add_cancel hTK] at hk2; omega
+    have hmul : (8 * w) * (k + 1) ≤ (8 * w) * K := mul_le_mul_left' hkK (8 * w)
+    omega
+  have h := pow_mul_choose_le T hfac
+  rwa [Nat.sub_add_cancel hTK] at h
+
+/-- **The base term is strictly sub-family.**  For `T ≥ 2`, in the doubled-slack regime,
+`2·(4w)^T·C(n,K-T) < C(n,K)`.  (The threshold term `M_T` satisfies `2·M_T < |F|`, the strict
+pigeonhole input.)  Strictness comes from `(8w)^T = 2^T·(4w)^T` with `2 < 2^T` for `T ≥ 2`. -/
+theorem base_term_lt {n w K T : ℕ} (hw : 0 < w) (hT : 2 ≤ T) (hTK : T ≤ K) (hKn : K ≤ n)
+    (hreg : (8 * w) * K + K ≤ n + 1) :
+    2 * ((4 * w) ^ T * n.choose (K - T)) < n.choose K := by
+  have h1 : (8 * w) ^ T * n.choose (K - T) ≤ n.choose K := binomial_ratio_regime_strict hTK hreg
+  have hpow : (8 * w) ^ T = 2 ^ T * (4 * w) ^ T := by rw [← mul_pow]; congr 1; ring
+  have hXpos : 0 < (4 * w) ^ T * n.choose (K - T) :=
+    Nat.mul_pos (pow_pos (by omega) T) (Nat.choose_pos (by omega))
+  have h2T : 2 < 2 ^ T := by
+    calc 2 < 2 ^ 2 := by norm_num
+      _ ≤ 2 ^ T := Nat.pow_le_pow_right (by norm_num) hT
+  calc 2 * ((4 * w) ^ T * n.choose (K - T))
+      < 2 ^ T * ((4 * w) ^ T * n.choose (K - T)) := by
+        exact Nat.mul_lt_mul_of_lt_of_le h2T (le_refl _) hXpos
+    _ = (8 * w) ^ T * n.choose (K - T) := by rw [hpow]; ring
+    _ ≤ n.choose K := h1
+
 end SwitchingCounting
 
 end PallLean.Paper93.DeepMath.PathB
 
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.binomial_ratio_regime
 #print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.short_family_ratio
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.binomial_ratio_strict_step
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.count_decay_step
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.binomial_ratio_regime_strict
+#print axioms PallLean.Paper93.DeepMath.PathB.SwitchingCounting.base_term_lt

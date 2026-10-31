@@ -1,0 +1,206 @@
+# Capstone: from observer-time debt to decision-holonomy
+
+A single-page map of the dynamical God-Move arc — what is **proved**, what is **named (open)**, and the one
+honest conclusion: the programme is a fully-formalized **space / proof-complexity lower bound**, and the gap to
+`P ≠ NP` is named exactly as **decision-holonomy**, which is *equivalent in strength to the separation itself*.
+
+All files below are `sorry`-free with axioms `[propext, Classical.choice, Quot.sound]` (a few pure-`Nat`
+lemmas use only `[propext, Quot.sound]`).  Branch `razborov-recoverRho-wip`.
+
+---
+
+## 0. The one-paragraph story
+
+An observer deciding SAT carries **distinguishability debt**: must-separate continuation pairs it has merged.
+A correct observer must clear its debt, and clearing costs **boundary action** `∑_τ 2^{B_τ}`.  We proved this
+accounting in full and closed every escape route *in the bounded-boundary regime*.  But the mechanism
+**provably caps at boundary `B < r ≈ n`** (the brute-force escape is real), and a poly-*time* decider may use
+poly *space* (`B ≥ n`) above the cap.  Worse, the debt measures *distinguishability* (proof complexity), which
+a decision algorithm can bypass (Gaussian elimination decides Tseitin without servicing its debt).  So the
+missing theorem is **decision-holonomy**: an invariant lower-bounding decision *time* for an NP-complete family.
+We prove the reduction (decision-holonomy ⇒ `P ≠ NP`) and the gap (existing debt cannot supply it), which
+together show decision-holonomy **is** the separation.
+
+---
+
+## 1. The debt accounting — PROVED
+
+| theorem | file | content |
+|---|---|---|
+| `merge_pay`, `debt_conservation_varying` | `…BoundaryDebt`, `…ObserverTimeDebt` | conservation: `S_obs ≥` initial debt, even with time-varying boundary |
+| `correct_needs_action`, `bounded_action_fails` | `…ObserverTimeDebt` | correct ⇒ action ≥ debt; bounded action ⇒ errs |
+| `foolingSet_forces_debt` | `…FoolingDebt` | a size-`K` fooling set at boundary `B` forces debt `≥ K − 2^B` |
+| `no_low_action_of_high_debt` | `…SATActionConjecture` | reduction: conjecture ⇐ `hdebt`; **`hdebt` = `P ≠ NP`, named** |
+
+## 2. Every escape closed — in the bounded-boundary regime — PROVED
+
+| escape | closed by | file |
+|---|---|---|
+| hide boundary over time | conservation | `…ObserverTimeDebt` |
+| bounded boundary throughout | `bounded_boundary_tradeoff` (`|P| ≤ (T+1)·2^B`) | `…BoundedBoundaryDebt` |
+| distribute as spikes (bounded total action) | `average_boundary_tradeoff` (`|P| ≤ 2^{B₀}+∑2^{B_τ}`) | `…AverageBoundaryDebt` |
+| instant spike (locality `r`) | `burst_boundary_time_lower_bound` (`|P| ≤ (T+1)·2^{B₀+rT}`) | `…BurstBoundaryDebt` |
+| change decomposition adaptively | `adaptive_total_action` (decomposition-agnostic) | `…AdaptiveTrajectory` |
+| flatten via switch cost | `adaptive_boundary_tradeoff` (`|P| ≤ 2^{B₀}+∑2^{B_τ}+∑SwitchCost_τ`) | `…AdaptiveTrajectoryDebt` |
+| explicit `2^n` witness geometry | `hypercube_lowBoundary_requires_superpoly_time` | `…ExpanderFoolingInstance` |
+| switch-cost lower bound | `hypercube_lowBoundary_switchCost_superpoly` (`∑SwitchCost ≥ 2^n−(T+1)2^b`) | `…SwitchCostLowerBound` |
+
+## 3. The decomposition ladder (residual non-collapse) — PROVED, all reduce to "effective boundary `< r` ⇒ debt"
+
+| class | theorem | file |
+|---|---|---|
+| read-set (vertex-parity) | `expander_residual_forces_debt` | `…ExpanderResidualSurjective` |
+| `F₂`-linear / affine | `expander_linear_decomposition_noncollapse` (`finrank_map_ker_ge`) | `…AdaptiveResidualNonCollapse` |
+| bounded-locality / junta / branching-program | `expander_bounded_locality_noncollapse` (`debtCount_mono`) | `…BoundedLocalityNonCollapse` |
+| holonomy / curvature (loop twist) | `parity_loop_holonomy`, `holonomy_forces_debt_card` | `…BoundaryHolonomy` |
+| many-loop amplification (subspace flatten) | `expander_manyloop_holonomy` | `…ExpanderHolonomyAmplification` |
+| bottleneck (cheap trajectory ⇒ cheap step) | `adaptive_bottleneck_exists`, `cheap_trajectory_has_residual_debt_bottleneck` | `…AdaptiveBottleneck` |
+
+Discharged from the **expansion already in the width kernel** (`combination_support_card_ge_of_expansion`,
+`exists_combination_ne_zero_of_expansion`).  Each is the *same* fact — a decomposition of effective boundary
+`< r` forces debt — computed by a different structural lens (rank, support, periodicity, curvature).
+
+## 4. The ceiling — PROVED as a theorem
+
+| theorem | file | content |
+|---|---|---|
+| `hypercube_brute_force_escape` | `…DebtFrameworkBarrier` | a full-boundary (`B = n`) view resolves the `2^n` geometry with **zero debt** |
+| `tradeoff_vacuous_of_high_initial_boundary` | `…DebtFrameworkBarrier` | `|P| ≤ 2^{B₀}` ⇒ the bound is content-free |
+
+**The fooling-debt mechanism is empty for `B ≥ r ≈ n`.**  Not a gap in the formalization — a proved property.
+
+## 5. The real gap: time → boundary, and the Williams route — PROVED (reduction) + NAMED (deep inputs)
+
+| theorem | file | role |
+|---|---|---|
+| `time_space_law`, `time_space_tradeoff_curve` | `…TimeSpaceWilliamsBridge` | poly time ⇒ space `Ω(n)` (restricted TS lower bound) |
+| `boundary_le_of_spaceBound`, `action_le_of_spaceBound`, `subcritical_of_lowspace` | `…TimeBoundaryPrinciple` | **positive**: a *space* bound ⇒ subcritical action ⇒ debt bites |
+| `action_unbounded_by_time`, `hard_instance_has_correct_high_boundary_decider` | `…TimeBoundaryPrinciple` | **obstruction**: poly *time* alone gives no boundary bound — "P-time ⇒ cheap observer" is **false** |
+| `dp_speedup`, `williams_route`, `noncollapse_via_williams` | `…TimeSpaceWilliamsBridge`, `…ObserverAlgorithmicSchema` | Williams route past the cap: cheap ⇒ fast SAT ⇒ separation (diagonalisation **named**) |
+| `margin_le_of_correct`, `expander_margin_eq` | `…SpeedupMargin` | the decomposition's speedup margin is exactly `n − r = Ω(n)` (abundant) |
+
+**Finding (proved by `…SpeedupMargin` + Gaussian elimination):** the margin is super-abundant, but only because
+the proof-hard instance (Tseitin = `F₂` linear system) is **decision-easy**.  The fooling set measures
+*distinguishability* (proof complexity), **not decision hardness**.
+
+## 6. Decision-holonomy — the precise missing target — reduction & gap PROVED, target NAMED
+
+| theorem | file | content |
+|---|---|---|
+| `decisionHolonomy_implies_not_poly` | `…DecisionHolonomy` | **reduction**: `decisionTime ≥` super-poly threshold ⇒ family `∉ P` ⇒ (NP-complete) `P ≠ NP` |
+| `distinguishability_debt_not_time_lower_bound` | `…DecisionHolonomy` | **gap**: for any debt `D`, a `T = 1` (poly-time) trajectory has action `≥ D` — action ⇏ decision time |
+
+> **`DecisionHolonomyHyp`** (NAMED, not proved): an invariant `ι` with `decisionTime ≥ ι`, `ι` super-poly, for
+> an NP-complete SAT family.
+
+By the reduction, `DecisionHolonomyHyp` for an NP-complete family is **equivalent in strength to `P ≠ NP`** —
+the invariant *is* the separation, not a step before it.  The gap theorem proves *why* every invariant in §1–4
+is insufficient: they bound **action** (capacity × time), which a high-boundary poly-time decider drives up for
+free.
+
+## 6b. "Tseitin is not enough" — the proof-hard instance is decision-easy — PROVED
+
+| theorem | file | content |
+|---|---|---|
+| `tseitin_charge_sum_zero_of_sat` | `…TseitinDecisionEasy` | a satisfying assignment forces `∑_v charge v = 0` (edges counted twice; `2 = 0` in `ZMod 2`) |
+| `tseitin_unsat_of_odd_charge` | `…TseitinDecisionEasy` | odd total charge ⇒ **no** satisfying assignment — UNSAT decided by **one parity bit** |
+
+The *same* expander-Tseitin instance carrying the proved `2^{Ω(n)}` fooling set and width/space lower bounds
+(§1–4) has its UNSAT side decided by a **linear functional of the charges**, distinguishing *no* residual
+branch.  Concrete witness on our own hard instance: **high holonomy/proof/fooling-set debt does NOT imply
+decision hardness** — bypassed exactly as Gaussian elimination bypasses it.  (Converse, even charge ⇒ sat for
+connected graphs, is the standard spanning-tree routing — cited, giving Tseitin satisfiability `∈ P`.)
+
+---
+
+## 7. The honest conclusion
+
+* **What is proved:** a complete, `sorry`-free dynamical boundary-action theory — conservation, mechanism,
+  every bounded-boundary escape closed, the full decomposition ladder (read-set / linear / locality / curvature
+  / amplification) discharged from real expansion, the ceiling proved, a restricted time–space lower bound
+  (poly time ⇒ `Ω(n)` space), and the Williams plumbing.  As a lower bound on **space / proof complexity** for
+  expander Tseitin, this is genuine and unconditional in its regime.
+
+* **What is named, not faked:** `hdebt` / `AdaptiveResidualNonCollapse` / `DecisionHolonomyHyp` — three
+  equivalent forms of the *same* open statement.  Each is the min-over-decompositions quantifier =
+  `CookLevinFrontierHyp` = `P ≠ NP`.
+
+* **Where the wall is, exactly:** the programme bounds **distinguishability / action / space**; `P ≠ NP` needs
+  **decision time**.  The bridge between them — decision-holonomy — must either use NP-complete structure for a
+  SAT time–space tradeoff (option 1) or take the Williams route (option 2: named diagonalisation + a
+  decision-hard family, which the proof-hard-but-decision-easy Tseitin family is not).
+
+* **Not one lemma away.** `distinguishability_debt_not_time_lower_bound` and
+  `hard_instance_has_correct_high_boundary_decider` are theorems precisely so the arc is not mistaken for a
+  near-proof of `P ≠ NP`.  Closing it requires genuinely new mathematics — a decision-time invariant for an
+  NP-complete family — which this development locates exactly but does not provide.
+
+## 8. Exploratory scaffolding (labelled, NOT a P≠NP step)
+
+`ComputationalDepthNonlinearCSPPilot.lean` — the **option-B laboratory**.  To kill Tseitin's linear/Gaussian
+decision shortcut (which works because XOR solution sets are *affine*), gadgetise with AND:
+`x_u ⊕ x_v ⊕ (x_w ∧ x_z) = b`.  Proved: `xor_solution_set_affine` (pure-XOR solutions are affine — shortcut
+applies) vs `nonlinear_solution_set_not_affine` (the AND-gadget's solutions are **not** affine — explicit
+`a,b,c` solutions with `a+b+c` violating).  So the gadget removes the affine structure underlying the Tseitin
+shortcut.  **Honest:** "no *affine* shortcut" ≪ "no shortcut"; this is a place to test whether residual
+richness survives while the linear shortcut dies — *not* a proof of decision hardness (= the open
+`DecisionHolonomyHyp`).
+
+`ComputationalDepthNonlinearCSPRichness.lean` — pilot step 2: **residual richness survives gadgetisation**.
+`gadgetOutcomes_surjective` (the constraint-value vector of an `m`-gadget family with private variables is
+surjective onto `2^m`) ⇒ `gadget_residual_forces_debt` (every boundary-`B` observer has residual debt
+`≥ 2^m − 2^B`).  So the AND terms do **not** collapse the distinguishability debt.  The lab profile is now:
+(1) no affine/Gaussian shortcut, (2) `2^{Ω(n)}` residual debt survives — the *desired* shape for a
+decision-hard family.  **Still not decision hardness:** the richness is sourced by the private *linear*
+variables (preserved despite, not created by, the AND), and "no affine shortcut + rich residuals" ≠ "no
+shortcut".  Decision hardness for an NP-complete family = `DecisionHolonomyHyp` = the open breakthrough.  The
+expander hypergraph lift and any decision-hardness claim remain future exploratory work, not provided here.
+
+`ComputationalDepthNonlinearCSPANDOnly.lean` — pilot step 3, the **diagnostic test** (honest negative signal).
+Strip the private linear variables: do AND terms *alone*, over **shared** variables, generate richness?  On a
+triangle `(x₀·x₁, x₁·x₂, x₀·x₂)` vs the linear `(x₀⊕x₁, x₁⊕x₂, x₀⊕x₂)`: `linTriangle_hits_110` (linear
+achieves `(1,1,0)`) vs `andTriangle_misses_110` (AND **never** does — `x₀x₁=x₁x₂=1 ⇒ x₀=x₁=x₂=1 ⇒ x₀x₂=1`),
+hence `andTriangle_not_surjective`.  **Finding:** AND-only richness over shared variables is *restricted, not
+enhanced* — multiplicative transitivity removes achievable outcomes the linear structure keeps.  So step 2's
+richness was genuinely linear-sourced, and the AND gadget likely inherits linear-style tractability.  Honest
+diagnostic conclusion: the simple AND gadget is **not obviously a good route** to a decision-hard family (it
+gets step-1 non-affineness but *loses* full residual richness over shared variables).  A real decision-hard
+family needs a predicate that resists the affine shortcut *and* keeps full shared-variable richness — which
+this one does not.  A negative lab signal, not a `P ≠ NP` step.
+
+`ComputationalDepthNonlinearCSPACCStress.lean` — pilot step 4, the **AC⁰[p] / low-degree calibration** (the
+algebraic shortcut detector).  The AND `x_w·x_z` is a **degree-2** monomial, so the gadget *linearizes*:
+`gadget_eq_lifted` (`gadgetVal = liftedGadgetVal x_u x_v (x_w·x_z)`) + `liftedGadget_solution_affine` (in the
+lifted variable `q := x_w·x_z` the solution set is **affine** again — Gaussian/AC⁰[p] applies).  So the gadget
+is firmly in the algebraic régime, "one degree up" from linear; lifting one fresh variable per AND term (poly
+overhead) makes the system linear except for the side-relations `q_i = x_{w_i}·x_{z_i}`, which carry all the
+nonlinearity.  **Nuance (both ways):** low-degree *representation* ≠ decision-easiness — degree-1 (`F₂`-linear)
+is Gaussian-easy, but degree-2 (`MQ`) is NP-hard *in general* (cited).  So the gadget escaped degree-1's
+easiness and sits at the degree-1→2 boundary; whether the *specific expander* instance realises the degree-2
+NP-hardness (vs. collapsing via step-3's restricted richness) is open.  Calibration verdict: **located, not
+killed or validated** — firmly algebraic, decision status reduced to the quadratic side-relations.
+
+`ComputationalDepthNonlinearCSPModularStress.lean` — pilot step 5, **ACC⁰ / mixed-moduli stress** (modular
+shortcut detector).  A genuine ACC⁰ primitive (MOD_q) is *modulus-specific*; `andBit_eq_prod_any_modulus`
+proves the AND gadget is the opposite — **modulus-agnostic**: `AND(a,b) = a·b` as the *same* product over
+*every* `ZMod m` (`andBit_mod2_eq_mod3` concrete for `m = 2, 3`).  So the gadget carries **no MOD_q / CRT
+content** — a mixed-moduli view gains nothing.
+
+**Cumulative verdict on the simple AND gadget (calibration battery):** escapes affine/Gaussian (step 1, the
+only good sign), but **fails** shared-variable richness (step 3, AND transitivity), AC⁰[p]/low-degree (step 4,
+degree-2 linearizes), and ACC⁰/mixed-moduli (step 5, modulus-agnostic).  It resists *only* pure linearity.
+**Honest conclusion: abandon the simple AND gadget as a P-vs-NP candidate** — the battery filtered out a bad
+candidate cheaply.  A real decision-hard-holonomy family must resist affine *and* low-degree-lift *and* modular
+shortcuts; this one resists only the first.  A successful *negative filter*, not a `P ≠ NP` step.
+
+`ComputationalDepthModularCandidate.lean` — pilot step 6, **a candidate built to pass the filters the AND gadget
+failed**.  Fix filter 3 with a genuinely modulus-specific primitive, `MOD₃` (bit-sum `≡ 0 mod 3`):
+`mod3Gadget_not_affine` (filter 1: non-affine over `F₂`) + `mod3Gadget_modulus_specific` (filter 3: `mod 3` ≠
+`mod 2`, *not* modulus-agnostic).  So it clears the two filters AND could not both clear.  **But the honest
+finding is the takeaway:** MOD₃ is **additive over `F₃`**, so a *strengthened* filter 1 ("non-affine over every
+`F_p`") catches it; and **every** explicit `AND`/`XOR`/`MOD_q` gadget lies in **ACC⁰**, so always has *some*
+algebraic shortcut.  A candidate that *provably* clears the **complete** battery (all `F_p`-linear, all
+low-degree, all modular) would be an explicit function **outside ACC⁰** — the open frontier (`NP ⊄ ACC⁰`
+open).  So the filters, completed, are an **ACC⁰-membership detector**: they narrow candidates but cannot
+certify decision-hardness without crossing the open `ACC⁰` frontier (= `DecisionHolonomyHyp`).  Passing the
+*stated* filters is achievable (done); a *provably decision-hard* explicit candidate is the open problem.
