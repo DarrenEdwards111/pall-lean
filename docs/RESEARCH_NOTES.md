@@ -598,6 +598,43 @@ G3-A caveats:
   * 21921958 consistently uses the Lean strict measure. Its `GodMoveAccumulatorRankCheck` notes the strict
     convention, but we found no statement of the shift-support or reduce/drop discrepancies there.
 
+## G3-C (refocused on the actual open gap): can the measure tell the SAT MLE from easy functions?
+Construction: 21921958, core commits 3bda8850 / d105443a (10 Sep 2026); see the audit in research/godmove-audit
+5e76f62 §4. For any correct decider the source `machineSource M T (unitFormula (n/3)) (n/3)` **is** the SAT
+multilinear extension on L_n = `unitInputLength (n/3)` bits (`machineSource_eq_SATCharacteristic`). So a P-side
+bound is a statement about one fixed function, not about the machine. The measure is strict `mlBlockedSpdpRank`
+on `discreteBlocks L_n` with k = ℓ = ⌊log₂ n⌋.
+
+Lean file: `research-audits/gap-g3/repaired/G3RepairedMeasureRange.lean`, which imports the branch's
+`GodMoveShiftedRankUpper`, `GodMoveLinearTimeRankObstruction` and `GodMoveSATUnitExtraction`. Compile status: see G3.7.
+
+| # | Lean name | exact statement | witness | known? |
+|---|---|---|---|---|
+| C1 | `GapG3RepairedRange.rank_le_two_pow_mul_scanner` | for every L, every partition B, every k and ℓ, and **every** p ∈ ℚ[x₁..x_L]: rank_{B,k,ℓ}(p) ≤ 2^k · rank_{discrete,k,ℓ}(scannerSource L) | the branch's 4-state `scanner` (`easyLanguage_inP`, clock L+1) | **new** combination of known parts: the upper bound C(L,k)·2^k for every p (`strict_rank_le_choose_mul_two_pow`, d105443a, 10 Sep) and the scanner lower bound C(L,k) (`choose_le_scannerSource_rank`, 07195f6e). The branch never compares the two. |
+| C2 | `GapG3RepairedRange.rank_le_two_pow_mul_and` | same with x₁⋯x_L (AND) in place of the scanner | `fullMonomial L` | **new** (same ingredients, plus `GodMoveMonomialMinor.choose_le_strict_rank`) |
+| C3 | `GapG3RepairedRange.sat_source_le_n_mul_scanner` | at the paper window, for **every** machine M and clock T (so for the SAT MLE when M is correct): rank(source_M) ≤ n · rank(scannerSource L_n), with the same strict measure, partition and k = ℓ = ⌊log₂ n⌋ | scanner | **new** |
+| C4 | `GapG3RepairedRange.no_superpoly_gap_over_scanner` | if a bound g(L) holds for the linear-time scanner's source at every length (as any sound "poly-time ⇒ small rank" P-side bound must), then **every** polynomial, the SAT MLE included, satisfies rank ≤ 2^k·g(L) | scanner | **new** |
+
+**Conclusion of G3-C (precise).** At the repaired construction's parameters the measure has total dynamic range
+[C(L,k), C(L,k)·2^k] above a linear-time function. Every function, SAT's MLE included, is within a factor
+2^k ≤ n of the scanner's value, and of AND's. So:
+1. A "P-side" bound of the form "poly-time-computable ⇒ rank ≤ g" must allow g ≥ C(L_n,k) = n^{Θ(log n)}, because the
+   scanner is in P. Any such bound already holds for SAT up to a factor n. A *polynomial* g is refuted by the
+   scanner; this part is **known** (07195f6e: `no_general_polynomial_machine_rank_bound`; 3bda8850 prose:
+   "the easy unit face already supplies the minor").
+2. Therefore **no rank threshold, polynomial or not, separates the SAT MLE from linear-time functions by more than a
+   factor n** in this measure at k = ℓ = ⌊log₂ n⌋ (C3/C4, **new**). A non-circular P-side argument "using SAT
+   correctness" cannot exist in this measure. Correctness only pins down which fixed function is measured, and
+   every fixed function sits in the same quasi-polynomial band as an easy one. SATPolynomialClockRankBound ↔
+   SAT_not_in_P (d105443a) is circular for exactly this reason: the bound's conclusion is false for the SAT MLE,
+   as it is for the scanner, so the statement can only hold vacuously.
+3. Lemma 18's bearing: the 2^k·C(L,k) ceiling depends on Lean's shift restriction vars(m) ⊆ S (the Lemma 18
+   restriction, G3.3). Under Def. 12's unrestricted shifts the ceiling moves to roughly C(L,k)·Σ_{j≤ℓ}C(L,j).
+   AND's rank does not move: u·x_{[L]∖S} is multilinear iff u ⊆ S, so its Def. 12-drop rank equals the Lean rank
+   (x²→x differs). Whether some easy function attains the Def. 12 ceiling up to poly factors is **open [O]**; this
+   is the only measure-level question left. It does not rescue the route: Def. 12 also contradicts the paper's
+   P-side claims (G3.4).
+
 ## G3.5 Next justified subproblem
 The God-Move architecture is blocked on all known routes in both the v5/main reconstruction and the repaired
 21921958 construction. Another extraction/P-side cycle is **not** justified unless it brings a new idea of the
@@ -629,4 +666,27 @@ following specific kind:
 
 ## G3.7 Commits and status log
 * First G3 commit: see `git log research/gap-g3` (content commit). G3-A compiled, axioms clean.
-* G3-B (`G3RepairedFaceLocality.lean`): compile pending at first commit.
+* G3-B (`G3RepairedFaceLocality.lean`) and G3-C (`G3RepairedMeasureRange.lean`): compile pending (dependency closure: 277 PathB library modules outside the default target, built with a 3-process niced scheduler).
+
+## Phase 3 (31 Oct 2026, ~22:00–23:30 GMT): axiom-removal PR + God-Move branch audit
+
+* Darren's instructions (pt4u): (1) open a PR removing the two contradictory axioms (approved; do not merge);
+  (2) do not merge `codex/godmove-gap-repairs`, but audit it read-only and propose small verified PRs (not yet opened);
+  (3) **Darren will locate the newer manuscripts `pall (50).pdf` and `n_np (1).pdf` and the 29 Oct God-Move 36 files.
+  Treat those filenames as leads, not verified versions. Check their contents (sha256, page count, theorem numbering)
+  and dates against arXiv v5 (`c39b7045…26240`, 8 Jan 2026) before deciding which supersedes v5.** Until then,
+  v5 = `P vs NP Paper.pdf` remains the primary source.
+* Task A: branch `fix/remove-contradictory-axioms` (worktree `/workspace/pvsnp/wt-fix`, from main 7f53946). Axioms → `Prop`s
+  `PAC.GadgetSpdpSubspaceFactoring`, `MatrixSPDP.GadgetFactoringLinearMapForm`; dependents take them as `-- GAP:` hypotheses.
+  Census (meta DFS, pre-fix): PAC axiom → 2 dependents (`PAC.gadget_multiplication_rank_bound`, `PAC.gadgetMultOp`);
+  MatrixSPDP axiom → 1 (`MatrixSPDP.gadget_multiplication_rank_bound_matrix_form`); outside the build target, by text
+  search + import graph: `PaperSpdpMatrix.mlBlockedSpdpRank_gadget_mul_le` (Archive). No headline theorem depended on them.
+  `PAC.gadget_spdp_subspace_factoring_paperFaithful` (inclusive κ) remains: 0 dependents, not refuted, status open.
+* Task B: `research/godmove-audit` (worktree `/workspace/pvsnp/wt-gmaudit`, from dependency-map 81a085b), file
+  `research-audits/godmove-branch-audit.md`. Latest repaired construction = branch commits 3bda8850/d105443a (10 Sep):
+  source = normalized output of the SAT decider (= SAT multilinear extension for every correct decider); measure =
+  Lean strict mlBlockedSpdpRank, singleton blocks, k=ℓ=⌊log₂ n⌋; P-side bound `SATPolynomialClockRankBound` is
+  proved ↔ SAT_not_in_P (circular). Of gap-g1's results, only the Lemma-18 counterexample bears on it (via the measure
+  mismatch). The others don't apply to the repaired source.
+* Worktrees `wt-g3` and `pall-lean` (research/gap-g1) belong to the other worker. Not touched.
+* PR #2 opened: https://github.com/DarrenEdwards111/pall-lean/pull/2 (fix branch head fb867692). Audit pushed: research/godmove-audit 5e76f62f.
