@@ -293,3 +293,18 @@ form (this is what any continuation must supply):
 
 ## 9. Branch
 `research/dependency-map` in pall-lean, based on main `7f539465ca9a850d525517dc8196dd9cb9b68840` (includes merge 7f53946; re-fetched 31 Oct 2026, unchanged). Commit hash: see `git log` on that branch (recorded in the report).
+
+---
+
+# Phase 3 (31 Oct 2026, Europe/London GMT)
+
+* **Axiom removal:** PR #2 (https://github.com/DarrenEdwards111/pall-lean/pull/2), branch `fix/remove-contradictory-axioms`.
+  It is approved to open but not merged. The two refutable axioms are now `Prop`s; their 3 in-closure dependents
+  (+1 in Archive) take them as `-- GAP:` hypotheses. No headline theorem was affected.
+* **God-Move branch audit:** `research-audits/godmove-branch-audit.md` (this branch, `research/godmove-audit`). It covers
+  the latest repaired construction (codex/godmove-gap-repairs `3bda8850`/`d105443a`, 10 Sep 2026) and which
+  gap-g1 results apply to it (known vs new).
+* **Manuscripts (Darren, pt4u):** Darren will locate `pall (50).pdf`, `n_np (1).pdf` and the 29 Oct God-Move 36
+  files. Treat these filenames as leads, not verified versions. Check their contents (sha256, page count, theorem
+  numbering, internal dates) before deciding whether either supersedes arXiv v5 (`c39b7045…26240`, 8 Jan 2026).
+  Until then v5 stays primary.

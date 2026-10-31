@@ -14,7 +14,7 @@ Tags: **[K]** kernel-checked by me in this audit (axioms listed), **[K-b]** kern
 recorded checker run, which I did *not* re-run, **[R]** read from source, **[I]** informal.
 
 A clean `lake build` does **not** establish that the assumptions are consistent. `main` built cleanly while it
-contained two refutable axioms (see PR "Remove contradictory PAC/MatrixSPDP gadget axioms from trusted path"). Each
+contained two refutable axioms (see PR #2, https://github.com/DarrenEdwards111/pall-lean/pull/2). Each
 theorem has to be checked with `#print axioms`, and every non-standard axiom or hypothesis has to be judged on
 its own merits.
 
