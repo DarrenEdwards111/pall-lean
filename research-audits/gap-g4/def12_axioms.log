@@ -1,0 +1,25 @@
+/workspace/pvsnp/wt-g4/research-audits/gap-g4/Def12Measure.lean:129:70: warning: This simp argument is unused:
+  RingHom.id_apply
+
+Hint: Omit it from the simp argument list.
+  simp only [Finsupp.filter_apply, Finsupp.smul_apply, smul_eq_mul,̵ ̵R̵i̵n̵g̵H̵o̵m̵.̵i̵d̵_̵a̵p̵p̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+/workspace/pvsnp/wt-g4/research-audits/gap-g4/Def12Measure.lean:148:70: warning: This simp argument is unused:
+  RingHom.id_apply
+
+Hint: Omit it from the simp argument list.
+  simp only [Finsupp.filter_apply, Finsupp.smul_apply, smul_eq_mul,̵ ̵R̵i̵n̵g̵H̵o̵m̵.̵i̵d̵_̵a̵p̵p̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'Def12Measure.blockCondition_vacuous' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.pderiv_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.iterDerivList_perm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.pderivMulti_ofList' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.row_colRestrict_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.def12Span_finiteDimensional' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.def12Rank_le_columns' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.lean_le_def12_drop' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.andPoly_eq_prod' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.card_small_finsets' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.and_def12_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
