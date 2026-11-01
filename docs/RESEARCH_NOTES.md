@@ -666,7 +666,19 @@ following specific kind:
 
 ## G3.7 Commits and status log
 * First G3 commit: see `git log research/gap-g3` (content commit). G3-A compiled, axioms clean.
-* G3-B (`G3RepairedFaceLocality.lean`) and G3-C (`G3RepairedMeasureRange.lean`): compile pending (dependency closure: 277 PathB library modules outside the default target, built with a 3-process niced scheduler).
+* G3-B (`G3RepairedFaceLocality.lean`) and G3-C (`G3RepairedMeasureRange.lean`): **NOT yet kernel-checked**
+  (status 01 Nov 2026 00:35 GMT). The files compile only against the 21921958 research-audit chain. That chain
+  needs about 280 PathB library modules outside the default target, and about 245 of them are built in the
+  scratch worktree `/workspace/pvsnp/wt-g3`. The remaining blocker is
+  `ComputationalDepthCookLevinEmitPairT` (6,886 lines, >6 GB RSS, more than 38 min on the saturated box). Two
+  earlier attempts died with no output, probably OOM kills. A niced background job
+  (`/workspace/pvsnp/g3out/resume.sh`, 1–2 processes) continues the build. It writes
+  `g3out/repaired_axioms.log` and `g3out/range_axioms.log`, and the `REPAIRED_EXIT`/`RANGE_EXIT` lines in
+  `g3out/build.log`. Until those logs show success with axioms ⊆ {propext, Classical.choice, Quot.sound},
+  read B1–B3 and C1–C4 as **[I]: proofs written, kernel check pending**. C1–C4 are each a 2–3-line composition of
+  branch theorems with stated signatures (`strict_rank_le_choose_mul_two_pow`, `choose_le_scannerSource_rank`,
+  `GodMoveMonomialMinor.choose_le_strict_rank`, `Nat.pow_log_le_self`). Mathematically they are immediate:
+  rank(p) ≤ C(L,k)·2^k ≤ 2^k·rank(scanner_L).
 
 ## Phase 3 (31 Oct 2026, ~22:00–23:30 GMT): axiom-removal PR + God-Move branch audit
 
