@@ -754,6 +754,8 @@ following specific kind:
     * **No statement was found wrong or vacuous.** Nothing in 21921958 was changed.
   * **Lemma 18** counterexample now [K] (G3.3, `Lemma18Counterexample.lemma18_fails`). research/gap-g1 f32d764 had
     only the Python check, so this is not a duplicate.
+  * Content commit: **research/gap-g3 d560b69f** (pushed). It builds on 5d09a487 and is checked against
+    codex/godmove-gap-repairs @ 21921958.
   * EmitPairT fallback (route 2): **not needed, not attempted.** EmitPairT itself remains unbuilt on this box.
     That only matters for anyone who wants the *full* 21921958 closure.
   * Next actions: none required for G3. Optional: a Lean Def. 12 measure with transfer properties (a)–(c) (G3.5 item 3).
