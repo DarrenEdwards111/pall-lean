@@ -1,0 +1,15 @@
+'SATPad.decodeNat_tapeEq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SATPad.decodeFormula'_tapeEq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SATPad.SATLang_tapeEq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SATPad.SATLang_append_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SATPad.SATLang_append_replicate_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+SATPad.SATLang_append_false : ∀ (x : List Bool),
+  PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang (x ++ [Bool.false]) =
+    PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang x
+SATPad.SATLang_append_replicate_false : ∀ (x : List Bool) (k : ℕ),
+  PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang (x ++ List.replicate k Bool.false) =
+    PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang x
+@SATPad.decodeFormula'_tapeEq : ∀ {a b : List Bool},
+  SubsetMachine.TapeEq a b →
+    PallLean.Paper93.DeepMath.PathB.CookLevinEmitCodec.decodeFormula' a =
+      PallLean.Paper93.DeepMath.PathB.CookLevinEmitCodec.decodeFormula' b

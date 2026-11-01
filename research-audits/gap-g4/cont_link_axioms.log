@@ -1,0 +1,35 @@
+'ContLink.contLang_true_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContLink.wordOfFin_getD' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContLink.cont_subst' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContLink.cont_def12_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContLink.choose_le_eight_pow' depends on axioms: [propext, Quot.sound]
+'ContLink.lang_def12_le_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContLink.satChar_def12_le_cont_paper' depends on axioms: [propext, Classical.choice, Quot.sound]
+ContLink.cont_subst : ∀ (L : ℕ) (T : Finset (Fin (L / 3))),
+  (MvPolynomial.aeval
+        (ContDef12.substFun (Finset.map (ContLink.xEmb L) Finset.univ) fun v =>
+          GodMoveBooleanInterpolation.bit (ContLink.nonX L T v)))
+      (GodMoveSATSourceCanonicity.languageCharacteristic SubsetMachine.contLang L) =
+    (MvPolynomial.monomial (Def12Measure.setExp (Finset.map (ContLink.xEmb L) T))) 1
+ContLink.cont_def12_lower : ∀ (L : ℕ) (c : Def12Measure.Conv) (B : Def12Measure.BlockPartition L) (κ ℓ : ℕ),
+  κ ≤ L / 3 →
+    (L / 3).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (L / 3).choose j ≤
+      Def12Measure.def12Rank c B κ ℓ (GodMoveSATSourceCanonicity.languageCharacteristic SubsetMachine.contLang L)
+ContLink.lang_def12_le_cont : ∀ (L : ℕ) (c : Def12Measure.Conv) (B : Def12Measure.BlockPartition L) (κ ℓ : ℕ),
+  2 * κ ≤ L / 3 →
+    2 * ℓ ≤ L / 3 →
+      ∀ (lang : List Bool → Bool),
+        Def12Measure.def12Rank c B κ ℓ (GodMoveSATSourceCanonicity.languageCharacteristic lang L) ≤
+          8 ^ (κ + ℓ) *
+            Def12Measure.def12Rank c B κ ℓ (GodMoveSATSourceCanonicity.languageCharacteristic SubsetMachine.contLang L)
+ContLink.satChar_def12_le_cont_paper : ∀ (c : Def12Measure.Conv) (n : ℕ),
+  128 ≤ n →
+    ∀ (B : Def12Measure.BlockPartition (GodMoveSATSourceCanonicity.unitSourceLength (n / 3))),
+      Def12Measure.def12Rank c B (Nat.log 2 n) (Nat.log 2 n)
+            (GodMoveSATSourceCanonicity.languageCharacteristic PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang
+              (GodMoveSATSourceCanonicity.unitSourceLength (n / 3))) ≤
+          n ^ 6 *
+            Def12Measure.def12Rank c B (Nat.log 2 n) (Nat.log 2 n)
+              (GodMoveSATSourceCanonicity.languageCharacteristic SubsetMachine.contLang
+                (GodMoveSATSourceCanonicity.unitSourceLength (n / 3))) ∧
+        PallLean.Paper93.DeepMath.PathB.ComposableMachine.InP SubsetMachine.contLang

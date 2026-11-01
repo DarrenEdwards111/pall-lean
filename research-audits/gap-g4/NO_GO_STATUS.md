@@ -89,3 +89,9 @@ there verbatim, so its fidelity is textual (caveat).
 * SAT_L multilinear is [I] here (true by construction in the branch).
 * The G3-B build used a trimmed import path for one module (G3.7). The faithfulness argument is recorded there.
 * The axiom census of the whole main closure did not finish (Phase 1 §1.2).
+
+## Update 01 Nov 2026 21:xx GMT (in-model Def. 12 comparator)
+Kernel-checked (`ContLink.lean`): at the paper parameters, Γ^{Def12}(SAT_L) ≤ n^6·Γ^{Def12}(χ_contLang at L), where
+`contLang` is `InP` in the branch's own `ComposableMachine` model (`satChar_def12_le_cont_paper`). The same bound holds for
+every language (`lang_def12_le_cont`). SATLang is false-padding invariant (`SATPad.SATLang_append_false`). The
+architecture remains blocked.

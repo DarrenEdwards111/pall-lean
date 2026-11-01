@@ -1,0 +1,27 @@
+'ContDef12.pderiv_aeval_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.iterDerivList_aeval_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.isML_iterDerivList' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.isML_aeval_substFun' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.aeval_substFun_setExp' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.conv_term' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.conv_monomial_setExp_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.subst_set_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.iterDerivList_setExp' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ContDef12.def12_lower_of_subst' depends on axioms: [propext, Classical.choice, Quot.sound]
+@ContDef12.def12_lower_of_subst : ∀ {N : ℕ} {F : Type u_1} [inst : Field F] (c : Def12Measure.Conv)
+  (B : Def12Measure.BlockPartition N) (κ ℓ m : ℕ) (E : Fin m ↪ Fin N),
+  κ ≤ m →
+    ∀ (p : MvPolynomial (Fin N) F),
+      Def12Measure.IsMultilinear p →
+        ∀ (β : Finset (Fin m) → Fin N → F),
+          (∀ (T : Finset (Fin m)),
+              T.card = κ →
+                (MvPolynomial.aeval (ContDef12.substFun (Finset.map E Finset.univ) (β T))) p =
+                  (MvPolynomial.monomial (Def12Measure.setExp (Finset.map E T))) 1) →
+            m.choose κ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j ≤ Def12Measure.def12Rank c B κ ℓ p
+@ContDef12.conv_monomial_setExp_mul : ∀ {N : ℕ} {F : Type u_1} [inst : Field F] (c : Def12Measure.Conv)
+  (U : Finset (Fin N)) {P : MvPolynomial (Fin N) F},
+  Def12Measure.MLSupp P →
+    (Def12Measure.convML c) ((MvPolynomial.monomial (Def12Measure.setExp U)) 1 * P) =
+      (MvPolynomial.monomial (Def12Measure.setExp U)) 1 *
+        (MvPolynomial.aeval (ContDef12.setFun U (ContDef12.convB c))) P

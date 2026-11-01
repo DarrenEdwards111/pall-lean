@@ -207,3 +207,53 @@ about the branch's own `PallLean.Paper93.DeepMath.PathB.ComposableMachine.{Machi
 * **Consequence for the G4 headline:** "SAT within poly(n) of a linear-time function" holds for standard (length-aware) TMs.
   Inside the branch's `ComposableMachine` model, the comparison function `easyEven` is not even decidable. The in-model version
   needs (a). Under the Lean (not Def. 12) measure, the branch's own `scanner` already gives the in-model binomial minor.
+
+## G4.4 item 4, follow-up (01 Nov 2026 21:xx GMT): Def. 12 lower bound for χ_contLang, in-model SAT comparison, SAT padding
+Build `build_cont.sh` (serial, nice 10; same 21921958 trimmed closure as `build_subset_machine.sh`). Logs:
+`cont_def12_axioms.log` (10), `cont_link_axioms.log` (7), `sat_pad_axioms.log` (5): all 22 `#print axioms` ⊆
+[propext, Classical.choice, Quot.sound]. No sorry, no new axioms, no native_decide. `autoImplicit false` in every file;
+elaborated statements are printed with pp.fullNames in the logs (`SATLang` = `PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang`,
+`contLang` = `SubsetMachine.contLang`, `def12Rank` = `Def12Measure.def12Rank`).
+
+**Adversarial re-check of the [I] sketch (before proving).** Writing χ_contLang recursively, Q_i = (1 − c_i) + c_i·g_i·Q_{i+1},
+g_i = 1 − y_i + x_i y_i, Q_m = 1 (m = ⌊L/3⌋; the ≤ 2 tail bits can never reject, so they do not occur): every monomial of
+∂_{x_S}χ has y-degree ≥ |S|, and the y-degree-|S| part is exactly c_0⋯c_{max S}·y^S (S = ∅: the constant 1). So the sketch is
+correct, for both conventions and all boundary cases (κ = 0 gives Σ_{j≤ℓ}C(m,j), matching the tight value 1 at κ = ℓ = 0 in
+`cont_check.jsonl`; κ = m; m = 0 where χ ≡ 1). The sketch's remark that "Σ_{k>max S} telescopes" is unnecessary: those terms
+have y-degree ≥ κ+1. No counterexample. All 186 rows of `cont_check.jsonl` sit at or above the bound that is now proved.
+
+**Proof route used in Lean (different from the sketch, easier to formalise):** substitution instead of leading forms.
+* [K] `ContDef12.def12_lower_of_subst` (Mathlib + Def12Measure only): if p is multilinear and, for every κ-set T of
+  "x-variables" (E : Fin m ↪ Fin N), some substitution that keeps the x-variables and sends every other variable to a
+  constant maps p to x^T, then C(m,κ)·Σ_{j≤ℓ}C(m,j) ≤ Γ^{Def12}_{κ,ℓ}(p) for both conventions and every partition.
+  Ingredients, all [K]: `conv_monomial_setExp_mul` (conv(x^U·P) = x^U·σ_U(P), where σ_U sets x_U := 0 for drop and := 1
+  for reduce, P multilinear), `pderiv_aeval_comm`/`iterDerivList_aeval_comm`, `subst_set_comm`,
+  `isML_aeval_substFun`, `iterDerivList_setExp`.
+* [K] `ContLink.cont_subst`: c_k ↦ 1, y_k ↦ [k ∈ T], tail ↦ 0 sends `languageCharacteristic contLang L` to x^T (by
+  `contLang_true_iff`, a semantic characterisation of contLang, Boolean evaluation and `multilinear_eq_of_boolean_eval`).
+* [K] **`ContLink.cont_def12_lower`**: ∀ L c B κ ℓ, κ ≤ L/3 →
+  (L/3).choose κ · Σ_{j<ℓ+1} (L/3).choose j ≤ def12Rank c B κ ℓ (languageCharacteristic contLang L).
+* [K] **`ContLink.lang_def12_le_cont`**: ∀ L c B κ ℓ, 2κ ≤ L/3 → 2ℓ ≤ L/3 → ∀ lang,
+  def12Rank c B κ ℓ (languageCharacteristic lang L) ≤ 8^(κ+ℓ) · def12Rank c B κ ℓ (languageCharacteristic contLang L).
+  This holds for every language, not only SAT (row ceiling `def12Rank_le_rowCeiling`, plus `choose_le_eight_pow`:
+  C(L,j) ≤ 8^j·C(m,j) for 2j ≤ m, L ≤ 3m+2).
+* [K] **`ContLink.satChar_def12_le_cont_paper`**: ∀ c n, 128 ≤ n → ∀ B (partition of unitSourceLength (n/3)),
+  def12Rank c B ⌊log₂n⌋ ⌊log₂n⌋ (languageCharacteristic SATLang (unitSourceLength (n/3))) ≤
+  n^6 · def12Rank c B ⌊log₂n⌋ ⌊log₂n⌋ (languageCharacteristic contLang (unitSourceLength (n/3)))  ∧  ComposableMachine.InP contLang.
+  There is no parameter mismatch: contLang is defined at every length, so no parity split is needed (unlike
+  easyEven/easyOdd). The factor is n^6 (8^{2⌊log₂n⌋}), not 4n^4, because the comparator only has ⌊L/3⌋ free x-variables.
+* Status: **new kernel results** (they close "Not proved (a)" of G4.4 item 4). Mathematically this confirms the
+  [I]/[C] expectation; it is the in-model, kernel-checked version of the known G4 "SAT within poly(n) of an easy
+  function under Def. 12" no-go, not a new phenomenon. In the branch's own `ComposableMachine` model, Def. 12 at the
+  paper parameters separates SAT from an InP language by at most a factor n^6.
+
+**(b) SAT padding, [K] `SATPad.lean`:** `decodeFormula'_tapeEq` (decoding respects TapeEq: reads past the end are
+`false`, `decodeNat [] = (0, [])`, `headD false`, `tail [] = []`); **`SATPad.SATLang_append_false`**:
+∀ x, SATLang (x ++ [false]) = SATLang x; `SATLang_append_replicate_false`. This is a kernel version of the [C] check in
+`sat_pad.py` (|w| ≤ 16), i.e. a confirmation, not a new phenomenon. It also means the model fact `decides_append_false` cannot
+on its own make `SAT_not_in_P` vacuous or trivially true.
+
+**Adversarial notes.** (1) `lang_def12_le_cont` is uniform in `lang`, so it says nothing specific to SAT. That is the point:
+Def. 12 cannot separate any language from contLang by more than 8^{κ+ℓ}. (2) Statements are non-vacuous: the hypotheses are
+arithmetic (κ ≤ L/3, n ≥ 128) and satisfiable. (3) The lower bound is not tight (cont_check shows Γ usually well above it),
+which does not matter for the comparison direction.
