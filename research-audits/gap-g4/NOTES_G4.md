@@ -176,3 +176,34 @@ This closes the multilinearity [I] link of G4.2.
   `def12Rank_le_binomialSum`: Γ^{Def12}_{κ,ℓ}(p) ≤ Σ_{j ≤ deg p+ℓ−κ} C(N,j) for every field, convention, partition, p.
   Axioms: [propext, Classical.choice, Quot.sound] (log `colset_axioms.log`). Sanity: N=3, D=1 gives 4 = {∅,{0},{1},{2}}.
 * Formal hygiene only: it does not bear on the missing implication. Remaining optional: item 4 (ComposableMachine for subsetPoly).
+
+## G4.4 item 4 (01 Nov 2026 18:20 GMT): `ComposableMachine` model of the "easy" function
+File `SubsetMachine.lean` (build: `build_subset_machine.sh`; log `subset_machine_axioms.log`, 24 `#print axioms`, all ⊆
+[propext, Classical.choice, Quot.sound]; no sorry, no native_decide; three `decide` boundary examples only). Statements are
+about the branch's own `PallLean.Paper93.DeepMath.PathB.ComposableMachine.{Machine, Decides, InP}` @21921958 and
+`G4SATLink.easyEven` (checked with pp.fullNames).
+* **[K] Model fact `decides_append_false`:** `Decides M L T → ∀ x, L (x ++ [false]) = L x` (any clock), and
+  `decides_append_replicate_false`. Reason: blank cells read `false` and `init` writes no end marker, so a run on x and on
+  x ++ [false] has identical states (`run_rel`). Example: `evenLength_not_decided`.
+* **[K] Negative (new finding): the G4.3 item-7 claim is FALSE in the branch's model.** `no_decider_has_easyEven_char_family`:
+  for every schedule κ(m) and every m₁ ≥ 1 with κ(m₁) ≤ m₁, no `ComposableMachine` with any clock decides a language whose
+  `languageCharacteristic` equals `easyEven` at length 2m₁ (parameter κ(m₁)) and at length 4m₁ (parameter κ(2m₁)).
+  Corollaries: `no_decider_has_easyEven_char` (any fixed κ, all even lengths) and `_log` (κ = ⌊log₂ m⌋). Proof: pad an
+  m₁-point with 2m₁ zeros; the y-block becomes empty, so the padded value is [κ(2m₁) = 0] for both a value-1 and a value-0
+  point. Non-vacuity: `easyEven_char_exists` (a classical language with characteristic exactly `easyEven` at every even length).
+  The block layout f(x,y) = [|y| = κ ∧ y ⊆ x] is linear-time only for TMs that can see the input length.
+* **[K] Positive in-model replacement:** `contMachine` (6 states, no writes) decides `contLang` (triples (c,x,y): accept at the
+  first c = 0, including blanks; reject at the first y ∧ ¬x) within `|w| + 3` steps (`cont_decides`, `contSteps_le`);
+  `contLang_inP : ComposableMachine.InP contLang`. Boundary cases (empty word, odd tails, reject in 1st or 2nd triple) are kernel `decide`d.
+* **[C] Def. 12 rank of χ_contLang:** `cont_check.py` → `cont_check.jsonl`, N = 3..12, κ ≤ min(m,3), ℓ ≤ 2, both conventions:
+  Γ ≥ C(m,κ)·Σ_{j≤ℓ}C(m,j) (m = ⌊N/3⌋) in all cases (0 violations; usually far above).
+* **[I] Proof sketch for the missing lower bound:** rows x^A·∂_{x_S}χ (|S| = κ, |A| ≤ ℓ). The y-degree-κ part of each row is
+  x^A y^S c_0⋯c_{max S} (Σ_{k>max S} C_k telescopes). Those monomials are distinct and higher-y-degree terms cannot cancel them,
+  under both conventions, so the rows are independent.
+* **[C] SAT is consistent with the model fact:** SATLang(w ++ [false]) = SATLang(w) for all 131071 words with |w| ≤ 16 (`sat_pad.py`,
+  Python port of the codec). So the model restriction does not make `SAT_not_in_P` vacuous at these sizes. A Lean proof is open.
+* **Not proved:** (a) the Def. 12 lower bound for `languageCharacteristic contLang L` and hence the in-model corollary
+  "Γ^{Def12}(SAT_L) ≤ poly(n)·Γ^{Def12}(χ of an InP language)". (b) SATLang padding invariance in Lean.
+* **Consequence for the G4 headline:** "SAT within poly(n) of a linear-time function" holds for standard (length-aware) TMs.
+  Inside the branch's `ComposableMachine` model, the comparison function `easyEven` is not even decidable. The in-model version
+  needs (a). Under the Lean (not Def. 12) measure, the branch's own `scanner` already gives the in-model binomial minor.

@@ -1,0 +1,80 @@
+'SubsetMachine.getD_append_replicate_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.writeAt_getD' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.step_rel' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.run_rel' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.decides_append_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.decides_append_replicate_false' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.evenLength_not_decided' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.contSteps_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.cont_run_state' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.cont_decides' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.cont_clock_polynomial' depends on axioms: [propext, Quot.sound]
+'SubsetMachine.contLang_inP' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.eval_yEval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.eval_subsetPoly' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.eval_xMon_of_true' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.eval_easyEven' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.bit_lang_of_char' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.wordOfFin_padPoint' depends on axioms: [propext, Quot.sound]
+'SubsetMachine.no_decider_has_easyEven_char' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.no_decider_has_easyEven_char_family' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.no_decider_has_easyEven_char_log' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.eval_subsetPoly_01' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.subsetPoly_isMultilinear' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SubsetMachine.easyEven_char_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
+SubsetMachine.decides_append_false : ∀ (M : PallLean.Paper93.DeepMath.PathB.ComposableMachine.Machine)
+  (lang : List Bool → Bool) (T : ℕ → ℕ),
+  PallLean.Paper93.DeepMath.PathB.ComposableMachine.Decides M lang T →
+    ∀ (x : List Bool), lang (x ++ [Bool.false]) = lang x
+SubsetMachine.cont_decides : PallLean.Paper93.DeepMath.PathB.ComposableMachine.Decides SubsetMachine.contMachine
+  SubsetMachine.contLang fun L => L + 3
+SubsetMachine.contLang_inP : PallLean.Paper93.DeepMath.PathB.ComposableMachine.InP SubsetMachine.contLang
+SubsetMachine.no_decider_has_easyEven_char : ∀ (κ : ℕ),
+  ¬∃ M T lang,
+      PallLean.Paper93.DeepMath.PathB.ComposableMachine.Decides M lang T ∧
+        ∀ (m : ℕ), GodMoveSATSourceCanonicity.languageCharacteristic lang (m + m) = G4SATLink.easyEven (m + m) m κ ⋯
+SubsetMachine.no_decider_has_easyEven_char_family : ∀ (κf : ℕ → ℕ) (m₁ : ℕ),
+  1 ≤ m₁ →
+    κf m₁ ≤ m₁ →
+      ¬∃ M T lang,
+          PallLean.Paper93.DeepMath.PathB.ComposableMachine.Decides M lang T ∧
+            GodMoveSATSourceCanonicity.languageCharacteristic lang (m₁ + m₁) =
+                G4SATLink.easyEven (m₁ + m₁) m₁ (κf m₁) ⋯ ∧
+              GodMoveSATSourceCanonicity.languageCharacteristic lang (m₁ + m₁ + (m₁ + m₁)) =
+                G4SATLink.easyEven (m₁ + m₁ + (m₁ + m₁)) (m₁ + m₁) (κf (m₁ + m₁)) ⋯
+SubsetMachine.no_decider_has_easyEven_char_log : ¬∃ M T lang,
+    PallLean.Paper93.DeepMath.PathB.ComposableMachine.Decides M lang T ∧
+      ∀ (m : ℕ),
+        GodMoveSATSourceCanonicity.languageCharacteristic lang (m + m) = G4SATLink.easyEven (m + m) m (Nat.log 2 m) ⋯
+SubsetMachine.easyEven_char_exists : ∀ (κ : ℕ),
+  ∃ lang, ∀ (m : ℕ), GodMoveSATSourceCanonicity.languageCharacteristic lang (m + m) = G4SATLink.easyEven (m + m) m κ ⋯
+def SubsetMachine.contMachine : PallLean.Paper93.DeepMath.PathB.ComposableMachine.Machine :=
+{ State := SubsetMachine.CState, fin := inferInstance, dec := inferInstance, start := SubsetMachine.CState.readC,
+  halt := fun s =>
+    match s with
+    | SubsetMachine.CState.done ans => Bool.true
+    | x => Bool.false,
+  δ := fun s b =>
+    match s with
+    | SubsetMachine.CState.readC =>
+      if b = Bool.true then (SubsetMachine.CState.readX, Option.none, 1)
+      else (SubsetMachine.CState.done Bool.true, Option.none, 2)
+    | SubsetMachine.CState.readX => (SubsetMachine.CState.readY b, Option.none, 1)
+    | SubsetMachine.CState.readY x =>
+      if (b && !x) = Bool.true then (SubsetMachine.CState.done Bool.false, Option.none, 2)
+      else (SubsetMachine.CState.readC, Option.none, 1)
+    | SubsetMachine.CState.done a => (SubsetMachine.CState.done a, Option.none, 2),
+  accept := fun s =>
+    match s with
+    | SubsetMachine.CState.done a => a
+    | x => Bool.false }
+def SubsetMachine.contLang : List Bool → Bool :=
+fun x =>
+  List.brecOn x fun x f =>
+    (match (motive := (x : List Bool) → List.below x → Bool) x with
+      | [] => fun x => Bool.true
+      | Bool.false :: tail => fun x => Bool.true
+      | [Bool.true] => fun x => Bool.true
+      | [Bool.true, head] => fun x => Bool.true
+      | Bool.true :: x :: y :: rest => fun x_1 => if (y && !x) = Bool.true then Bool.false else x_1.2.2.1)
+      f
