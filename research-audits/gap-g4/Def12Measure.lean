@@ -928,6 +928,209 @@ theorem lemma18_fails_subset_family (c : Conv) (B : BlockPartition (m + m)) (hm 
 
 end Subset
 
+/-! ## G4-b: the Def. 12 row ceiling for multilinear `p`, and the "no superpolynomial gap" theorem -/
+
+section Ceiling
+
+/-- Verbatim copy of `IsMultilinear` (PallLean/MultilinearSPDP.lean lines 25–27). -/
+def IsMultilinear {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : Prop :=
+  ∀ α ∈ p.support, ∀ i, α i ≤ 1
+
+theorem coeff_eq_zero_of_not_ml {p : MvPolynomial (Fin N) F} (hp : IsMultilinear p)
+    {s : Fin N →₀ ℕ} {i : Fin N} (hs : 2 ≤ s i) : coeff s p = 0 := by
+  by_contra h
+  have := hp s (Finsupp.mem_support_iff.mpr h) i
+  omega
+
+theorem pderiv_pderiv_self_ml {p : MvPolynomial (Fin N) F} (hp : IsMultilinear p) (i : Fin N) :
+    pderiv i (pderiv i p) = 0 := by
+  ext s
+  rw [coeff_pderiv, coeff_pderiv, coeff_zero,
+    coeff_eq_zero_of_not_ml hp (i := i) (by simp [Finsupp.add_apply]), zero_mul, zero_mul]
+
+theorem iterDerivList_dup_ml {p : MvPolynomial (Fin N) F} (hp : IsMultilinear p)
+    (L : List (Fin N)) (i : Fin N) (h2 : 2 ≤ L.count i) : iterDerivList L p = 0 := by
+  have h1 : i ∈ L := List.count_pos_iff.mp (by omega)
+  have h1' : i ∈ L.erase i := by
+    apply List.count_pos_iff.mp
+    rw [List.count_erase_self]; omega
+  rw [iterDerivList_perm ((List.perm_cons_erase h1).trans
+      (List.Perm.cons i (List.perm_cons_erase h1'))), iterDerivList_cons, iterDerivList_cons,
+    pderiv_pderiv_self_ml hp, iterDerivList_zero]
+
+theorem pderivMulti_eq_zero_of_not_ml {p : MvPolynomial (Fin N) F} (hp : IsMultilinear p)
+    (τ : Fin N →₀ ℕ) (i : Fin N) (hi : 2 ≤ τ i) : pderivMulti τ p = 0 := by
+  apply iterDerivList_dup_ml hp _ i
+  rw [← Multiset.coe_count, Multiset.coe_toList, Finsupp.count_toMultiset]
+  exact hi
+
+theorem setExp_apply (s : Finset (Fin N)) (i : Fin N) : setExp s i = if i ∈ s then 1 else 0 := by
+  rw [setExp, Multiset.toFinsupp_apply]
+  split_ifs with h
+  · exact Multiset.count_eq_one_of_mem s.nodup h
+  · exact Multiset.count_eq_zero.mpr h
+
+theorem eq_setExp_support {β : Fin N →₀ ℕ} (h : Finsupp.IsMultilinear β) : β = setExp β.support := by
+  ext i
+  rw [setExp_apply]
+  split_ifs with hi
+  · have := Finsupp.mem_support_iff.mp hi; have := h i; omega
+  · exact Finsupp.notMem_support_iff.mp hi
+
+theorem dropML_monomial_mul_eq_zero {u : Fin N →₀ ℕ} {i : Fin N} (hu : 2 ≤ u i)
+    (q : MvPolynomial (Fin N) F) : dropML (monomial u 1 * q) = 0 := by
+  change Finsupp.filter _ _ = 0
+  rw [Finsupp.filter_eq_zero_iff]
+  intro s hs
+  change coeff s (monomial u 1 * q) = 0
+  rw [coeff_monomial_mul', if_neg]
+  intro hle
+  have := hle i; have := hs i; omega
+
+theorem redExp_add_redExp (u t : Fin N →₀ ℕ) : redExp (redExp u + t) = redExp (u + t) := by
+  ext i; simp only [redExp, Finsupp.mapRange_apply, Finsupp.add_apply]; omega
+
+theorem reduceML_monomial_mul (u : Fin N →₀ ℕ) (q : MvPolynomial (Fin N) F) :
+    reduceML (monomial u 1 * q) = reduceML (monomial (redExp u) 1 * q) := by
+  induction q using MvPolynomial.induction_on' with
+  | monomial t a =>
+    rw [monomial_mul, monomial_mul, one_mul]
+    change Finsupp.mapDomain redExp (Finsupp.single _ a) = Finsupp.mapDomain redExp (Finsupp.single _ a)
+    rw [Finsupp.mapDomain_single, Finsupp.mapDomain_single, redExp_add_redExp]
+  | add q₁ q₂ h₁ h₂ => rw [mul_add, mul_add, map_add, map_add, h₁, h₂]
+
+theorem weight_redExp_le (u : Fin N →₀ ℕ) : weight (redExp u) ≤ weight u :=
+  weight_le_of_le (redExp_le u)
+
+/-- **Row ceiling (Def. 12, both conventions).** For every multilinear `p` on `N` variables:
+`Γ^B_{κ,ℓ}(p) ≤ C(N, κ) · Σ_{j ≤ ℓ} C(N, j)`. -/
+theorem def12Rank_le_rowCeiling (c : Conv) (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) F) (hp : IsMultilinear p) :
+    def12Rank c B κ ℓ p ≤ N.choose κ * ∑ j ∈ Finset.range (ℓ + 1), N.choose j := by
+  unfold def12Rank
+  split_ifs
+  · exact Nat.zero_le _
+  let η := {S : Finset (Fin N) // S.card = κ}
+  let ι := {U : Finset (Fin N) // U.card ≤ ℓ}
+  let g : η × ι → MvPolynomial (Fin N) F :=
+    fun a => convML c (monomial (setExp a.2.1) 1 * pderivMulti (setExp a.1.1) p)
+  have hsub : def12Span c B κ ℓ p ≤ Submodule.span F (Set.range g) := by
+    apply Submodule.span_le.mpr
+    rintro q ⟨τ, u, hτ, -, hu, rfl⟩
+    rw [row_colRestrict_eq c p τ u hτ hu, SetLike.mem_coe]
+    by_cases hτml : Finsupp.IsMultilinear τ
+    · have hS : τ.support.card = κ := by
+        rw [← hτ, eq_setExp_support hτml, setExp_weight, ← eq_setExp_support hτml]
+      -- reduce u to a multilinear shift
+      have key : ∃ U : Finset (Fin N), U.card ≤ ℓ ∧
+          (convML c (monomial u 1 * pderivMulti τ p) = 0 ∨
+           convML c (monomial u 1 * pderivMulti τ p)
+             = convML c (monomial (setExp U) 1 * pderivMulti τ p)) := by
+        by_cases huml : Finsupp.IsMultilinear u
+        · refine ⟨u.support, ?_, Or.inr (by rw [← eq_setExp_support huml])⟩
+          rw [← setExp_weight, ← eq_setExp_support huml]; exact hu
+        · cases c with
+          | drop =>
+            obtain ⟨i, hi⟩ : ∃ i, 2 ≤ u i := by
+              by_contra hc; push_neg at hc; exact huml (fun i => by have := hc i; omega)
+            exact ⟨∅, by simp, Or.inl (dropML_monomial_mul_eq_zero hi _)⟩
+          | reduce =>
+            refine ⟨(redExp u).support, ?_, Or.inr ?_⟩
+            · rw [← setExp_weight, ← eq_setExp_support (redExp_multilinear u)]
+              exact (weight_redExp_le u).trans hu
+            · rw [← eq_setExp_support (redExp_multilinear u)]
+              exact reduceML_monomial_mul u _
+      obtain ⟨U, hU, h0 | heq⟩ := key
+      · rw [h0]; exact Submodule.zero_mem _
+      · rw [heq]
+        apply Submodule.subset_span
+        refine ⟨(⟨τ.support, hS⟩, ⟨U, hU⟩), ?_⟩
+        simp only [g]
+        rw [← eq_setExp_support hτml]
+    · obtain ⟨i, hi⟩ : ∃ i, 2 ≤ τ i := by
+        by_contra hc; push_neg at hc; exact hτml (fun i => by have := hc i; omega)
+      rw [pderivMulti_eq_zero_of_not_ml hp τ i hi, mul_zero, map_zero]
+      exact Submodule.zero_mem _
+  haveI := FiniteDimensional.span_of_finite F (Set.finite_range g)
+  refine (Submodule.finrank_mono hsub).trans ((finrank_range_le_card (R := F) g).trans (le_of_eq ?_))
+  rw [Fintype.card_prod]
+  congr 1
+  · exact (Fintype.card_finset_len κ).trans (by rw [Fintype.card_fin])
+  · rw [Fintype.card_subtype, card_small_finsets]
+
+/-- **G4-b, extension of C1–C4 to Def. 12 (kernel-checked).** On `N = m + m` variables, every
+multilinear `p` (e.g. the SAT multilinear extension `languageCharacteristic SATLang (m+m)`) satisfies,
+under both conventions and every partition, for `κ ≤ m`:
+`Γ(p) · [C(m,κ)·Σ_{j≤ℓ}C(m,j)] ≤ [C(2m,κ)·Σ_{j≤ℓ}C(2m,j)] · Γ(subsetPoly m κ)`,
+i.e. `Γ(p) ≤ ratio · Γ(easy)` with `ratio = C(2m,κ)Σ C(2m,j) / (C(m,κ) Σ C(m,j))`. -/
+theorem multilinear_le_ratio_mul_subset (c : Conv) (B : BlockPartition (m + m)) (κ ℓ : ℕ)
+    (hκ : κ ≤ m) (p : MvPolynomial (Fin (m + m)) F) (hp : IsMultilinear p) :
+    def12Rank c B κ ℓ p * (m.choose κ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j)
+      ≤ ((m + m).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (m + m).choose j)
+          * def12Rank c B κ ℓ (subsetPoly (F := F) m κ) :=
+  Nat.mul_le_mul (def12Rank_le_rowCeiling c B κ ℓ p hp) (subset_def12_lower c B κ ℓ hκ)
+
+end Ceiling
+
+section Ratio
+
+theorem choose_two_mul_le (m : ℕ) : ∀ j, 3 * j ≤ 2 * m → (m + m).choose j ≤ 4 ^ j * m.choose j := by
+  intro j
+  induction j with
+  | zero => intro _; simp
+  | succ j ih =>
+    intro hj
+    have h1 := ih (by omega)
+    have e1 := Nat.choose_succ_right_eq (m + m) j
+    have e2 := Nat.choose_succ_right_eq m j
+    have hle : (m + m - j) ≤ 4 * (m - j) := by omega
+    have key : (m + m).choose (j + 1) * (j + 1) ≤ 4 ^ (j + 1) * m.choose (j + 1) * (j + 1) := by
+      rw [e1, mul_assoc, e2]
+      calc (m + m).choose j * (m + m - j) ≤ (4 ^ j * m.choose j) * (4 * (m - j)) :=
+            Nat.mul_le_mul h1 hle
+        _ = 4 ^ (j + 1) * (m.choose j * (m - j)) := by ring
+    exact Nat.le_of_mul_le_mul_right key (Nat.succ_pos j)
+
+theorem sum_choose_two_mul_le (m ℓ : ℕ) (hℓ : 3 * ℓ ≤ 2 * m) :
+    ∑ j ∈ Finset.range (ℓ + 1), (m + m).choose j ≤ 4 ^ ℓ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j := by
+  rw [Finset.mul_sum]
+  apply Finset.sum_le_sum
+  intro j hj
+  have hj' : j ≤ ℓ := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+  exact (choose_two_mul_le m j (by omega)).trans
+    (Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) hj'))
+
+/-- **G4-b headline (kernel-checked).** On `N = 2m` variables, for `3κ ≤ 2m`, `3ℓ ≤ 2m`, every
+multilinear `p` — in particular the SAT multilinear extension — has Def. 12 rank (either
+convention, any partition) at most `4^{κ+ℓ}` times that of the linear-time function
+`f(x,y) = [|y| = κ ∧ y ≤ x]`. At `κ = ℓ = ⌊log₂ N⌋` the factor is `≤ N^4`. -/
+theorem multilinear_le_four_pow_mul_subset (c : Conv) (B : BlockPartition (m + m)) (κ ℓ : ℕ)
+    (hκ : 3 * κ ≤ 2 * m) (hℓ : 3 * ℓ ≤ 2 * m) (p : MvPolynomial (Fin (m + m)) F)
+    (hp : IsMultilinear p) :
+    def12Rank c B κ ℓ p ≤ 4 ^ (κ + ℓ) * def12Rank c B κ ℓ (subsetPoly (F := F) m κ) := by
+  have h := multilinear_le_ratio_mul_subset c B κ ℓ (by omega) p hp
+  set A := m.choose κ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j
+  have hA : 0 < A := by
+    have hs : 1 ≤ ∑ j ∈ Finset.range (ℓ + 1), m.choose j := by
+      have := Finset.single_le_sum (f := fun j => m.choose j) (fun _ _ => Nat.zero_le _)
+        (Finset.mem_range.mpr (Nat.succ_pos ℓ))
+      simpa using this
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) hs
+  have hB : (m + m).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (m + m).choose j ≤ 4 ^ (κ + ℓ) * A := by
+    rw [pow_add]
+    calc (m + m).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (m + m).choose j
+        ≤ (4 ^ κ * m.choose κ) * (4 ^ ℓ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j) :=
+          Nat.mul_le_mul (choose_two_mul_le m κ hκ) (sum_choose_two_mul_le m ℓ hℓ)
+      _ = 4 ^ κ * 4 ^ ℓ * A := by simp only [A]; ring
+  have h2 : def12Rank c B κ ℓ p * A ≤ 4 ^ (κ + ℓ) * def12Rank c B κ ℓ (subsetPoly (F := F) m κ) * A := by
+    calc def12Rank c B κ ℓ p * A ≤ _ := h
+      _ ≤ (4 ^ (κ + ℓ) * A) * def12Rank c B κ ℓ (subsetPoly (F := F) m κ) := Nat.mul_le_mul_right _ hB
+      _ = _ := by ring
+  exact Nat.le_of_mul_le_mul_right h2 hA
+
+end Ratio
+
 end Def12Measure
 
 #print axioms Def12Measure.blockCondition_vacuous
@@ -944,3 +1147,8 @@ end Def12Measure
 #print axioms Def12Measure.pderivMulti_subsetPoly
 #print axioms Def12Measure.subset_def12_lower
 #print axioms Def12Measure.lemma18_fails_subset_family
+#print axioms Def12Measure.pderivMulti_eq_zero_of_not_ml
+#print axioms Def12Measure.def12Rank_le_rowCeiling
+#print axioms Def12Measure.multilinear_le_ratio_mul_subset
+#print axioms Def12Measure.choose_two_mul_le
+#print axioms Def12Measure.multilinear_le_four_pow_mul_subset

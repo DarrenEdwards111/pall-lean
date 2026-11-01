@@ -26,3 +26,8 @@ Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 'Def12Measure.pderivMulti_subsetPoly' depends on axioms: [propext, Classical.choice, Quot.sound]
 'Def12Measure.subset_def12_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
 'Def12Measure.lemma18_fails_subset_family' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.pderivMulti_eq_zero_of_not_ml' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.def12Rank_le_rowCeiling' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.multilinear_le_ratio_mul_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.choose_two_mul_le' depends on axioms: [propext, Quot.sound]
+'Def12Measure.multilinear_le_four_pow_mul_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
