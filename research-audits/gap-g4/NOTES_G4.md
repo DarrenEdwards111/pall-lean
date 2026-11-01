@@ -164,3 +164,9 @@ Review of each formal statement against paper.txt and the informal claim:
 4. (optional) Model f as a `ComposableMachine` at 21921958 (like `scanner`) to make "easy" formal.
 5. The project-level recommendation is unchanged (G3.5 / NO_GO_STATUS.md): the architecture is blocked on all known
    routes. Under both the Lean measure and Def. 12, the SAT MLE is within poly(n) of a linear-time function.
+
+## G4.6 (01 Nov 2026 09:05 GMT) Kernel link to the branch SAT characteristic
+`G4SATLink.lean` (build: `build_link.sh`; log `link_axioms.log`). Theorems `satChar_isMultilinear`, `satChar_def12_le_even`,
+`satChar_def12_le_odd`, `satChar_def12_le_easy`, and `satChar_def12_le_easy_paper`: for n ≥ 128, L = unitSourceLength(n/3), κ = ℓ = ⌊log₂ n⌋,
+every partition, both conventions, Γ^{Def12}(languageCharacteristic SATLang L) ≤ 4·n⁴·Γ^{Def12}(embedded subsetPoly). Axioms are clean.
+This closes the multilinearity [I] link of G4.2.

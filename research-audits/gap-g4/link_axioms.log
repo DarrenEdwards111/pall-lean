@@ -1,0 +1,21 @@
+'G4SATLink.satChar_isMultilinear' depends on axioms: [propext, Classical.choice, Quot.sound]
+'G4SATLink.satChar_def12_le_even' depends on axioms: [propext, Classical.choice, Quot.sound]
+'G4SATLink.satChar_def12_le_odd' depends on axioms: [propext, Classical.choice, Quot.sound]
+'G4SATLink.satChar_def12_le_easy' depends on axioms: [propext, Classical.choice, Quot.sound]
+'G4SATLink.satChar_def12_le_easy_paper' depends on axioms: [propext, Classical.choice, Quot.sound]
+'G4SATLink.length_parity' depends on axioms: [propext, Quot.sound]
+G4SATLink.satChar_def12_le_easy_paper : ∀ (c : Def12Measure.Conv) (n : ℕ),
+  128 ≤ n →
+    ∀ (B' : Def12Measure.BlockPartition (GodMoveSATSourceCanonicity.unitSourceLength (n / 3))),
+      let L := GodMoveSATSourceCanonicity.unitSourceLength (n / 3);
+      have k := Nat.log 2 n;
+      (∀ (h : L = L / 2 + L / 2),
+          Def12Measure.def12Rank c B' k k
+              (GodMoveSATSourceCanonicity.languageCharacteristic
+                PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang L) ≤
+            4 * n ^ 4 * Def12Measure.def12Rank c B' k k (G4SATLink.easyEven L (L / 2) k h)) ∧
+        ∀ (h : L = L / 2 + L / 2 + 1),
+          Def12Measure.def12Rank c B' k k
+              (GodMoveSATSourceCanonicity.languageCharacteristic
+                PallLean.Paper93.DeepMath.PathB.SeparationTarget.SATLang L) ≤
+            4 * n ^ 4 * Def12Measure.def12Rank c B' k k (G4SATLink.easyOdd L (L / 2) k h)
