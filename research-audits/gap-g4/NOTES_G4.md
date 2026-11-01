@@ -170,3 +170,9 @@ Review of each formal statement against paper.txt and the informal claim:
 `satChar_def12_le_odd`, `satChar_def12_le_easy`, and `satChar_def12_le_easy_paper`: for n ≥ 128, L = unitSourceLength(n/3), κ = ℓ = ⌊log₂ n⌋,
 every partition, both conventions, Γ^{Def12}(languageCharacteristic SATLang L) ≤ 4·n⁴·Γ^{Def12}(embedded subsetPoly). Axioms are clean.
 This closes the multilinearity [I] link of G4.2.
+
+## G4.4 item 3 done (01 Nov 2026 15:xx GMT)
+* New [K] `ColSetCount.lean` (imports Def12Measure only; Mathlib): `card_colSet`: #colSet N D = Σ_{j≤D} C(N,j) for all N, D;
+  `def12Rank_le_binomialSum`: Γ^{Def12}_{κ,ℓ}(p) ≤ Σ_{j ≤ deg p+ℓ−κ} C(N,j) for every field, convention, partition, p.
+  Axioms: [propext, Classical.choice, Quot.sound] (log `colset_axioms.log`). Sanity: N=3, D=1 gives 4 = {∅,{0},{1},{2}}.
+* Formal hygiene only: it does not bear on the missing implication. Remaining optional: item 4 (ComposableMachine for subsetPoly).

@@ -1,0 +1,2 @@
+'Def12Measure.card_colSet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.def12Rank_le_binomialSum' depends on axioms: [propext, Classical.choice, Quot.sound]
