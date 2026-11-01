@@ -483,8 +483,9 @@ Two constructions are examined, and each one is labelled:
   * the extraction `GodMoveSATDesignatedExtraction.sheetExtraction` = `quadraticLift ∘ unitExtraction`;
   * `operationalPaperSource`, `operationalPaperSource_rank_bridge`, and the target `cookLevinStrictFOBTarget`.
 
-  Lean file: `research-audits/gap-g3/repaired/G3RepairedFaceLocality.lean`, which compiles against the 23-module
-  research-audit chain of 21921958 (`research-audits/gap-g3/repaired/build_repaired.sh`).
+  Lean file: `research-audits/gap-g3/repaired/G3RepairedFaceLocality.lean`. **Kernel-checked 01 Nov 2026** against
+  the research-audit chain of 21921958 through a documented trimmed import path
+  (`research-audits/gap-g3/repaired/build_trimmed.sh`; see G3.7).
 
 ## G3.0 Definition of PassesG3 (Lean measure; Def. 12 variant)
 * G3-A: `GapG3.PassesG3 B κ ℓ bound P_acc := mlBlockedSpdpRank B κ ℓ P_acc < bound` and
@@ -505,8 +506,9 @@ Two constructions are examined, and each one is labelled:
 
 ## G3.1 Results. Each entry gives the commit, the exact statement, the counterexample/witness, and known/new.
 G3-A: all `#print axioms` are [propext, Classical.choice, Quot.sound] (log `research-audits/gap-g3/axioms.log`).
-G3-B: **compile status recorded in G3.7** (the 21921958 dependency build was still running on the loaded box when
-this section was first committed; B1–B3 are stated exactly as in the Lean file and count as [K] only once G3.7 says so). The research/gap-g3 commit hash is recorded in G3.7.
+G3-B (B1–B3) and G3-C (C1–C4): **[K] kernel-checked 01 Nov 2026** (trimmed import path, G3.7); every `#print axioms`
+is [propext, Classical.choice, Quot.sound] (logs `research-audits/gap-g3/repaired/{repaired,range}_axioms.log`).
+The research/gap-g3 commit hash is recorded in G3.7.
 
 ### G3-A — against our reconstruction (arXiv v5 / main 7f53946)
 | # | Lean name(s) | exact statement | counterexample / witness | known? |
@@ -572,6 +574,17 @@ G3-A caveats:
   (Fraction arithmetic).
 * Random dense multilinear p also violate the lemma [C]: N=6, ℓ=1 gives 42 > 12; N=6, ℓ=2 gives 64 > 60.
 * Not mentioned anywhere in 21921958 (searched for "Lemma 18": only paper Lemmas 188/189 appear).
+* **[K] Kernel-checked 01 Nov 2026** (was only [C] on research/gap-g1 f32d764, which has no Lean statement of it):
+  `research-audits/gap-g3/Lemma18Counterexample.lean` (Mathlib only), theorem `Lemma18Counterexample.lemma18_fails`:
+  with `p = X 0 + X 1 * X 2 : MvPolynomial (Fin 3) ℚ`, rows `row (a,i) = shift a * pderiv i p`
+  (`shift` = 1, X 0, X 1, X 2 = all monomials of degree ≤ 1), and the ten rows that are already multilinear
+  (`mlIdx`; the other two are `X 2 ^ 2`, `X 1 ^ 2`, theorem `nonmultilinear_rows`):
+  `Nat.choose 3 1 * 2 ^ 1 < Module.finrank ℚ (Submodule.span ℚ (Set.range (fun t => row (mlIdx t))))`.
+  The proof exhibits the 7 monomials 1, x₀, x₁, x₂, x₀x₁, x₀x₂, x₁x₂ as literal rows and uses their linear
+  independence. These ten rows are Def.-12 rows under both reduce and drop conventions (and lie in the Def.-12
+  column range deg ≤ 2), so Γ_{1,1}(p) ≥ 7 > 6 under either convention. Axioms: [propext, Classical.choice,
+  Quot.sound] (`research-audits/gap-g3/lemma18_axioms.log`). Status: **new** (as a kernel-checked statement; the
+  counterexample itself is the research/gap-g1 result).
 
 ## G3.4 Def. 12 (paper) vs Lean `MultilinearSPDP.mlBlockedSpdpSubspace` — **new** (precise list)
 1. **Shifts.** Def. 12 allows any monomial u of degree ≤ ℓ in all N variables. Lean requires m with
@@ -650,8 +663,8 @@ following specific kind:
    * fix one SPDP measure explicitly;
    * if SPDP work continues, aim at a restricted-model lower bound (for example homogeneous depth-4 or
      multilinear formulas), where shifted-partial measures are known to give checkable results.
-3. **Optional formalisation:** a Lean Def. 12 measure with the G3-A transfer properties (a)–(c), and the
-   Lemma 18 counterexample as a kernel-checked statement.
+3. **Optional formalisation:** a Lean Def. 12 measure with the G3-A transfer properties (a)–(c) (still open), and the
+   Lemma 18 counterexample as a kernel-checked statement (**done 01 Nov 2026**, G3.3).
 
 ## G3.6 Reproducibility
 * G3-A: `cd pall-lean && lake env lean research-audits/gap-g3/G3TemplateObstruction.lean`
@@ -662,23 +675,89 @@ following specific kind:
   3. compiles the 23 research-audit modules into a scratch directory;
   4. then compiles `G3RepairedFaceLocality.lean`.
 
-  The branch itself is untouched.
+  The branch itself is untouched. **Superseded for the kernel check** by `build_trimmed.sh` (G3.7), because step 2
+  pulls in the Cook–Levin emitter chain (EmitPairT), which is OOM-killed on this box.
+* G3-B/G3-C (working route): `research-audits/gap-g3/repaired/build_trimmed.sh <wt at 21921958> <scratch>`, about
+  4 min once the worktree's PathB oleans exist (all except the emitter chain). Peak memory is small (no EmitPairT).
+* Lemma 18: `lake env lean research-audits/gap-g3/Lemma18Counterexample.lean` (Mathlib only, ~10 s).
 
 ## G3.7 Commits and status log
 * First G3 commit: see `git log research/gap-g3` (content commit). G3-A compiled, axioms clean.
-* G3-B (`G3RepairedFaceLocality.lean`) and G3-C (`G3RepairedMeasureRange.lean`): **NOT yet kernel-checked**
-  (status 01 Nov 2026 00:35 GMT). The files compile only against the 21921958 research-audit chain. That chain
-  needs about 280 PathB library modules outside the default target, and about 245 of them are built in the
-  scratch worktree `/workspace/pvsnp/wt-g3`. The remaining blocker is
-  `ComputationalDepthCookLevinEmitPairT` (6,886 lines, >6 GB RSS, more than 38 min on the saturated box). Two
-  earlier attempts died with no output, probably OOM kills. A niced background job
-  (`/workspace/pvsnp/g3out/resume.sh`, 1–2 processes) continues the build. It writes
-  `g3out/repaired_axioms.log` and `g3out/range_axioms.log`, and the `REPAIRED_EXIT`/`RANGE_EXIT` lines in
-  `g3out/build.log`. Until those logs show success with axioms ⊆ {propext, Classical.choice, Quot.sound},
-  read B1–B3 and C1–C4 as **[I]: proofs written, kernel check pending**. C1–C4 are each a 2–3-line composition of
-  branch theorems with stated signatures (`strict_rank_le_choose_mul_two_pow`, `choose_le_scannerSource_rank`,
-  `GodMoveMonomialMinor.choose_le_strict_rank`, `Nat.pow_log_le_self`). Mathematically they are immediate:
-  rank(p) ≤ C(L,k)·2^k ≤ 2^k·rank(scanner_L).
+* **01 Nov 2026 (~03:05–03:45 GMT): G3-B and G3-C are KERNEL-CHECKED** (previous status, 00:35 GMT: not checked;
+  the full-closure build kept OOM-killing `ComputationalDepthCookLevinEmitPairT`, exit 137).
+  * **Dependency analysis.** In the 21921958 import graph, the only edge from the G3 closure into the Cook–Levin
+    emitter chain (EmitPairT and 28 other unbuilt Emit modules) is
+    `GodMoveCircuitRuntimeCost → ComputationalDepthComposablePpolyDischarge → ComputationalDepthCookLevinEmitClockBounds3
+    → ClockBounds2 → … → EmitPairT`. `ComposablePpolyDischarge` uses from ClockBounds3 only
+    `open …CookLevinEmitClockBounds3 (PB_const PB_id PB_le PB_add PB_mul)`, a 5-lemma `PolyBounded` closure kit
+    (ClockBounds3 lines 29–70) that depends only on `PvsNPSeparatingInvariant.PolyBounded` and Mathlib.
+    **G3-B/C do not genuinely depend on EmitPairT.**
+  * **What was trimmed (the only non-verbatim module):** a scratch `ComputationalDepthCookLevinEmitClockBounds3.lean`
+    (`research-audits/gap-g3/repaired/trim/`) with the same module name and namespace, containing original lines 3–27
+    (docstring + namespace) and 29–70 (the PB kit) **verbatim** (checked by `diff`). Its imports are
+    PvsNPSeparatingInvariant, Mathlib.Data.List.GetD, ComposableStepCircuit and SATCircuitSeparationBridge, in place
+    of ClockBounds2. The `open` lines naming Emit-chain namespaces are removed (`open ComposableMachine` and
+    `open …PvsNPSeparatingInvariant (PolyBounded)` kept). Lines 72–207 (Emit stream-length bounds, which use the
+    chain) are dropped.
+  * **Why it is faithful:**
+    1. Every other module is compiled from the 21921958 source **byte-for-byte**: `ComposablePpolyDischarge` and the
+       26 research-audit modules in `trim/audit_order.txt`. Our two G3 files are the only other inputs.
+    2. The dropped modules (63 PallLean Emit/CookLevinDoubled modules, plus external import Mathlib.Data.List.GetD,
+       which is re-added) declare **no** `instance`, `notation`, `syntax`, `macro`, `attribute` or `@[simp]` (grep). So
+       removing them cannot change instance resolution, notation or simp sets in the downstream environment. They
+       could only make names unresolvable, which would be a compile error.
+    3. All five PB lemmas keep their exact statements and names. Nothing downstream mentions any dropped declaration,
+       or it would not compile.
+    4. The worktree `wt-g3` is not modified. Oleans go to `/workspace/pvsnp/g3trim/{overlay,out}`; `overlay` is a
+       symlink copy of the worktree's PathB build plus the two new oleans.
+  * **Our own files needed two fixes before they compiled (they had never been compiled before):**
+    (i) `Poly` was ambiguous: four branch modules each define `abbrev Poly (n) := MvPolynomial (Fin n) ℚ`. We replaced
+    it with the identical `MvPolynomial (Fin _) ℚ` in `acceptAll_source_eq_one` (proof-internal), and in the binder
+    `(p : …)` of C1, C2 and C4. The meaning is identical because it is the same abbrev.
+    (ii) `support_C_subset` does not exist in this Mathlib. That proof step (support of 1 is {0}) was rewritten with
+    `mem_support_iff`/`coeff_one`. No statement changed.
+  * **`#print axioms`** (logs `research-audits/gap-g3/repaired/repaired_axioms.log`, `range_axioms.log`): all 16 are
+    exactly [propext, Classical.choice, Quot.sound]. That covers B1 `acceptAll_source_eq_one`,
+    `acceptAll_source_rank_zero`, `acceptAll_passesG3` and `acceptAll_passesG3_extracted`; B2
+    `extraction_depends_only_on_face`; B3 `faceCorrect_of_decides`, `unitExtraction_of_faceCorrect`,
+    `designated_sheet_of_faceCorrect`, `verifier_rank_le_source_of_faceCorrect`, `choose_le_source_of_faceCorrect`,
+    `designated_rank_le_source_of_faceCorrect` and `npow200_lt_source_of_faceCorrect`; and C1–C4
+    `rank_le_two_pow_mul_scanner`, `rank_le_two_pow_mul_and`, `sat_source_le_n_mul_scanner` and
+    `no_superpoly_gap_over_scanner`. (`FaceCorrect` is a def, not a theorem.)
+  * **Closure grep** (366 non-Mathlib source files, comments and strings stripped): no `sorry`, `unsafe`,
+    `implemented_by`, `extern` or `ofReduceBool`. However:
+    * `PallLean/BinomialBound2.lean` uses `native_decide`. It is not used by any G3 theorem, since
+      `Lean.ofReduceBool` is absent from the axiom output.
+    * The closure **imports `PallLean/PAC.lean` and `PallLean/MatrixSPDP.lean` at 21921958, which still declare
+      `axiom gadget_spdp_subspace_factoring`, `axiom gadget_spdp_subspace_factoring_paperFaithful` and
+      `axiom gadget_factoring_linearmap_form`.** The first and third are the axioms refuted in Phase 1, so the
+      ambient environment is inconsistent (**known**, Phase 1; fixed on main only by PR #2). `#print axioms`
+      confirms that no G3 theorem uses them.
+  * **Adversarial statement review (each formal statement against the claim in G3.1/G3-C):**
+    * B1: `acceptAll` is a genuine one-state halted accepting `Machine`, and `decideOut … = true` holds by `rfl`.
+      `acceptAll_passesG3` is stated at the branch's partition `discreteBlocks (unitInputLength (n/3))` with
+      k = ℓ = ⌊log₂ n⌋, n ≥ 2^804. `acceptAll_passesG3_extracted` holds for every partition B. Matches G3.1, no
+      vacuous hypothesis.
+    * B2: the hypothesis is only output agreement on the 2^m unit queries, with no correctness assumed. Matches.
+    * B3: the hypotheses (D, n ≥ 2^20, timeBound ≤ 4, numStates ≤ n, B) are copied from the branch's
+      `designated_sheet_rank_le_source`/`sheetExtraction_correct`, with only `Decides M SATLang T` replaced by
+      `FaceCorrect M T (n/3)`. `faceCorrect_of_decides` proves this is a weakening. Caveat (unchanged, **[I]**): that
+      a machine exists in P which is face-correct but not a SAT decider is argued informally and not formalised.
+      B3's theorems are valid regardless, but the conclusion "the lower bound cannot separate" rests on that [I] step.
+    * C1/C2: hold for every L, B, k, ℓ and every p (no multilinearity hypothesis). Matches.
+    * C3: the Lean statement needs only n ≥ 1, which is *stronger* than "at the paper window" in the table.
+      Precision fix only.
+    * C4: a direct corollary of C1, with a satisfiable hypothesis (take g L := rank(scannerSource L)). It is honestly
+      near-tautological, and its content is C1.
+    * Wording fix: "dynamic range [C(L,k), C(L,k)·2^k]" means *every* p is ≤ C(L,k)·2^k, while the scanner and AND
+      are ≥ C(L,k). It is not a lower bound for every p (constants have rank 0).
+    * **No statement was found wrong or vacuous.** Nothing in 21921958 was changed.
+  * **Lemma 18** counterexample now [K] (G3.3, `Lemma18Counterexample.lemma18_fails`). research/gap-g1 f32d764 had
+    only the Python check, so this is not a duplicate.
+  * EmitPairT fallback (route 2): **not needed, not attempted.** EmitPairT itself remains unbuilt on this box.
+    That only matters for anyone who wants the *full* 21921958 closure.
+  * Next actions: none required for G3. Optional: a Lean Def. 12 measure with transfer properties (a)–(c) (G3.5 item 3).
+    Otherwise follow G3.5 item 2: record the no-go package, and restricted-model lower bounds if SPDP work continues.
 
 ## Phase 3 (31 Oct 2026, ~22:00–23:30 GMT): axiom-removal PR + God-Move branch audit
 
@@ -702,3 +781,9 @@ following specific kind:
   mismatch). The others don't apply to the repaired source.
 * Worktrees `wt-g3` and `pall-lean` (research/gap-g1) belong to the other worker. Not touched.
 * PR #2 opened: https://github.com/DarrenEdwards111/pall-lean/pull/2 (fix branch head fb867692). Audit pushed: research/godmove-audit 5e76f62f.
+
+## Resume log 01 Nov 2026 03:05 GMT
+* Found the G3-B/G3-C kernel-check build dead: `ComputationalDepthCookLevinEmitPairT` was OOM-killed again (exit 137, last failure about 00:59 GMT). No Lean jobs of ours were running.
+* Started a new bounded cycle. Route 1: find out whether G3-B/C really need EmitPairT and compile them against a faithful trimmed import closure. Route 2 (fallback): a solo, niced EmitPairT build, gated on more than 9 GB of free memory, with at most 2 attempts. After that, run #print axioms and an adversarial statement review, then push to research/gap-g3.
+* 03:45 GMT: route 1 succeeded. G3-B/G3-C are kernel-checked against a trimmed but faithful import path, without
+  EmitPairT; axioms are clean. Lemma 18 counterexample kernel-checked. Details in G3.7. No EmitPairT build attempted.

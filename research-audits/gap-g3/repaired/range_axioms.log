@@ -1,0 +1,4 @@
+'GapG3RepairedRange.rank_le_two_pow_mul_scanner' depends on axioms: [propext, Classical.choice, Quot.sound]
+'GapG3RepairedRange.rank_le_two_pow_mul_and' depends on axioms: [propext, Classical.choice, Quot.sound]
+'GapG3RepairedRange.sat_source_le_n_mul_scanner' depends on axioms: [propext, Classical.choice, Quot.sound]
+'GapG3RepairedRange.no_superpoly_gap_over_scanner' depends on axioms: [propext, Classical.choice, Quot.sound]

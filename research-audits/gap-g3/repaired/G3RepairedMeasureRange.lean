@@ -32,7 +32,7 @@ open GodMoveMonomialMinor (fullMonomial discreteBlocks)
 open PallLean.Paper93.DeepMath.PathB ComposableMachine
 
 /-- Every polynomial is within factor `2^k` of the linear-time scanner's source. -/
-theorem rank_le_two_pow_mul_scanner {L : ℕ} (B : BlockPartition L) (k ell : ℕ) (p : Poly L) :
+theorem rank_le_two_pow_mul_scanner {L : ℕ} (B : BlockPartition L) (k ell : ℕ) (p : MvPolynomial (Fin L) ℚ) :
     mlBlockedSpdpRank B k ell p ≤
       2 ^ k * mlBlockedSpdpRank (discreteBlocks L) k ell (scannerSource L) := by
   calc mlBlockedSpdpRank B k ell p ≤ Nat.choose L k * 2 ^ k :=
@@ -41,7 +41,7 @@ theorem rank_le_two_pow_mul_scanner {L : ℕ} (B : BlockPartition L) (k ell : �
     _ ≤ _ := Nat.mul_le_mul_left _ (choose_le_scannerSource_rank L k ell)
 
 /-- Every polynomial is within factor `2^k` of the AND monomial x₁⋯x_L. -/
-theorem rank_le_two_pow_mul_and {L : ℕ} (B : BlockPartition L) (k ell : ℕ) (p : Poly L) :
+theorem rank_le_two_pow_mul_and {L : ℕ} (B : BlockPartition L) (k ell : ℕ) (p : MvPolynomial (Fin L) ℚ) :
     mlBlockedSpdpRank B k ell p ≤
       2 ^ k * mlBlockedSpdpRank (discreteBlocks L) k ell (fullMonomial L) := by
   calc mlBlockedSpdpRank B k ell p ≤ Nat.choose L k * 2 ^ k :=
@@ -65,7 +65,7 @@ lengths (as any sound "P-side" bound for poly-time functions must be), then EVER
 in particular the SAT MLE, satisfies `2^k · g`. -/
 theorem no_superpoly_gap_over_scanner (k ell : ℕ) (g : ℕ → ℕ)
     (hg : ∀ L, mlBlockedSpdpRank (discreteBlocks L) k ell (scannerSource L) ≤ g L)
-    (L : ℕ) (B : BlockPartition L) (p : Poly L) :
+    (L : ℕ) (B : BlockPartition L) (p : MvPolynomial (Fin L) ℚ) :
     mlBlockedSpdpRank B k ell p ≤ 2 ^ k * g L :=
   (rank_le_two_pow_mul_scanner B k ell p).trans (Nat.mul_le_mul_left _ (hg L))
 

@@ -60,9 +60,9 @@ theorem acceptAll_source_eq_one (T : ℕ → ℕ) (φ : Formula) (n : ℕ) :
   · exact machineSource_multilinear acceptAll T φ n
   · intro m hm i
     have : m = 0 := by
-      have h1 : (1 : Poly (inputTemplate φ n).length).support ⊆ {0} := by
-        rw [← C_1]; exact support_C_subset
-      simpa using h1 hm
+      rw [MvPolynomial.mem_support_iff, MvPolynomial.coeff_one] at hm
+      by_contra h
+      exact hm (if_neg (Ne.symm h))
     subst this; simp
   · intro a
     rw [machineSource, circuitTarget_eq_interpolate, eval_interpolate, circuitFor_output,
