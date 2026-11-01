@@ -1,13 +1,18 @@
 # Phase 4 — G4 (Def. 12 measure and easy-function ceiling)
 
-Cycle run 01 Nov 2026, 06:05–08:40 GMT. Branch `research/gap-g4` (from research/gap-g3 45ab9a05), worktree
-`/workspace/pvsnp/wt-g4`. Content commits **63bbb2da** (G4-a) and **98659ea8** (G4-b + Lemma 18 family); the notes
-commit follows. Tags: [K] kernel-checked, [C] computed (exact unless marked mod-p), [I] informal argument, [O] open.
+Cycle run 01 Nov 2026, 06:05–07:05 GMT (box clock). Branch `research/gap-g4` (from research/gap-g3 45ab9a05),
+worktree `/workspace/pvsnp/wt-g4`. Content commits:
+* **63bbb2da** (G4-a);
+* **98659ea8** (D3 subset lower bound and D4 Lemma 18 family);
+* **417c32a6** (D7 row ceiling, D8/D9 4^{κ+ℓ} comparison);
+* the final commit (D10 rename monotonicity, D11 odd-length headline, docs). Its hash is in the commit log and the
+  report. Tags: [K] kernel-checked, [C] computed (exact unless marked mod-p), [I] informal argument, [O] open.
 **Nothing here proves or claims P ≠ NP or P = NP.** No other branch or worktree was modified, and no PR was opened.
 
 Lean file: `research-audits/gap-g4/Def12Measure.lean`. It imports only Mathlib, and checking it takes about 11 s:
-`cd pall-lean && lake env lean <path>`. It contains no `sorry`, `native_decide` or `axiom`. All 14 `#print axioms`
-outputs are exactly `[propext, Classical.choice, Quot.sound]` (log `def12_axioms.log`).
+`cd pall-lean && lake env lean <path>`. It contains no `sorry`, `native_decide` or `axiom`. All 22 `#print axioms`
+outputs are `[propext, Classical.choice, Quot.sound]` or a subset of it; `choose_two_mul_le` uses only
+`[propext, Quot.sound]` (log `def12_axioms.log`).
 
 ## G4.0 Current lemma / reading of Def. 12
 * **Paper text** (arXiv v5, p. 31–32, paper.txt lines 1509–1525) is quoted verbatim in the file header.
@@ -43,6 +48,11 @@ outputs are exactly `[propext, Classical.choice, Quot.sound]` (log `def12_axioms
 | D3 | `Def12Measure.subset_def12_lower` | ∀ c B κ ℓ m (hκ : κ ≤ m), `C(m,κ) · Σ_{j≤ℓ} C(m,j) ≤ def12Rank c B κ ℓ (subsetPoly m κ)` on N = m+m variables, where `subsetPoly m κ = Σ_{S⊆[m],|S|=κ} x^S · δ_S(y)` and δ_S(y) = ∏_{j∈S} y_j ∏_{j∉S}(1−y_j) | f(x,y) = [\|y\| = κ ∧ y ≤ x], a single linear scan | [K] 98659ea8, both conventions, every partition, every field. **New** |
 | D4 | `Def12Measure.lemma18_fails_subset_family` | ∀ c B m (4 ≤ m), `C(2m,1)·2¹ < def12Rank c B 1 1 (subsetPoly m 1)` | subsetPoly m 1 (a Boolean characteristic polynomial) | [K] 98659ea8. **New:** an infinite family of Boolean counterexamples to paper Lemma 18. The single instance x₁+x₂x₃ was known (G3.3) |
 | D5 | `pderiv_comm`, `iterDerivList_perm`, `pderivMulti_ofList`, `coeff_pderiv`, `support_iterDerivList`, `iterDerivList_eq_zero_of_lt`, `row_colRestrict_eq`, `blockCondition_vacuous`, `def12Span_finiteDimensional`, `def12Rank_le_columns`, `card_small_finsets`, `pderivMulti_subsetPoly` | infrastructure; e.g. `pderivMulti (xExp S) (subsetPoly m κ) = delta S` for \|S\| = κ | — | [K]. Mathlib-level facts (commuting partials and degree drop are standard), new as Lean lemmas here |
+| D7 | `Def12Measure.def12Rank_le_rowCeiling` | ∀ c B κ ℓ p, `IsMultilinear p → def12Rank c B κ ℓ p ≤ C(N,κ) · Σ_{j≤ℓ} C(N,j)` (`IsMultilinear` copied verbatim from MultilinearSPDP l.25–27) | — | [K]. **New** as a Lean theorem; standard content (the effective rows are (S,U)). Ingredients are also [K]: `pderivMulti_eq_zero_of_not_ml` (a repeated variable gives 0), `dropML_monomial_mul_eq_zero`, `reduceML_monomial_mul` |
+| D8 | `Def12Measure.multilinear_le_ratio_mul_subset` | on N = m+m with κ ≤ m: `Γ(p)·[C(m,κ)Σ_{j≤ℓ}C(m,j)] ≤ [C(2m,κ)Σ_{j≤ℓ}C(2m,j)]·Γ(subsetPoly m κ)` for multilinear p | subsetPoly | [K]. **New** |
+| D9 | `Def12Measure.multilinear_le_four_pow_mul_subset` | on N = m+m with 3κ ≤ 2m and 3ℓ ≤ 2m: `IsMultilinear p → def12Rank c B κ ℓ p ≤ 4^(κ+ℓ) · def12Rank c B κ ℓ (subsetPoly m κ)`, both conventions, every partition. Uses `choose_two_mul_le : 3j ≤ 2m → C(2m,j) ≤ 4^j C(m,j)` | subsetPoly | [K]. **New, headline:** at κ = ℓ = ⌊log₂ N⌋ the factor is ≤ N⁴ |
+| D10 | `Def12Measure.def12Rank_le_rename` | `def12Rank c B κ ℓ p ≤ def12Rank c B' κ ℓ (rename Fin.castSucc p)` for all p (not only multilinear), all partitions B and B'. Supporting lemma `convML_rename`: drop and reduce commute with the renaming | — | [K]. **New**. This is G3-A transfer property (c), previously [I] (G3.0), now proven for the embedding Fin N ↪ Fin (N+1) |
+| D11 | `Def12Measure.multilinear_le_four_pow_mul_subset_odd` | on N = m+m+1 with 3κ ≤ 2m and 3ℓ ≤ 2m: `IsMultilinear p → def12Rank c B' κ ℓ p ≤ 4^(κ+ℓ+1) · def12Rank c B' κ ℓ (rename castSucc (subsetPoly m κ))` | subsetPoly ignoring the last bit | [K]. **New.** It covers the branch's lengths: `unitSourceLength n'` = (2n'+1) + 2·Σ_i(3 + \|encodeVar' i\|) is always odd (15, 31, 49, …) |
 | D6 | (script) `scripts/gap_g4/check_subset_mle.py` | subsetPoly m κ = χ_f (Def. 13) exactly, for all m ≤ 5, κ ≤ m | — | [C] (integer Möbius transform); the general identity is [I] (product of MLEs on disjoint variables) |
 
 **Computed ranks [C]** (`scripts/gap_g4/def12_rank.py`, FLINT exact `fmpz_mat.rank`; "modp" means the rank mod
@@ -66,17 +76,22 @@ n/3 = 1, 2, 3). At larger lengths the exact SAT MLE is out of reach (2^31 truth-
 ## G4.2 Verdict (G4-b answer)
 1. **Yes. A linear-time function reaches the Def. 12 ceiling up to a polynomial factor, in both conventions.**
    * **[K] lower bound:** D3 gives Γ(subsetPoly) ≥ C(m,κ)·Σ_{j≤ℓ}C(m,j) with N = 2m.
-   * **[I] ceiling:** for every multilinear p on N variables, Γ^{Def12}_{κ,ℓ}(p) ≤ C(N,κ)·Σ_{j≤ℓ}C(N,j), because the
-     effective rows are as in G4.0. Random functions attain it exactly whenever rows < cols ([C]: N = 8…15, κ = 1).
-   * **Gap:** the ratio is Π_{i<κ}(2m−i)/(m−i) · Σ_{j≤ℓ}C(2m,j)/Σ_{j≤ℓ}C(m,j) ≤ 4^{κ+ℓ} for κ, ℓ ≤ m/2 [I]. At
-     κ = ℓ = log₂N it is ≈ 1.05·N² (computed: N = 32, 128, 512, 2048 give ratios 1626, 21647, 296806, 4402746 against
-     N² = 1024, 16384, 262144, 4194304).
-   * **Consequence (extends C1–C4 to Def. 12) [K lower + I upper]:** every multilinear p, including the SAT MLE on
-     `unitInputLength` bits, satisfies Γ^{Def12}(p) ≤ ~4^{κ+ℓ}·Γ^{Def12}(subsetPoly) = n^{O(1)}·Γ(easy). So **no rank
-     threshold separates SAT from linear-time functions by more than a polynomial factor under Def. 12 either.** At
-     κ = ℓ = ⌊log₂ n⌋ the factor is n^{O(1)}, against n under the Lean measure (C1–C4).
-   * When N is odd (e.g. 15), use subsetPoly on N−1 variables plus one dummy variable. Rank does not decrease when a
-     variable is added, because the rows embed [I].
+   * **[K] ceiling:** D7 gives Γ(p) ≤ C(N,κ)·Σ_{j≤ℓ}C(N,j) for every multilinear p. Random functions attain it exactly
+     whenever rows < cols ([C]: N = 8…15, κ = 1).
+   * **[K] comparison:** D9 (even N) and D11 (odd N) give Γ(p) ≤ 4^{κ+ℓ}·Γ(easy) and Γ(p) ≤ 4^{κ+ℓ+1}·Γ(easy),
+     whenever 3κ, 3ℓ ≤ 2⌊N/2⌋.
+   * **The true ratio [C]** at κ = ℓ = log₂N is ≈ 1.05·N²: N = 32, 128, 512, 2048 give ratios 1626, 21647, 296806 and
+     4402746, against N² = 1024, 16384, 262144 and 4194304.
+   * **Consequence (extends C1–C4 to Def. 12, now fully kernel-checked):** the SAT MLE `languageCharacteristic SATLang L`
+     on L = `unitSourceLength (n/3)` bits is multilinear ([I]: it is the interpolation polynomial; in the branch,
+     `normalize_isMultilinear`). It therefore satisfies Γ^{Def12}(SAT_L) ≤ 4^{κ+ℓ+1}·Γ^{Def12}(easy_L). At
+     κ = ℓ = ⌊log₂ n⌋ this is ≤ 4·n⁴·Γ(easy_L) (L = unitSourceLength(n/3) ≥ 15·(n/3) ≫ log₂ n, so 3κ, 3ℓ ≤ 2⌊L/2⌋ holds throughout the paper window n ≥ 2^804 [I]). **No rank threshold
+     separates SAT from a linear-time function by more than a polynomial factor under Def. 12**, in either convention.
+     Under the Lean measure the factor was n (C1–C4).
+   * **Only remaining [I] links:**
+     * SAT_L is multilinear. This holds by construction, but our `IsMultilinear` is a local copy, so it cannot be
+       linked to the branch's constant without importing the branch chain.
+     * "easy" means linear time (G4.3 item 7).
 2. **Where SAT sits [C, tiny sizes only]:**
    * At the branch's real smallest length (N = 15, κ = ℓ = 1), SAT_15 has rank 202 (drop) / 190 (reduce), against a
      ceiling of 240, SUBSET 196/168, SCANNER 133/133, and a Lean measure ≤ 30.
@@ -89,7 +104,7 @@ n/3 = 1, 2, 3). At larger lengths the exact SAT MLE is out of reach (2^31 truth-
    * PARITY, MAJ, IP and SCANNER sit at a constant fraction of the ceiling at small N. Asymptotics: [O], and not
      needed since SUBSET suffices.
 4. **Milestone:**
-   * D3 is a kernel-checked statement that kills the "Def. 12 rescues the measure" route for the upper-bound direction.
+   * D3, D7 and D9–D11 are kernel-checked statements that kill the "Def. 12 rescues the measure" route.
      Under the paper's own Def. 12, a linear-time Boolean function already has quasi-polynomial rank
      n^{Θ(log n)}·…, within poly(n) of the maximum over all functions. A P-side bound "poly-time ⇒ Γ^{Def12} ≤ n^{O(1)}"
      is **refuted** by D3 (C(m,κ) ≥ (m/κ)^κ is superpolynomial at κ = log m). The NP-side bound cannot exceed the
@@ -128,8 +143,9 @@ Review of each formal statement against paper.txt and the informal claim:
    [I]. This is not formalised as a `ComposableMachine`, unlike the branch's scanner.
 8. **subsetPoly = χ_f** is [C] for m ≤ 5 and [I] in general. The theorem D3 itself is about the polynomial, so it
    holds regardless.
-9. **The ceiling (item G4.2.1) is [I], not [K].** This is the one informal link in "SAT ≤ poly · easy under Def. 12".
-   Next action: formalise it.
+9. **Ceiling: now [K]** (D7, D9, D11). Check: the hypotheses 3κ ≤ 2m and 3ℓ ≤ 2m are needed only for the clean
+   factor 4^j in `choose_two_mul_le`. D8 holds for any κ ≤ m. Boundary: κ = ℓ = 0 gives Γ(p) ≤ 1·Γ(easy) with
+   Γ(easy) ≥ 1, which is consistent with Γ(p) ≤ 1 from D7.
 10. **No known failed assumption is reintroduced.** Nothing assumes Lemma 18, the shift restriction or the refuted
     gadget axioms.
 11. **SAT port fidelity:** `decodeNat`, `decodeVar'` (with Mathlib `Nat.pair`), `decodeLit'`, `decodeClause'` and
@@ -140,10 +156,11 @@ Review of each formal statement against paper.txt and the informal claim:
 12. **Mod-p entries:** at N = 12, κ = 2, the SAT and SUBSET entries are lower bounds; this is marked in the table.
 
 ## G4.4 Next actions
-1. (small, [K] target) Formalise the row ceiling: for multilinear p, Γ^{Def12}_{κ,ℓ}(p) ≤ C(N,κ)·Σ_{j≤ℓ}C(N,j). Then
-   "SAT ≤ 4^{κ+ℓ}·subset" becomes fully kernel-checked. Ingredients: τ with a repeat gives 0, non-multilinear u is
-   killed (drop) or reduced (reduce), and a span-of-indexed-family cardinality bound.
-2. (optional) Formalise `#colSet N D = Σ_{j≤D} C(N,j)` to get D2 as an equality.
-3. (optional) Model f as a `ComposableMachine` at 21921958 (like `scanner`) to make "easy" formal.
-4. The project-level recommendation is unchanged (G3.5 / NO_GO_STATUS.md): the architecture is blocked on all known
+1. **Done this cycle:** the row ceiling (D7) and the comparisons (D9, D11).
+2. (optional) A formal link to the branch: state D11 for `languageCharacteristic SATLang (unitSourceLength n)` inside
+   the 21921958 import chain, using the trimmed build of G3.7. That needs the branch's `IsMultilinear`/interpolate
+   lemma, and the box can do it in about 4 min.
+3. (optional) Formalise `#colSet N D = Σ_{j≤D} C(N,j)` to get D2 as an equality.
+4. (optional) Model f as a `ComposableMachine` at 21921958 (like `scanner`) to make "easy" formal.
+5. The project-level recommendation is unchanged (G3.5 / NO_GO_STATUS.md): the architecture is blocked on all known
    routes. Under both the Lean measure and Def. 12, the SAT MLE is within poly(n) of a linear-time function.

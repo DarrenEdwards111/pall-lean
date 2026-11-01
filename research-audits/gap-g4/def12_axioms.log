@@ -31,3 +31,6 @@ Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 'Def12Measure.multilinear_le_ratio_mul_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
 'Def12Measure.choose_two_mul_le' depends on axioms: [propext, Quot.sound]
 'Def12Measure.multilinear_le_four_pow_mul_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.convML_rename' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.def12Rank_le_rename' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.multilinear_le_four_pow_mul_subset_odd' depends on axioms: [propext, Classical.choice, Quot.sound]

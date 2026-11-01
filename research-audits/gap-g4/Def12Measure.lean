@@ -1131,6 +1131,175 @@ theorem multilinear_le_four_pow_mul_subset (c : Conv) (B : BlockPartition (m + m
 
 end Ratio
 
+/-! ## Adding a variable does not decrease Def. 12 rank (G3-A property (c), kernel-checked for
+`Fin.castSucc`), and the odd-length headline (the branch's `unitSourceLength` is always odd). -/
+
+section Rename
+
+local notation "ρ" => rename (R := F) (Fin.castSucc : Fin N → Fin (N + 1))
+
+theorem castSucc_inj : Function.Injective (Fin.castSucc : Fin N → Fin (N + 1)) := Fin.castSucc_injective N
+
+theorem rename_iterDerivList (L : List (Fin N)) (p : MvPolynomial (Fin N) F) :
+    ρ (iterDerivList L p) = iterDerivList (L.map Fin.castSucc) (ρ p) := by
+  induction L generalizing p with
+  | nil => rfl
+  | cons i L ih =>
+    rw [iterDerivList_cons, ih, List.map_cons, iterDerivList_cons, pderiv_rename castSucc_inj]
+
+theorem ml_mapDomain_iff (d : Fin N →₀ ℕ) :
+    Finsupp.IsMultilinear (Finsupp.mapDomain Fin.castSucc d) ↔ Finsupp.IsMultilinear d := by
+  constructor
+  · intro h i; have := h (Fin.castSucc i); rwa [Finsupp.mapDomain_apply castSucc_inj] at this
+  · intro h v
+    by_cases hv : v ∈ Set.range (Fin.castSucc : Fin N → Fin (N + 1))
+    · obtain ⟨i, rfl⟩ := hv; rw [Finsupp.mapDomain_apply castSucc_inj]; exact h i
+    · rw [Finsupp.mapDomain_notin_range _ _ hv]; omega
+
+theorem redExp_mapDomain (d : Fin N →₀ ℕ) :
+    redExp (Finsupp.mapDomain Fin.castSucc d) = Finsupp.mapDomain Fin.castSucc (redExp d) := by
+  ext v
+  by_cases hv : v ∈ Set.range (Fin.castSucc : Fin N → Fin (N + 1))
+  · obtain ⟨i, rfl⟩ := hv
+    simp only [redExp, Finsupp.mapRange_apply]
+    rw [Finsupp.mapDomain_apply castSucc_inj, Finsupp.mapDomain_apply castSucc_inj,
+      Finsupp.mapRange_apply]
+  · simp only [redExp, Finsupp.mapRange_apply]
+    rw [Finsupp.mapDomain_notin_range _ _ hv, Finsupp.mapDomain_notin_range _ _ hv]; rfl
+
+theorem convML_rename (c : Conv) (q : MvPolynomial (Fin N) F) :
+    convML c (ρ q) = ρ (convML c q) := by
+  cases c with
+  | drop =>
+    ext β
+    change (Finsupp.filter _ (ρ q)) β = coeff β (ρ (Finsupp.filter _ q))
+    rw [Finsupp.filter_apply]
+    by_cases hβ : ∃ d, Finsupp.mapDomain Fin.castSucc d = β
+    · obtain ⟨d, rfl⟩ := hβ
+      rw [coeff_rename_mapDomain _ castSucc_inj]
+      change (if Finsupp.IsMultilinear (Finsupp.mapDomain Fin.castSucc d) then
+        coeff (Finsupp.mapDomain Fin.castSucc d) (ρ q) else 0) = (Finsupp.filter _ q) d
+      rw [coeff_rename_mapDomain _ castSucc_inj, Finsupp.filter_apply, ml_mapDomain_iff]; rfl
+    · push_neg at hβ
+      rw [coeff_rename_eq_zero _ _ _ (fun u hu => absurd hu (hβ u))]
+      split_ifs
+      · exact coeff_rename_eq_zero _ _ _ (fun u hu => absurd hu (hβ u))
+      · rfl
+  | reduce =>
+    change Finsupp.mapDomain redExp (ρ q) = ρ (Finsupp.mapDomain redExp q)
+    rw [rename_eq, rename_eq, ← Finsupp.mapDomain_comp, ← Finsupp.mapDomain_comp]
+    congr 1
+    funext d
+    exact redExp_mapDomain d
+
+theorem weight_mapDomain (u : Fin N →₀ ℕ) : weight (Finsupp.mapDomain Fin.castSucc u) = weight u := by
+  unfold weight
+  exact Finsupp.sum_mapDomain_index (fun _ => rfl) (fun _ _ _ => rfl)
+
+/-- **Monotonicity under adding a variable** (both conventions, any partitions). -/
+theorem def12Rank_le_rename (c : Conv) (B : BlockPartition N) (B' : BlockPartition (N + 1))
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) F) :
+    def12Rank c B κ ℓ p ≤ def12Rank c B' κ ℓ (ρ p) := by
+  have hinj : Function.Injective (ρ) := rename_injective _ castSucc_inj
+  -- image of a row
+  have hrow : ∀ τ u : Fin N →₀ ℕ, weight τ = κ → weight u ≤ ℓ →
+      ρ (convML c (monomial u 1 * pderivMulti τ p))
+        = convML c (monomial (Finsupp.mapDomain Fin.castSucc u) 1 *
+            pderivMulti (Multiset.toFinsupp
+              (((Finsupp.toMultiset τ).toList.map Fin.castSucc : List (Fin (N + 1))) :
+                Multiset (Fin (N + 1)))) (ρ p)) := by
+    intro τ u _ _
+    rw [← convML_rename, map_mul, rename_monomial, pderivMulti_ofList, pderivMulti,
+      rename_iterDerivList]
+  unfold def12Rank
+  by_cases g1 : p.totalDegree + ℓ < κ
+  · rw [if_pos g1]; exact Nat.zero_le _
+  rw [if_neg g1]
+  by_cases g2 : (ρ p).totalDegree + ℓ < κ
+  · rw [if_pos g2]
+    have hbot : def12Span c B κ ℓ p = ⊥ := by
+      unfold def12Span
+      rw [Submodule.span_eq_bot]
+      rintro q ⟨τ, u, hτ, -, hu, rfl⟩
+      have hz : pderivMulti τ p = 0 := by
+        apply hinj
+        rw [map_zero, pderivMulti, rename_iterDerivList]
+        apply iterDerivList_eq_zero_of_lt
+        rw [List.length_map, length_toList_toMultiset]; omega
+      rw [hz, mul_zero, map_zero, map_zero]
+    rw [hbot]; simp
+  rw [if_neg g2]
+  let ρL : MvPolynomial (Fin N) F →ₗ[F] MvPolynomial (Fin (N + 1)) F := (rename Fin.castSucc).toLinearMap
+  have hρL : Function.Injective ρL := hinj
+  rw [(Submodule.equivMapOfInjective ρL hρL (def12Span c B κ ℓ p)).finrank_eq]
+  apply Submodule.finrank_mono
+  unfold def12Span
+  rw [Submodule.map_span]
+  apply Submodule.span_le.mpr
+  rintro _ ⟨q, ⟨τ, u, hτ, -, hu, rfl⟩, rfl⟩
+  apply Submodule.subset_span
+  set L' := ((Finsupp.toMultiset τ).toList.map Fin.castSucc : List (Fin (N + 1)))
+  have hτ' : weight (Multiset.toFinsupp (L' : Multiset (Fin (N + 1)))) = κ := by
+    rw [weight_ofList, List.length_map, length_toList_toMultiset, hτ]
+  have hu' : weight (Finsupp.mapDomain Fin.castSucc u) ≤ ℓ := by rw [weight_mapDomain]; exact hu
+  refine ⟨_, _, hτ', blockCondition_vacuous B' _ hτ', hu', ?_⟩
+  rw [row_colRestrict_eq c _ _ _ hτ' hu', row_colRestrict_eq c _ _ _ hτ hu]
+  exact hrow τ u hτ hu
+
+theorem choose_succ_two_mul_le (m j : ℕ) (hj : 3 * j ≤ 2 * m) :
+    (m + m + 1).choose j ≤ 2 * (4 ^ j * m.choose j) := by
+  rcases j with _ | j
+  · simp
+  · rw [Nat.choose_succ_succ']
+    have h1 : (m + m).choose j ≤ (m + m).choose (j + 1) :=
+      Nat.choose_le_succ_of_lt_half_left (by omega)
+    have h2 := choose_two_mul_le m (j + 1) hj
+    omega
+
+/-- **G4-b headline at odd length** (e.g. the branch's `unitSourceLength`, which is always odd).
+On `N = 2m + 1` variables, every multilinear `p` has Def. 12 rank at most `4^{κ+ℓ+1}` times that of
+`rename castSucc (subsetPoly m κ)` — the characteristic polynomial of the linear-time function
+`[|y| = κ ∧ y ≤ x]` that ignores the last bit. -/
+theorem multilinear_le_four_pow_mul_subset_odd {m : ℕ} (c : Conv) (B : BlockPartition (m + m))
+    (B' : BlockPartition (m + m + 1)) (κ ℓ : ℕ) (hκ : 3 * κ ≤ 2 * m) (hℓ : 3 * ℓ ≤ 2 * m)
+    (p : MvPolynomial (Fin (m + m + 1)) F) (hp : IsMultilinear p) :
+    def12Rank c B' κ ℓ p ≤ 4 ^ (κ + ℓ + 1) *
+      def12Rank c B' κ ℓ (rename (R := F) Fin.castSucc (subsetPoly (F := F) m κ)) := by
+  have hup := def12Rank_le_rowCeiling c B' κ ℓ p hp
+  have hlo := (subset_def12_lower (F := F) c B κ ℓ (by omega)).trans
+    (def12Rank_le_rename c B B' κ ℓ (subsetPoly (F := F) m κ))
+  set A := m.choose κ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j
+  set R := def12Rank c B' κ ℓ (rename (R := F) Fin.castSucc (subsetPoly (F := F) m κ))
+  have hsum : ∑ j ∈ Finset.range (ℓ + 1), (m + m + 1).choose j
+      ≤ 2 * (4 ^ ℓ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j) := by
+    rw [Finset.mul_sum, Finset.mul_sum]
+    apply Finset.sum_le_sum
+    intro j hj
+    have hj' : j ≤ ℓ := Nat.lt_succ_iff.mp (Finset.mem_range.mp hj)
+    calc (m + m + 1).choose j ≤ 2 * (4 ^ j * m.choose j) := choose_succ_two_mul_le m j (by omega)
+      _ ≤ 2 * (4 ^ ℓ * m.choose j) :=
+        Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) hj'))
+  have hB : (m + m + 1).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (m + m + 1).choose j
+      ≤ 4 ^ (κ + ℓ + 1) * A := by
+    calc _ ≤ (2 * (4 ^ κ * m.choose κ)) * (2 * (4 ^ ℓ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j)) :=
+          Nat.mul_le_mul (choose_succ_two_mul_le m κ hκ) hsum
+      _ = 4 ^ (κ + ℓ + 1) * A := by simp only [A]; ring
+  have hA : 0 < A := by
+    have hs : 1 ≤ ∑ j ∈ Finset.range (ℓ + 1), m.choose j := by
+      have := Finset.single_le_sum (f := fun j => m.choose j) (fun _ _ => Nat.zero_le _)
+        (Finset.mem_range.mpr (Nat.succ_pos ℓ))
+      simpa using this
+    exact Nat.mul_pos (Nat.choose_pos (by omega)) hs
+  have h2 : def12Rank c B' κ ℓ p * A ≤ 4 ^ (κ + ℓ + 1) * R * A := by
+    calc def12Rank c B' κ ℓ p * A
+        ≤ ((m + m + 1).choose κ * ∑ j ∈ Finset.range (ℓ + 1), (m + m + 1).choose j) * R :=
+          Nat.mul_le_mul hup hlo
+      _ ≤ (4 ^ (κ + ℓ + 1) * A) * R := Nat.mul_le_mul_right _ hB
+      _ = _ := by ring
+  exact Nat.le_of_mul_le_mul_right h2 hA
+
+end Rename
+
 end Def12Measure
 
 #print axioms Def12Measure.blockCondition_vacuous
@@ -1152,3 +1321,6 @@ end Def12Measure
 #print axioms Def12Measure.multilinear_le_ratio_mul_subset
 #print axioms Def12Measure.choose_two_mul_le
 #print axioms Def12Measure.multilinear_le_four_pow_mul_subset
+#print axioms Def12Measure.convML_rename
+#print axioms Def12Measure.def12Rank_le_rename
+#print axioms Def12Measure.multilinear_le_four_pow_mul_subset_odd
