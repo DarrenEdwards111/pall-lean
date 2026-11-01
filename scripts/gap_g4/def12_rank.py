@@ -180,6 +180,16 @@ def satisfiable(phi):
         if all(any(a[v] == s for (v, s) in c) for c in phi): return True
     return False
 
+def f_subset(N, kappa):
+    """G4-b witness: N = 2m (an odd last variable is ignored); x = bits 0..m-1, y = bits m..2m-1.
+    f(x,y) = [ |y| = kappa  and  y <= x coordinatewise ].  Linear time.
+    chi_f = sum_{|S| = kappa} x^S * delta_S(y), delta_S(y) = prod_{j in S} y_j prod_{j notin S} (1 - y_j)."""
+    m = N // 2
+    def f(a):
+        x = a & ((1 << m) - 1); y = (a >> m) & ((1 << m) - 1)
+        return popcount(y) == kappa and (y & ~x) == 0
+    return f
+
 def f_sat(N):
     # languageCharacteristic SATLang N: word = [a 0, ..., a (N-1)] (wordOfFin)
     return lambda a: satisfiable(decodeFormula([bool(bit(a, i)) for i in range(N)]))
@@ -219,14 +229,17 @@ def main():
             if kappa > N: continue
             l = kappa
             for name in names:
-                c = mle(FUNCS[name](N), N)
+                fn = f_subset(N, kappa) if name == "SUBSET" else FUNCS[name](N)
+                c = mle(fn, N)
                 d = degree(c)
                 res = {"N": N, "kappa": kappa, "l": l, "f": name, "deg": d}
                 for conv in ("lean", "drop", "reduce"):
                     r, how, D = gamma(c, N, kappa, l, conv)
                     res[conv] = r; res[conv + "_how"] = how; res["D"] = D
                 cols, rd, rl = ceilings(N, kappa, l, res["D"])
-                res.update(cols=cols, rows_def12=rd, rows_lean=rl)
+                m = N // 2
+                lb = math.comb(m, kappa) * sum(math.comb(m, j) for j in range(l + 1))
+                res.update(cols=cols, rows_def12=rd, rows_lean=rl, subset_lb=lb)
                 print(json.dumps(res), flush=True)
 
 if __name__ == "__main__":

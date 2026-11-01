@@ -1,0 +1,1 @@
+subsetPoly == chi_f for all m<=5, k<=m: True

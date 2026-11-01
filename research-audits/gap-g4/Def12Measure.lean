@@ -586,6 +586,348 @@ theorem and_def12_lower (c : Conv) (B : BlockPartition N) (κ : ℕ) (h : κ ≤
   simpa [ι, Fintype.card_subtype] using h1
 
 
+/-! ## G4-b: an easy (linear-time) Boolean function reaching the Def. 12 row ceiling up to
+`≈ 2^{κ+ℓ}`. Variables: `N = m + m`, `x_i = Fin.castAdd m i`, `y_j = Fin.natAdd m j`.
+`f(x,y) = [ |y| = κ ∧ y ≤ x ]`; its characteristic polynomial (Def. 13) is
+`subsetPoly m κ = Σ_{|S|=κ} x^S · δ_S(y)`, `δ_S(y) = Π_{j∈S} y_j Π_{j∉S} (1 − y_j)`. -/
+
+section Subset
+
+variable {m : ℕ}
+
+/-- `x^A` for `A ⊆ [m]` (exponent vector). -/
+noncomputable def xExp (A : Finset (Fin m)) : Fin (m + m) →₀ ℕ :=
+  Multiset.toFinsupp (A.val.map (Fin.castAdd m))
+
+noncomputable def xMon (A : Finset (Fin m)) : MvPolynomial (Fin (m + m)) F := monomial (xExp A) 1
+
+noncomputable def yFactor (S : Finset (Fin m)) (j : Fin m) : MvPolynomial (Fin (m + m)) F :=
+  if j ∈ S then X (Fin.natAdd m j) else 1 - X (Fin.natAdd m j)
+
+noncomputable def delta (S : Finset (Fin m)) : MvPolynomial (Fin (m + m)) F :=
+  ∏ j : Fin m, yFactor S j
+
+noncomputable def subsetPoly (m κ : ℕ) : MvPolynomial (Fin (m + m)) F :=
+  ∑ S ∈ Finset.powersetCard κ (Finset.univ : Finset (Fin m)), xMon S * delta S
+
+theorem castAdd_ne_natAdd (i j : Fin m) : (Fin.castAdd m i : Fin (m + m)) ≠ Fin.natAdd m j := by
+  intro h; have := congrArg Fin.val h; simp at this; omega
+
+theorem xExp_apply_castAdd (A : Finset (Fin m)) (i : Fin m) :
+    xExp A (Fin.castAdd m i) = if i ∈ A then 1 else 0 := by
+  rw [xExp, Multiset.toFinsupp_apply,
+    Multiset.count_map_eq_count' _ _ (Fin.castAdd_injective m m)]
+  split_ifs with h
+  · exact Multiset.count_eq_one_of_mem A.nodup h
+  · exact Multiset.count_eq_zero.mpr h
+
+theorem xExp_apply_natAdd (A : Finset (Fin m)) (j : Fin m) : xExp A (Fin.natAdd m j) = 0 := by
+  rw [xExp, Multiset.toFinsupp_apply, Multiset.count_eq_zero]
+  simp only [Multiset.mem_map, Finset.mem_val, not_exists, not_and]
+  intro i _ h; exact castAdd_ne_natAdd i j h
+
+theorem xExp_multilinear (A : Finset (Fin m)) : Finsupp.IsMultilinear (xExp A) := by
+  intro v
+  refine Fin.addCases (fun i => ?_) (fun j => ?_) v
+  · rw [xExp_apply_castAdd]; split_ifs <;> omega
+  · rw [xExp_apply_natAdd]; omega
+
+theorem xExp_weight (A : Finset (Fin m)) : weight (xExp A) = A.card := by
+  have := Finsupp.card_toMultiset (xExp A)
+  rw [xExp, Multiset.toFinsupp_toMultiset, Multiset.card_map] at this
+  exact this.symm
+
+theorem xExp_injective : Function.Injective (xExp (m := m)) := by
+  intro A B h
+  ext i
+  have := congrArg (fun e => e (Fin.castAdd m i)) h
+  simp only [xExp_apply_castAdd] at this
+  by_cases ha : i ∈ A <;> by_cases hb : i ∈ B <;> simp_all
+
+/-- Multilinear support. -/
+def MLSupp (q : MvPolynomial (Fin N) F) : Prop := ∀ s ∈ q.support, Finsupp.IsMultilinear s
+
+theorem MLSupp_mul {q₁ q₂ : MvPolynomial (Fin N) F} (h₁ : MLSupp q₁) (h₂ : MLSupp q₂)
+    (hd : Disjoint q₁.vars q₂.vars) : MLSupp (q₁ * q₂) := by
+  intro s hs i
+  obtain ⟨a, ha, b, hb, rfl⟩ := Finset.mem_add.mp (support_mul q₁ q₂ hs)
+  rw [Finsupp.add_apply]
+  by_cases hai : a i = 0
+  · rw [hai, zero_add]; exact h₂ b hb i
+  · by_cases hbi : b i = 0
+    · rw [hbi, add_zero]; exact h₁ a ha i
+    · exfalso
+      have m1 : i ∈ q₁.vars := (mem_vars i).mpr ⟨a, ha, Finsupp.mem_support_iff.mpr hai⟩
+      have m2 : i ∈ q₂.vars := (mem_vars i).mpr ⟨b, hb, Finsupp.mem_support_iff.mpr hbi⟩
+      exact Finset.disjoint_left.mp hd m1 m2
+
+theorem MLSupp_X (v : Fin N) : MLSupp (X v : MvPolynomial (Fin N) F) := by
+  intro s hs i
+  rw [X, support_monomial, if_neg one_ne_zero, Finset.mem_singleton] at hs
+  subst hs; rw [Finsupp.single_apply]; split_ifs <;> omega
+
+theorem MLSupp_one_sub_X (v : Fin N) : MLSupp (1 - X v : MvPolynomial (Fin N) F) := by
+  intro s hs i
+  have := support_sub (Fin N) (1 : MvPolynomial (Fin N) F) (X v) hs
+  rcases Finset.mem_union.mp this with h | h
+  · rw [← C_1, C_apply, support_monomial, if_neg one_ne_zero, Finset.mem_singleton] at h
+    subst h; simp
+  · exact MLSupp_X v s h i
+
+theorem yFactor_props (S : Finset (Fin m)) (j : Fin m) :
+    MLSupp (yFactor (F := F) S j) ∧ (yFactor (F := F) S j).vars ⊆ {Fin.natAdd m j} := by
+  unfold yFactor
+  split_ifs
+  · exact ⟨MLSupp_X _, by rw [vars_X]⟩
+  · refine ⟨MLSupp_one_sub_X _, (vars_sub_subset _).trans ?_⟩
+    rw [vars_one, vars_X]; simp
+
+theorem prod_yFactor_props (S : Finset (Fin m)) (s : Finset (Fin m)) :
+    MLSupp (∏ j ∈ s, yFactor (F := F) S j) ∧
+      (∏ j ∈ s, yFactor (F := F) S j).vars ⊆ s.image (Fin.natAdd m) := by
+  induction s using Finset.induction_on with
+  | empty =>
+    refine ⟨?_, by simp [vars_one]⟩
+    intro t ht
+    rw [Finset.prod_empty, ← C_1, C_apply, support_monomial, if_neg one_ne_zero,
+      Finset.mem_singleton] at ht
+    subst ht
+    intro i; simp
+  | insert a s ha ih =>
+    rw [Finset.prod_insert ha]
+    obtain ⟨h1, h2⟩ := yFactor_props (F := F) S a
+    refine ⟨MLSupp_mul h1 ih.1 ?_, (vars_mul _ _).trans ?_⟩
+    · refine Finset.disjoint_left.mpr (fun v hv1 hv2 => ?_)
+      have e1 := Finset.mem_singleton.mp (h2 hv1)
+      obtain ⟨b, hb, e2⟩ := Finset.mem_image.mp (ih.2 hv2)
+      subst e1
+      exact ha ((Fin.natAdd_injective m m e2) ▸ hb)
+    · intro v hv
+      rcases Finset.mem_union.mp hv with h | h
+      · rw [Finset.mem_singleton.mp (h2 h)]; exact Finset.mem_image_of_mem _ (Finset.mem_insert_self _ _)
+      · obtain ⟨b, hb, rfl⟩ := Finset.mem_image.mp (ih.2 h)
+        exact Finset.mem_image_of_mem _ (Finset.mem_insert_of_mem hb)
+
+theorem row_MLSupp (A S : Finset (Fin m)) : MLSupp (xMon (F := F) A * delta S) := by
+  obtain ⟨h1, h2⟩ := prod_yFactor_props (F := F) S Finset.univ
+  refine MLSupp_mul ?_ h1 ?_
+  · intro s hs; rw [xMon, support_monomial, if_neg one_ne_zero, Finset.mem_singleton] at hs
+    subst hs; exact xExp_multilinear A
+  · refine Finset.disjoint_left.mpr (fun v hv1 hv2 => ?_)
+    rw [xMon, vars_monomial one_ne_zero] at hv1
+    obtain ⟨j, -, rfl⟩ := Finset.mem_image.mp (h2 hv2)
+    exact (Finsupp.mem_support_iff.mp hv1) (xExp_apply_natAdd A j)
+
+theorem convML_of_MLSupp (c : Conv) {q : MvPolynomial (Fin N) F} (h : MLSupp q) :
+    convML c q = q := by
+  cases c with
+  | drop =>
+    change Finsupp.filter _ q = q
+    rw [Finsupp.filter_eq_self_iff]
+    intro s hs; exact h s (Finsupp.mem_support_iff.mpr hs)
+  | reduce =>
+    change Finsupp.mapDomain redExp q = q
+    rw [show Finsupp.mapDomain redExp q = Finsupp.mapDomain id q from
+      Finsupp.mapDomain_congr (fun s hs => redExp_of_multilinear (h s hs)), Finsupp.mapDomain_id]
+
+/-! ### derivatives -/
+
+theorem iterDerivList_add (L : List (Fin N)) (p q : MvPolynomial (Fin N) F) :
+    iterDerivList L (p + q) = iterDerivList L p + iterDerivList L q := by
+  induction L generalizing p q with
+  | nil => rfl
+  | cons i L ih => rw [iterDerivList_cons, iterDerivList_cons, iterDerivList_cons, map_add, ih]
+
+theorem iterDerivList_sum {ι : Type*} (s : Finset ι) (f : ι → MvPolynomial (Fin N) F)
+    (L : List (Fin N)) : iterDerivList L (∑ i ∈ s, f i) = ∑ i ∈ s, iterDerivList L (f i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    rw [Finset.sum_empty, Finset.sum_empty]; exact iterDerivList_zero L
+  | insert a s ha ih => rw [Finset.sum_insert ha, Finset.sum_insert ha, iterDerivList_add, ih]
+
+theorem pderiv_castAdd_delta (S : Finset (Fin m)) (i : Fin m) :
+    pderiv (Fin.castAdd m i) (delta (F := F) S) = 0 := by
+  apply pderiv_eq_zero_of_notMem_vars
+  intro hv
+  obtain ⟨j, -, h⟩ := Finset.mem_image.mp ((prod_yFactor_props (F := F) S Finset.univ).2 hv)
+  exact castAdd_ne_natAdd i j h.symm
+
+theorem iterDerivList_mul_delta (S : Finset (Fin m)) (L : List (Fin (m + m)))
+    (hL : ∀ v ∈ L, ∃ i, v = Fin.castAdd m i) (g : MvPolynomial (Fin (m + m)) F) :
+    iterDerivList L (g * delta S) = iterDerivList L g * delta S := by
+  induction L generalizing g with
+  | nil => rfl
+  | cons v L ih =>
+    rw [iterDerivList_cons, iterDerivList_cons]
+    obtain ⟨i, rfl⟩ := hL v (List.mem_cons_self ..)
+    rw [Derivation.leibniz, pderiv_castAdd_delta, smul_zero, zero_add, smul_eq_mul, mul_comm]
+    exact ih (fun w hw => hL w (List.mem_cons_of_mem _ hw)) _
+
+/-- The derivative list for `τ = 1_S` on the x-block. -/
+noncomputable def xList (S : Finset (Fin m)) : List (Fin (m + m)) :=
+  (Finsupp.toMultiset (xExp S)).toList
+
+theorem xList_coe (S : Finset (Fin m)) :
+    ((xList S : List (Fin (m + m))) : Multiset (Fin (m + m))) = S.val.map (Fin.castAdd m) := by
+  rw [xList, Multiset.coe_toList, xExp, Multiset.toFinsupp_toMultiset]
+
+theorem xList_mem (S : Finset (Fin m)) : ∀ v ∈ xList S, ∃ i, v = Fin.castAdd m i := by
+  intro v hv
+  have : v ∈ ((xList S : List (Fin (m + m))) : Multiset (Fin (m + m))) := Multiset.mem_coe.mpr hv
+  rw [xList_coe] at this
+  obtain ⟨i, -, rfl⟩ := Multiset.mem_map.mp this
+  exact ⟨i, rfl⟩
+
+theorem xList_nodup (S : Finset (Fin m)) : (xList S).Nodup := by
+  have : ((xList S : List (Fin (m + m))) : Multiset (Fin (m + m))).Nodup := by
+    rw [xList_coe]; exact S.nodup.map (Fin.castAdd_injective m m)
+  exact Multiset.coe_nodup.mp this
+
+theorem xExp_eq_ofList (S : Finset (Fin m)) :
+    xExp S = Multiset.toFinsupp ((xList S : List (Fin (m + m))) : Multiset (Fin (m + m))) := by
+  rw [xList_coe]; rfl
+
+theorem iterDerivList_xMon (S S' : Finset (Fin m)) (hcard : S'.card = S.card) :
+    iterDerivList (xList S) (xMon (F := F) S') = if S' = S then 1 else 0 := by
+  split_ifs with h
+  · subst h
+    have := iterDerivList_monomial_nodup (F := F) (xList S') (xList_nodup S') 0 (fun _ _ => rfl) 1
+    rw [add_zero, ← xExp_eq_ofList] at this
+    rw [xMon, this]; rfl
+  · have hns : ¬ S ⊆ S' := fun hs => h (Finset.eq_of_subset_of_card_le hs (by omega)).symm
+    obtain ⟨i, hiS, hiS'⟩ := Finset.not_subset.mp hns
+    have hmem : Fin.castAdd m i ∈ xList S := by
+      rw [← Multiset.mem_coe, xList_coe]; exact Multiset.mem_map_of_mem _ hiS
+    rw [iterDerivList_perm (List.perm_cons_erase hmem), iterDerivList_cons, xMon, pderiv_monomial,
+      xExp_apply_castAdd, if_neg hiS', Nat.cast_zero, mul_zero, monomial_zero, iterDerivList_zero]
+
+theorem pderivMulti_subsetPoly (κ : ℕ) (S : Finset (Fin m)) (hS : S.card = κ) :
+    pderivMulti (xExp S) (subsetPoly (F := F) m κ) = delta S := by
+  unfold pderivMulti subsetPoly
+  change iterDerivList (xList S) _ = _
+  rw [iterDerivList_sum]
+  rw [Finset.sum_congr rfl (fun S' hS' => by
+    rw [iterDerivList_mul_delta S' (xList S) (xList_mem S),
+      iterDerivList_xMon S S' (by rw [(Finset.mem_powersetCard.mp hS').2, hS])])]
+  simp only [ite_mul, one_mul, zero_mul]
+  rw [Finset.sum_ite_eq']
+  rw [if_pos (Finset.mem_powersetCard.mpr ⟨Finset.subset_univ _, hS⟩)]
+
+/-! ### evaluation maps `y := 1_T` -/
+
+noncomputable def yEval (T : Finset (Fin m)) :
+    MvPolynomial (Fin (m + m)) F →ₐ[F] MvPolynomial (Fin (m + m)) F :=
+  aeval (Fin.addCases (fun i => X (Fin.castAdd m i)) (fun j => if j ∈ T then 1 else 0))
+
+theorem yEval_delta (S T : Finset (Fin m)) :
+    yEval (F := F) T (delta S) = if S = T then 1 else 0 := by
+  rw [delta, map_prod]
+  have hf : ∀ j, yEval (F := F) T (yFactor S j) =
+      if j ∈ S then (if j ∈ T then 1 else 0) else 1 - (if j ∈ T then 1 else 0) := by
+    intro j
+    unfold yFactor yEval
+    by_cases hS : j ∈ S <;> by_cases hT : j ∈ T <;>
+      simp only [hS, hT, if_true, if_false, map_sub, map_one, aeval_X, Fin.addCases_right]
+  simp only [hf]
+  split_ifs with hST
+  · subst hST
+    exact Finset.prod_eq_one (fun j _ => by split_ifs <;> simp)
+  · obtain ⟨j, hj⟩ : ∃ j, ¬ (j ∈ S ↔ j ∈ T) := by
+      by_contra hc; push_neg at hc; exact hST (Finset.ext hc)
+    exact Finset.prod_eq_zero (Finset.mem_univ j) (by
+      by_cases a : j ∈ S <;> by_cases b : j ∈ T <;> simp_all)
+
+theorem yEval_xMon (T A : Finset (Fin m)) : yEval (F := F) T (xMon A) = xMon A := by
+  rw [xMon, yEval, aeval_monomial, map_one, one_mul, monomial_eq, map_one, one_mul]
+  apply Finsupp.prod_congr
+  intro v hv
+  congr 1
+  revert hv
+  refine Fin.addCases (fun i _ => ?_) (fun j hj => ?_) v
+  · simp
+  · exact absurd (xExp_apply_natAdd A j) (Finsupp.mem_support_iff.mp hj)
+
+/-- **G4-b, kernel-checked.** For the linear-time function `f(x,y) = [|y| = κ ∧ y ≤ x]` on
+`N = 2m` variables (characteristic polynomial `subsetPoly m κ`), under BOTH conventions and
+every block partition, with `κ ≤ m` and any `ℓ`:
+`C(m, κ) · Σ_{j ≤ ℓ} C(m, j) ≤ Γ^B_{κ,ℓ}(subsetPoly m κ)` (Def. 12). -/
+theorem subset_def12_lower (c : Conv) (B : BlockPartition (m + m)) (κ ℓ : ℕ) (hκ : κ ≤ m) :
+    m.choose κ * ∑ j ∈ Finset.range (ℓ + 1), m.choose j
+      ≤ def12Rank c B κ ℓ (subsetPoly (F := F) m κ) := by
+  obtain ⟨S0, hS0⟩ : ∃ S0 : Finset (Fin m), S0.card = κ :=
+    Finset.exists_subset_card_eq (s := Finset.univ) (by simpa using hκ) |>.imp fun _ h => h.2
+  -- the degree guard does not fire
+  have hguard : ¬ (subsetPoly (F := F) m κ).totalDegree + ℓ < κ := by
+    intro hlt
+    have h0 := iterDerivList_eq_zero_of_lt (xList S0) (subsetPoly (F := F) m κ) (by
+      rw [xList, length_toList_toMultiset, xExp_weight, hS0]; omega)
+    have h1 := pderivMulti_subsetPoly (F := F) κ S0 hS0
+    unfold pderivMulti at h1
+    change iterDerivList (xList S0) _ = _ at h1
+    rw [h0] at h1
+    have := congrArg (yEval (F := F) S0) h1
+    rw [map_zero, yEval_delta, if_pos rfl] at this
+    exact zero_ne_one this
+  unfold def12Rank
+  rw [if_neg hguard]
+  let η := {S : Finset (Fin m) // S.card = κ}
+  let ι : η → Type := fun _ => {A : Finset (Fin m) // A.card ≤ ℓ}
+  let v : (Σ S : η, ι S) → MvPolynomial (Fin (m + m)) F := fun a => xMon a.2.1 * delta a.1.1
+  -- linear independence via Ψ q = (yEval T q)_T
+  let Ψ : MvPolynomial (Fin (m + m)) F →ₗ[F] (η → MvPolynomial (Fin (m + m)) F) :=
+    LinearMap.pi (fun T : η => (yEval (F := F) T.1).toLinearMap)
+  have hxli : ∀ S : η, LinearIndependent F (fun A : ι S => (xMon (F := F) A.1)) := by
+    intro S
+    have := (MvPolynomial.basisMonomials (Fin (m + m)) F).linearIndependent.comp
+      (fun A : ι S => xExp A.1) (fun a b hab => Subtype.ext (xExp_injective hab))
+    convert this using 1
+  have hli : LinearIndependent F v := by
+    apply LinearIndependent.of_comp Ψ
+    have hc : Ψ ∘ v = fun a => Pi.single a.1 (xMon (F := F) a.2.1) := by
+      funext a; funext T
+      simp only [Function.comp_apply, Ψ, v, LinearMap.pi_apply, AlgHom.toLinearMap_apply,
+        map_mul, yEval_xMon, yEval_delta, Pi.single_apply]
+      by_cases h : a.1 = T
+      · subst h; simp
+      · rw [if_neg (fun h' => h (Subtype.ext h')), if_neg (Ne.symm h), mul_zero]
+    rw [hc]
+    exact Pi.linearIndependent_single (fun S (A : ι S) => xMon (F := F) A.1) hxli
+  have hsub : Submodule.span F (Set.range v) ≤ def12Span c B κ ℓ (subsetPoly (F := F) m κ) := by
+    apply Submodule.span_le.mpr
+    rintro q ⟨⟨S, A⟩, rfl⟩
+    apply Submodule.subset_span
+    have hτ : weight (xExp S.1) = κ := by rw [xExp_weight, S.2]
+    have hu : weight (xExp A.1) ≤ ℓ := by rw [xExp_weight]; exact A.2
+    refine ⟨xExp S.1, xExp A.1, hτ, blockCondition_vacuous B _ hτ, hu, ?_⟩
+    rw [row_colRestrict_eq c _ _ _ hτ hu, pderivMulti_subsetPoly κ S.1 S.2]
+    change xMon A.1 * delta S.1 = _
+    exact (convML_of_MLSupp c (row_MLSupp A.1 S.1)).symm
+  have h1 := Submodule.finrank_mono hsub
+  rw [finrank_span_eq_card hli] at h1
+  refine le_trans (le_of_eq ?_) h1
+  have e1 : Fintype.card {A : Finset (Fin m) // A.card ≤ ℓ} = ∑ j ∈ Finset.range (ℓ + 1), m.choose j := by
+    rw [Fintype.card_subtype, card_small_finsets]
+  have e2 : Fintype.card η = m.choose κ := by
+    change Fintype.card {S : Finset (Fin m) // S.card = κ} = _
+    rw [Fintype.card_finset_len, Fintype.card_fin]
+  rw [Fintype.card_sigma]
+  change _ = ∑ _S : η, Fintype.card {A : Finset (Fin m) // A.card ≤ ℓ}
+  rw [Finset.sum_const, Finset.card_univ, e1, e2, smul_eq_mul]
+
+/-- **Lemma 18 fails for an infinite family of Boolean (characteristic) polynomials**, under
+both conventions: for `N = 2m`, `m ≥ 4`, `κ = ℓ = 1`, Lemma 18's bound `C(N,ℓ)·2^ℓ` is exceeded. -/
+theorem lemma18_fails_subset_family (c : Conv) (B : BlockPartition (m + m)) (hm : 4 ≤ m) :
+    (m + m).choose 1 * 2 ^ 1 < def12Rank c B 1 1 (subsetPoly (F := F) m 1) := by
+  have h := subset_def12_lower (F := F) c B 1 1 (by omega)
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, Nat.choose_zero_right,
+    Nat.choose_one_right, zero_add] at h
+  rw [Nat.choose_one_right]
+  refine lt_of_lt_of_le ?_ h
+  nlinarith
+
+end Subset
+
 end Def12Measure
 
 #print axioms Def12Measure.blockCondition_vacuous
@@ -599,3 +941,6 @@ end Def12Measure
 #print axioms Def12Measure.andPoly_eq_prod
 #print axioms Def12Measure.card_small_finsets
 #print axioms Def12Measure.and_def12_lower
+#print axioms Def12Measure.pderivMulti_subsetPoly
+#print axioms Def12Measure.subset_def12_lower
+#print axioms Def12Measure.lemma18_fails_subset_family

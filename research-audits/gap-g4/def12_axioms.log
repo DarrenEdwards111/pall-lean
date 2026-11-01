@@ -23,3 +23,6 @@ Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 'Def12Measure.andPoly_eq_prod' depends on axioms: [propext, Classical.choice, Quot.sound]
 'Def12Measure.card_small_finsets' depends on axioms: [propext, Classical.choice, Quot.sound]
 'Def12Measure.and_def12_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.pderivMulti_subsetPoly' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.subset_def12_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Def12Measure.lemma18_fails_subset_family' depends on axioms: [propext, Classical.choice, Quot.sound]

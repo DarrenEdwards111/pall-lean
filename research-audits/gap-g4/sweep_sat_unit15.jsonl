@@ -1,0 +1,4 @@
+{"N": 15, "kappa": 1, "l": 1, "f": "SAT", "deg": 15, "lean": 30, "lean_how": "exact", "D": 15, "drop": 202, "drop_how": "exact", "reduce": 190, "reduce_how": "exact", "cols": 32768, "rows_def12": 240, "rows_lean": 30, "subset_lb": 56}
+{"N": 15, "kappa": 1, "l": 1, "f": "SUBSET", "deg": 8, "lean": 28, "lean_how": "exact", "D": 8, "drop": 196, "drop_how": "exact", "reduce": 168, "reduce_how": "exact", "cols": 22819, "rows_def12": 240, "rows_lean": 30, "subset_lb": 56}
+{"N": 15, "kappa": 1, "l": 1, "f": "SCANNER", "deg": 15, "lean": 29, "lean_how": "exact", "D": 15, "drop": 133, "drop_how": "exact", "reduce": 133, "reduce_how": "exact", "cols": 32768, "rows_def12": 240, "rows_lean": 30, "subset_lb": 56}
+{"N": 15, "kappa": 1, "l": 1, "f": "RAND0", "deg": 15, "lean": 30, "lean_how": "exact", "D": 15, "drop": 240, "drop_how": "modp", "reduce": 240, "reduce_how": "modp", "cols": 32768, "rows_def12": 240, "rows_lean": 30, "subset_lb": 56}
